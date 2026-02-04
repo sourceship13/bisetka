@@ -1,17 +1,24 @@
 import React from 'react';
 import {View, Text, TouchableOpacity, StyleSheet, SafeAreaView} from 'react-native';
+import {useAuth} from '../context/AuthContext';
 
 const HomeScreen = ({navigation}: any) => {
-  const handleLogout = () => {
-    // TODO: Implement actual logout logic
-    console.log('Logout pressed');
-    // navigation.navigate('Login');
+  const {user, signOut} = useAuth();
+
+  const handleLogout = async () => {
+    await signOut();
   };
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
         <Text style={styles.title}>Welcome to Bisetka!</Text>
+        {user?.fullName.givenName && (
+          <Text style={styles.userName}>
+            {user.fullName.givenName} {user.fullName.familyName}
+          </Text>
+        )}
+        {user?.email && <Text style={styles.email}>{user.email}</Text>}
         <Text style={styles.subtitle}>You're signed in</Text>
 
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
@@ -34,6 +41,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   title: {
+  userName: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  email: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
     fontSize: 28,
     fontWeight: 'bold',
     color: '#000',
