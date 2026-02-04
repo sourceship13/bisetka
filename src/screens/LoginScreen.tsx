@@ -8,17 +8,35 @@ import {
   SafeAreaView,
   KeyboardAvoidingView,
   Platform,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
+import {useAuth} from '../context/AuthContext';
+import AuthService from '../services/AuthService';
 
 const LoginScreen = ({navigation}: any) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const {signInWithApple} = useAuth();
 
   const handleLogin = () => {
     // TODO: Implement actual login logic
     console.log('Login pressed', {email, password});
     // For now, just navigate to home (you'll add auth logic later)
     // navigation.navigate('Home');
+  };
+
+  const handleAppleSignIn = async () => {
+    try {
+      setLoading(true);
+      await signInWithApple();
+      // Navigation happens automatically when user state changes
+    } catch (error: any) {
+      Alert.alert('Sign In Failed', error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -57,6 +75,32 @@ const LoginScreen = ({navigation}: any) => {
           <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
             <Text style={styles.loginButtonText}>Sign In</Text>
           </TouchableOpacity>
+
+          {AuthService.isAppleAuthAvailable() && (
+            <>
+              <View style={styles.divider}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>or</Text>
+                <View style={styles.dividerLine} />
+              </View>
+
+              <TouchableOpacity
+                style={styles.appleButton}
+                onPress={handleAppleSignIn}
+                disabled={loading}>
+                {loading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <>
+                    <Text style={styles.appleButtonIcon}></Text>
+                    <Text style={styles.appleButtonText}>
+                      Sign in with Apple
+                    </Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </>
+          )}
 
           <TouchableOpacity style={styles.forgotPassword}>
             <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
@@ -98,6 +142,40 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666',
     marginBottom: 48,
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 24,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#e0e0e0',
+  },
+  dividerText: {
+    marginHorizontal: 16,
+    color: '#666',
+    fontSize: 14,
+  },
+  appleButton: {
+    backgroundColor: '#000',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    marginBottom: 16,
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
+  appleButtonIcon: {
+    fontSize: 20,
+    color: '#fff',
+    marginRight: 8,
+  },
+  appleButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
     textAlign: 'center',
   },
   inputContainer: {

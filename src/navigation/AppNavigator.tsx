@@ -1,8 +1,10 @@
-import React, {useState} from 'react';
+import React from 'react';
 import {NavigationContainer} from '@react-navigation/native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import LoginScreen from '../screens/LoginScreen';
 import HomeScreen from '../screens/HomeScreen';
+import {useAuth} from '../context/AuthContext';
+import {ActivityIndicator, View, StyleSheet} from 'react-native';
 
 export type RootStackParamList = {
   Login: undefined;
@@ -12,8 +14,15 @@ export type RootStackParamList = {
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 const AppNavigator = () => {
-  // TODO: Replace with actual auth state management (Context API, Redux, etc.)
-  const [isSignedIn, setIsSignedIn] = useState(false);
+  const {user, isLoading} = useAuth();
+
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#007AFF" />
+      </View>
+    );
+  }
 
   return (
     <NavigationContainer>
@@ -21,7 +30,7 @@ const AppNavigator = () => {
         screenOptions={{
           headerShown: false,
         }}>
-        {!isSignedIn ? (
+        {!user ? (
           // Auth Stack - User is NOT signed in
           <Stack.Screen name="Login" component={LoginScreen} />
         ) : (
@@ -32,5 +41,14 @@ const AppNavigator = () => {
     </NavigationContainer>
   );
 };
+
+const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+  },
+});
 
 export default AppNavigator;
