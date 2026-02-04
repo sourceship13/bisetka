@@ -17,6 +17,9 @@ end
 target 'bisetka' do
   config = use_native_modules!
 
+  # Manually add RNWorklets since autolinking isn't picking it up
+  pod 'RNWorklets', :path => '../node_modules/react-native-worklets'
+
   use_react_native!(
     :path => config[:reactNativePath],
     # An absolute path to your application root.
