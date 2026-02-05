@@ -17,7 +17,7 @@ end
 target 'bisetka' do
   config = use_native_modules!
 
-  # Manually add RNWorklets since autolinking isn't picking it up
+  # RNWorklets is a dependency of RNReanimated and needs explicit linking
   pod 'RNWorklets', :path => '../node_modules/react-native-worklets'
 
   use_react_native!(
