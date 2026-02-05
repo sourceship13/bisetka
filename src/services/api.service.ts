@@ -20,14 +20,9 @@ export interface AuthResponse {
 }
 
 export interface AppleAuthRequest {
-  identityToken: string;
-  authorizationCode: string;
-  user: string;
+  idToken: string;
   email: string | null;
-  fullName: {
-    givenName: string | null;
-    familyName: string | null;
-  };
+  fullName?: string;
 }
 
 export interface GoogleAuthRequest {
