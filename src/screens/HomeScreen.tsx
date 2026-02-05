@@ -1,5 +1,5 @@
 import React from 'react';
-import {View, Text, TouchableOpacity, StyleSheet, SafeAreaView} from 'react-native';
+import {View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ScrollView} from 'react-native';
 import {useAuth} from '../context/AuthContext';
 
 const HomeScreen = ({navigation}: any) => {
@@ -9,22 +9,49 @@ const HomeScreen = ({navigation}: any) => {
     await signOut();
   };
 
+  const games = [
+    { id: 'blot', name: 'Blot', description: 'Classic Armenian card game', screen: 'Blot' },
+    { id: 'baazar-blot', name: 'Baazar Blot', description: 'Fast-paced Blot variant', screen: 'BaazarBlot' },
+    { id: 'nardi', name: 'Nardi', description: 'Armenian backgammon', screen: 'Nardi' },
+    { id: 'mrotsi', name: 'Mrotsi', description: 'Traditional dice game', screen: 'Mrotsi' },
+  ];
+
+  const handleGamePress = (screenName: string) => {
+    navigation.navigate(screenName);
+  };
+
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        <Text style={styles.title}>Welcome to Bisetka!</Text>
-        {user?.fullName?.givenName && (
-          <Text style={styles.userName}>
-            {user.fullName.givenName} {user.fullName.familyName}
-          </Text>
-        )}
-        {user?.email && <Text style={styles.email}>{user.email}</Text>}
-        <Text style={styles.subtitle}>You're signed in</Text>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={styles.header}>
+          <Text style={styles.title}>Welcome to Bisetka!</Text>
+          {user?.fullName?.givenName && (
+            <Text style={styles.userName}>
+              {user.fullName.givenName} {user.fullName.familyName}
+            </Text>
+          )}
+          {user?.email && <Text style={styles.email}>{user.email}</Text>}
+        </View>
+
+        <View style={styles.gamesContainer}>
+          <Text style={styles.sectionTitle}>Choose a Game</Text>
+          {games.map((game) => (
+            <TouchableOpacity
+              key={game.id}
+              style={styles.gameCard}
+              onPress={() => handleGamePress(game.screen)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.gameName}>{game.name}</Text>
+              <Text style={styles.gameDescription}>{game.description}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
 
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
           <Text style={styles.logoutButtonText}>Sign Out</Text>
         </TouchableOpacity>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -32,13 +59,15 @@ const HomeScreen = ({navigation}: any) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#f5f5f5',
   },
-  content: {
-    flex: 1,
-    justifyContent: 'center',
+  scrollContent: {
+    paddingHorizontal: 20,
+    paddingVertical: 24,
+  },
+  header: {
     alignItems: 'center',
-    paddingHorizontal: 24,
+    marginBottom: 32,
   },
   title: {
     fontSize: 28,
@@ -48,7 +77,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   userName: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '600',
     color: '#333',
     marginBottom: 4,
@@ -57,21 +86,44 @@ const styles = StyleSheet.create({
   email: {
     fontSize: 14,
     color: '#666',
-    marginBottom: 8,
     textAlign: 'center',
   },
-  subtitle: {
-    fontSize: 16,
+  gamesContainer: {
+    marginBottom: 32,
+  },
+  sectionTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#000',
+    marginBottom: 16,
+  },
+  gameCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  gameName: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#000',
+    marginBottom: 4,
+  },
+  gameDescription: {
+    fontSize: 14,
     color: '#666',
-    marginBottom: 48,
-    textAlign: 'center',
   },
   logoutButton: {
     backgroundColor: '#FF3B30',
     borderRadius: 12,
     padding: 16,
-    paddingHorizontal: 48,
     alignItems: 'center',
+    marginTop: 16,
   },
   logoutButtonText: {
     color: '#fff',
