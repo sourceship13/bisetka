@@ -1,21 +1,25 @@
 import React, {createContext, useState, useContext, useEffect} from 'react';
 import AuthService, {AppleAuthResponse} from '../services/AuthService';
+import apiService from '../services/api.service';
 import {Platform} from 'react-native';
 import appleAuth from '@invertase/react-native-apple-authentication';
 
 interface User {
   id: string;
   email: string | null;
-  fullName: {
+  fullName?: {
     givenName: string | null;
     familyName: string | null;
   };
+  token?: string;
 }
 
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   signInWithApple: () => Promise<void>;
+  signInWithEmail: (email: string, password: string) => Promise<void>;
+  signUpWithEmail: (email: string, password: string, fullName?: {givenName: string; familyName: string}) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -34,14 +38,16 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({
 
     // Set up credential revoked listener for iOS
     if (Platform.OS === 'ios' && AuthService.isAppleAuthAvailable()) {
-      const listener = appleAuth.onCredentialRevoked(async () => {
+      const unsubscribe = appleAuth.onCredentialRevoked(async () => {
         console.warn('Apple credentials revoked');
         setUser(null);
         // TODO: Clear stored user data
       });
 
       return () => {
-        listener.remove();
+        if (unsubscribe) {
+          unsubscribe();
+        }
       };
     }
   }, []);
@@ -49,23 +55,95 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({
   const signInWithApple = async () => {
     try {
       setIsLoading(true);
-      const response: AppleAuthResponse =
+      
+      // Step 1: Get Apple credentials from device
+      const appleResponse: AppleAuthResponse =
         await AuthService.signInWithApple();
 
-      // Create user object
+      console.log('🍎 Apple Sign In successful, sending to backend...');
+
+      // Step 2: Send to backend for verification and user creation/login
+      const backendResponse = await apiService.appleSignIn({
+        identityToken: appleResponse.identityToken,
+        authorizationCode: appleResponse.authorizationCode,
+        user: appleResponse.user,
+        email: appleResponse.email,
+        fullName: appleResponse.fullName,
+      });
+
+      // Step 3: Set user from backend response
       const newUser: User = {
-        id: response.user,
-        email: response.email,
-        fullName: response.fullName,
+        id: backendResponse.user.id,
+        email: backendResponse.user.email,
+        fullName: backendResponse.user.fullName,
+        token: backendResponse.token,
       };
 
       setUser(newUser);
 
-      // TODO: Store user data securely (AsyncStorage, SecureStore, etc.)
-      // TODO: Send identityToken to your backend for verification
-      console.log('Apple Sign In successful:', newUser);
+      // TODO: Store user data and token securely (AsyncStorage, SecureStore, etc.)
+      console.log('✅ Backend authentication successful:', newUser);
     } catch (error: any) {
-      console.error('Apple Sign In error:', error.message);
+      console.error('❌ Apple Sign In error:', error.message || error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const signInWithEmail = async (email: string, password: string) => {
+    try {
+      setIsLoading(true);
+      console.log('📧 Email Sign In, sending to backend...');
+
+      const backendResponse = await apiService.login({
+        email,
+        password,
+      });
+
+      const newUser: User = {
+        id: backendResponse.user.id,
+        email: backendResponse.user.email,
+        fullName: backendResponse.user.fullName,
+        token: backendResponse.token,
+      };
+
+      setUser(newUser);
+      console.log('✅ Email Sign In successful:', newUser);
+    } catch (error: any) {
+      console.error('❌ Email Sign In error:', error.message || error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const signUpWithEmail = async (
+    email: string,
+    password: string,
+    fullName?: {givenName: string; familyName: string},
+  ) => {
+    try {
+      setIsLoading(true);
+      console.log('📝 Email Sign Up, sending to backend...');
+
+      const backendResponse = await apiService.register({
+        email,
+        password,
+        fullName,
+      });
+
+      const newUser: User = {
+        id: backendResponse.user.id,
+        email: backendResponse.user.email,
+        fullName: backendResponse.user.fullName,
+        token: backendResponse.token,
+      };
+
+      setUser(newUser);
+      console.log('✅ Email Sign Up successful:', newUser);
+    } catch (error: any) {
+      console.error('❌ Email Sign Up error:', error.message || error);
       throw error;
     } finally {
       setIsLoading(false);
@@ -91,6 +169,8 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({
         user,
         isLoading,
         signInWithApple,
+        signInWithEmail,
+        signUpWithEmail,
         signOut,
       }}>
       {children}
