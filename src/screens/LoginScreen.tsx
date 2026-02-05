@@ -18,13 +18,23 @@ const LoginScreen = ({navigation}: any) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const {signInWithApple} = useAuth();
+  const {signInWithApple, signInWithEmail} = useAuth();
 
-  const handleLogin = () => {
-    // TODO: Implement actual login logic
-    console.log('Login pressed', {email, password});
-    // For now, just navigate to home (you'll add auth logic later)
-    // navigation.navigate('Home');
+  const handleLogin = async () => {
+    if (!email || !password) {
+      Alert.alert('Error', 'Please enter email and password');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await signInWithEmail(email, password);
+      // Navigation happens automatically when user state changes
+    } catch (error: any) {
+      Alert.alert('Login Failed', error.message || 'Please check your credentials');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleAppleSignIn = async () => {
@@ -72,8 +82,15 @@ const LoginScreen = ({navigation}: any) => {
             />
           </View>
 
-          <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-            <Text style={styles.loginButtonText}>Sign In</Text>
+          <TouchableOpacity 
+            style={styles.loginButton} 
+            onPress={handleLogin}
+            disabled={loading}>
+            {loading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.loginButtonText}>Sign In</Text>
+            )}
           </TouchableOpacity>
 
           {AuthService.isAppleAuthAvailable() && (
@@ -142,6 +159,32 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666',
     marginBottom: 48,
+    textAlign: 'center',
+  },
+  inputContainer: {
+    marginBottom: 24,
+  },
+  input: {
+    backgroundColor: '#f5f5f5',
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  loginButton: {
+    backgroundColor: '#007AFF',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  loginButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
   divider: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -172,32 +215,6 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   appleButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-    textAlign: 'center',
-  },
-  inputContainer: {
-    marginBottom: 24,
-  },
-  input: {
-    backgroundColor: '#f5f5f5',
-    borderRadius: 12,
-    padding: 16,
-    fontSize: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-  },
-  loginButton: {
-    backgroundColor: '#007AFF',
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  loginButtonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',

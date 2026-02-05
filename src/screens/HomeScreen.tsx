@@ -13,7 +13,7 @@ const HomeScreen = ({navigation}: any) => {
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
         <Text style={styles.title}>Welcome to Bisetka!</Text>
-        {user?.fullName.givenName && (
+        {user?.fullName?.givenName && (
           <Text style={styles.userName}>
             {user.fullName.givenName} {user.fullName.familyName}
           </Text>
@@ -41,6 +41,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   title: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#000',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
   userName: {
     fontSize: 20,
     fontWeight: '600',
@@ -51,12 +57,6 @@ const styles = StyleSheet.create({
   email: {
     fontSize: 14,
     color: '#666',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#000',
     marginBottom: 8,
     textAlign: 'center',
   },
