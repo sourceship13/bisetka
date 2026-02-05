@@ -56,22 +56,32 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({
     try {
       setIsLoading(true);
       
-      // Step 1: Get Apple credentials from device
-      const appleResponse: AppleAuthResponse =
-        await AuthService.signInWithApple();
-
-      console.log('🍎 Apple Sign In successful, sending to backend...');
-
-      // Step 2: Send to backend for verification and user creation/login
-      const backendResponse = await apiService.appleSignIn({
-        identityToken: appleResponse.identityToken,
-        authorizationCode: appleResponse.authorizationCode,
-        user: appleResponse.user,
-        email: appleResponse.email,
-        fullName: appleResponse.fullName,
+      // Perform Apple Sign In request
+      const appleAuthRequestResponse = await appleAuth.performRequest({
+        requestedOperation: appleAuth.Operation.LOGIN,
+        requestedScopes: [appleAuth.Scope.EMAIL, appleAuth.Scope.FULL_NAME],
       });
 
-      // Step 3: Set user from backend response
+      // Get the identity token
+      const { identityToken, email, fullName } = appleAuthRequestResponse;
+
+      if (!identityToken) {
+        throw new Error('No identity token returned');
+      }
+
+      console.log('🍎 Apple Sign In successful, sending to backend...');
+      console.log('Identity token:', identityToken);
+      console.log('Email:', email);
+      console.log('Full name:', fullName);
+
+      // Send to your backend
+      const backendResponse = await apiService.appleSignIn({
+        idToken: identityToken,
+        email: email,
+        fullName: fullName ? `${fullName.givenName} ${fullName.familyName}` : undefined,
+      });
+
+      // Set user from backend response
       const newUser: User = {
         id: backendResponse.user.id,
         email: backendResponse.user.email,
