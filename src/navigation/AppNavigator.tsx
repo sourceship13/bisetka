@@ -1,6 +1,7 @@
 import React from 'react';
 import {NavigationContainer} from '@react-navigation/native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
+import {SafeAreaProvider} from 'react-native-safe-area-context';
 import LoginScreen from '../screens/LoginScreen';
 import HomeScreen from '../screens/HomeScreen';
 import {useAuth} from '../context/AuthContext';
@@ -18,27 +19,31 @@ const AppNavigator = () => {
 
   if (isLoading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
-      </View>
+      <SafeAreaProvider>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#007AFF" />
+        </View>
+      </SafeAreaProvider>
     );
   }
 
   return (
-    <NavigationContainer>
-      <Stack.Navigator
-        screenOptions={{
-          headerShown: false,
-        }}>
-        {!user ? (
-          // Auth Stack - User is NOT signed in
-          <Stack.Screen name="Login" component={LoginScreen} />
-        ) : (
-          // App Stack - User IS signed in
-          <Stack.Screen name="Home" component={HomeScreen} />
-        )}
-      </Stack.Navigator>
-    </NavigationContainer>
+    <SafeAreaProvider>
+      <NavigationContainer>
+        <Stack.Navigator
+          screenOptions={{
+            headerShown: false,
+          }}>
+          {!user ? (
+            // Auth Stack - User is NOT signed in
+            <Stack.Screen name="Login" component={LoginScreen} />
+          ) : (
+            // App Stack - User IS signed in
+            <Stack.Screen name="Home" component={HomeScreen} />
+          )}
+        </Stack.Navigator>
+      </NavigationContainer>
+    </SafeAreaProvider>
   );
 };
 
