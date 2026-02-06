@@ -13,6 +13,7 @@ const HomeScreen = ({navigation}: any) => {
     { id: 'blot', name: 'Blot', description: 'Classic Armenian card game', screen: 'Blot' },
     { id: 'baazar-blot', name: 'Baazar Blot', description: 'Fast-paced Blot variant', screen: 'BaazarBlot' },
     { id: 'nardi', name: 'Nardi', description: 'Armenian backgammon', screen: 'Nardi' },
+    { id: 'chess', name: 'Chess', description: 'Play against computer AI', screen: 'Chess' },
     { id: 'mrotsi', name: 'Mrotsi', description: 'Traditional dice game', screen: 'Mrotsi' },
   ];
 
