@@ -8,6 +8,7 @@ import BlotScreen from '../screens/BlotScreen';
 import BaazarBlotScreen from '../screens/BaazarBlotScreen';
 import NardiScreen from '../screens/NardiScreen';
 import ChessScreen from '../screens/ChessScreen';
+import MultiplayerChessScreen from '../screens/MultiplayerChessScreen';
 import MrotsiScreen from '../screens/MrotsiScreen';
 import {useAuth} from '../context/AuthContext';
 import {ActivityIndicator, View, StyleSheet} from 'react-native';
@@ -19,6 +20,7 @@ export type RootStackParamList = {
   BaazarBlot: undefined;
   Nardi: undefined;
   Chess: undefined;
+  MultiplayerChess: { userId: string };
   Mrotsi: undefined;
 };
 
@@ -54,6 +56,7 @@ const AppNavigator = () => {
               <Stack.Screen name="Blot" component={BlotScreen} />
               <Stack.Screen name="BaazarBlot" component={BaazarBlotScreen} />
               <Stack.Screen name="Chess" component={ChessScreen} />
+              <Stack.Screen name="MultiplayerChess" component={MultiplayerChessScreen} />
               <Stack.Screen name="Nardi" component={NardiScreen} />
               <Stack.Screen name="Mrotsi" component={MrotsiScreen} />
             </>

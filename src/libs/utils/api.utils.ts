@@ -41,7 +41,7 @@ const getLocalURL = () => {
     // Change this to your computer's IP address when backend server is running
     cachedLocalURL = getConfigValue(
       'LOCAL_API_URL',
-      'http://192.168.26.21:3000',
+      'http://192.168.26.26:3000',
     );
   }
   return cachedLocalURL;
@@ -70,10 +70,10 @@ function getBaseURL(env: Environment): string {
     case 'local':
       return getLocalURL();
     case 'staging':
-      return 'http://192.168.26.21:3000'; // Change when staging server is ready
+      return 'http://192.168.26.26:3000'; // Change when staging server is ready
     case 'production':
     default:
-      return 'http://192.168.26.21:3000'; // Change when production server is ready
+      return 'http://192.168.26.26:3000'; // Change when production server is ready
   }
 }
 
