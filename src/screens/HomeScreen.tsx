@@ -10,7 +10,7 @@ const HomeScreen = ({navigation}: any) => {
   };
 
   const games = [
-    { id: 'blot', name: 'Blot', description: 'Classic Armenian card game', screen: 'Blot' },
+    { id: 'blot', name: 'Blot', description: 'Play online, vs AI, or private games', screen: 'Blot' },
     { id: 'baazar-blot', name: 'Baazar Blot', description: 'Fast-paced Blot variant', screen: 'BaazarBlot' },
     { id: 'nardi', name: 'Nardi', description: 'Armenian backgammon', screen: 'Nardi' },
     { id: 'chess', name: 'Chess (vs AI)', description: 'Play against computer AI', screen: 'Chess' },
@@ -19,7 +19,7 @@ const HomeScreen = ({navigation}: any) => {
   ];
 
   const handleGamePress = (screenName: string) => {
-    if (screenName === 'MultiplayerChess') {
+    if (screenName === 'MultiplayerChess' || screenName === 'Blot') {
       // Pass userId for multiplayer games
       navigation.navigate(screenName, { userId: user?.id || 'temp-user' });
     } else {

@@ -61,8 +61,8 @@ const BlotScreen = ({navigation}: any) => {
       if (updatedPlayers[0].hand.length === 0) {
         const roundScore = calculateRoundScore(completedTricks, updatedPlayers, gameState.trump);
         const newGameScore = {
-          team1: gameState.gameScore.team1 + roundScore.team1,
-          team2: gameState.gameScore.team2 + roundScore.team2,
+          team1: (gameState.gameScore.team1 || 0) + (roundScore.team1 || 0),
+          team2: (gameState.gameScore.team2 || 0) + (roundScore.team2 || 0),
         };
 
         // Check for game end
@@ -147,13 +147,13 @@ const BlotScreen = ({navigation}: any) => {
   );
 
   const renderGameEnd = () => {
-    const winner = gameState.gameScore.team1 >= 151 ? 'Team 1' : 'Team 2';
+    const winner = (gameState.gameScore.team1 || 0) >= 151 ? 'Team 1' : 'Team 2';
     return (
       <View style={styles.gameEndContainer}>
         <Text style={styles.gameEndTitle}>Game Over!</Text>
         <Text style={styles.gameEndWinner}>{winner} Wins!</Text>
         <Text style={styles.gameEndScore}>
-          Final Score: {gameState.gameScore.team1} - {gameState.gameScore.team2}
+          Final Score: {gameState.gameScore.team1 || 0} - {gameState.gameScore.team2 || 0}
         </Text>
         <TouchableOpacity style={styles.newGameButton} onPress={startNewGame} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
           <Text style={styles.newGameButtonText}>New Game</Text>
@@ -179,8 +179,8 @@ const BlotScreen = ({navigation}: any) => {
       <View style={styles.scoreBoard}>
         <View style={styles.teamScore}>
           <Text style={styles.teamLabel}>Team 1</Text>
-          <Text style={styles.score}>{gameState.gameScore.team1}</Text>
-          <Text style={styles.roundScore}>+{gameState.scores.team1}</Text>
+          <Text style={styles.score}>{gameState.gameScore.team1 || 0}</Text>
+          <Text style={styles.roundScore}>+{gameState.scores?.team1 || 0}</Text>
         </View>
         {gameState.trump && (
           <View style={styles.trumpDisplay}>
@@ -192,8 +192,8 @@ const BlotScreen = ({navigation}: any) => {
         )}
         <View style={styles.teamScore}>
           <Text style={styles.teamLabel}>Team 2</Text>
-          <Text style={styles.score}>{gameState.gameScore.team2}</Text>
-          <Text style={styles.roundScore}>+{gameState.scores.team2}</Text>
+          <Text style={styles.score}>{gameState.gameScore.team2 || 0}</Text>
+          <Text style={styles.roundScore}>+{gameState.scores?.team2 || 0}</Text>
         </View>
       </View>
 
