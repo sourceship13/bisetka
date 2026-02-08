@@ -2,7 +2,7 @@ import React, {createContext, useState, useContext, useEffect} from 'react';
 import AuthService, {AppleAuthResponse} from '../services/AuthService';
 import apiService from '../services/api.service';
 import {Platform} from 'react-native';
-import appleAuth from '@invertase/react-native-apple-authentication';
+import {appleAuth} from '@invertase/react-native-apple-authentication';
 
 interface User {
   id: string;

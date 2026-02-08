@@ -1,4 +1,4 @@
-import appleAuth from '@invertase/react-native-apple-authentication';
+import {appleAuth} from '@invertase/react-native-apple-authentication';
 import {Platform} from 'react-native';
 
 export interface AppleAuthResponse {
