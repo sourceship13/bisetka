@@ -513,7 +513,11 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
       : gameState?.player2Hand || [];
 
     return (
-      <View style={styles.gameContainer}>
+      <ScrollView 
+        style={styles.gameContainer}
+        contentContainerStyle={styles.gameScrollContent}
+        showsVerticalScrollIndicator={true}
+      >
         {!isGameStarted ? (
           // Show waiting/ready screen
           <View style={styles.waitingContainer}>
@@ -593,7 +597,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
             </TouchableOpacity>
           </>
         )}
-      </View>
+      </ScrollView>
     );
   };
 
@@ -795,7 +799,10 @@ const styles = StyleSheet.create({
   },
   gameContainer: {
     flex: 1,
+  },
+  gameScrollContent: {
     padding: 15,
+    paddingBottom: 40,
   },
   header: {
     flexDirection: 'row',
