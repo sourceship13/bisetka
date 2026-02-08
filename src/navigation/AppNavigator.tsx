@@ -4,7 +4,7 @@ import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
 import LoginScreen from '../screens/LoginScreen';
 import HomeScreen from '../screens/HomeScreen';
-import BlotScreen from '../screens/BlotScreen';
+import MultiplayerBlotScreen from '../screens/MultiplayerBlotScreen';
 import BaazarBlotScreen from '../screens/BaazarBlotScreen';
 import NardiScreen from '../screens/NardiScreen';
 import ChessScreen from '../screens/ChessScreen';
@@ -16,7 +16,7 @@ import {ActivityIndicator, View, StyleSheet} from 'react-native';
 export type RootStackParamList = {
   Login: undefined;
   Home: undefined;
-  Blot: undefined;
+  Blot: { userId: string };
   BaazarBlot: undefined;
   Nardi: undefined;
   Chess: undefined;
@@ -53,7 +53,7 @@ const AppNavigator = () => {
             // App Stack - User IS signed in
             <>
               <Stack.Screen name="Home" component={HomeScreen} />
-              <Stack.Screen name="Blot" component={BlotScreen} />
+              <Stack.Screen name="Blot" component={MultiplayerBlotScreen} />
               <Stack.Screen name="BaazarBlot" component={BaazarBlotScreen} />
               <Stack.Screen name="Chess" component={ChessScreen} />
               <Stack.Screen name="MultiplayerChess" component={MultiplayerChessScreen} />
