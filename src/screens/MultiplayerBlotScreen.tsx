@@ -75,18 +75,42 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
 
     // Game started
     socketService.onGameStarted((data: any) => {
-      console.log('Game started:', data);
+      console.log('=== GAME STARTED ===');
+      console.log('Game started data:', data);
+      
+      // Determine my color based on userId
+      const myColor = data.player1?.id === userId ? 'white' : 'black';
+      console.log('My userId:', userId);
+      console.log('Player1 id:', data.player1?.id);
+      console.log('Player2 id:', data.player2?.id);
+      console.log('Determined my color:', myColor);
+      console.log('Game currentTurn:', data.gameState?.currentTurn);
+      console.log('Setting isMyTurn to:', data.gameState?.currentTurn === myColor);
+      
+      setPlayerColor(myColor);
       setIsGameStarted(true);
       setGameState(data.gameState);
       setGameMode('game');
-      setIsMyTurn(data.gameState?.currentTurn === playerColor);
+      setIsMyTurn(data.gameState?.currentTurn === myColor);
     });
 
     // Move made
     socketService.onMoveMade((data: any) => {
-      console.log('Move made:', data);
+      console.log('=== MOVE MADE ===');
+      console.log('Move made data:', data);
+      console.log('New currentTurn:', data.currentTurn);
+      
+      // Re-determine my color to avoid closure issues
+      setPlayerColor(prevColor => {
+        console.log('My color:', prevColor);
+        const isMyTurn = data.currentTurn === prevColor;
+        console.log('Setting isMyTurn to:', isMyTurn);
+        setIsMyTurn(isMyTurn);
+        return prevColor;
+      });
+      
       setGameState(data.gameState);
-      setIsMyTurn(data.currentTurn === playerColor);
+      setSelectedCard(null); // Clear selected card after move
     });
 
     // Game ended
@@ -246,7 +270,14 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
   };
 
   const handleMultiplayerPlayCard = (card: Card) => {
-    if (!isMyTurn || !currentRoom?.roomId) return;
+    console.log('handleMultiplayerPlayCard called');
+    console.log('isMyTurn:', isMyTurn);
+    console.log('currentRoom:', currentRoom);
+    
+    if (!isMyTurn || !currentRoom?.roomId) {
+      console.log('Cannot play card - not my turn or no room');
+      return;
+    }
 
     setSelectedCard(card);
     
@@ -257,6 +288,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
       playerId: userId,
     } as any;
 
+    console.log('Sending move to backend:', move);
     socketService.makeMove(currentRoom.roomId, userId, move);
   };
 
@@ -326,6 +358,11 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
     const canPlay = isLocalGame 
       ? (localGameState?.currentTurn === 'player')
       : isMyTurn;
+    
+    // Log for first card only to avoid spam
+    if (index === 0) {
+      console.log(`renderCard - isMyTurn: ${isMyTurn}, canPlay: ${canPlay}, isLocalGame: ${isLocalGame}`);
+    }
 
     return (
       <TouchableOpacity
