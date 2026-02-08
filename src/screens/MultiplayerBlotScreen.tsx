@@ -160,6 +160,14 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
   const handleFindMatch = async () => {
     setGameMode('matchmaking');
     
+    // Reset all game state before starting new match
+    setGameState(null);
+    setIsGameStarted(false);
+    setIsMyTurn(false);
+    setSelectedCard(null);
+    setCurrentRoom(null);
+    setOpponent(null);
+    
     try {
       const matchData = await socketService.findMatch('blot', userId);
       console.log('Match found data:', matchData);
@@ -184,6 +192,13 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
   const handleCreatePrivateRoom = async () => {
     setGameMode('private');
     
+    // Reset all game state before creating new room
+    setGameState(null);
+    setIsGameStarted(false);
+    setIsMyTurn(false);
+    setSelectedCard(null);
+    setOpponent(null);
+    
     try {
       const roomData = await socketService.createPrivateRoom('blot', userId);
       setCurrentRoom({ roomId: roomData.roomId, roomCode: roomData.roomCode });
@@ -202,6 +217,12 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
       Alert.alert('Error', 'Please enter a room code');
       return;
     }
+    
+    // Reset all game state before joining room
+    setGameState(null);
+    setIsGameStarted(false);
+    setIsMyTurn(false);
+    setSelectedCard(null);
     
     try {
       const roomData = await socketService.joinPrivateRoom(joinRoomCode.toUpperCase(), userId);
