@@ -1,23 +1,9 @@
 import apiConfig from '../libs/utils/api.utils';
+import { getDeviceId } from '../libs/utils/deviceInfo';
+import tokenService from './token.service';
+import type { AuthResponse, User } from '../types/auth';
 
 // ========== TYPE DEFINITIONS ==========
-
-export interface User {
-  id: string;
-  email: string;
-  fullName?: {
-    givenName: string | null;
-    familyName: string | null;
-  };
-  createdAt?: string;
-  updatedAt?: string;
-}
-
-export interface AuthResponse {
-  user: User;
-  token: string;
-  refreshToken?: string;
-}
 
 export interface AppleAuthRequest {
   idToken: string;
@@ -68,61 +54,59 @@ class ApiService {
   private async request<T>(
     endpoint: string,
     options: RequestInit = {},
+    requireAuth: boolean = false,
+    retry: boolean = true
   ): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
-    const headers = {
-      'Content-Type': 'application/json',
-      ...options.headers,
+    const isFormData = options.body instanceof FormData;
+    const headers: Record<string, string> = {
+      ...(!isFormData && { 'Content-Type': 'application/json' }),
+      ...(options.headers as Record<string, string>),
     };
 
     try {
-      console.log(`🌐 API Request: ${options.method || 'GET'} ${url}`);
-      console.log(`📦 Request body:`, options.body);
-      
+      const deviceId = await getDeviceId();
+      headers['x-device-id'] = deviceId;
+
+      if (requireAuth) {
+        const accessToken = await tokenService.getAccessToken();
+        if (accessToken) {
+          headers.Authorization = `Bearer ${accessToken}`;
+        }
+      }
+
       const response = await fetch(url, {
         ...options,
         headers,
       });
 
-      console.log(`📡 Response status:`, response.status);
-      
-      const data = await response.json();
-      console.log(`📥 Response data:`, data);
+      if (response.status === 401 && requireAuth && retry) {
+        await tokenService.refreshSession();
+        return this.request<T>(endpoint, options, true, false);
+      }
+
+      const text = await response.text();
+      const data = text ? JSON.parse(text) : null;
 
       if (!response.ok) {
-        console.error(`❌ API Error Response:`, data);
         throw {
-          message: data.message || 'API request failed',
-          code: data.code,
+          message: data?.message || 'API request failed',
+          code: data?.code,
           status: response.status,
         } as ApiError;
       }
 
-      console.log(`✅ API Response: ${options.method || 'GET'} ${url}`);
       return data as T;
     } catch (error: any) {
-      console.error(`❌ API Error: ${options.method || 'GET'} ${url}`, error);
-      console.error(`❌ Error details:`, {
-        message: error.message,
-        name: error.name,
-        stack: error.stack,
-      });
-      
-      if (error.message && error.status) {
+      if (error.message && error.status !== undefined) {
         throw error;
       }
-      
-      // Network error
+
       throw {
         message: `Network request failed: ${error.message || 'Unable to connect to server'}`,
         status: 0,
       } as ApiError;
     }
-  }
-
-  private setAuthToken(token: string) {
-    // Store token for future requests
-    // You can implement token storage logic here
   }
 
   // ========== AUTHENTICATION ENDPOINTS ==========
@@ -175,13 +159,10 @@ class ApiService {
    * Get user profile (authenticated)
    * GET /api/auth/profile
    */
-  async getProfile(token: string): Promise<User> {
+  async getProfile(): Promise<User> {
     return this.request<User>('/auth/profile', {
       method: 'GET',
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    }, true);
   }
 
   // ========== GAME ENDPOINTS ==========

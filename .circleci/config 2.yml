@@ -1,0 +1,324 @@
+version: 2.1
+
+executors:
+  android-executor:
+    docker:
+      - image: cimg/android:2024.09-node
+    working_directory: ~/repo
+    environment:
+      LANG: en_US.UTF-8
+      NODE_ENV: development
+      JAVA_OPTS: "-Xms512m -Xmx4g"
+      GRADLE_OPTS: '-Xmx4g -Dorg.gradle.daemon=false -Dorg.gradle.jvmargs="-Xmx3g -XX:+HeapDumpOnOutOfMemoryError"'
+
+  rn-executor:
+    docker:
+      - image: cimg/node:18.20
+    working_directory: ~/repo
+    environment:
+      LANG: en_US.UTF-8
+      NODE_ENV: development
+
+jobs:
+  install_dependencies:
+    executor: rn-executor
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-npm-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
+            - v1-npm-{{ arch }}-{{ .Branch }}
+            - v1-npm-
+      - run:
+          name: Install Node.js dependencies
+          command: npm ci
+      - save_cache:
+          key: v1-npm-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
+          paths:
+            - node_modules
+      - persist_to_workspace:
+          root: .
+          paths:
+            - node_modules
+            - package.json
+            - package-lock.json
+
+  build_android:
+    executor: android-executor
+    resource_class: xlarge
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run:
+          name: Verify Node installation
+          command: |
+            echo "Node path: $(which node)"
+            echo "Node version: $(node --version)"
+            echo "NPM version: $(npm --version)"
+      - restore_cache:
+          keys:
+            - v1-android-gems-{{ checksum "android/Gemfile.lock" }}
+            - v1-android-gems-
+      - run:
+          name: Install Ruby dependencies (if Gemfile exists)
+          command: |
+            if [ -f "android/Gemfile" ]; then
+              cd android
+              rm -rf .bundle vendor/bundle
+              bundle config set --local path 'vendor/bundle'
+              bundle install --jobs 4 --retry 3
+            else
+              echo "No Gemfile found, skipping Ruby dependencies"
+            fi
+      - save_cache:
+          key: v1-android-gems-{{ checksum "android/Gemfile.lock" }}
+          paths:
+            - android/vendor/bundle
+      - run:
+          name: Accept Android SDK licenses
+          command: yes | sdkmanager --licenses || true
+      - run:
+          name: Install CMake and Ninja
+          command: |
+            echo "y" | sdkmanager "cmake;3.22.1"
+      - restore_cache:
+          keys:
+            - v2-gradle-{{ checksum "android/build.gradle" }}-{{ checksum "android/app/build.gradle" }}
+            - v2-gradle-
+      - run:
+          name: Decode Android Keystore (if available)
+          command: |
+            if [ -n "$ANDROID_KEYSTORE_BASE64" ]; then
+              echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/bisetka-release.keystore
+              echo "✅ Keystore decoded successfully"
+            else
+              echo "⚠️  ANDROID_KEYSTORE_BASE64 not found - only debug builds will work"
+            fi
+      - run:
+          name: Build Android Debug APK
+          command: |
+            cd android
+            export CI=true
+            
+            # Generate codegen artifacts
+            ./gradlew generateCodegenArtifactsFromSchema --no-daemon
+            
+            # Build Debug APK
+            ./gradlew assembleDebug --no-daemon --stacktrace
+      - run:
+          name: Build Android Release APK (if keystore available)
+          command: |
+            if [ -n "$ANDROID_KEYSTORE_BASE64" ]; then
+              cd android
+              ./gradlew assembleRelease --no-daemon --stacktrace
+              ./gradlew bundleRelease --no-daemon --stacktrace
+            else
+              echo "⚠️  Skipping release build - no keystore configured"
+            fi
+      - save_cache:
+          key: v2-gradle-{{ checksum "android/build.gradle" }}-{{ checksum "android/app/build.gradle" }}
+          paths:
+            - ~/.gradle
+            - android/.gradle
+      - store_artifacts:
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          destination: artifacts/app-debug.apk
+      - store_artifacts:
+          path: android/app/build/outputs/apk/release/app-release.apk
+          destination: artifacts/app-release.apk
+      - store_artifacts:
+          path: android/app/build/outputs/bundle/release/app-release.aab
+          destination: artifacts/app-release.aab
+
+  build_ios:
+    macos:
+      xcode: "16.2.0"
+    resource_class: macos.m1.medium.gen1
+    working_directory: ~/repo
+    environment:
+      FL_OUTPUT_DIR: output
+    shell: /bin/bash --login -o pipefail
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run:
+          name: Install Ruby 3.3.5
+          command: |
+            if ! rbenv versions | grep -q "3.3.5"; then
+              echo "Installing Ruby 3.3.5..."
+              rbenv install 3.3.5
+            fi
+            rbenv global 3.3.5
+            ruby --version
+      - run:
+          name: Install Ruby dependencies (if Gemfile exists)
+          command: |
+            if [ -f "ios/Gemfile" ]; then
+              cd ios
+              bundle update
+              bundle install
+            else
+              echo "No Gemfile found, skipping Ruby dependencies"
+            fi
+      - restore_cache:
+          keys:
+            - v1-pods-{{ checksum "ios/Podfile.lock" }}
+            - v1-pods-
+      - run:
+          name: Install CocoaPods
+          command: |
+            cd ios
+            pod repo update
+            pod install
+      - save_cache:
+          key: v1-pods-{{ checksum "ios/Podfile.lock" }}
+          paths:
+            - ios/Pods
+            - ~/.cocoapods
+      - run:
+          name: Setup SSH and Keychain for Match (if configured)
+          command: |
+            if [ -n "$MATCH_GIT_SSH_KEY" ]; then
+              mkdir -p ~/.ssh
+              echo "$MATCH_GIT_SSH_KEY" | base64 --decode > ~/.ssh/id_ed25519
+              chmod 600 ~/.ssh/id_ed25519
+              ssh-keyscan github.com >> ~/.ssh/known_hosts
+
+              cat > ~/.ssh/config << 'EOF'
+            Host github.com-fastlane-match
+              HostName github.com
+              User git
+              IdentityFile ~/.ssh/id_ed25519
+              IdentitiesOnly yes
+              StrictHostKeyChecking no
+            EOF
+
+              KEYCHAIN_PATH=~/Library/Keychains/fastlane.keychain-db
+              KEYCHAIN_PASSWORD=temp_password
+
+              security delete-keychain "$KEYCHAIN_PATH" 2>/dev/null || true
+              security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+              security default-keychain -s "$KEYCHAIN_PATH"
+              security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+              security set-keychain-settings -t 3600 -u "$KEYCHAIN_PATH"
+              security list-keychains -d user -s "$KEYCHAIN_PATH" $(security list-keychains -d user | sed s/\"//g)
+
+              echo "✅ Keychain setup complete"
+            else
+              echo "⚠️  MATCH_GIT_SSH_KEY not configured - only debug builds will work"
+            fi
+      - run:
+          name: Clear Metro bundler cache
+          command: |
+            echo "Clearing Metro bundler cache..."
+            rm -rf $TMPDIR/metro-* $TMPDIR/haste-* $TMPDIR/react-* 2>/dev/null || true
+            rm -rf ~/.metro 2>/dev/null || true
+            echo "✅ Metro cache cleared"
+      - run:
+          name: Pre-bundle React Native code
+          command: |
+            echo "Pre-bundling React Native code to check for errors..."
+            export NODE_BINARY=node
+            export ENTRY_FILE=index.js
+            npx react-native bundle \
+              --platform ios \
+              --dev false \
+              --entry-file index.js \
+              --bundle-output /tmp/test-bundle.js \
+              --assets-dest /tmp/test-assets \
+              --reset-cache
+            echo "✅ Pre-bundle successful"
+      - run:
+          name: Build iOS App
+          command: |
+            cd ios
+            
+            # Check if fastlane is configured
+            if [ -f "Gemfile" ] && [ -f "fastlane/Fastfile" ]; then
+              echo "Building with Fastlane..."
+              bundle exec fastlane build
+            else
+              echo "Building with xcodebuild..."
+              xcodebuild -workspace bisetka.xcworkspace \
+                -scheme bisetka \
+                -configuration Debug \
+                -sdk iphonesimulator \
+                -derivedDataPath build \
+                CODE_SIGNING_ALLOWED=NO
+            fi
+      - run:
+          name: Display App Version and Build Number
+          command: |
+            APP_VERSION=$(/usr/libexec/PlistBuddy -c "Print CFBundleShortVersionString" ios/bisetka/Info.plist)
+            BUILD_NUMBER=$(/usr/libexec/PlistBuddy -c "Print CFBundleVersion" ios/bisetka/Info.plist)
+            echo "App Version: $APP_VERSION"
+            echo "Build Number: $BUILD_NUMBER"
+      - store_artifacts:
+          path: ios/build
+          destination: ios_build
+
+  test:
+    executor: rn-executor
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run:
+          name: Run tests
+          command: |
+            if [ -f "package.json" ] && grep -q '"test"' package.json; then
+              npm test -- --ci --coverage --maxWorkers=2
+            else
+              echo "No tests configured"
+            fi
+      - store_test_results:
+          path: coverage
+      - store_artifacts:
+          path: coverage
+
+workflows:
+  version: 2
+  build_and_test:
+    jobs:
+      - install_dependencies:
+          context:
+            - bisetka-context
+          filters:
+            branches:
+              only:
+                - main
+                - develop
+                - /feature\/.*/
+      - test:
+          context:
+            - bisetka-context
+          requires:
+            - install_dependencies
+          filters:
+            branches:
+              only:
+                - main
+                - develop
+                - /feature\/.*/
+      - build_android:
+          context:
+            - bisetka-context
+          requires:
+            - install_dependencies
+          filters:
+            branches:
+              only:
+                - main
+                - develop
+      - build_ios:
+          context:
+            - bisetka-context
+          requires:
+            - install_dependencies
+          filters:
+            branches:
+              only:
+                - main
+                - develop
