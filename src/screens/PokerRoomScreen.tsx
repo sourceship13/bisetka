@@ -25,6 +25,8 @@ interface Player {
 
 type GamePhase = 'waiting' | 'preflop' | 'flop' | 'turn' | 'river' | 'showdown';
 
+const TURN_TIME_LIMIT = 30; // 30 seconds per turn
+
 const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
   const {session, gameType, mode} = route.params;
   
@@ -35,10 +37,48 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
   const [gamePhase, setGamePhase] = useState<GamePhase>('waiting');
   const [activePlayerIndex, setActivePlayerIndex] = useState(0);
   const [playerIndex] = useState(0); // Current user is player 0
+  const [timeRemaining, setTimeRemaining] = useState(TURN_TIME_LIMIT);
+  const [timerActive, setTimerActive] = useState(false);
 
   useEffect(() => {
     initializeGame();
   }, []);
+
+  // Timer effect
+  useEffect(() => {
+    if (!timerActive) return;
+
+    const timerId = setInterval(() => {
+      setTimeRemaining(prev => {
+        if (prev <= 1) {
+          // Time's up - auto fold
+          handleTimeExpired();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timerId);
+  }, [timerActive]);
+
+  const handleTimeExpired = () => {
+    console.log('Time expired for player', activePlayerIndex);
+    setTimerActive(false);
+    
+    if (activePlayerIndex === playerIndex) {
+      // Auto-fold the human player
+      handleFold();
+    } else {
+      // Force AI to act
+      simulateAIMove(activePlayerIndex);
+    }
+  };
+
+  const resetTimer = () => {
+    setTimeRemaining(TURN_TIME_LIMIT);
+    setTimerActive(true);
+  };
 
   const initializeGame = () => {
     // Initialize 8 players
@@ -93,13 +133,15 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
     setGamePhase('preflop');
     setActivePlayerIndex(firstPlayerIndex);
     
+    // Start timer for first player
+    resetTimer();
+    
     // Start AI if first player is not human
     if (firstPlayerIndex !== playerIndex) {
       setTimeout(() => {
         simulateAIMove(firstPlayerIndex);
       }, 1500);
     }
-    setActivePlayerIndex(firstPlayerIndex);
   };
 
   const createDeck = (): Card[] => {
@@ -123,15 +165,18 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
   };
 
   const handleFold = () => {
+    setTimerActive(false);
     const updatedPlayers = [...players];
     updatedPlayers[playerIndex].folded = true;
     updatedPlayers[playerIndex].isActive = false;
     updatedPlayers[playerIndex].hasActed = true;
+    updatedPlayers[playerIndex].cards = []; // Clear cards on fold
     setPlayers(updatedPlayers);
     moveToNextPlayer(updatedPlayers);
   };
 
   const handleCall = () => {
+    setTimerActive(false);
     const player = players[playerIndex];
     const callAmount = currentBet - player.currentBet;
     
@@ -152,6 +197,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
   };
 
   const handleRaise = () => {
+    setTimerActive(false);
     const raiseAmount = currentBet + 20; // Simple raise by 20
     const player = players[playerIndex];
     const totalAmount = raiseAmount - player.currentBet;
@@ -181,6 +227,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
   };
 
   const handleCheck = () => {
+    setTimerActive(false);
     if (players[playerIndex].currentBet < currentBet) {
       Alert.alert('Cannot check', 'You must call or raise');
       return;
@@ -221,8 +268,31 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
       currentBet,
     });
     
-    if ((allPlayersActed && allBetsEqual) || activePlayers.length === 1) {
+    // If only one player left, they win immediately
+    if (activePlayers.length === 1) {
+      console.log('Only one player remaining - awarding pot');
+      setTimerActive(false);
+      const winner = activePlayers[0];
+      const updatedPlayers = [...currentPlayers];
+      const winnerIndex = updatedPlayers.findIndex(p => p.id === winner.id);
+      updatedPlayers[winnerIndex].chips += pot;
+      setPlayers(updatedPlayers);
+      
+      Alert.alert('Winner!', `${winner.name} wins $${pot}!`, [
+        {
+          text: 'Next Hand',
+          onPress: () => {
+            setPot(0);
+            startNewHand(updatedPlayers);
+          }
+        }
+      ]);
+      return;
+    }
+    
+    if (allPlayersActed && allBetsEqual) {
       console.log('Advancing to next phase');
+      setTimerActive(false);
       advanceGamePhase(currentPlayers);
     } else {
       const updatedPlayers = [...currentPlayers];
@@ -231,6 +301,9 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
       setPlayers(updatedPlayers);
       
       console.log('Next player active:', nextIndex, updatedPlayers[nextIndex].name);
+      
+      // Reset and start timer for next player
+      resetTimer();
       
       // Simulate AI moves for other players
       if (nextIndex !== playerIndex) {
@@ -258,6 +331,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
       // Fold
       updatedPlayers[aiPlayerIndex].folded = true;
       updatedPlayers[aiPlayerIndex].hasActed = true;
+      updatedPlayers[aiPlayerIndex].cards = []; // Clear cards on fold
     } else if (random < 0.7) {
       // Call
       const callAmount = currentBet - aiPlayer.currentBet;
@@ -427,11 +501,13 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
             <Text style={styles.playerBet}>Bet: ${player.currentBet}</Text>
           )}
         </View>
-        <View style={styles.playerCards}>
-          {player.cards.map((card, idx) => (
-            <View key={idx}>{renderCard(card, !showCards)}</View>
-          ))}
-        </View>
+        {!player.folded && (
+          <View style={styles.playerCards}>
+            {player.cards.map((card, idx) => (
+              <View key={idx}>{renderCard(card, !showCards)}</View>
+            ))}
+          </View>
+        )}
       </View>
     );
   };
@@ -442,7 +518,14 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Text style={styles.backButtonText}>← Back</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Texas Hold'em - {gamePhase.toUpperCase()}</Text>
+        <View style={styles.headerCenter}>
+          <Text style={styles.headerTitle}>Texas Hold'em - {gamePhase.toUpperCase()}</Text>
+          {timerActive && (
+            <View style={[styles.timerContainer, timeRemaining <= 10 && styles.timerWarning]}>
+              <Text style={styles.timerText}>⏱️ {timeRemaining}s</Text>
+            </View>
+          )}
+        </View>
         <Text style={styles.potAmount}>Pot: ${pot}</Text>
       </View>
 
@@ -511,9 +594,29 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
+  headerCenter: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   headerTitle: {
     color: '#fff',
     fontSize: 18,
+    fontWeight: 'bold',
+  },
+  timerContainer: {
+    marginTop: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 12,
+  },
+  timerWarning: {
+    backgroundColor: 'rgba(255, 0, 0, 0.3)',
+  },
+  timerText: {
+    color: '#fff',
+    fontSize: 14,
     fontWeight: 'bold',
   },
   potAmount: {
@@ -532,35 +635,36 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   position0: {
-    bottom: 20,
+    bottom: 10,
+    left: '42%',
   },
   position1: {
-    top: 20,
-    left: 20,
+    bottom: '25%',
+    left: '8%',
   },
   position2: {
-    top: 20,
-    left: '25%',
+    top: '42%',
+    left: '3%',
   },
   position3: {
-    top: 20,
-    left: '50%',
+    top: '15%',
+    left: '12%',
   },
   position4: {
-    top: 20,
-    right: '25%',
+    top: '5%',
+    left: '42%',
   },
   position5: {
-    top: 20,
-    right: 20,
+    top: '15%',
+    right: '12%',
   },
   position6: {
-    bottom: 100,
-    right: 20,
+    top: '42%',
+    right: '3%',
   },
   position7: {
-    bottom: 100,
-    left: 20,
+    bottom: '25%',
+    right: '8%',
   },
   playerInfo: {
     backgroundColor: '#1a5c3e',
@@ -572,7 +676,13 @@ const styles = StyleSheet.create({
   },
   activePlayer: {
     borderColor: '#ffd700',
-    borderWidth: 3,
+    borderWidth: 4,
+    backgroundColor: '#2a7c4e',
+    shadowColor: '#ffd700',
+    shadowOffset: {width: 0, height: 0},
+    shadowOpacity: 0.8,
+    shadowRadius: 8,
+    elevation: 8,
   },
   foldedPlayer: {
     opacity: 0.5,
