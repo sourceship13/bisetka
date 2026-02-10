@@ -63,6 +63,33 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
     return () => clearInterval(timerId);
   }, [timerActive]);
 
+  // Reset timer when active player changes
+  useEffect(() => {
+    if (gamePhase === 'waiting' || gamePhase === 'showdown') return;
+    
+    const activePlayer = players[activePlayerIndex];
+    if (activePlayer && !activePlayer.folded) {
+      const now = Date.now();
+      if (now - lastResetTimeRef.current < 500) {
+        return;
+      }
+      lastResetTimeRef.current = now;
+      
+      setTimerActive(false);
+      setTimeRemaining(TURN_TIME_LIMIT);
+      setTimeout(() => {
+        setTimerActive(true);
+      }, 50);
+      
+      // Trigger AI move if not human player
+      if (activePlayerIndex !== playerIndex) {
+        setTimeout(() => {
+          simulateAIMove(activePlayerIndex);
+        }, 1000);
+      }
+    }
+  }, [activePlayerIndex, gamePhase]);
+
   const handleTimeExpired = () => {
     console.log('Time expired for player', activePlayerIndex);
     setTimerActive(false);
@@ -84,8 +111,15 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
       return;
     }
     lastResetTimeRef.current = now;
+    
+    // Stop timer first, then restart on next tick
+    setTimerActive(false);
     setTimeRemaining(TURN_TIME_LIMIT);
-    setTimerActive(true);
+    
+    // Use setTimeout to ensure the timer stops before restarting
+    setTimeout(() => {
+      setTimerActive(true);
+    }, 50);
   };
 
   const initializeGame = () => {
@@ -109,6 +143,10 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
   const startNewHand = (currentPlayers: Player[]) => {
     const deck = createDeck();
     
+    // Move dealer button to next player
+    const currentDealerIndex = currentPlayers.findIndex(p => p.isDealer);
+    const nextDealerIndex = (currentDealerIndex + 1) % 8;
+    
     // Deal 2 cards to each player
     const updatedPlayers = currentPlayers.map((player, index) => ({
       ...player,
@@ -116,6 +154,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
       currentBet: 0,
       folded: false,
       hasActed: false,
+      isDealer: index === nextDealerIndex, // Rotate dealer button
     }));
 
     // Small blind and big blind (positions 1 and 2 after dealer)
@@ -140,16 +179,6 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
     setCurrentBet(10);
     setGamePhase('preflop');
     setActivePlayerIndex(firstPlayerIndex);
-    
-    // Start timer for first player
-    resetTimer();
-    
-    // Start AI if first player is not human
-    if (firstPlayerIndex !== playerIndex) {
-      setTimeout(() => {
-        simulateAIMove(firstPlayerIndex);
-      }, 1500);
-    }
   };
 
   const createDeck = (): Card[] => {
@@ -282,17 +311,6 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
       setTimerActive(false);
       const winner = activePlayers[0];
       const updatedPlayers = [...currentPlayers];
-      const winnerIndex = updatedPlayers.findIndex(p => p.id === winner.id);
-      updatedPlayers[winnerIndex].chips += pot;
-      setPlayers(updatedPlayers);
-      
-      Alert.alert('Winner!', `${winner.name} wins $${pot}!`, [
-        {
-          text: 'Next Hand',
-          onPress: () => {
-            setPot(0);
-            startNewHand(updatedPlayers);
-          }
         }
       ]);
       return;
@@ -452,15 +470,6 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
       updatedPlayers[winnerIndex].chips += pot;
       setPlayers(updatedPlayers);
       setPot(0);
-    } else {
-      // Simplified: just give pot to first active player (real implementation would evaluate hands)
-      const winner = activePlayers[0];
-      Alert.alert('Showdown!', `${winner.name} wins ${pot} chips!`);
-      const updatedPlayers = [...currentPlayers];
-      const winnerIndex = updatedPlayers.findIndex(p => p.id === winner.id);
-      updatedPlayers[winnerIndex].chips += pot;
-      setPlayers(updatedPlayers);
-      setPot(0);
     }
   };
 
@@ -505,9 +514,14 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
 
     return (
       <View key={player.id} style={[styles.playerContainer, positionStyle]}>
+        {player.isDealer && (
+          <View style={styles.dealerChip}>
+            <Text style={styles.dealerChipText}>D</Text>
+          </View>
+        )}
         <View style={[styles.playerInfo, player.isActive && styles.activePlayer, player.folded && styles.foldedPlayer]}>
           <Text style={styles.playerName}>
-            {player.name} {player.isDealer && '🔘'}
+            {player.name}
           </Text>
           <Text style={styles.playerChips}>${player.chips}</Text>
           {player.currentBet > 0 && (
@@ -647,37 +661,61 @@ const styles = StyleSheet.create({
     position: 'absolute',
     alignItems: 'center',
   },
+  dealerChip: {
+    position: 'absolute',
+    top: -12,
+    right: -12,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#fff',
+    borderWidth: 3,
+    borderColor: '#000',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.5,
+    shadowRadius: 3,
+    elevation: 5,
+  },
+  dealerChipText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#000',
+  },
   position0: {
-    bottom: 10,
+    bottom: '5%',
     left: '42%',
   },
   position1: {
-    bottom: '25%',
-    left: '8%',
+    bottom: '20%',
+    right: '15%',
   },
   position2: {
-    top: '42%',
-    left: '3%',
+    bottom: '40%',
+    right: '8%',
   },
   position3: {
-    top: '15%',
-    left: '12%',
+    top: '25%',
+    right: '15%',
   },
   position4: {
-    top: '5%',
+    top: '8%',
     left: '42%',
   },
   position5: {
-    top: '15%',
-    right: '12%',
+    top: '25%',
+    left: '15%',
   },
   position6: {
-    top: '42%',
-    right: '3%',
+    bottom: '40%',
+    left: '8%',
   },
   position7: {
-    bottom: '25%',
-    right: '8%',
+    bottom: '20%',
+    left: '15%',
   },
   playerInfo: {
     backgroundColor: '#1a5c3e',
