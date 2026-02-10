@@ -10,8 +10,12 @@ import NardiScreen from '../screens/NardiScreen';
 import ChessScreen from '../screens/ChessScreen';
 import MultiplayerChessScreen from '../screens/MultiplayerChessScreen';
 import MrotsiScreen from '../screens/MrotsiScreen';
+import CheckersScreen from '../screens/CheckersScreen';
+import GameModeScreen from '../screens/GameModeScreen';
+import SessionStatusScreen from '../screens/SessionStatusScreen';
 import {useAuth} from '../context/AuthContext';
 import {ActivityIndicator, View, StyleSheet} from 'react-native';
+import {GameType} from '../services/gameSessions.service';
 
 export type RootStackParamList = {
   Login: undefined;
@@ -21,7 +25,10 @@ export type RootStackParamList = {
   Nardi: undefined;
   Chess: undefined;
   MultiplayerChess: { userId: string };
+  Checkers: { session: any; gameType: GameType };
   Mrotsi: undefined;
+  GameMode: { gameType: GameType };
+  SessionStatus: { gameType: GameType; session: any };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -57,8 +64,11 @@ const AppNavigator = () => {
               <Stack.Screen name="BaazarBlot" component={BaazarBlotScreen} />
               <Stack.Screen name="Chess" component={ChessScreen} />
               <Stack.Screen name="MultiplayerChess" component={MultiplayerChessScreen} />
+              <Stack.Screen name="Checkers" component={CheckersScreen} />
               <Stack.Screen name="Nardi" component={NardiScreen} />
               <Stack.Screen name="Mrotsi" component={MrotsiScreen} />
+              <Stack.Screen name="GameMode" component={GameModeScreen} />
+              <Stack.Screen name="SessionStatus" component={SessionStatusScreen} />
             </>
           )}
         </Stack.Navigator>
