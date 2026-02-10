@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import {View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, Alert} from 'react-native';
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {RootStackParamList} from '../navigation/AppNavigator';
@@ -39,6 +39,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
   const [playerIndex] = useState(0); // Current user is player 0
   const [timeRemaining, setTimeRemaining] = useState(TURN_TIME_LIMIT);
   const [timerActive, setTimerActive] = useState(false);
+  const lastResetTimeRef = useRef(0);
 
   useEffect(() => {
     initializeGame();
@@ -76,6 +77,13 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
   };
 
   const resetTimer = () => {
+    const now = Date.now();
+    // Prevent resetting timer if it was reset less than 500ms ago
+    if (now - lastResetTimeRef.current < 500) {
+      console.log('Prevented rapid timer reset');
+      return;
+    }
+    lastResetTimeRef.current = now;
     setTimeRemaining(TURN_TIME_LIMIT);
     setTimerActive(true);
   };
@@ -327,20 +335,22 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
     let newCurrentBet = currentBet;
     let potIncrease = 0;
     
-    if (random < 0.2) {
-      // Fold
+    // AI is less likely to fold - only 8% chance
+    // More conservative play to reach showdown more often
+    if (random < 0.08) {
+      // Fold (8% chance)
       updatedPlayers[aiPlayerIndex].folded = true;
       updatedPlayers[aiPlayerIndex].hasActed = true;
       updatedPlayers[aiPlayerIndex].cards = []; // Clear cards on fold
-    } else if (random < 0.7) {
-      // Call
+    } else if (random < 0.75) {
+      // Call (67% chance)
       const callAmount = currentBet - aiPlayer.currentBet;
       updatedPlayers[aiPlayerIndex].chips -= callAmount;
       updatedPlayers[aiPlayerIndex].currentBet = currentBet;
       updatedPlayers[aiPlayerIndex].hasActed = true;
       potIncrease = callAmount;
     } else {
-      // Raise
+      // Raise (25% chance)
       const raiseAmount = currentBet + 20;
       const totalAmount = raiseAmount - aiPlayer.currentBet;
       updatedPlayers[aiPlayerIndex].chips -= totalAmount;
@@ -420,6 +430,9 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
     updatedPlayers[activeIdx].isActive = true;
     setActivePlayerIndex(activeIdx);
     setPlayers(updatedPlayers);
+    
+    // Start timer for new betting round
+    resetTimer();
     
     if (activeIdx !== playerIndex) {
       setTimeout(() => {
