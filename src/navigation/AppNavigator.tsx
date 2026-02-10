@@ -26,7 +26,7 @@ export type RootStackParamList = {
   Chess: undefined;
   MultiplayerChess: { userId: string };
   Checkers: { session: any; gameType: GameType };
-  Mrotsi: undefined;
+  Mrotsi: { session: any; gameType: GameType; mode: string };
   GameMode: { gameType: GameType };
   SessionStatus: { gameType: GameType; session: any };
 };

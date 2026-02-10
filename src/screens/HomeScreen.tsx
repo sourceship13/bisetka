@@ -19,7 +19,7 @@ const HomeScreen = ({navigation}: any) => {
     { id: 'nardi', name: 'Nardi', description: 'Armenian backgammon', screen: 'Nardi', mode: 'legacy' },
     { id: 'chess', name: 'Chess (vs AI)', description: 'Play against computer AI', screen: 'Chess', mode: 'legacy' },
     { id: 'chess-multiplayer', name: 'Chess (Multiplayer)', description: 'Play against friends or strangers', screen: 'MultiplayerChess', mode: 'legacy' },
-    { id: 'mrotsi', name: 'Mrotsi', description: 'Traditional dice game', screen: 'Mrotsi', mode: 'legacy' },
+    { id: 'mrotsi', name: 'Mrotsi', description: 'Traditional Armenian dice game', gameType: 'mrotsi', mode: 'selector' },
   ] as const;
 
   type GameConfig = (typeof games)[number];
