@@ -52,9 +52,14 @@ const GameModeScreen: React.FC<Props> = ({route, navigation}) => {
   });
 
   const navigateToSession = (mode: SessionMode, result: any) => {
-    // Navigate directly to game screen for checkers
+    // Navigate directly to game screen for checkers and mrotsi
     if (gameType === 'checkers') {
       navigation.navigate('Checkers' as any, { session: result, gameType, mode });
+      return;
+    }
+    
+    if (gameType === 'mrotsi') {
+      navigation.navigate('Mrotsi' as any, { session: result, gameType, mode });
       return;
     }
     
