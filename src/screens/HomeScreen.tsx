@@ -10,20 +10,30 @@ const HomeScreen = ({navigation}: any) => {
   };
 
   const games = [
-    { id: 'blot', name: 'Blot', description: 'Play online, vs AI, or private games', screen: 'Blot' },
-    { id: 'baazar-blot', name: 'Baazar Blot', description: 'Fast-paced Blot variant', screen: 'BaazarBlot' },
-    { id: 'nardi', name: 'Nardi', description: 'Armenian backgammon', screen: 'Nardi' },
-    { id: 'chess', name: 'Chess (vs AI)', description: 'Play against computer AI', screen: 'Chess' },
-    { id: 'chess-multiplayer', name: 'Chess (Multiplayer)', description: 'Play against friends or strangers', screen: 'MultiplayerChess' },
-    { id: 'mrotsi', name: 'Mrotsi', description: 'Traditional dice game', screen: 'Mrotsi' },
-  ];
+    { id: 'blot', name: 'Blot', description: 'Play online, vs AI, or private games', screen: 'Blot', mode: 'legacy' },
+    { id: 'baazar-blot', name: 'Baazar Blot', description: 'Fast-paced Blot variant', screen: 'BaazarBlot', mode: 'legacy' },
+    { id: 'cards', name: 'Cards', description: 'Classic Armenian card rooms', gameType: 'cards', mode: 'selector' },
+    { id: 'checkers', name: 'Checkers', description: 'Quick casual matches', gameType: 'checkers', mode: 'selector' },
+    { id: 'poker', name: 'Poker', description: 'Texas Hold ’Em practice tables', gameType: 'poker', mode: 'selector' },
+    { id: 'slots', name: 'Slots', description: 'Fun arcade-inspired slots', gameType: 'slots', mode: 'selector' },
+    { id: 'nardi', name: 'Nardi', description: 'Armenian backgammon', screen: 'Nardi', mode: 'legacy' },
+    { id: 'chess', name: 'Chess (vs AI)', description: 'Play against computer AI', screen: 'Chess', mode: 'legacy' },
+    { id: 'chess-multiplayer', name: 'Chess (Multiplayer)', description: 'Play against friends or strangers', screen: 'MultiplayerChess', mode: 'legacy' },
+    { id: 'mrotsi', name: 'Mrotsi', description: 'Traditional dice game', screen: 'Mrotsi', mode: 'legacy' },
+  ] as const;
 
-  const handleGamePress = (screenName: string) => {
-    if (screenName === 'MultiplayerChess' || screenName === 'Blot') {
-      // Pass userId for multiplayer games
-      navigation.navigate(screenName, { userId: user?.id || 'temp-user' });
-    } else {
-      navigation.navigate(screenName);
+  type GameConfig = (typeof games)[number];
+
+  const handleGamePress = (game: GameConfig) => {
+    if (game.mode === 'selector' && game.gameType) {
+      navigation.navigate('GameMode', { gameType: game.gameType });
+      return;
+    }
+
+    if (game.screen === 'MultiplayerChess' || game.screen === 'Blot') {
+      navigation.navigate(game.screen, { userId: user?.id || 'temp-user' });
+    } else if (game.screen) {
+      navigation.navigate(game.screen);
     }
   };
 
@@ -46,7 +56,7 @@ const HomeScreen = ({navigation}: any) => {
             <TouchableOpacity
               key={game.id}
               style={styles.gameCard}
-              onPress={() => handleGamePress(game.screen)}
+              onPress={() => handleGamePress(game)}
               activeOpacity={0.7}
             >
               <Text style={styles.gameName}>{game.name}</Text>
