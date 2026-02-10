@@ -22,7 +22,7 @@ class SocketService {
   private getServerUrl(): string {
     // For development and debugging, use local network IP
     // This works for both development and production builds when testing locally
-    const localIP = '192.168.26.26';
+    const localIP = '192.168.26.21';
     
     // Always use local IP for iOS (works for both simulator and physical device when on same network)
     // For Android emulator, use the special host IP

@@ -11,6 +11,7 @@ import ChessScreen from '../screens/ChessScreen';
 import MultiplayerChessScreen from '../screens/MultiplayerChessScreen';
 import MrotsiScreen from '../screens/MrotsiScreen';
 import CheckersScreen from '../screens/CheckersScreen';
+import PokerRoomScreen from '../screens/PokerRoomScreen';
 import GameModeScreen from '../screens/GameModeScreen';
 import SessionStatusScreen from '../screens/SessionStatusScreen';
 import {useAuth} from '../context/AuthContext';
@@ -27,6 +28,7 @@ export type RootStackParamList = {
   MultiplayerChess: { userId: string };
   Checkers: { session: any; gameType: GameType };
   Mrotsi: { session: any; gameType: GameType; mode: string };
+  PokerRoom: { session: any; gameType: GameType; mode: string };
   GameMode: { gameType: GameType };
   SessionStatus: { gameType: GameType; session: any };
 };
@@ -67,6 +69,7 @@ const AppNavigator = () => {
               <Stack.Screen name="Checkers" component={CheckersScreen} />
               <Stack.Screen name="Nardi" component={NardiScreen} />
               <Stack.Screen name="Mrotsi" component={MrotsiScreen} />
+              <Stack.Screen name="PokerRoom" component={PokerRoomScreen} />
               <Stack.Screen name="GameMode" component={GameModeScreen} />
               <Stack.Screen name="SessionStatus" component={SessionStatusScreen} />
             </>
