@@ -1,0 +1,62 @@
+# Android Fastlane Configuration
+
+default_platform(:android)
+
+platform :android do
+  desc "Build and deploy staging to Google Play Internal Testing"
+  lane :staging do
+    # Build the release bundle
+    gradle(
+      task: "bundle",
+      build_type: "StagingRelease",
+      print_command: false
+    )
+    
+    # Upload to Google Play Internal Testing
+    if ENV['GOOGLE_PLAY_JSON_KEY_DATA']
+      upload_to_play_store(
+        track: 'internal',
+        aab: 'app/build/outputs/bundle/stagingRelease/app-staging-release.aab',
+        json_key_data: ENV['GOOGLE_PLAY_JSON_KEY_DATA'],
+        skip_upload_apk: true,
+        skip_upload_metadata: true,
+        skip_upload_images: true,
+        skip_upload_screenshots: true
+      )
+    else
+      UI.important("⚠️  GOOGLE_PLAY_JSON_KEY_DATA not set - skipping Play Store upload")
+      UI.success("✅ Bundle built successfully at: app/build/outputs/bundle/stagingRelease/app-staging-release.aab")
+    end
+  end
+  
+  desc "Build and deploy production to Google Play"
+  lane :production do
+    gradle(
+      task: "bundle",
+      build_type: "Release",
+      print_command: false
+    )
+    
+    if ENV['GOOGLE_PLAY_JSON_KEY_DATA']
+      upload_to_play_store(
+        track: 'production',
+        aab: 'app/build/outputs/bundle/release/app-release.aab',
+        json_key_data: ENV['GOOGLE_PLAY_JSON_KEY_DATA'],
+        skip_upload_apk: true
+      )
+    end
+  end
+  
+  desc "Deploy existing bundle to internal testing"
+  lane :deploy_internal do
+    upload_to_play_store(
+      track: 'internal',
+      aab: 'app/build/outputs/bundle/stagingRelease/app-staging-release.aab',
+      json_key_data: ENV['GOOGLE_PLAY_JSON_KEY_DATA'],
+      skip_upload_apk: true,
+      skip_upload_metadata: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true
+    )
+  end
+end
