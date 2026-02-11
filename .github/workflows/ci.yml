@@ -47,6 +47,10 @@ jobs:
     needs: install
     steps:
       - uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
       - uses: actions/download-artifact@v4
         with:
           name: deps
@@ -64,6 +68,7 @@ jobs:
         with:
           name: coverage
           path: coverage
+          if-no-files-found: ignore
 
   build_android:
     name: Build Android & Deploy
@@ -71,6 +76,10 @@ jobs:
     needs: install
     steps:
       - uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
       - uses: actions/download-artifact@v4
         with:
           name: deps
@@ -100,26 +109,28 @@ jobs:
     needs: install
     steps:
       - uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
       - uses: actions/download-artifact@v4
         with:
           name: deps
           path: .
       - name: Set up Ruby
-        uses: ruby/setup-ruby@v2
+        uses: ruby/setup-ruby@v1
         with:
-          ruby-version: 3.x
+          ruby-version: '3.2'
       - name: Install CocoaPods
         run: |
           cd ios
           pod install --repo-update
-      - name: Build IPA with Fastlane
+      - name: Build and Upload to TestFlight with Fastlane
+        env:
+          APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_API_KEY_ID }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_ISSUER_ID }}
+          APP_STORE_CONNECT_API_KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_API_KEY_CONTENT }}
         run: |
           cd ios
-          bundle install || true
+          bundle install
           bundle exec fastlane ios staging
-      - name: Upload to TestFlight
-        uses: apple-actions/upload-testflight@v1
-        with:
-          api-key-id: ${{ secrets.APP_STORE_API_KEY_ID }}
-          api-issuer-id: ${{ secrets.APP_STORE_ISSUER_ID }}
-          ipa-path: ios/output/bisetka_staging.ipa
