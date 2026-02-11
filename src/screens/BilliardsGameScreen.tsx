@@ -907,7 +907,65 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
     );
   };
 
-  // Raycast aim guide: shows cue ball path, hit point, and target ball deflection
+  // Helper: render a line as a rotated thin View (always returns array for consistency)
+  const renderLine = (x1: number, y1: number, x2: number, y2: number, color: string, width: number, key: string, dashed?: boolean): React.ReactNode[] => {
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const length = Math.sqrt(dx * dx + dy * dy);
+    if (length < 1) return [];
+    const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+    const midX = (x1 + x2) / 2;
+    const midY = (y1 + y2) / 2;
+
+    if (dashed) {
+      // Render dashed line as series of short segments
+      const dashLen = 6;
+      const gapLen = 4;
+      const segments: React.ReactNode[] = [];
+      let d = 0;
+      let segIdx = 0;
+      const lineDirX = dx / length;
+      const lineDirY = dy / length;
+      while (d < length) {
+        const segStart = d;
+        const segEnd = Math.min(d + dashLen, length);
+        const sx = x1 + lineDirX * segStart;
+        const sy = y1 + lineDirY * segStart;
+        const ex = x1 + lineDirX * segEnd;
+        const ey = y1 + lineDirY * segEnd;
+        const segLen = segEnd - segStart;
+        const segMidX = (sx + ex) / 2;
+        const segMidY = (sy + ey) / 2;
+        segments.push(
+          <View key={`${key}-dash-${segIdx++}`} pointerEvents="none" style={{
+            position: 'absolute',
+            left: segMidX - segLen / 2,
+            top: segMidY - width / 2,
+            width: segLen,
+            height: width,
+            backgroundColor: color,
+            transform: [{rotate: `${angle}deg`}],
+          }} />,
+        );
+        d += dashLen + gapLen;
+      }
+      return segments;
+    }
+
+    return [
+      <View key={key} pointerEvents="none" style={{
+        position: 'absolute',
+        left: midX - length / 2,
+        top: midY - width / 2,
+        width: length,
+        height: width,
+        backgroundColor: color,
+        transform: [{rotate: `${angle}deg`}],
+      }} />,
+    ];
+  };
+
+  // Improved raycast aim guide with accurate trajectory prediction
   const renderAimGuide = () => {
     if (!cueGeo || !cueBall) return null;
     const {shotAngle} = cueGeo;
@@ -915,28 +973,36 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
     const dirY = Math.sin(shotAngle);
     const elements: React.ReactNode[] = [];
 
-    // Find first ball the cue ball will hit along the aim line (ray-circle intersection)
+    // Find first ball the cue ball will hit using precise ray-circle intersection
     const activeBalls = balls.filter(b => !b.pocketed && b.type !== 'cue');
     let hitBall: Ball | null = null;
     let hitDist = Infinity;
-    let hitPoint: Vec2 = {x: 0, y: 0};
+    let hitPoint: Vec2 = {x: 0, y: 0}; // Where cue ball CENTER will be at collision
 
     for (const target of activeBalls) {
-      // Vector from cue ball to target
+      // Vector from cue ball center to target center
       const ocx = target.pos.x - cueBall.pos.x;
       const ocy = target.pos.y - cueBall.pos.y;
-      // Project onto ray direction
+
+      // Project target center onto the aim ray
       const proj = ocx * dirX + ocy * dirY;
-      if (proj < BALL_RADIUS) continue; // behind us or too close
+      if (proj < BALL_RADIUS * 2) continue; // Target is behind or overlapping
+
+      // Closest point on ray to target center
+      const closestX = cueBall.pos.x + dirX * proj;
+      const closestY = cueBall.pos.y + dirY * proj;
+
       // Perpendicular distance from ray to target center
-      const perpX = cueBall.pos.x + dirX * proj - target.pos.x;
-      const perpY = cueBall.pos.y + dirY * proj - target.pos.y;
-      const perpDist = Math.sqrt(perpX * perpX + perpY * perpY);
+      const perpDist = Math.sqrt((closestX - target.pos.x) ** 2 + (closestY - target.pos.y) ** 2);
+
+      // Collision occurs when perpendicular distance < 2 * BALL_RADIUS
       const collisionRadius = BALL_RADIUS * 2;
       if (perpDist < collisionRadius) {
-        // Exact hit distance: back up from projection point
+        // Calculate exact collision distance using Pythagorean theorem
+        // hitDist = proj - sqrt(collisionRadius^2 - perpDist^2)
         const offset = Math.sqrt(collisionRadius * collisionRadius - perpDist * perpDist);
         const hitD = proj - offset;
+
         if (hitD > BALL_RADIUS && hitD < hitDist) {
           hitDist = hitD;
           hitBall = target;
@@ -948,49 +1014,73 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
       }
     }
 
-    // Also check wall hit if no ball hit
-    let wallHitDist = Infinity;
-    let wallHitPoint: Vec2 = {x: 0, y: 0};
-    // Check all 4 walls
-    if (dirX > 0) {
-      const d = (TABLE_WIDTH - BALL_RADIUS - cueBall.pos.x) / dirX;
-      if (d > 0 && d < wallHitDist) { wallHitDist = d; wallHitPoint = {x: cueBall.pos.x + dirX * d, y: cueBall.pos.y + dirY * d}; }
-    } else if (dirX < 0) {
-      const d = (BALL_RADIUS - cueBall.pos.x) / dirX;
-      if (d > 0 && d < wallHitDist) { wallHitDist = d; wallHitPoint = {x: cueBall.pos.x + dirX * d, y: cueBall.pos.y + dirY * d}; }
-    }
-    if (dirY > 0) {
-      const d = (TABLE_HEIGHT - BALL_RADIUS - cueBall.pos.y) / dirY;
-      if (d > 0 && d < wallHitDist) { wallHitDist = d; wallHitPoint = {x: cueBall.pos.x + dirX * d, y: cueBall.pos.y + dirY * d}; }
-    } else if (dirY < 0) {
-      const d = (BALL_RADIUS - cueBall.pos.y) / dirY;
-      if (d > 0 && d < wallHitDist) { wallHitDist = d; wallHitPoint = {x: cueBall.pos.x + dirX * d, y: cueBall.pos.y + dirY * d}; }
-    }
+    // Calculate wall collision if no ball hit or ball is further than wall
+    const calcWallHit = (): {dist: number; point: Vec2} => {
+      let minDist = Infinity;
+      let wallPt: Vec2 = {x: 0, y: 0};
 
-    // End point of cue ball path
-    const endDist = hitBall ? hitDist : Math.min(wallHitDist, TABLE_WIDTH * 1.5);
-    const endX = hitBall ? hitPoint.x : wallHitPoint.x;
-    const endY = hitBall ? hitPoint.y : wallHitPoint.y;
+      // Right wall
+      if (dirX > 0.001) {
+        const d = (TABLE_WIDTH - BALL_RADIUS - cueBall.pos.x) / dirX;
+        if (d > 0 && d < minDist) {
+          minDist = d;
+          wallPt = {x: TABLE_WIDTH - BALL_RADIUS, y: cueBall.pos.y + dirY * d};
+        }
+      }
+      // Left wall
+      if (dirX < -0.001) {
+        const d = (BALL_RADIUS - cueBall.pos.x) / dirX;
+        if (d > 0 && d < minDist) {
+          minDist = d;
+          wallPt = {x: BALL_RADIUS, y: cueBall.pos.y + dirY * d};
+        }
+      }
+      // Bottom wall
+      if (dirY > 0.001) {
+        const d = (TABLE_HEIGHT - BALL_RADIUS - cueBall.pos.y) / dirY;
+        if (d > 0 && d < minDist) {
+          minDist = d;
+          wallPt = {x: cueBall.pos.x + dirX * d, y: TABLE_HEIGHT - BALL_RADIUS};
+        }
+      }
+      // Top wall
+      if (dirY < -0.001) {
+        const d = (BALL_RADIUS - cueBall.pos.y) / dirY;
+        if (d > 0 && d < minDist) {
+          minDist = d;
+          wallPt = {x: cueBall.pos.x + dirX * d, y: BALL_RADIUS};
+        }
+      }
+      return {dist: minDist, point: wallPt};
+    };
 
-    // Draw cue ball path dots
-    const pathLen = Math.sqrt((endX - cueBall.pos.x) ** 2 + (endY - cueBall.pos.y) ** 2);
-    const dotSpacing = 10;
-    const numDots = Math.min(Math.floor(pathLen / dotSpacing), 40);
-    for (let i = 1; i <= numDots; i++) {
-      const t = i / (numDots + 1);
-      const x = cueBall.pos.x + (endX - cueBall.pos.x) * t;
-      const y = cueBall.pos.y + (endY - cueBall.pos.y) * t;
-      elements.push(
-        <View key={`aim-${i}`} pointerEvents="none" style={{
-          position: 'absolute', left: x - 1.5, top: y - 1.5,
-          width: 3, height: 3, borderRadius: 1.5,
-          backgroundColor: `rgba(255,255,255,${0.55 - t * 0.3})`,
-        }} />,
-      );
-    }
+    const wallHit = calcWallHit();
+    const useWallHit = !hitBall || wallHit.dist < hitDist;
+    const endPoint = hitBall && !useWallHit ? hitPoint : wallHit.point;
+    const endDist = hitBall && !useWallHit ? hitDist : wallHit.dist;
 
-    // Ghost cue ball at impact point
-    if (hitBall) {
+    // === DRAW CUE BALL TRAJECTORY ===
+    // Solid white line from cue ball to impact/wall
+    elements.push(...renderLine(
+      cueBall.pos.x, cueBall.pos.y,
+      endPoint.x, endPoint.y,
+      'rgba(255,255,255,0.7)', 2, 'aim-line',
+    ));
+
+    // Extended aim line (fainter, shows where you're pointing)
+    const extendLen = TABLE_WIDTH * 0.6;
+    const extEndX = cueBall.pos.x + dirX * extendLen;
+    const extEndY = cueBall.pos.y + dirY * extendLen;
+    elements.push(...renderLine(
+      endPoint.x, endPoint.y,
+      Math.max(0, Math.min(extEndX, TABLE_WIDTH)),
+      Math.max(0, Math.min(extEndY, TABLE_HEIGHT)),
+      'rgba(255,255,255,0.15)', 1, 'aim-ext', true,
+    ));
+
+    if (hitBall && !useWallHit) {
+      // === GHOST CUE BALL AT IMPACT ===
+      // Semi-transparent filled circle showing where cue ball will be
       elements.push(
         <View key="ghost-cue" pointerEvents="none" style={{
           position: 'absolute',
@@ -999,56 +1089,135 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
           width: BALL_RADIUS * 2,
           height: BALL_RADIUS * 2,
           borderRadius: BALL_RADIUS,
+          backgroundColor: 'rgba(255,255,255,0.25)',
           borderWidth: 1.5,
-          borderColor: 'rgba(255,255,255,0.4)',
-          borderStyle: 'dashed',
+          borderColor: 'rgba(255,255,255,0.5)',
         }} />,
       );
 
-      // Calculate deflection: target ball goes along the line from cue-hit-point to target center
+      // === CONTACT POINT ===
+      // The actual point where the balls touch
+      const contactX = (hitPoint.x + hitBall.pos.x) / 2;
+      const contactY = (hitPoint.y + hitBall.pos.y) / 2;
+      elements.push(
+        <View key="contact-point" pointerEvents="none" style={{
+          position: 'absolute',
+          left: contactX - 4,
+          top: contactY - 4,
+          width: 8,
+          height: 8,
+          borderRadius: 4,
+          backgroundColor: '#FF6B6B',
+          borderWidth: 1,
+          borderColor: '#fff',
+        }} />,
+      );
+
+      // === TARGET BALL DEFLECTION ===
+      // Direction: from cue ball center at impact → through target ball center
       const deflectDirX = hitBall.pos.x - hitPoint.x;
       const deflectDirY = hitBall.pos.y - hitPoint.y;
       const deflectLen = Math.sqrt(deflectDirX * deflectDirX + deflectDirY * deflectDirY) || 1;
       const dnx = deflectDirX / deflectLen;
       const dny = deflectDirY / deflectLen;
 
-      // Draw target ball deflection path
-      const deflectPathLen = TABLE_WIDTH * 0.35;
-      const deflectDots = 12;
-      for (let i = 1; i <= deflectDots; i++) {
-        const d = i * (deflectPathLen / deflectDots);
-        const x = hitBall.pos.x + dnx * d;
-        const y = hitBall.pos.y + dny * d;
-        if (x < 0 || x > TABLE_WIDTH || y < 0 || y > TABLE_HEIGHT) break;
-        elements.push(
-          <View key={`deflect-${i}`} pointerEvents="none" style={{
-            position: 'absolute', left: x - 1.5, top: y - 1.5,
-            width: 3, height: 3, borderRadius: 1.5,
-            backgroundColor: `rgba(255,200,0,${0.6 - i * 0.04})`,
-          }} />,
-        );
+      // Calculate where target ball trajectory hits wall or pocket
+      let targetEndDist = TABLE_WIDTH * 0.5;
+      // Check walls for target ball
+      if (dnx > 0.001) targetEndDist = Math.min(targetEndDist, (TABLE_WIDTH - BALL_RADIUS - hitBall.pos.x) / dnx);
+      if (dnx < -0.001) targetEndDist = Math.min(targetEndDist, (BALL_RADIUS - hitBall.pos.x) / dnx);
+      if (dny > 0.001) targetEndDist = Math.min(targetEndDist, (TABLE_HEIGHT - BALL_RADIUS - hitBall.pos.y) / dny);
+      if (dny < -0.001) targetEndDist = Math.min(targetEndDist, (BALL_RADIUS - hitBall.pos.y) / dny);
+      targetEndDist = Math.max(targetEndDist, BALL_RADIUS * 2);
+
+      const targetEndX = hitBall.pos.x + dnx * targetEndDist;
+      const targetEndY = hitBall.pos.y + dny * targetEndDist;
+
+      // Draw target ball trajectory (yellow/gold line)
+      elements.push(...renderLine(
+        hitBall.pos.x, hitBall.pos.y,
+        targetEndX, targetEndY,
+        'rgba(255,200,0,0.8)', 2, 'target-line',
+      ));
+
+      // Ghost target ball at end position
+      elements.push(
+        <View key="ghost-target" pointerEvents="none" style={{
+          position: 'absolute',
+          left: targetEndX - BALL_RADIUS,
+          top: targetEndY - BALL_RADIUS,
+          width: BALL_RADIUS * 2,
+          height: BALL_RADIUS * 2,
+          borderRadius: BALL_RADIUS,
+          backgroundColor: 'rgba(255,200,0,0.2)',
+          borderWidth: 1,
+          borderColor: 'rgba(255,200,0,0.5)',
+        }} />,
+      );
+
+      // === CUE BALL DEFLECTION AFTER HIT ===
+      // For equal mass elastic collision: cue ball travels perpendicular to the collision normal
+      // v_cue_after = v_cue_before - (v_cue_before · n) * n
+      const dotProduct = dirX * dnx + dirY * dny;
+      const cueBounceX = dirX - dotProduct * dnx;
+      const cueBounceY = dirY - dotProduct * dny;
+      const cbLen = Math.sqrt(cueBounceX * cueBounceX + cueBounceY * cueBounceY);
+
+      if (cbLen > 0.1) { // Only show if there's meaningful deflection
+        const cbnx = cueBounceX / cbLen;
+        const cbny = cueBounceY / cbLen;
+
+        // Calculate cue ball bounce endpoint
+        let cueEndDist = TABLE_WIDTH * 0.25;
+        if (cbnx > 0.001) cueEndDist = Math.min(cueEndDist, (TABLE_WIDTH - BALL_RADIUS - hitPoint.x) / cbnx);
+        if (cbnx < -0.001) cueEndDist = Math.min(cueEndDist, (BALL_RADIUS - hitPoint.x) / cbnx);
+        if (cbny > 0.001) cueEndDist = Math.min(cueEndDist, (TABLE_HEIGHT - BALL_RADIUS - hitPoint.y) / cbny);
+        if (cbny < -0.001) cueEndDist = Math.min(cueEndDist, (BALL_RADIUS - hitPoint.y) / cbny);
+        cueEndDist = Math.max(cueEndDist, BALL_RADIUS);
+
+        const cueEndX = hitPoint.x + cbnx * cueEndDist;
+        const cueEndY = hitPoint.y + cbny * cueEndDist;
+
+        // Draw cue ball bounce path (light blue dashed line)
+        elements.push(...renderLine(
+          hitPoint.x, hitPoint.y,
+          cueEndX, cueEndY,
+          'rgba(135,206,250,0.6)', 1.5, 'cue-bounce', true,
+        ));
       }
 
-      // Cue ball deflection after hit (90° from target deflection in 2D elastic collision)
-      const cueBounceX = dirX - (dnx * (dirX * dnx + dirY * dny));
-      const cueBounceY = dirY - (dny * (dirX * dnx + dirY * dny));
-      const cbLen = Math.sqrt(cueBounceX * cueBounceX + cueBounceY * cueBounceY) || 1;
-      const cbnx = cueBounceX / cbLen;
-      const cbny = cueBounceY / cbLen;
-      const cueBouncePathLen = TABLE_WIDTH * 0.2;
-      const cueBDots = 6;
-      for (let i = 1; i <= cueBDots; i++) {
-        const d = i * (cueBouncePathLen / cueBDots);
-        const x = hitPoint.x + cbnx * d;
-        const y = hitPoint.y + cbny * d;
-        if (x < 0 || x > TABLE_WIDTH || y < 0 || y > TABLE_HEIGHT) break;
-        elements.push(
-          <View key={`cue-bounce-${i}`} pointerEvents="none" style={{
-            position: 'absolute', left: x - 1.5, top: y - 1.5,
-            width: 3, height: 3, borderRadius: 1.5,
-            backgroundColor: `rgba(180,180,255,${0.4 - i * 0.05})`,
-          }} />,
-        );
+      // === POCKET PROXIMITY INDICATOR ===
+      // Highlight if target ball trajectory passes near a pocket
+      for (let i = 0; i < POCKETS.length; i++) {
+        const pocket = POCKETS[i]!;
+        // Check if trajectory line passes within pocket radius
+        // Vector from ball to pocket
+        const toPocketX = pocket.x - hitBall.pos.x;
+        const toPocketY = pocket.y - hitBall.pos.y;
+        // Project onto deflection direction
+        const projToPocket = toPocketX * dnx + toPocketY * dny;
+        if (projToPocket > 0 && projToPocket < targetEndDist + POCKET_RADIUS) {
+          // Closest point on trajectory to pocket
+          const closestX = hitBall.pos.x + dnx * projToPocket;
+          const closestY = hitBall.pos.y + dny * projToPocket;
+          const distToPocket = Math.sqrt((closestX - pocket.x) ** 2 + (closestY - pocket.y) ** 2);
+          if (distToPocket < POCKET_RADIUS * 1.5) {
+            // Draw pocket highlight
+            elements.push(
+              <View key={`pocket-highlight-${i}`} pointerEvents="none" style={{
+                position: 'absolute',
+                left: pocket.x - POCKET_RADIUS * 1.2,
+                top: pocket.y - POCKET_RADIUS * 1.2,
+                width: POCKET_RADIUS * 2.4,
+                height: POCKET_RADIUS * 2.4,
+                borderRadius: POCKET_RADIUS * 1.2,
+                borderWidth: 2,
+                borderColor: distToPocket < POCKET_RADIUS ? '#22C55E' : '#FBBF24',
+                backgroundColor: distToPocket < POCKET_RADIUS ? 'rgba(34,197,94,0.2)' : 'rgba(251,191,36,0.1)',
+              }} />,
+            );
+          }
+        }
       }
     }
 
