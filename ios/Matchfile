@@ -1,0 +1,9 @@
+git_url("https://github.com/sourceship13/bisetka_certificates.git")
+storage_mode("git")
+type("appstore")
+
+app_identifier(["org.sera.dev.bisetka"])
+username("aj@sera.dev")
+
+# For CI, set this to false to prevent interactive prompts
+readonly(ENV['CI'] == 'true')
