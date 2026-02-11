@@ -1,0 +1,125 @@
+# GitHub Actions workflow ported from CircleCI
+# Builds React Native staging for both Android (internal testing) and iOS (TestFlight)
+# Frontend: /no.limit.bisetka/bisetka
+
+name: CI & Deploy Staging
+
+on:
+  push:
+    branches:
+      - staging
+      - main
+      - develop
+  pull_request:
+    branches:
+      - staging
+      - main
+      - develop
+
+jobs:
+  install:
+    name: Install Dependencies
+    runs-on: ubuntu-latest
+    outputs:
+      cache-hit: ${{ steps.cache-npm.outputs.cache-hit }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cache NPM modules
+        id: cache-npm
+        uses: actions/cache@v3
+        with:
+          path: node_modules
+          key: npm-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+      - name: Install Node.js dependencies
+        run: npm ci
+      - name: Persist deps for jobs
+        uses: actions/upload-artifact@v3
+        with:
+          name: deps
+          path: |
+            node_modules
+            package.json
+            package-lock.json
+
+  test:
+    name: Run Unit Tests
+    runs-on: ubuntu-latest
+    needs: install
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v3
+        with:
+          name: deps
+          path: .
+      - name: Run tests
+        run: |
+          if grep -q '"test"' package.json; then
+            npm test -- --ci --coverage --maxWorkers=2
+          else
+            echo "No tests configured"
+          fi
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage
+          path: coverage
+
+  build_android:
+    name: Build Android & Deploy
+    runs-on: ubuntu-latest
+    needs: install
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v3
+        with:
+          name: deps
+          path: .
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Accept Android SDK licenses
+        run: yes | sdkmanager --licenses
+      - name: Build Android Release Bundle
+        run: |
+          cd android
+          ./gradlew bundleStagingRelease --no-daemon --stacktrace
+      - name: Upload to Google Play (Internal Testing)
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: com.yourcompany.bisetka
+          releaseFiles: android/app/build/outputs/bundle/stagingRelease/app-staging-release.aab
+          track: internal
+
+  build_ios:
+    name: Build iOS & Deploy
+    runs-on: macos-latest
+    needs: install
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v3
+        with:
+          name: deps
+          path: .
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v2
+        with:
+          ruby-version: 3.x
+      - name: Install CocoaPods
+        run: |
+          cd ios
+          pod install --repo-update
+      - name: Build IPA with Fastlane
+        run: |
+          cd ios
+          bundle install || true
+          bundle exec fastlane ios staging
+      - name: Upload to TestFlight
+        uses: apple-actions/upload-testflight@v1
+        with:
+          api-key-id: ${{ secrets.APP_STORE_API_KEY_ID }}
+          api-issuer-id: ${{ secrets.APP_STORE_ISSUER_ID }}
+          ipa-path: ios/output/bisetka_staging.ipa
