@@ -1,0 +1,63 @@
+# iOS Fastlane Configuration
+
+default_platform(:ios)
+
+platform :ios do
+  desc "Build and deploy staging to TestFlight"
+  lane :staging do
+    # Sync code signing
+    setup_ci if ENV['CI']
+    
+    # Build the app
+    gym(
+      workspace: "bisetka.xcworkspace",
+      scheme: "bisetka",
+      configuration: "Release",
+      export_method: "app-store",
+      output_directory: "./build",
+      output_name: "bisetka.ipa",
+      clean: true,
+      export_options: {
+        provisioningProfiles: {
+          "org.sera.dev.bisetka" => "match AppStore org.sera.dev.bisetka"
+        }
+      }
+    )
+    
+    # Upload to TestFlight
+    if ENV['APPLE_APP_STORE_API_KEY_ID']
+      upload_to_testflight(
+        api_key_path: "./fastlane/api_key.json",
+        skip_waiting_for_build_processing: true,
+        skip_submission: true,
+        distribute_external: false,
+        notify_external_testers: false
+      )
+    else
+      UI.important("⚠️  APPLE_APP_STORE_API_KEY_ID not set - skipping TestFlight upload")
+    end
+  end
+  
+  desc "Build production release"
+  lane :production do
+    setup_ci if ENV['CI']
+    
+    gym(
+      workspace: "bisetka.xcworkspace",
+      scheme: "bisetka",
+      configuration: "Release",
+      export_method: "app-store",
+      output_directory: "./build",
+      output_name: "bisetka.ipa",
+      clean: true
+    )
+    
+    if ENV['APPLE_APP_STORE_API_KEY_ID']
+      upload_to_testflight(
+        api_key_path: "./fastlane/api_key.json",
+        skip_waiting_for_build_processing: false,
+        distribute_external: true
+      )
+    end
+  end
+end
