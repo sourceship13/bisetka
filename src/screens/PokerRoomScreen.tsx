@@ -40,6 +40,8 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
   const [timeRemaining, setTimeRemaining] = useState(TURN_TIME_LIMIT);
   const [timerActive, setTimerActive] = useState(false);
   const lastResetTimeRef = useRef(0);
+  const lastActivePlayerRef = useRef(-1);
+  const aiMoveTriggeredRef = useRef(false);
 
   useEffect(() => {
     initializeGame();
@@ -66,29 +68,35 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
   // Reset timer when active player changes
   useEffect(() => {
     if (gamePhase === 'waiting' || gamePhase === 'showdown') return;
+    if (players.length === 0) return;
+    
+    // Only reset if active player actually changed
+    if (lastActivePlayerRef.current === activePlayerIndex) {
+      return;
+    }
     
     const activePlayer = players[activePlayerIndex];
-    if (activePlayer && !activePlayer.folded) {
-      const now = Date.now();
-      if (now - lastResetTimeRef.current < 500) {
-        return;
-      }
-      lastResetTimeRef.current = now;
-      
-      setTimerActive(false);
-      setTimeRemaining(TURN_TIME_LIMIT);
+    if (!activePlayer || activePlayer.folded) return;
+    
+    console.log('Active player changed to:', activePlayerIndex, activePlayer.name);
+    lastActivePlayerRef.current = activePlayerIndex;
+    aiMoveTriggeredRef.current = false;
+    
+    // Reset timer
+    setTimerActive(false);
+    setTimeRemaining(TURN_TIME_LIMIT);
+    setTimeout(() => {
+      setTimerActive(true);
+    }, 50);
+    
+    // Trigger AI move if not human player
+    if (activePlayerIndex !== playerIndex && !aiMoveTriggeredRef.current) {
+      aiMoveTriggeredRef.current = true;
       setTimeout(() => {
-        setTimerActive(true);
-      }, 50);
-      
-      // Trigger AI move if not human player
-      if (activePlayerIndex !== playerIndex) {
-        setTimeout(() => {
-          simulateAIMove(activePlayerIndex);
-        }, 1000);
-      }
+        simulateAIMove(activePlayerIndex);
+      }, 1000);
     }
-  }, [activePlayerIndex, gamePhase]);
+  }, [activePlayerIndex, gamePhase, players]);
 
   const handleTimeExpired = () => {
     console.log('Time expired for player', activePlayerIndex);
@@ -311,6 +319,17 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
       setTimerActive(false);
       const winner = activePlayers[0];
       const updatedPlayers = [...currentPlayers];
+      const winnerIndex = updatedPlayers.findIndex(p => p.id === winner.id);
+      updatedPlayers[winnerIndex].chips += pot;
+      setPlayers(updatedPlayers);
+      
+      Alert.alert('Winner!', `${winner.name} wins $${pot}!`, [
+        {
+          text: 'Next Hand',
+          onPress: () => {
+            setPot(0);
+            startNewHand(updatedPlayers);
+          }
         }
       ]);
       return;
