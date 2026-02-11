@@ -485,8 +485,8 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
           }
         }
 
-        // --- Type assignment (first non-cue, non-8 ball pocketed decides types) ---
-        if (!playerTypeRef.current && !aiTypeRef.current) {
+        // --- Type assignment (8-ball only: first non-cue, non-8 ball pocketed decides types) ---
+        if (variant === '8-ball' && !playerTypeRef.current && !aiTypeRef.current) {
           const firstLegit = shotPocketed.find(b => b.type === 'solid' || b.type === 'stripe');
           if (firstLegit && !cueScratch) {
             const pocketedType = firstLegit.type as 'solid' | 'stripe';
@@ -516,34 +516,59 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
         // Foul 2: cue ball didn't hit any ball
         if (!firstHit && !cueScratch) isFoul = true;
 
-        // Foul 3: first ball hit was not the shooter's type (if types assigned)
-        const shooterType = wasPlayerTurn ? playerTypeRef.current : aiTypeRef.current;
-        if (firstHit && shooterType) {
-          // If all own balls are pocketed, must hit 8-ball
-          const ownRemaining = next.filter(b => !b.pocketed && b.type === shooterType);
-          if (ownRemaining.length === 0) {
-            if (firstHit.number !== 8) isFoul = true;
-          } else {
-            if (firstHit.type !== shooterType) isFoul = true;
+        if (variant === '9-ball') {
+          // 9-ball foul rule: must hit the lowest numbered ball first
+          if (firstHit) {
+            const activeBalls = next.filter(b => !b.pocketed && b.number > 0 && b.type !== 'cue');
+            const lowestNum = Math.min(...activeBalls.map(b => b.number));
+            if (firstHit.number !== lowestNum) {
+              isFoul = true;
+              setShotMessage(`Foul! Must hit the ${lowestNum} ball first`);
+            }
+          }
+        } else {
+          // 8-ball foul rule: first ball hit was not the shooter's type (if types assigned)
+          const shooterType = wasPlayerTurn ? playerTypeRef.current : aiTypeRef.current;
+          if (firstHit && shooterType) {
+            // If all own balls are pocketed, must hit 8-ball
+            const ownRemaining = next.filter(b => !b.pocketed && b.type === shooterType);
+            if (ownRemaining.length === 0) {
+              if (firstHit.number !== 8) isFoul = true;
+            } else {
+              if (firstHit.type !== shooterType) isFoul = true;
+            }
           }
         }
 
         // --- Determine if shooter keeps their turn ---
-        const ownPocketed = shotPocketed.filter(b => b.type === shooterType);
-        const madeOwnBall = shooterType ? ownPocketed.length > 0 : shotPocketed.some(b => b.type !== 'cue' && b.type !== 'eight');
-        const keepTurn = !isFoul && madeOwnBall;
+        let keepTurn = false;
+        if (variant === '8-ball') {
+          // 8-ball: keep turn if you pocketed one of your own balls
+          const shooterType = wasPlayerTurn ? playerTypeRef.current : aiTypeRef.current;
+          const ownPocketed = shotPocketed.filter(b => b.type === shooterType);
+          const madeOwnBall = shooterType ? ownPocketed.length > 0 : shotPocketed.some(b => b.type !== 'cue' && b.type !== 'eight');
+          keepTurn = !isFoul && madeOwnBall;
+        }
+        // 9-ball: turns always alternate (no shoot-again)
 
         if (isFoul) {
           if (cueScratch) {
             setShotMessage(wasPlayerTurn ? 'Scratch! AI gets ball-in-hand' : 'AI scratched! Place the cue ball');
-          } else {
-            setShotMessage(wasPlayerTurn ? 'Foul! Hit opponent\'s ball first' : 'AI foul!');
+          } else if (!shotMessage) {
+            // Only set generic foul message if we didn't already set a specific one
+            setShotMessage(wasPlayerTurn ? 'Foul! AI gets ball-in-hand' : 'AI foul!');
           }
-          // Other player gets ball-in-hand behind head string
+          // Other player gets ball-in-hand
           if (wasPlayerTurn) {
             // AI gets ball in hand — auto-place for AI
             if (cue) {
-              cue.pos = {x: TABLE_WIDTH / 2, y: HEAD_STRING_Y + BALL_RADIUS * 3};
+              if (variant === '9-ball') {
+                // 9-ball: ball-in-hand anywhere
+                cue.pos = {x: TABLE_WIDTH / 2, y: TABLE_HEIGHT * 0.5};
+              } else {
+                // 8-ball: ball-in-hand behind head string
+                cue.pos = {x: TABLE_WIDTH / 2, y: HEAD_STRING_Y + BALL_RADIUS * 3};
+              }
               cue.pocketed = false;
             }
             setPlayerTurn(false);
@@ -597,20 +622,29 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
         const cue = ballsRef.current.find(b => b.type === 'cue' && !b.pocketed);
         if (!cue) return;
 
-        // AI targets its own type if assigned, otherwise closest
-        const aiT = aiTypeRef.current;
+        // AI targeting logic
         let targets = ballsRef.current.filter(b => !b.pocketed && b.type !== 'cue');
-        if (aiT) {
-          const ownBalls = targets.filter(b => b.type === aiT);
-          if (ownBalls.length > 0) {
-            targets = ownBalls;
-          } else {
-            // All own balls pocketed — go for 8-ball
-            const eight = targets.find(b => b.number === 8);
-            if (eight) targets = [eight];
+        if (targets.length === 0) return;
+
+        if (variant === '9-ball') {
+          // 9-ball: always target the lowest numbered ball
+          const lowestNum = Math.min(...targets.map(b => b.number));
+          const lowestBall = targets.find(b => b.number === lowestNum);
+          targets = lowestBall ? [lowestBall] : targets;
+        } else {
+          // 8-ball: target own type if assigned
+          const aiT = aiTypeRef.current;
+          if (aiT) {
+            const ownBalls = targets.filter(b => b.type === aiT);
+            if (ownBalls.length > 0) {
+              targets = ownBalls;
+            } else {
+              // All own balls pocketed — go for 8-ball
+              const eight = targets.find(b => b.number === 8);
+              if (eight) targets = [eight];
+            }
           }
         }
-        if (targets.length === 0) return;
 
         let best = targets[0]!;
         let bestD = Infinity;
@@ -657,10 +691,13 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
         if (isMovingRef.current || !playerTurnRef.current || gameOverRef.current) return;
         const {locationX, locationY} = evt.nativeEvent;
 
-        // Ball-in-hand: tap to place cue ball behind head string
+        // Ball-in-hand: tap to place cue ball
         if (ballInHandRef.current) {
           setPlacingCue(true);
-          const placeY = Math.max(locationY, HEAD_STRING_Y);
+          // 9-ball: anywhere on table; 8-ball: behind head string
+          const placeY = variant === '9-ball'
+            ? Math.max(BALL_RADIUS, Math.min(locationY, TABLE_HEIGHT - BALL_RADIUS))
+            : Math.max(locationY, HEAD_STRING_Y);
           const placeX = Math.max(BALL_RADIUS, Math.min(locationX, TABLE_WIDTH - BALL_RADIUS));
           setBalls(prev => {
             const next = prev.map(b => ({...b, pos: {...b.pos}, vel: {...b.vel}}));
@@ -686,7 +723,9 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
 
         // Ball-in-hand: drag to reposition
         if (ballInHandRef.current) {
-          const placeY = Math.max(locationY, HEAD_STRING_Y);
+          const placeY = variant === '9-ball'
+            ? Math.max(BALL_RADIUS, Math.min(locationY, TABLE_HEIGHT - BALL_RADIUS))
+            : Math.max(locationY, HEAD_STRING_Y);
           const placeX = Math.max(BALL_RADIUS, Math.min(locationX, TABLE_WIDTH - BALL_RADIUS));
           setBalls(prev => {
             const next = prev.map(b => ({...b, pos: {...b.pos}, vel: {...b.vel}}));
@@ -1165,48 +1204,91 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
         </View>
       </View>
 
-      {/* Pocketed balls */}
-      <View style={styles.pocketedRow}>
-        <View style={styles.pocketedGroup}>
-          <Text style={styles.pocketedLabel}>Solids</Text>
-          <View style={styles.miniRow}>
-            {pocketedSolids.map((b, i) => (
-              <View key={`s-${b.id}-${i}`} style={[styles.miniBall, {backgroundColor: b.color}]}>
-                <View style={styles.miniNumberCircle}>
-                  <Text style={styles.miniNum}>{b.number}</Text>
+      {/* Pocketed balls (8-ball only shows solids/stripes breakdown; 9-ball shows all) */}
+      {variant === '8-ball' ? (
+        <View style={styles.pocketedRow}>
+          <View style={styles.pocketedGroup}>
+            <Text style={styles.pocketedLabel}>Solids</Text>
+            <View style={styles.miniRow}>
+              {pocketedSolids.map((b, i) => (
+                <View key={`s-${b.id}-${i}`} style={[styles.miniBall, {backgroundColor: b.color}]}>
+                  <View style={styles.miniNumberCircle}>
+                    <Text style={styles.miniNum}>{b.number}</Text>
+                  </View>
                 </View>
-              </View>
-            ))}
+              ))}
+            </View>
+          </View>
+          <View style={styles.pocketedGroup}>
+            <Text style={styles.pocketedLabel}>Stripes</Text>
+            <View style={styles.miniRow}>
+              {pocketedStripes.map((b, i) => (
+                <View key={`st-${b.id}-${i}`} style={[styles.miniBall, {backgroundColor: '#fff', overflow: 'hidden'}]}>
+                  {/* Stripe band */}
+                  <View style={{
+                    position: 'absolute',
+                    top: 5,
+                    left: -1,
+                    right: -1,
+                    height: 10,
+                    backgroundColor: b.color,
+                  }} />
+                  <View style={styles.miniNumberCircle}>
+                    <Text style={styles.miniNum}>{b.number}</Text>
+                  </View>
+                </View>
+              ))}
+            </View>
           </View>
         </View>
-        <View style={styles.pocketedGroup}>
-          <Text style={styles.pocketedLabel}>Stripes</Text>
-          <View style={styles.miniRow}>
-            {pocketedStripes.map((b, i) => (
-              <View key={`st-${b.id}-${i}`} style={[styles.miniBall, {backgroundColor: '#fff', overflow: 'hidden'}]}>
-                {/* Stripe band */}
-                <View style={{
-                  position: 'absolute',
-                  top: 5,
-                  left: -1,
-                  right: -1,
-                  height: 10,
-                  backgroundColor: b.color,
-                }} />
-                <View style={styles.miniNumberCircle}>
-                  <Text style={styles.miniNum}>{b.number}</Text>
-                </View>
-              </View>
-            ))}
+      ) : (
+        <View style={styles.pocketedRow}>
+          <View style={styles.pocketedGroup}>
+            <Text style={styles.pocketedLabel}>Pocketed</Text>
+            <View style={styles.miniRow}>
+              {[...pocketedSolids, ...pocketedStripes]
+                .sort((a, b) => a.number - b.number)
+                .map((b, i) => (
+                  <View key={`p-${b.id}-${i}`} style={[styles.miniBall, {
+                    backgroundColor: b.stripe ? '#fff' : b.color,
+                    overflow: 'hidden',
+                  }]}>
+                    {b.stripe && (
+                      <View style={{
+                        position: 'absolute', top: 5, left: -1, right: -1,
+                        height: 10, backgroundColor: b.color,
+                      }} />
+                    )}
+                    <View style={styles.miniNumberCircle}>
+                      <Text style={styles.miniNum}>{b.number}</Text>
+                    </View>
+                  </View>
+                ))}
+            </View>
           </View>
         </View>
-      </View>
+      )}
 
-      {/* Type assignments */}
-      {playerType && (
+      {/* Type assignments (8-ball only) */}
+      {variant === '8-ball' && playerType && (
         <View style={styles.typeRow}>
           <Text style={styles.typeLabel}>You: <Text style={{color: playerType === 'solid' ? '#FFD700' : '#87CEEB', fontWeight: '800'}}>{playerType}s</Text></Text>
           <Text style={styles.typeLabel}>AI: <Text style={{color: aiType === 'solid' ? '#FFD700' : '#87CEEB', fontWeight: '800'}}>{aiType}s</Text></Text>
+        </View>
+      )}
+
+      {/* 9-ball target indicator */}
+      {variant === '9-ball' && !gameOver && !isMoving && (
+        <View style={styles.typeRow}>
+          <Text style={styles.typeLabel}>
+            Target: <Text style={{color: '#FFD700', fontWeight: '800'}}>
+              {(() => {
+                const active = balls.filter(b => !b.pocketed && b.number > 0);
+                const lowest = Math.min(...active.map(b => b.number));
+                return `${lowest} ball`;
+              })()}
+            </Text>
+          </Text>
         </View>
       )}
 
@@ -1220,12 +1302,16 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
       {/* Ball-in-hand indicator */}
       {ballInHand && (
         <View style={styles.messageBox}>
-          <Text style={styles.messageText}>👆 Tap behind the head string to place the cue ball</Text>
+          <Text style={styles.messageText}>
+            {variant === '9-ball'
+              ? '👆 Tap anywhere to place the cue ball'
+              : '👆 Tap behind the head string to place the cue ball'}
+          </Text>
         </View>
       )}
 
-      {/* Head string label when placing */}
-      {ballInHand && (
+      {/* Head string label when placing (8-ball only) */}
+      {ballInHand && variant === '8-ball' && (
         <Text style={[styles.hint, {color: '#FFD700'}]}>↑ Must place behind the dashed line ↑</Text>
       )}
 
