@@ -81,8 +81,21 @@ class ApiService {
       });
 
       if (response.status === 401 && requireAuth && retry) {
-        await tokenService.refreshSession();
-        return this.request<T>(endpoint, options, true, false);
+        try {
+          console.log('🔄 Token expired, attempting refresh...');
+          await tokenService.refreshSession();
+          console.log('✅ Token refreshed, retrying request');
+          return this.request<T>(endpoint, options, true, false);
+        } catch (refreshError: any) {
+          console.warn('❌ Token refresh failed:', refreshError.message);
+          // If refresh failed, return the original 401 error
+          // The session will already be cleared by tokenService if appropriate
+          throw {
+            message: 'Session expired. Please sign in again.',
+            code: 'SESSION_EXPIRED',
+            status: 401,
+          } as ApiError;
+        }
       }
 
       const text = await response.text();
