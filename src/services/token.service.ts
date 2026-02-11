@@ -4,6 +4,27 @@ import { apiConfig } from '../libs/utils/api.utils';
 import { getDeviceId, getDeviceInfo } from '../libs/utils/deviceInfo';
 import type { AuthResponse, User } from '../types/auth';
 
+// Base64 decode helper (atob not available in RN)
+const base64Decode = (str: string): string => {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
+  let output = '';
+  let i = 0;
+  const input = str.replace(/[^A-Za-z0-9+/=]/g, '');
+  while (i < input.length) {
+    const enc1 = chars.indexOf(input.charAt(i++));
+    const enc2 = chars.indexOf(input.charAt(i++));
+    const enc3 = chars.indexOf(input.charAt(i++));
+    const enc4 = chars.indexOf(input.charAt(i++));
+    const chr1 = (enc1 << 2) | (enc2 >> 4);
+    const chr2 = ((enc2 & 15) << 4) | (enc3 >> 2);
+    const chr3 = ((enc3 & 3) << 6) | enc4;
+    output += String.fromCharCode(chr1);
+    if (enc3 !== 64) output += String.fromCharCode(chr2);
+    if (enc4 !== 64) output += String.fromCharCode(chr3);
+  }
+  return output;
+};
+
 const ACCESS_TOKEN_KEY = '@bisetka_access_token';
 const REFRESH_TOKEN_BACKUP_KEY = '@bisetka_refresh_token_backup';
 const USER_STORAGE_KEY = '@bisetka_user';
@@ -15,7 +36,7 @@ class TokenService {
   private refreshPromise: Promise<AuthResponse> | null = null;
   private initialized = false;
   private userUpdater?: (user: User | null) => void;
-  private refreshTimer: NodeJS.Timeout | null = null;
+  private refreshTimer: ReturnType<typeof setTimeout> | null = null;
   private tokenExpiresAt: number | null = null;
 
   registerUserUpdater(callback?: (user: User | null) => void) {
@@ -38,7 +59,7 @@ class TokenService {
 
       if (!this.refreshTokenCache) {
         const credentials = await Keychain.getInternetCredentials(KEYCHAIN_SERVICE);
-        if (credentials?.password) {
+        if (credentials && typeof credentials === 'object' && 'password' in credentials) {
           this.refreshTokenCache = credentials.password;
           await AsyncStorage.setItem(REFRESH_TOKEN_BACKUP_KEY, credentials.password);
         }
@@ -47,13 +68,16 @@ class TokenService {
       // Decode existing token to set up expiration tracking
       if (this.accessTokenCache) {
         try {
-          const payload = JSON.parse(atob(this.accessTokenCache.split('.')[1]!));
+          const payload = JSON.parse(base64Decode(this.accessTokenCache.split('.')[1]!));
           if (payload.exp) {
             this.tokenExpiresAt = payload.exp * 1000;
-            // If token is expired or will expire in next minute, refresh immediately
+            // If token is expired or will expire in next minute, schedule refresh (don't block init)
             if (this.tokenExpiresAt < Date.now() + 60 * 1000) {
-              console.log('🔄 Token expired or expiring soon, refreshing on init...');
-              await this.refreshSession();
+              console.log('🔄 Token expired or expiring soon, scheduling background refresh...');
+              // Don't await — refresh in background so init completes quickly
+              this.refreshSession().catch(err => {
+                console.warn('Background refresh during init failed:', err.message);
+              });
             } else {
               this.scheduleProactiveRefresh();
             }
@@ -85,7 +109,7 @@ class TokenService {
 
     // Decode JWT to get expiration time (tokens are JWT format)
     try {
-      const payload = JSON.parse(atob(accessToken.split('.')[1]!));
+      const payload = JSON.parse(base64Decode(accessToken.split('.')[1]!));
       if (payload.exp) {
         this.tokenExpiresAt = payload.exp * 1000; // Convert to milliseconds
         this.scheduleProactiveRefresh();
@@ -145,7 +169,7 @@ class TokenService {
     await AsyncStorage.multiRemove([ACCESS_TOKEN_KEY, REFRESH_TOKEN_BACKUP_KEY, USER_STORAGE_KEY]);
 
     try {
-      await Keychain.resetInternetCredentials(KEYCHAIN_SERVICE);
+      await Keychain.resetInternetCredentials({ server: KEYCHAIN_SERVICE });
     } catch (error) {
       console.warn('Unable to reset Keychain credentials:', error);
     }
@@ -207,7 +231,7 @@ class TokenService {
     }
 
     const credentials = await Keychain.getInternetCredentials(KEYCHAIN_SERVICE);
-    if (credentials?.password) {
+    if (credentials && typeof credentials === 'object' && 'password' in credentials) {
       this.refreshTokenCache = credentials.password;
       await AsyncStorage.setItem(REFRESH_TOKEN_BACKUP_KEY, credentials.password);
       return credentials.password;
@@ -252,14 +276,24 @@ class TokenService {
       const deviceId = await getDeviceId();
       const deviceInfo = await getDeviceInfo();
 
-      const response = await fetch(`${apiConfig.apiURL}/auth/refresh`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-device-id': deviceId,
-        },
-        body: JSON.stringify({ refreshToken, deviceInfo }),
-      });
+      // Add timeout to prevent hanging forever
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+
+      let response: Response;
+      try {
+        response = await fetch(`${apiConfig.apiURL}/auth/refresh`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-device-id': deviceId,
+          },
+          body: JSON.stringify({ refreshToken, deviceInfo }),
+          signal: controller.signal,
+        });
+      } finally {
+        clearTimeout(timeoutId);
+      }
 
       if (!response.ok) {
         const errorBody = await response.text();
