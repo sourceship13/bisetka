@@ -13,7 +13,9 @@ export type GameType =
   | 'poker'
   | 'slots'
   | 'nardi'
-  | 'mrotsi';
+  | 'mrotsi'
+  | 'billiards'
+  | '9-ball';
 
 const request = async <T>(path: string, options: RequestInit = {}): Promise<T> => {
   const token = await tokenService.getAccessToken();
@@ -76,4 +78,6 @@ export const GAME_LABELS: Record<GameType, { title: string; description: string 
   slots: { title: 'Slots', description: 'Play for fun and practice' },
   nardi: { title: 'Nardi', description: 'Armenian backgammon showdowns' },
   mrotsi: { title: 'Mrotsi', description: 'Traditional dice battles' },
+  billiards: { title: 'Billiards', description: '8-Ball Pool — sink your solids or stripes' },
+  '9-ball': { title: '9-Ball Pool', description: 'Race to sink the 9-ball' },
 };
