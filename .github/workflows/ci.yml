@@ -84,6 +84,10 @@ jobs:
         with:
           name: deps
           path: .
+      - name: Restore node_modules executables
+        run: |
+          chmod +x node_modules/.bin/* || true
+          echo "$(pwd)/node_modules/.bin" >> $GITHUB_PATH
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
@@ -97,13 +101,14 @@ jobs:
         run: |
           cd android
           ./gradlew bundleStagingRelease --no-daemon --stacktrace
-      - name: Upload to Google Play (Internal Testing)
-        uses: r0adkll/upload-google-play@v1
-        with:
-          serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
-          packageName: com.yourcompany.bisetka
-          releaseFiles: android/app/build/outputs/bundle/stagingRelease/app-staging-release.aab
-          track: internal
+      # TODO: Configure Google Play deployment
+      # - name: Upload to Google Play (Internal Testing)
+      #   uses: r0adkll/upload-google-play@v1
+      #   with:
+      #     serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+      #     packageName: com.yourcompany.bisetka
+      #     releaseFiles: android/app/build/outputs/bundle/stagingRelease/app-staging-release.aab
+      #     track: internal
 
   build_ios:
     name: Build iOS & Deploy
@@ -131,11 +136,21 @@ jobs:
         run: |
           cd ios
           pod install --repo-update
-      - name: Build and Upload to TestFlight with Fastlane
-        env:
-          APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_API_KEY_ID }}
-          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_ISSUER_ID }}
-          APP_STORE_CONNECT_API_KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_API_KEY_CONTENT }}
+      - name: Build iOS Archive
         run: |
           cd ios
-          bundle exec fastlane ios staging
+          xcodebuild -workspace bisetka.xcworkspace \
+            -scheme bisetka \
+            -configuration Release \
+            -archivePath $PWD/build/bisetka.xcarchive \
+            archive
+      # TODO: Set up fastlane for TestFlight deployment
+      # Uncomment when ios/fastlane/Fastfile is configured
+      # - name: Upload to TestFlight with Fastlane
+      #   env:
+      #     APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_API_KEY_ID }}
+      #     APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_ISSUER_ID }}
+      #     APP_STORE_CONNECT_API_KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_API_KEY_CONTENT }}
+      #   run: |
+      #     cd ios
+      #     bundle exec fastlane ios staging
