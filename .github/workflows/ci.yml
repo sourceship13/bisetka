@@ -2,7 +2,7 @@
 # Builds React Native staging for both Android (internal testing) and iOS (TestFlight)
 # Frontend: /no.limit.bisetka/bisetka
 
-name: CI & Deploy Staging
+name: Bisetka CI & Deploy
 
 on:
   push:
