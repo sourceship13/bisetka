@@ -67,6 +67,11 @@ const GameModeScreen: React.FC<Props> = ({route, navigation}) => {
       navigation.navigate('PokerRoom' as any, { session: result, gameType, mode });
       return;
     }
+
+    if (gameType === 'billiards' || gameType === '9-ball') {
+      navigation.navigate('BilliardsGame' as any, { session: { ...result, gameType, mode } });
+      return;
+    }
     
     // For other games, go to SessionStatus screen
     navigation.navigate('SessionStatus', {
