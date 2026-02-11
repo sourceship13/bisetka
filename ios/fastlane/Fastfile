@@ -8,6 +8,13 @@ platform :ios do
     # Sync code signing
     setup_ci if ENV['CI']
     
+    # Use match to sync certificates and provisioning profiles
+    match(
+      type: "appstore",
+      readonly: true,
+      app_identifier: "org.sera.dev.bisetka"
+    )
+    
     # Build the app
     gym(
       workspace: "bisetka.xcworkspace",
@@ -16,12 +23,7 @@ platform :ios do
       export_method: "app-store",
       output_directory: "./build",
       output_name: "bisetka.ipa",
-      clean: true,
-      export_options: {
-        provisioningProfiles: {
-          "org.sera.dev.bisetka" => "match AppStore org.sera.dev.bisetka"
-        }
-      }
+      clean: true
     )
     
     # Upload to TestFlight
