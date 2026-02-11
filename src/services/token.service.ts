@@ -15,6 +15,8 @@ class TokenService {
   private refreshPromise: Promise<AuthResponse> | null = null;
   private initialized = false;
   private userUpdater?: (user: User | null) => void;
+  private refreshTimer: NodeJS.Timeout | null = null;
+  private tokenExpiresAt: number | null = null;
 
   registerUserUpdater(callback?: (user: User | null) => void) {
     this.userUpdater = callback;
@@ -42,6 +44,25 @@ class TokenService {
         }
       }
 
+      // Decode existing token to set up expiration tracking
+      if (this.accessTokenCache) {
+        try {
+          const payload = JSON.parse(atob(this.accessTokenCache.split('.')[1]!));
+          if (payload.exp) {
+            this.tokenExpiresAt = payload.exp * 1000;
+            // If token is expired or will expire in next minute, refresh immediately
+            if (this.tokenExpiresAt < Date.now() + 60 * 1000) {
+              console.log('🔄 Token expired or expiring soon, refreshing on init...');
+              await this.refreshSession();
+            } else {
+              this.scheduleProactiveRefresh();
+            }
+          }
+        } catch (error) {
+          console.warn('Unable to decode existing token:', error);
+        }
+      }
+
       const storedUser = await this.getStoredUser();
       if (storedUser && this.userUpdater) {
         this.userUpdater(storedUser);
@@ -62,6 +83,20 @@ class TokenService {
     this.accessTokenCache = accessToken;
     this.refreshTokenCache = refreshToken;
 
+    // Decode JWT to get expiration time (tokens are JWT format)
+    try {
+      const payload = JSON.parse(atob(accessToken.split('.')[1]!));
+      if (payload.exp) {
+        this.tokenExpiresAt = payload.exp * 1000; // Convert to milliseconds
+        this.scheduleProactiveRefresh();
+      }
+    } catch (error) {
+      console.warn('Unable to decode access token expiration:', error);
+      // Default: refresh after 12 minutes (assumes 15min TTL)
+      this.tokenExpiresAt = Date.now() + 12 * 60 * 1000;
+      this.scheduleProactiveRefresh();
+    }
+
     await AsyncStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
     await AsyncStorage.setItem(REFRESH_TOKEN_BACKUP_KEY, refreshToken);
 
@@ -72,9 +107,40 @@ class TokenService {
     }
   }
 
+  private scheduleProactiveRefresh(): void {
+    if (this.refreshTimer) {
+      clearTimeout(this.refreshTimer);
+      this.refreshTimer = null;
+    }
+
+    if (!this.tokenExpiresAt) return;
+
+    // Refresh 3 minutes before expiration
+    const refreshAt = this.tokenExpiresAt - 3 * 60 * 1000;
+    const delay = refreshAt - Date.now();
+
+    if (delay > 0 && delay < 24 * 60 * 60 * 1000) {
+      // Only schedule if delay is positive and less than 24 hours
+      this.refreshTimer = setTimeout(async () => {
+        try {
+          console.log('🔄 Proactively refreshing token...');
+          await this.refreshSession();
+        } catch (error) {
+          console.warn('Proactive refresh failed:', error);
+        }
+      }, delay);
+    }
+  }
+
   async clearSession(): Promise<void> {
     this.accessTokenCache = null;
     this.refreshTokenCache = null;
+    this.tokenExpiresAt = null;
+
+    if (this.refreshTimer) {
+      clearTimeout(this.refreshTimer);
+      this.refreshTimer = null;
+    }
 
     await AsyncStorage.multiRemove([ACCESS_TOKEN_KEY, REFRESH_TOKEN_BACKUP_KEY, USER_STORAGE_KEY]);
 
@@ -150,6 +216,28 @@ class TokenService {
     return null;
   }
 
+  async checkAndRefreshIfNeeded(): Promise<void> {
+    if (!this.accessTokenCache || !this.tokenExpiresAt) {
+      return;
+    }
+
+    const now = Date.now();
+    const expiresIn = this.tokenExpiresAt - now;
+
+    // If token expired or expires in next 2 minutes, refresh now
+    if (expiresIn < 2 * 60 * 1000) {
+      console.log(`⏰ Token expires in ${Math.round(expiresIn / 1000)}s — refreshing now`);
+      try {
+        await this.refreshSession();
+      } catch (error) {
+        console.warn('Refresh on foreground failed:', error);
+        // Don't throw — let the next API request handle it
+      }
+    } else {
+      console.log(`✅ Token still valid for ${Math.round(expiresIn / 60000)} minutes`);
+    }
+  }
+
   async refreshSession(): Promise<AuthResponse> {
     if (this.refreshPromise) {
       return this.refreshPromise;
@@ -174,9 +262,10 @@ class TokenService {
       });
 
       if (!response.ok) {
-        await this.clearSession();
         const errorBody = await response.text();
         let message = 'Unable to refresh session';
+        let shouldClearSession = false;
+
         if (errorBody) {
           try {
             const parsed = JSON.parse(errorBody);
@@ -187,6 +276,20 @@ class TokenService {
             // Ignore JSON parse errors
           }
         }
+
+        // Only clear session on 401 (invalid/expired refresh token) or 403 (revoked)
+        // Network errors (5xx, timeouts) shouldn't log the user out
+        if (response.status === 401 || response.status === 403) {
+          shouldClearSession = true;
+        }
+
+        if (shouldClearSession) {
+          console.warn('Refresh token invalid or expired — clearing session');
+          await this.clearSession();
+        } else {
+          console.warn(`Token refresh failed with ${response.status}, will retry on next request`);
+        }
+
         throw new Error(message);
       }
 

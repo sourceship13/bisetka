@@ -1,7 +1,7 @@
 import React, {createContext, useState, useContext, useEffect} from 'react';
 import AuthService from '../services/AuthService';
 import apiService from '../services/api.service';
-import {Platform} from 'react-native';
+import {Platform, AppState, AppStateStatus} from 'react-native';
 import {appleAuth} from '@invertase/react-native-apple-authentication';
 import tokenService from '../services/token.service';
 import type {User} from '../types/auth';
@@ -68,12 +68,25 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({
       });
     }
 
+    // AppState listener: check token when app comes to foreground
+    const appStateSubscription = AppState.addEventListener('change', async (nextAppState: AppStateStatus) => {
+      if (nextAppState === 'active') {
+        console.log('📱 App resumed to foreground — checking token health...');
+        try {
+          await tokenService.checkAndRefreshIfNeeded();
+        } catch (error) {
+          console.warn('Token check on resume failed:', error);
+        }
+      }
+    });
+
     return () => {
       isMounted = false;
       tokenService.registerUserUpdater(undefined);
       if (unsubscribe) {
         unsubscribe();
       }
+      appStateSubscription.remove();
     };
   }, []);
 
