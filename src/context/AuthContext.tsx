@@ -4,6 +4,8 @@ import apiService from '../services/api.service';
 import {Platform, AppState, AppStateStatus} from 'react-native';
 import {appleAuth} from '@invertase/react-native-apple-authentication';
 import tokenService from '../services/token.service';
+import {registerDevice} from '../libs/utils/deviceInfo';
+import {apiConfig} from '../libs/utils/api.utils';
 import type {User} from '../types/auth';
 
 interface AuthContextType {
@@ -113,6 +115,11 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({
 
       await tokenService.storeSession(backendResponse);
       setUser(mapBackendUser(backendResponse.user));
+
+      // Register device info (non-blocking)
+      registerDevice(apiConfig.apiURL, backendResponse.token).catch(err => {
+        console.warn('Device registration failed:', err);
+      });
     } catch (error: any) {
       console.error('❌ Apple Sign In error:', error?.message || error);
       throw error;
@@ -132,6 +139,11 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({
 
       await tokenService.storeSession(backendResponse);
       setUser(mapBackendUser(backendResponse.user));
+
+      // Register device info (non-blocking)
+      registerDevice(apiConfig.apiURL, backendResponse.token).catch(err => {
+        console.warn('Device registration failed:', err);
+      });
     } catch (error: any) {
       console.error('❌ Email Sign In error:', error?.message || error);
       throw error;
@@ -156,6 +168,11 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({
 
       await tokenService.storeSession(backendResponse);
       setUser(mapBackendUser(backendResponse.user));
+
+      // Register device info (non-blocking)
+      registerDevice(apiConfig.apiURL, backendResponse.token).catch(err => {
+        console.warn('Device registration failed:', err);
+      });
     } catch (error: any) {
       console.error('❌ Email Sign Up error:', error?.message || error);
       throw error;

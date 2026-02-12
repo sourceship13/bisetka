@@ -10,15 +10,39 @@ import {
   Platform,
   Alert,
   ActivityIndicator,
+  ScrollView,
 } from 'react-native';
 import {useAuth} from '../context/AuthContext';
 import AuthService from '../services/AuthService';
+
+// Dev test users - password is "test123" for all
+const DEV_TEST_USERS = [
+  {email: 'testuser1@test.com', name: 'Arin (Dev)', username: 'dev_arin'},
+  {email: 'testuser2@test.com', name: 'Alpha Player', username: 'player_alpha'},
+  {email: 'testuser3@test.com', name: 'Beta Tester', username: 'player_beta'},
+  {email: 'testuser4@test.com', name: 'Card Shark', username: 'card_shark'},
+  {email: 'testuser5@test.com', name: 'Pool Master', username: 'pool_master'},
+  {email: 'testuser6@test.com', name: 'Chess Knight', username: 'chess_knight'},
+  {email: 'testuser7@test.com', name: 'Nardi Pro', username: 'nardi_pro'},
+  {email: 'testuser8@test.com', name: 'Blot King', username: 'blot_king'},
+  {email: 'testuser9@test.com', name: 'Rookie', username: 'rookie_player'},
+  {email: 'testuser10@test.com', name: 'Guest', username: 'guest_tester'},
+];
+const DEV_PASSWORD = 'test123';
 
 const LoginScreen = ({navigation}: any) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showDevUsers, setShowDevUsers] = useState(false);
   const {signInWithApple, signInWithEmail} = useAuth();
+
+  // Quick fill dev credentials
+  const fillDevCredentials = (userEmail: string) => {
+    setEmail(userEmail);
+    setPassword(DEV_PASSWORD);
+    setShowDevUsers(false);
+  };
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -129,6 +153,36 @@ const LoginScreen = ({navigation}: any) => {
               <Text style={styles.signupLink}>Sign Up</Text>
             </TouchableOpacity>
           </View>
+
+          {/* DEV MODE: Quick login with test users */}
+          {__DEV__ && (
+            <View style={styles.devSection}>
+              <TouchableOpacity
+                style={styles.devToggle}
+                onPress={() => setShowDevUsers(!showDevUsers)}>
+                <Text style={styles.devToggleText}>
+                  🧪 {showDevUsers ? 'Hide' : 'Show'} Dev Test Users
+                </Text>
+              </TouchableOpacity>
+
+              {showDevUsers && (
+                <ScrollView style={styles.devUserList} nestedScrollEnabled>
+                  <Text style={styles.devHint}>
+                    Password for all: <Text style={styles.devPassword}>{DEV_PASSWORD}</Text>
+                  </Text>
+                  {DEV_TEST_USERS.map((user, idx) => (
+                    <TouchableOpacity
+                      key={user.email}
+                      style={styles.devUserButton}
+                      onPress={() => fillDevCredentials(user.email)}>
+                      <Text style={styles.devUserName}>{user.name}</Text>
+                      <Text style={styles.devUserEmail}>{user.email}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              )}
+            </View>
+          )}
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -240,6 +294,62 @@ const styles = StyleSheet.create({
     color: '#007AFF',
     fontSize: 14,
     fontWeight: '600',
+  },
+  // DEV MODE STYLES
+  devSection: {
+    marginTop: 32,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#e0e0e0',
+  },
+  devToggle: {
+    backgroundColor: '#FFF3CD',
+    borderRadius: 8,
+    padding: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#FFE69C',
+  },
+  devToggleText: {
+    color: '#856404',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  devUserList: {
+    marginTop: 12,
+    maxHeight: 200,
+    backgroundColor: '#f8f9fa',
+    borderRadius: 8,
+    padding: 8,
+  },
+  devHint: {
+    fontSize: 12,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  devPassword: {
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    backgroundColor: '#e9ecef',
+    color: '#495057',
+  },
+  devUserButton: {
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 6,
+    borderWidth: 1,
+    borderColor: '#dee2e6',
+  },
+  devUserName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#212529',
+  },
+  devUserEmail: {
+    fontSize: 12,
+    color: '#6c757d',
+    marginTop: 2,
   },
 });
 
