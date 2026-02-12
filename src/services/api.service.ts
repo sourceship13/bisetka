@@ -58,6 +58,7 @@ class ApiService {
     retry: boolean = true
   ): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
+    console.log('🌐 API Request:', url);
     const isFormData = options.body instanceof FormData;
     const headers: Record<string, string> = {
       ...(!isFormData && { 'Content-Type': 'application/json' }),
@@ -75,10 +76,12 @@ class ApiService {
         }
       }
 
+      console.log('📤 Request headers:', headers);
       const response = await fetch(url, {
         ...options,
         headers,
       });
+      console.log('📥 Response status:', response.status);
 
       if (response.status === 401 && requireAuth && retry) {
         try {
@@ -111,6 +114,7 @@ class ApiService {
 
       return data as T;
     } catch (error: any) {
+      console.error('❌ API Error:', error);
       if (error.message && error.status !== undefined) {
         throw error;
       }
