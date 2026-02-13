@@ -8,30 +8,33 @@ import {
   ScrollView,
   StatusBar,
   Dimensions,
+  Platform,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import {systemWeights} from 'react-native-typography';
 import {useAuth} from '../context/AuthContext';
+import {iOSUIKit} from 'react-native-typography';
+import {colors} from '../theme';
+import packageJson from '../../package.json';
 
 const {width} = Dimensions.get('window');
-const CARD_WIDTH = (width - 48 - 12) / 2; // 2 columns with gap
+const CARD_WIDTH = (width - 42) / 2; // 2 columns with gap
 
-// Game configurations with colors and icons
+// Game configurations with PushBird-style colors
 const GAMES = [
   {
     id: 'blot',
     name: 'Blot',
-    description: 'Classic Armenian card game',
+    description: 'Classic card game',
     icon: '🃏',
-    gradient: ['#667eea', '#764ba2'],
+    gradient: ['#6366f1', '#8b5cf6'],
     gameType: 'blot',
   },
   {
     id: 'baazar-blot',
     name: 'Baazar Blot',
-    description: 'Fast-paced variant',
+    description: 'Fast variant',
     icon: '⚡',
-    gradient: ['#f093fb', '#f5576c'],
+    gradient: ['#ec4899', '#f472b6'],
     gameType: 'baazar-blot',
   },
   {
@@ -39,63 +42,63 @@ const GAMES = [
     name: 'Poker',
     description: "Texas Hold'em",
     icon: '♠️',
-    gradient: ['#11998e', '#38ef7d'],
+    gradient: ['#10b981', '#34d399'],
     gameType: 'poker',
   },
   {
     id: 'chess',
     name: 'Chess',
-    description: 'Classic strategy',
+    description: 'Strategy',
     icon: '♟️',
-    gradient: ['#2c3e50', '#4ca1af'],
+    gradient: ['#3b82f6', '#60a5fa'],
     gameType: 'chess',
   },
   {
     id: 'checkers',
     name: 'Checkers',
-    description: 'Quick casual matches',
+    description: 'Quick matches',
     icon: '🔴',
-    gradient: ['#ee0979', '#ff6a00'],
+    gradient: ['#f59e0b', '#fbbf24'],
     gameType: 'checkers',
   },
   {
     id: 'nardi',
     name: 'Nardi',
-    description: 'Armenian backgammon',
+    description: 'Backgammon',
     icon: '🎲',
-    gradient: ['#8E2DE2', '#4A00E0'],
+    gradient: ['#8b5cf6', '#a78bfa'],
     gameType: 'nardi',
   },
   {
     id: 'billiards',
-    name: '8-Ball Pool',
-    description: 'Sink solids or stripes',
+    name: '8-Ball',
+    description: 'Pool',
     icon: '🎱',
-    gradient: ['#1a2a6c', '#b21f1f', '#fdbb2d'],
+    gradient: ['#06b6d4', '#22d3ee'],
     gameType: 'billiards',
   },
   {
     id: '9-ball',
-    name: '9-Ball Pool',
-    description: 'Race to the 9',
+    name: '9-Ball',
+    description: 'Race to 9',
     icon: '9️⃣',
-    gradient: ['#f7971e', '#ffd200'],
+    gradient: ['#f59e0b', '#fbbf24'],
     gameType: '9-ball',
   },
   {
     id: 'mrotsi',
     name: 'Mrotsi',
-    description: 'Armenian dice game',
+    description: 'Dice game',
     icon: '🎯',
-    gradient: ['#00b09b', '#96c93d'],
+    gradient: ['#14b8a6', '#2dd4bf'],
     gameType: 'mrotsi',
   },
   {
     id: 'slots',
     name: 'Slots',
-    description: 'Arcade fun',
+    description: 'Arcade',
     icon: '🎰',
-    gradient: ['#c31432', '#240b36'],
+    gradient: ['#ef4444', '#f87171'],
     gameType: 'slots',
     comingSoon: true,
   },
@@ -106,12 +109,7 @@ type GameConfig = (typeof GAMES)[number];
 const HomeScreen = ({navigation}: any) => {
   const {user, signOut} = useAuth();
 
-  const handleLogout = async () => {
-    await signOut();
-  };
-
   const handleGamePress = (game: GameConfig) => {
-    // All games go through GameMode selector
     navigation.navigate('GameMode', {gameType: game.gameType});
   };
 
@@ -145,74 +143,69 @@ const HomeScreen = ({navigation}: any) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#0f0c29" />
+      <StatusBar barStyle="light-content" backgroundColor="#0f0f23" />
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}>
         {/* Header */}
         <LinearGradient
-          colors={['#667eea', '#764ba2']}
+          colors={['#6366f1', '#8b5cf6']}
           start={{x: 0, y: 0}}
           end={{x: 1, y: 0}}
           style={styles.header}>
-          <View style={styles.headerContent}>
+          <View style={[styles.headerContent, {minHeight: 80  }]}>
             <Text style={styles.welcomeText}>Welcome back,</Text>
             <Text style={styles.userName}>
               {user?.fullName?.givenName || user?.username || 'Player'}! 👋
             </Text>
           </View>
-          <TouchableOpacity onPress={handleLogout} style={styles.logoutBtn}>
-            <Text style={styles.logoutText}>Sign Out</Text>
+          <TouchableOpacity onPress={signOut} style={styles.logoutBtn}>
+            <Text style={styles.logoutText}>Out</Text>
           </TouchableOpacity>
         </LinearGradient>
 
-        {/* Balance Card */}
-        {/* Balance & Chat Quick Access */}
-        <View style={styles.quickAccessRow}>
-          <View style={[styles.balanceCard, ]}>
+        {/* Balance & Chat Buttons */}
+        <View style={styles.quickRow}>
+          <View style={[styles.balanceWrap]}>
             <LinearGradient
-              colors={['#11998e', '#38ef7d']}
+              colors={['#10b981', '#34d399']}
               start={{x: 0, y: 0}}
               end={{x: 1, y: 1}}
-              style={[styles.balanceGradient, {backgroundColor: '#1a1742', padding: 20, borderRadius: 16, height: 150}]}>
-              <Text style={styles.balanceLabel}>Your Balance</Text>
+              style={[{minHeight: 100, borderRadius: 16, alignItems: 'flex-start', justifyContent: 'center', margin: 8}]}>
+              <Text style={[styles.balanceLabel, iOSUIKit.bodyEmphasizedWhite]}>Balance</Text>
               <Text style={styles.balanceAmount}>
                 💰 {(user as any)?.balance?.toLocaleString() || '1,000'}
               </Text>
             </LinearGradient>
           </View>
           
-          <View style={styles.chatButtons}>
+          <View style={styles.chatBtns}>
             <TouchableOpacity 
               onPress={() => navigation.navigate('GlobalChat')}
-              style={styles.chatButton}>
+              style={styles.chatBtn}>
               <LinearGradient
-                colors={['#667eea', '#764ba2']}
-                style={styles.chatButtonGradient}>
-                <Text style={styles.chatButtonText}>🌍</Text>
-                <Text style={styles.chatButtonLabel}>Global</Text>
+                colors={['#6366f1', '#8b5cf6']}
+                style={styles.chatGrad}>
+                <Text style={styles.chatIcon}>🌍</Text>
               </LinearGradient>
             </TouchableOpacity>
             
             <TouchableOpacity 
               onPress={() => navigation.navigate('DMList')}
-              style={styles.chatButton}>
+              style={styles.chatBtn}>
               <LinearGradient
-                colors={['#f093fb', '#f5576c']}
-                style={styles.chatButtonGradient}>
-                <Text style={styles.chatButtonText}>💬</Text>
-                <Text style={styles.chatButtonLabel}>DMs</Text>
+                colors={['#ec4899', '#f472b6']}
+                style={styles.chatGrad}>
+                <Text style={styles.chatIcon}>💬</Text>
               </LinearGradient>
             </TouchableOpacity>
           </View>
         </View>
 
         {/* Section Title */}
-        <View style={[styles.sectionHeader, {backgroundColor: '#1a1742', padding: 20, borderRadius: 16, margin: 20}]}>
+        <View style={styles.sectionHead}>
           <Text style={styles.sectionTitle}>🎮 Choose a Game</Text>
-          <Text style={styles.sectionSubtitle}>
-            Pick your game, then choose how to play
-          </Text>
+          <Text style={styles.sectionSub}>Pick your game</Text>
         </View>
 
         {/* Games Grid */}
@@ -222,9 +215,7 @@ const HomeScreen = ({navigation}: any) => {
 
         {/* Footer */}
         <View style={styles.footer}>
-          <Text style={styles.footerText}>
-            🇦🇲 Bisetka — Armenian Gaming
-          </Text>
+          <Text style={styles.footerText}>🇦🇲 Bisetka</Text>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -234,7 +225,7 @@ const HomeScreen = ({navigation}: any) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f0c29',
+    backgroundColor: '#0f0f23',
   },
   scrollContent: {
     paddingBottom: 40,
@@ -243,154 +234,132 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 24,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
   },
   headerContent: {
     flex: 1,
+    marginRight: 8,
   },
   welcomeText: {
-    ...systemWeights.regular,
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.8)',
-    textAlign: 'center',
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.7)',
   },
   userName: {
-    ...systemWeights.bold,
-    fontSize: 24,
+    fontSize: 20,
+    fontWeight: '700',
     color: '#fff',
-    marginTop: 4,
-    textAlign: 'center',
-    flexShrink: 1,
+    marginTop: 2,
   },
   logoutBtn: {
     backgroundColor: 'rgba(255,255,255,0.2)',
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 14,
   },
   logoutText: {
-    ...systemWeights.semibold,
     color: '#fff',
-    fontSize: 13,
-    letterSpacing: 0.2,
-    textAlign: 'center',
+    fontSize: 12,
+    fontWeight: '600',
   },
-  quickAccessRow: {
-    marginHorizontal: 20,
-    marginTop: 16,
+  quickRow: {
+    marginHorizontal: 16,
+    marginTop: 0,
     flexDirection: 'row',
-    gap: 12,
-  },
-  balanceCard: {
-    flex: 1,
-    borderRadius: 16,
-    overflow: 'hidden',
-    shadowColor: '#11998e',
-    shadowOffset: {width: 0, height: 8},
-    shadowOpacity: 0.4,
-    shadowRadius: 16,
-    elevation: 8,
-  },
-  balanceGradient: {
-    paddingVertical: 20,
-    paddingHorizontal: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 16,
-    minHeight: 90,
-  },
-  chatButtons: {
     gap: 8,
   },
-  chatButton: {
-    borderRadius: 12,
+  balanceWrap: {
+    flex: 2,
+    borderRadius: 14,
     overflow: 'hidden',
-    shadowColor: '#667eea',
+    shadowColor: '#10b981',
     shadowOffset: {width: 0, height: 4},
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 4,
   },
-  chatButtonGradient: {
-    width: 70,
-    paddingVertical: 12,
+  balanceGrad: {
     alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 12,
-  },
-  chatButtonText: {
-    fontSize: 20,
-    marginBottom: 2,
-    textAlign: 'center',
-  },
-  chatButtonLabel: {
-    ...systemWeights.semibold,
-    fontSize: 9,
-    color: '#fff',
-    letterSpacing: 0.3,
-    textAlign: 'center',
   },
   balanceLabel: {
-    ...systemWeights.regular,
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.9)',
+    fontSize: 22,
+    color: 'rgba(255,255,255,0.8)',
     marginBottom: 4,
-    textAlign: 'center',
+    marginHorizontal:40,
   },
   balanceAmount: {
-    ...systemWeights.bold,
     fontSize: 22,
+    fontWeight: '800',
+    fontFamily: Platform.OS === 'ios' ? 'System' : 'Roboto',    
     color: '#fff',
-    letterSpacing: 0.5,
-    textAlign: 'center',
+    marginHorizontal: 40,
   },
-  sectionHeader: {
-    paddingHorizontal: 20,
-    marginTop: 28,
-    marginBottom: 16,
+  chatBtns: {
+    gap: 8,
+    flex:1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  chatBtn: {
+    borderRadius: 12,
+    overflow: 'hidden',
+    shadowColor: '#6366f1',
+    shadowOffset: {width: 0, height: 3},
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 3,
+    flex: 1,
+  },
+  chatGrad: {
+    flex: 1,
+    borderRadius: 12,
     alignItems: 'center',
+    justifyContent: 'center',
+  },
+  chatIcon: {
+    fontSize: 24,
+  },
+  sectionHead: {
+    paddingHorizontal: 16,
+    marginTop: 20,
+    marginBottom: 12,
   },
   sectionTitle: {
-    ...systemWeights.bold,
-    fontSize: 22,
+    fontSize: 20,
+    fontWeight: '700',
     color: '#fff',
-    textAlign: 'center',
   },
-  sectionSubtitle: {
-    ...systemWeights.regular,
-    fontSize: 14,
+  sectionSub: {
+    fontSize: 13,
     color: 'rgba(255,255,255,0.6)',
-    marginTop: 4,
-    textAlign: 'center',
+    marginTop: 2,
   },
   gamesGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    paddingHorizontal: 20,
-    gap: 12,
+    paddingHorizontal: 16,
+    gap: 10,
   },
   gameCardWrapper: {
     width: CARD_WIDTH,
     borderRadius: 20,
     overflow: 'hidden',
-    shadowColor: '#667eea',
-    shadowOffset: {width: 0, height: 6},
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 6,
+    shadowColor: '#6366f1',
+    shadowOffset: {width: 0, height: 4},
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 4,
   },
   cardDisabled: {
     opacity: 0.6,
   },
   gameCard: {
-    padding: 16,
-    minHeight: 150,
+    padding: 2,
+    minHeight: 130,
     justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 20,
+
   },
   gameIcon: {
     fontSize: 36,
@@ -398,47 +367,39 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   gameName: {
-    ...systemWeights.bold,
-    fontSize: 15,
+    fontSize: 22,
+    fontWeight: '700',
     color: '#fff',
-    marginBottom: 4,
-    lineHeight: 18,
+    marginBottom: 3,
+    margin:10,
     textAlign: 'center',
-    flexShrink: 1,
   },
   gameDescription: {
-    ...systemWeights.regular,
-    fontSize: 10,
+    fontSize: 18,
     color: 'rgba(255,255,255,0.85)',
-    lineHeight: 13,
-    textAlign: 'center',
-    flexShrink: 1,
+    marginHorizontal:10
   },
   comingSoonBadge: {
     position: 'absolute',
-    top: 14,
-    right: 14,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 12,
+    top: 10,
+    right: 10,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
   },
   comingSoonText: {
-    ...systemWeights.bold,
-    fontSize: 10,
+    fontSize: 9,
+    fontWeight: '700',
     color: '#fff',
-    letterSpacing: 0.5,
-    textAlign: 'center',
   },
   footer: {
-    marginTop: 32,
+    marginTop: 28,
     alignItems: 'center',
   },
   footerText: {
-    ...systemWeights.regular,
     color: 'rgba(255,255,255,0.3)',
-    fontSize: 14,
-    textAlign: 'center',
+    fontSize: 13,
   },
 });
 
