@@ -14,7 +14,7 @@ if linkage != nil
   use_frameworks! :linkage => linkage.to_sym
 end
 
-target 'bisetka' do
+def shared_pods
   config = use_native_modules!
 
   # RNWorklets is a dependency of RNReanimated and needs explicit linking
@@ -25,13 +25,25 @@ target 'bisetka' do
     # An absolute path to your application root.
     :app_path => "#{Pod::Config.instance.installation_root}/.."
   )
+  
+  return config
+end
 
-  post_install do |installer|
-    react_native_post_install(
-      installer,
-      config[:reactNativePath],
-      :mac_catalyst_enabled => false,
-      # :ccache_enabled => true
-    )
-  end
+target 'bisetka' do
+  config = shared_pods
+end
+
+target 'bisetka-staging' do
+  config = shared_pods
+end
+
+post_install do |installer|
+  # Note: use_native_modules! returns config which contains :reactNativePath
+  # We can safely use the path from node_modules since it's shared across targets
+  react_native_post_install(
+    installer,
+    '../node_modules/react-native',
+    :mac_catalyst_enabled => false,
+    # :ccache_enabled => true
+  )
 end
