@@ -4,6 +4,7 @@ import GameModeSelector from '../components/GameModeSelector';
 import {GAME_LABELS, gameSessionsService} from '../services/gameSessions.service';
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {RootStackParamList} from '../navigation/AppNavigator';
+import {colors} from '../theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'GameMode'>;
 
@@ -165,7 +166,7 @@ const GameModeScreen: React.FC<Props> = ({route, navigation}) => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="light-content" backgroundColor="#0f0c29" />
+      <StatusBar barStyle="light-content" backgroundColor={colors.background.primary} />
       <GameModeSelector
         title={label.title}
         subtitle={label.description}
@@ -199,7 +200,7 @@ const GameModeScreen: React.FC<Props> = ({route, navigation}) => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#0f0c29',
+    backgroundColor: colors.background.primary,
   },
 });
 

@@ -12,8 +12,10 @@ import {
   ActivityIndicator,
   ScrollView,
 } from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
 import {useAuth} from '../context/AuthContext';
 import AuthService from '../services/AuthService';
+import {colors, spacing, typography} from '../theme';
 
 // Dev test users - password is "test123" for all
 const DEV_TEST_USERS = [
@@ -74,76 +76,87 @@ const LoginScreen = ({navigation}: any) => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardView}>
-        <View style={styles.content}>
-          <Text style={styles.title}>Bisetka</Text>
-          <Text style={styles.subtitle}>Sign in to continue</Text>
+    <LinearGradient
+      colors={[colors.background.primary, colors.background.secondary, colors.background.tertiary]}
+      style={styles.container}>
+      <SafeAreaView style={styles.safeArea}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.keyboardView}>
+          <View style={styles.content}>
+            <View style={styles.headerSection}>
+              <Text style={styles.logo}>🎮</Text>
+              <Text style={styles.title}>Bisetka</Text>
+              <Text style={styles.subtitle}>Armenian Gaming Platform</Text>
+            </View>
 
-          <View style={styles.inputContainer}>
-            <TextInput
-              style={styles.input}
-              placeholder="Email"
-              placeholderTextColor="#999"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoComplete="email"
-            />
+            <View style={styles.inputContainer}>
+              <View style={styles.inputWrapper}>
+                <Text style={styles.inputLabel}>📧 Email</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter your email"
+                  placeholderTextColor={colors.input.placeholder}
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoComplete="email"
+                />
+              </View>
 
-            <TextInput
-              style={styles.input}
-              placeholder="Password"
-              placeholderTextColor="#999"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              autoCapitalize="none"
-              autoComplete="password"
-            />
-          </View>
+              <View style={styles.inputWrapper}>
+                <Text style={styles.inputLabel}>🔒 Password</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter your password"
+                  placeholderTextColor={colors.input.placeholder}
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry
+                  autoCapitalize="none"
+                  autoComplete="password"
+                />
+              </View>
+            </View>
 
-          <TouchableOpacity 
-            style={styles.loginButton} 
-            onPress={handleLogin}
-            disabled={loading}>
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.loginButtonText}>Sign In</Text>
-            )}
-          </TouchableOpacity>
+            <TouchableOpacity
+              activeOpacity={0.85}
+              disabled={loading}
+              onPress={handleLogin}>
+              <LinearGradient
+                colors={colors.gradients.primary}
+                start={{x: 0, y: 0}}
+                end={{x: 1, y: 0}}
+                style={[styles.loginButton, loading && styles.buttonDisabled]}>
+                {loading ? (
+                  <ActivityIndicator color={colors.text.primary} />
+                ) : (
+                  <Text style={styles.loginButtonText}>Sign In</Text>
+                )}
+              </LinearGradient>
+            </TouchableOpacity>
 
           {AuthService.isAppleAuthAvailable() && (
             <>
-              <View style={styles.divider}>
-                <View style={styles.dividerLine} />
-                <Text style={styles.dividerText}>or</Text>
-                <View style={styles.dividerLine} />
+              <View style={styles.orContainer}>
+                <View style={styles.orLine} />
+                <Text style={styles.orText}>or</Text>
+                <View style={styles.orLine} />
               </View>
 
               <TouchableOpacity
-                style={styles.appleButton}
-                onPress={handleAppleSignIn}
-                disabled={loading}>
-                {loading ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <>
-                    <Text style={styles.appleButtonIcon}></Text>
-                    <Text style={styles.appleButtonText}>
-                      Sign in with Apple
-                    </Text>
-                  </>
-                )}
+                activeOpacity={0.85}
+                disabled={loading}
+                onPress={handleAppleSignIn}>
+                <View style={styles.appleButton}>
+                  <Text style={styles.appleButtonText}>🍎  Sign in with Apple</Text>
+                </View>
               </TouchableOpacity>
             </>
           )}
 
-          <TouchableOpacity style={styles.forgotPassword}>
+          <TouchableOpacity style={styles.forgotPasswordContainer}>
             <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
           </TouchableOpacity>
 
@@ -173,10 +186,16 @@ const LoginScreen = ({navigation}: any) => {
                   {DEV_TEST_USERS.map((user, idx) => (
                     <TouchableOpacity
                       key={user.email}
-                      style={styles.devUserButton}
+                      activeOpacity={0.85}
                       onPress={() => fillDevCredentials(user.email)}>
-                      <Text style={styles.devUserName}>{user.name}</Text>
-                      <Text style={styles.devUserEmail}>{user.email}</Text>
+                      <LinearGradient
+                        colors={colors.gradients.secondary}
+                        start={{x: 0, y: 0}}
+                        end={{x: 1, y: 0}}
+                        style={styles.devUserButton}>
+                        <Text style={styles.devUserName}>{user.name}</Text>
+                        <Text style={styles.devUserEmail}>{user.email}</Text>
+                      </LinearGradient>
                     </TouchableOpacity>
                   ))}
                 </ScrollView>
@@ -186,13 +205,16 @@ const LoginScreen = ({navigation}: any) => {
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
+  </LinearGradient>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+  },
+  safeArea: {
+    flex: 1,
   },
   keyboardView: {
     flex: 1,
@@ -200,86 +222,97 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     justifyContent: 'center',
-    paddingHorizontal: 24,
+    paddingHorizontal: spacing.xl,
+  },
+  headerSection: {
+    alignItems: 'center',
+    marginBottom: spacing.huge,
+  },
+  logo: {
+    fontSize: 64,
+    marginBottom: spacing.md,
   },
   title: {
-    fontSize: 36,
-    fontWeight: 'bold',
-    color: '#000',
-    marginBottom: 8,
+    fontSize: typography.fontSize.xxxl,
+    fontWeight: typography.fontWeight.bold,
+    color: colors.text.primary,
+    marginBottom: spacing.xs,
     textAlign: 'center',
   },
   subtitle: {
-    fontSize: 16,
-    color: '#666',
-    marginBottom: 48,
+    fontSize: typography.fontSize.md,
+    color: colors.text.secondary,
     textAlign: 'center',
   },
   inputContainer: {
-    marginBottom: 24,
+    marginBottom: spacing.xl,
+  },
+  inputWrapper: {
+    marginBottom: spacing.lg,
+  },
+  inputLabel: {
+    fontSize: typography.fontSize.sm,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.text.primary,
+    marginBottom: spacing.xs,
   },
   input: {
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.input.background,
     borderRadius: 12,
-    padding: 16,
-    fontSize: 16,
-    marginBottom: 16,
+    padding: spacing.lg,
+    fontSize: typography.fontSize.md,
+    color: colors.text.primary,
     borderWidth: 1,
-    borderColor: '#e0e0e0',
+    borderColor: colors.input.border,
   },
   loginButton: {
-    backgroundColor: '#007AFF',
     borderRadius: 12,
-    padding: 16,
+    padding: spacing.lg,
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: spacing.lg,
+  },
+  buttonDisabled: {
+    opacity: 0.6,
   },
   loginButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+    color: colors.text.primary,
+    fontSize: typography.fontSize.md,
+    fontWeight: typography.fontWeight.semibold,
   },
-  divider: {
+  orContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 24,
+    marginVertical: spacing.xl,
   },
-  dividerLine: {
+  orLine: {
     flex: 1,
     height: 1,
-    backgroundColor: '#e0e0e0',
+    backgroundColor: colors.border.secondary,
   },
-  dividerText: {
-    marginHorizontal: 16,
-    color: '#666',
-    fontSize: 14,
+  orText: {
+    marginHorizontal: spacing.lg,
+    color: colors.text.secondary,
+    fontSize: typography.fontSize.sm,
   },
   appleButton: {
-    backgroundColor: '#000',
+    backgroundColor: colors.button.secondary,
     borderRadius: 12,
-    padding: 16,
+    padding: spacing.lg,
     alignItems: 'center',
-    marginBottom: 16,
-    flexDirection: 'row',
-    justifyContent: 'center',
-  },
-  appleButtonIcon: {
-    fontSize: 20,
-    color: '#fff',
-    marginRight: 8,
+    marginBottom: spacing.lg,
   },
   appleButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+    color: colors.text.primary,
+    fontSize: typography.fontSize.md,
+    fontWeight: typography.fontWeight.semibold,
   },
-  forgotPassword: {
+  forgotPasswordContainer: {
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: spacing.xl,
   },
   forgotPasswordText: {
-    color: '#007AFF',
-    fontSize: 14,
+    color: colors.accent,
+    fontSize: typography.fontSize.sm,
   },
   signupContainer: {
     flexDirection: 'row',
@@ -287,68 +320,65 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   signupText: {
-    color: '#666',
-    fontSize: 14,
+    color: colors.text.secondary,
+    fontSize: typography.fontSize.sm,
   },
   signupLink: {
-    color: '#007AFF',
-    fontSize: 14,
-    fontWeight: '600',
+    color: colors.accent,
+    fontSize: typography.fontSize.sm,
+    fontWeight: typography.fontWeight.semibold,
   },
   // DEV MODE STYLES
   devSection: {
-    marginTop: 32,
-    paddingTop: 16,
+    marginTop: spacing.xxxl,
+    paddingTop: spacing.lg,
     borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
+    borderTopColor: colors.border.secondary,
   },
   devToggle: {
-    backgroundColor: '#FFF3CD',
+    backgroundColor: colors.warning.light,
     borderRadius: 8,
-    padding: 12,
+    padding: spacing.md,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#FFE69C',
+    borderColor: colors.warning.main,
   },
   devToggleText: {
-    color: '#856404',
-    fontSize: 14,
-    fontWeight: '600',
+    color: colors.warning.dark,
+    fontSize: typography.fontSize.sm,
+    fontWeight: typography.fontWeight.semibold,
   },
   devUserList: {
-    marginTop: 12,
+    marginTop: spacing.md,
     maxHeight: 200,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: colors.background.secondary,
     borderRadius: 8,
-    padding: 8,
+    padding: spacing.sm,
   },
   devHint: {
-    fontSize: 12,
-    color: '#666',
+    fontSize: typography.fontSize.xs,
+    color: colors.text.secondary,
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   devPassword: {
+    fontWeight: typography.fontWeight.semibold,
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-    backgroundColor: '#e9ecef',
-    color: '#495057',
+    color: colors.text.primary,
   },
   devUserButton: {
-    backgroundColor: '#fff',
     borderRadius: 8,
-    padding: 10,
-    marginBottom: 6,
-    borderWidth: 1,
-    borderColor: '#dee2e6',
+    padding: spacing.md,
+    marginBottom: spacing.xs,
   },
   devUserName: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#212529',
+    fontSize: typography.fontSize.sm,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.text.primary,
   },
   devUserEmail: {
-    fontSize: 12,
-    color: '#6c757d',
+    fontSize: typography.fontSize.xs,
+    color: colors.text.secondary,
     marginTop: 2,
   },
 });
