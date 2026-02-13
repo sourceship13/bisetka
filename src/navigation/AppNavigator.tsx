@@ -25,7 +25,7 @@ import {GameType} from '../services/gameSessions.service';
 export type RootStackParamList = {
   Login: undefined;
   Home: undefined;
-  Blot: { userId: string };
+  Blot: { userId: string; mode?: 'ai' | 'menu'; difficulty?: 'easy' | 'medium' | 'hard' };
   BaazarBlot: undefined;
   Nardi: undefined;
   Chess: undefined;
