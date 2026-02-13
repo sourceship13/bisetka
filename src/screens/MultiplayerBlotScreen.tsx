@@ -26,8 +26,12 @@ interface GameState {
 
 const MultiplayerBlotScreen = ({ navigation, route }: any) => {
   const userId = route.params?.userId || 'test-user-' + Math.random().toString(36).substr(2, 9);
+  const initialMode = route.params?.mode; // 'ai' to skip menu and go directly to AI game
+  const initialDifficulty = route.params?.difficulty || 'medium';
   
-  const [gameMode, setGameMode] = useState<'menu' | 'matchmaking' | 'private' | 'game' | 'local'>('menu');
+  const [gameMode, setGameMode] = useState<'menu' | 'matchmaking' | 'private' | 'game' | 'local'>(
+    initialMode === 'ai' ? 'local' : 'menu'
+  );
   const [roomCode, setRoomCode] = useState('');
   const [joinRoomCode, setJoinRoomCode] = useState('');
   const [currentRoom, setCurrentRoom] = useState<any>(null);
@@ -45,6 +49,15 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
   const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
 
   useEffect(() => {
+    // If mode is 'ai', auto-start the AI game immediately
+    if (initialMode === 'ai') {
+      setDifficulty(initialDifficulty);
+      setIsLocalGame(true);
+      const newGame = blotAIService.initializeGame();
+      setLocalGameState(newGame);
+      setIsGameStarted(true);
+    }
+    
     connectSocket();
 
     return () => {
