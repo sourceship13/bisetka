@@ -6,6 +6,7 @@ import {appleAuth} from '@invertase/react-native-apple-authentication';
 import tokenService from '../services/token.service';
 import {registerDevice} from '../libs/utils/deviceInfo';
 import {apiConfig} from '../libs/utils/api.utils';
+import chatSocketService from '../services/chatSocket.service';
 import type {User} from '../types/auth';
 
 interface AuthContextType {
@@ -186,6 +187,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({
       setIsLoading(true);
       await AuthService.signOut();
       await tokenService.clearSession();
+      chatSocketService.disconnect();
       setUser(null);
     } catch (error) {
       console.error('Sign out error:', error);

@@ -9,6 +9,7 @@ import {
   Dimensions,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import {colors, spacing, typography} from '../theme';
 
 const {width} = Dimensions.get('window');
 
@@ -213,45 +214,45 @@ const GameModeSelector: React.FC<GameModeSelectorProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f0c29',
+    backgroundColor: colors.background.primary,
   },
   header: {
-    paddingTop: 20,
-    paddingHorizontal: 24,
-    paddingBottom: 24,
+    paddingTop: spacing.xl,
+    paddingHorizontal: spacing.xl,
+    paddingBottom: spacing.xl,
   },
   backButton: {
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   backText: {
-    color: '#a0a0ff',
-    fontSize: 16,
-    fontWeight: '500',
+    color: colors.primaryLight,
+    fontSize: typography.fontSize.md,
+    fontWeight: typography.fontWeight.medium,
   },
   title: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: '#fff',
+    fontSize: typography.fontSize.xxxl,
+    fontWeight: typography.fontWeight.extrabold,
+    color: colors.text.primary,
     textAlign: 'center',
-    textShadowColor: 'rgba(102, 126, 234, 0.5)',
+    textShadowColor: colors.shadow,
     textShadowOffset: {width: 0, height: 2},
     textShadowRadius: 10,
   },
   subtitle: {
-    fontSize: 16,
-    color: 'rgba(255,255,255,0.7)',
+    fontSize: typography.fontSize.md,
+    color: colors.text.secondary,
     textAlign: 'center',
-    marginTop: 8,
+    marginTop: spacing.sm,
   },
   cardsContainer: {
     flex: 1,
-    paddingHorizontal: 20,
+    paddingHorizontal: spacing.xl,
     gap: 14,
   },
   cardWrapper: {
     borderRadius: 20,
     overflow: 'hidden',
-    shadowColor: '#667eea',
+    shadowColor: colors.shadow,
     shadowOffset: {width: 0, height: 8},
     shadowOpacity: 0.3,
     shadowRadius: 16,
@@ -263,8 +264,8 @@ const styles = StyleSheet.create({
   modeCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 20,
-    paddingHorizontal: 20,
+    paddingVertical: spacing.xl,
+    paddingHorizontal: spacing.xl,
     minHeight: 90,
   },
   cardContent: {
@@ -274,20 +275,20 @@ const styles = StyleSheet.create({
   },
   cardIcon: {
     fontSize: 36,
-    marginRight: 16,
+    marginRight: spacing.lg,
   },
   cardText: {
     flex: 1,
   },
   cardLabel: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#fff',
-    marginBottom: 4,
+    fontSize: typography.fontSize.xl,
+    fontWeight: typography.fontWeight.bold,
+    color: colors.text.primary,
+    marginBottom: spacing.xs,
   },
   cardDesc: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.85)',
+    fontSize: typography.fontSize.sm,
+    color: colors.text.secondary,
   },
   cardArrow: {
     width: 40,
@@ -298,13 +299,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   arrowText: {
-    color: '#fff',
-    fontSize: 20,
-    fontWeight: '600',
+    color: colors.text.primary,
+    fontSize: typography.fontSize.xl,
+    fontWeight: typography.fontWeight.semibold,
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.3)',
+    backgroundColor: colors.overlay,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 20,
@@ -319,35 +320,35 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   joinGradient: {
-    padding: 20,
+    padding: spacing.xl,
   },
   joinTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#fff',
-    marginBottom: 16,
+    fontSize: typography.fontSize.lg,
+    fontWeight: typography.fontWeight.bold,
+    color: colors.text.primary,
+    marginBottom: spacing.lg,
     textAlign: 'center',
   },
   joinInputRow: {
     flexDirection: 'row',
-    gap: 12,
+    gap: spacing.md,
   },
   joinInput: {
     flex: 1,
     backgroundColor: 'rgba(255,255,255,0.2)',
     borderRadius: 14,
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#fff',
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.md,
+    fontSize: typography.fontSize.xl,
+    fontWeight: typography.fontWeight.bold,
+    color: colors.text.primary,
     textAlign: 'center',
     letterSpacing: 4,
   },
   joinButton: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.text.primary,
     borderRadius: 14,
-    paddingHorizontal: 24,
+    paddingHorizontal: spacing.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -356,24 +357,24 @@ const styles = StyleSheet.create({
   },
   joinButtonText: {
     color: '#43e97b',
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: typography.fontSize.md,
+    fontWeight: typography.fontWeight.bold,
   },
   cancelButton: {
-    marginTop: 12,
+    marginTop: spacing.md,
     alignItems: 'center',
   },
   cancelText: {
-    color: 'rgba(255,255,255,0.8)',
-    fontSize: 14,
+    color: colors.text.secondary,
+    fontSize: typography.fontSize.sm,
   },
   footer: {
-    paddingVertical: 24,
+    paddingVertical: spacing.xl,
     alignItems: 'center',
   },
   footerText: {
-    color: 'rgba(255,255,255,0.4)',
-    fontSize: 14,
+    color: colors.text.tertiary,
+    fontSize: typography.fontSize.sm,
   },
 });
 
