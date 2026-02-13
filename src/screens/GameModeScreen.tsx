@@ -118,7 +118,11 @@ const GameModeScreen: React.FC<Props> = ({route, navigation}) => {
         navigation.navigate('Nardi' as any);
         break;
       case 'Blot':
-        navigation.navigate('Blot' as any, {userId: 'user'});
+        navigation.navigate('Blot' as any, {
+          userId: 'user',
+          mode: mode === 'ai' ? 'ai' : 'menu',
+          difficulty: sessionData.difficulty || 'medium',
+        });
         break;
       case 'BaazarBlot':
         navigation.navigate('BaazarBlot' as any);
