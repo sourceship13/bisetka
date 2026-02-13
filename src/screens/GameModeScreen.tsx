@@ -1,5 +1,5 @@
 import React, {useState} from 'react';
-import {Alert, SafeAreaView, StyleSheet} from 'react-native';
+import {Alert, SafeAreaView, StyleSheet, StatusBar} from 'react-native';
 import GameModeSelector from '../components/GameModeSelector';
 import {GAME_LABELS, gameSessionsService} from '../services/gameSessions.service';
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
@@ -8,6 +8,30 @@ import {RootStackParamList} from '../navigation/AppNavigator';
 type Props = NativeStackScreenProps<RootStackParamList, 'GameMode'>;
 
 type SessionMode = 'random' | 'ai' | 'private-create' | 'private-join';
+
+// Map game types to their actual game screens
+const GAME_SCREEN_MAP: Record<string, keyof RootStackParamList> = {
+  // Card games
+  'blot': 'Blot',
+  'baazar-blot': 'BaazarBlot',
+  'cards': 'Blot', // Generic cards goes to Blot for now
+  
+  // Board games
+  'chess': 'Chess',
+  'chess-multiplayer': 'MultiplayerChess',
+  'checkers': 'Checkers',
+  'nardi': 'Nardi',
+  
+  // Pool games
+  'billiards': 'BilliardsGame',
+  '8-ball': 'BilliardsGame',
+  '9-ball': 'BilliardsGame',
+  
+  // Other games
+  'poker': 'PokerRoom',
+  'mrotsi': 'Mrotsi',
+  'slots': 'Home', // Slots not implemented yet
+};
 
 const formatSuccessMessage = (
   mode: SessionMode,
@@ -25,25 +49,26 @@ const formatSuccessMessage = (
     case 'private-join':
       return {
         title: heading,
-        message: `Joined private game ${result?.id ?? ''}. Waiting for host...`,
+        message: `Joined private game! Get ready...`,
       };
     case 'ai':
       return {
         title: heading,
-        message: `AI match started (difficulty: ${result?.difficulty ?? 'medium'}). Launching board...`,
+        message: `AI match started. Good luck!`,
       };
     case 'random':
     default:
       return {
         title: heading,
-        message: 'You are queued for a random opponent. Sit tight!',
+        message: 'Finding you an opponent...',
       };
   }
 };
 
 const GameModeScreen: React.FC<Props> = ({route, navigation}) => {
   const {gameType} = route.params;
-  const label = GAME_LABELS[gameType];
+  const label = GAME_LABELS[gameType] || {title: 'Game', description: ''};
+  
   const [loading, setLoading] = useState({
     ai: false,
     random: false,
@@ -51,43 +76,75 @@ const GameModeScreen: React.FC<Props> = ({route, navigation}) => {
     join: false,
   });
 
-  const navigateToSession = (mode: SessionMode, result: any) => {
-    // Navigate directly to game screen for checkers and mrotsi
-    if (gameType === 'checkers') {
-      navigation.navigate('Checkers' as any, { session: result, gameType, mode });
-      return;
-    }
+  const navigateToGame = (mode: SessionMode, result: any) => {
+    const screenName = GAME_SCREEN_MAP[gameType];
     
-    if (gameType === 'mrotsi') {
-      navigation.navigate('Mrotsi' as any, { session: result, gameType, mode });
-      return;
-    }
-    
-    if (gameType === 'poker') {
-      navigation.navigate('PokerRoom' as any, { session: result, gameType, mode });
+    if (!screenName || screenName === 'Home') {
+      Alert.alert('Coming Soon', `${label.title} is not available yet!`);
       return;
     }
 
-    if (gameType === 'billiards' || gameType === '9-ball') {
-      navigation.navigate('BilliardsGame' as any, { session: { ...result, gameType, mode } });
-      return;
-    }
-    
-    // For other games, go to SessionStatus screen
-    navigation.navigate('SessionStatus', {
+    // Build session data
+    const sessionData = {
+      ...result,
       gameType,
-      session: {
-        ...result,
-        mode,
-      },
-    });
+      mode,
+      difficulty: result?.difficulty || 'medium',
+    };
+
+    // Navigate to the appropriate screen
+    // Most game screens accept a session prop
+    switch (screenName) {
+      case 'BilliardsGame':
+        navigation.navigate('BilliardsGame', {session: sessionData});
+        break;
+      case 'PokerRoom':
+        navigation.navigate('PokerRoom', {session: sessionData} as any);
+        break;
+      case 'Checkers':
+        navigation.navigate('Checkers', {session: sessionData} as any);
+        break;
+      case 'Mrotsi':
+        navigation.navigate('Mrotsi', {session: sessionData} as any);
+        break;
+      case 'Chess':
+        navigation.navigate('Chess' as any);
+        break;
+      case 'MultiplayerChess':
+        navigation.navigate('MultiplayerChess' as any, {userId: 'user'});
+        break;
+      case 'Nardi':
+        navigation.navigate('Nardi' as any);
+        break;
+      case 'Blot':
+        navigation.navigate('Blot' as any, {userId: 'user'});
+        break;
+      case 'BaazarBlot':
+        navigation.navigate('BaazarBlot' as any);
+        break;
+      default:
+        // Fallback to SessionStatus for games that need matchmaking UI
+        navigation.navigate('SessionStatus', {
+          gameType,
+          session: sessionData,
+        });
+    }
   };
 
   const handleSuccess = (mode: SessionMode, result: any) => {
-    console.log('[GameMode] session response', {mode, result});
-    const {title, message} = formatSuccessMessage(mode, result, label?.title || 'Game');
-    Alert.alert(title, message);
-    navigateToSession(mode, result);
+    console.log('[GameMode] session response', {mode, result, gameType});
+    const {title, message} = formatSuccessMessage(mode, result, label.title);
+    
+    // For AI games, navigate directly without alert
+    if (mode === 'ai') {
+      navigateToGame(mode, result);
+      return;
+    }
+    
+    // For other modes, show brief alert then navigate
+    Alert.alert(title, message, [
+      {text: 'Let\'s Go!', onPress: () => navigateToGame(mode, result)},
+    ]);
   };
 
   const withLoading = async (
@@ -108,10 +165,12 @@ const GameModeScreen: React.FC<Props> = ({route, navigation}) => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      <StatusBar barStyle="light-content" backgroundColor="#0f0c29" />
       <GameModeSelector
-        title={label?.title || 'Start Game'}
-        subtitle={label?.description}
+        title={label.title}
+        subtitle={label.description}
         loadingStates={loading}
+        onBack={() => navigation.goBack()}
         onRandomMatch={() =>
           withLoading('random', 'random', async () => {
             return gameSessionsService.createRandomMatch(gameType);
@@ -140,7 +199,7 @@ const GameModeScreen: React.FC<Props> = ({route, navigation}) => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#F6F8FB',
+    backgroundColor: '#0f0c29',
   },
 });
 
