@@ -35,6 +35,7 @@ class ChatService {
   async getAuthHeaders(): Promise<Record<string, string>> {
     const token = await tokenService.getAccessToken();
     const deviceId = await getDeviceId();
+    console.log('🔑 Auth token present:', !!token, 'Token starts with:', token?.substring(0, 20));
     return {
       'Authorization': `Bearer ${token}`,
       'x-device-id': deviceId,
@@ -42,23 +43,48 @@ class ChatService {
     };
   }
 
+  // Helper to make authenticated requests with automatic token refresh on 401
+  private async authenticatedFetch(url: string, options: RequestInit = {}): Promise<Response> {
+    let headers = await this.getAuthHeaders();
+    let response = await fetch(url, { ...options, headers });
+    
+    // If 401, try refreshing the token and retry once
+    if (response.status === 401) {
+      console.log('🔄 Got 401, attempting token refresh...');
+      try {
+        await tokenService.refreshSession();
+        headers = await this.getAuthHeaders();
+        response = await fetch(url, { ...options, headers });
+        console.log('✅ Retry after refresh:', response.status);
+      } catch (refreshError) {
+        console.error('❌ Token refresh failed:', refreshError);
+        // Clear invalid session - user needs to re-login
+        await tokenService.clearSession();
+        throw new Error('Session expired. Please sign in again.');
+      }
+    }
+    
+    return response;
+  }
+
   // Get or create global chat
   async getGlobalChat(): Promise<{ chatId: string }> {
-    const headers = await this.getAuthHeaders();
-    const response = await fetch(`${this.baseUrl}/chat/global`, {
+    console.log('🔍 Fetching global chat from:', `${this.baseUrl}/chat/global`);
+    const response = await this.authenticatedFetch(`${this.baseUrl}/chat/global`, {
       method: 'GET',
-      headers,
     });
-    if (!response.ok) throw new Error('Failed to get global chat');
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ Global chat error:', response.status, errorText);
+      throw new Error(`Failed to get global chat: ${response.status} - ${errorText}`);
+    }
     return response.json();
   }
 
   // List user's chats (DMs + rooms)
   async getChats(): Promise<{ chats: Chat[] }> {
-    const headers = await this.getAuthHeaders();
-    const response = await fetch(`${this.baseUrl}/chat`, {
+    const response = await this.authenticatedFetch(`${this.baseUrl}/chat`, {
       method: 'GET',
-      headers,
     });
     if (!response.ok) throw new Error('Failed to get chats');
     return response.json();
@@ -66,10 +92,8 @@ class ChatService {
 
   // Start or get existing DM
   async startDM(targetUserId: string): Promise<{ chatId: string; isNew: boolean }> {
-    const headers = await this.getAuthHeaders();
-    const response = await fetch(`${this.baseUrl}/dm`, {
+    const response = await this.authenticatedFetch(`${this.baseUrl}/dm`, {
       method: 'POST',
-      headers,
       body: JSON.stringify({ userId: targetUserId }),
     });
     if (!response.ok) throw new Error('Failed to start DM');
@@ -78,14 +102,12 @@ class ChatService {
 
   // Get messages for a chat
   async getMessages(chatId: string, limit = 50, before?: string): Promise<{ messages: Message[] }> {
-    const headers = await this.getAuthHeaders();
     let url = `${this.baseUrl}/chat/${chatId}/messages?limit=${limit}`;
     if (before) {
       url += `&before=${before}`;
     }
-    const response = await fetch(url, {
+    const response = await this.authenticatedFetch(url, {
       method: 'GET',
-      headers,
     });
     if (!response.ok) throw new Error('Failed to get messages');
     return response.json();
@@ -93,10 +115,8 @@ class ChatService {
 
   // Post a message
   async postMessage(chatId: string, content: string, type = 'text', mediaUrl?: string, replyToId?: string): Promise<{ message: Message }> {
-    const headers = await this.getAuthHeaders();
-    const response = await fetch(`${this.baseUrl}/chat/${chatId}/messages`, {
+    const response = await this.authenticatedFetch(`${this.baseUrl}/chat/${chatId}/messages`, {
       method: 'POST',
-      headers,
       body: JSON.stringify({ content, type, mediaUrl, replyToId }),
     });
     if (!response.ok) throw new Error('Failed to post message');
@@ -105,30 +125,24 @@ class ChatService {
 
   // Mark chat as read (DM read receipts)
   async markRead(chatId: string): Promise<void> {
-    const headers = await this.getAuthHeaders();
-    const response = await fetch(`${this.baseUrl}/chat/${chatId}/read`, {
+    const response = await this.authenticatedFetch(`${this.baseUrl}/chat/${chatId}/read`, {
       method: 'POST',
-      headers,
     });
     if (!response.ok) throw new Error('Failed to mark as read');
   }
 
   // Join a chat room
   async joinChat(chatId: string): Promise<void> {
-    const headers = await this.getAuthHeaders();
-    const response = await fetch(`${this.baseUrl}/chat/${chatId}/join`, {
+    const response = await this.authenticatedFetch(`${this.baseUrl}/chat/${chatId}/join`, {
       method: 'POST',
-      headers,
     });
     if (!response.ok) throw new Error('Failed to join chat');
   }
 
   // Leave a chat room
   async leaveChat(chatId: string): Promise<void> {
-    const headers = await this.getAuthHeaders();
-    const response = await fetch(`${this.baseUrl}/chat/${chatId}/leave`, {
+    const response = await this.authenticatedFetch(`${this.baseUrl}/chat/${chatId}/leave`, {
       method: 'POST',
-      headers,
     });
     if (!response.ok) throw new Error('Failed to leave chat');
   }
