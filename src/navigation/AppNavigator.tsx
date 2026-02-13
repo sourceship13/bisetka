@@ -15,6 +15,9 @@ import PokerRoomScreen from '../screens/PokerRoomScreen';
 import BilliardsGameScreen from '../screens/BilliardsGameScreen';
 import GameModeScreen from '../screens/GameModeScreen';
 import SessionStatusScreen from '../screens/SessionStatusScreen';
+import GlobalChatScreen from '../screens/GlobalChatScreen';
+import DMListScreen from '../screens/DMListScreen';
+import DMChatScreen from '../screens/DMChatScreen';
 import {useAuth} from '../context/AuthContext';
 import {ActivityIndicator, View, StyleSheet} from 'react-native';
 import {GameType} from '../services/gameSessions.service';
@@ -33,6 +36,9 @@ export type RootStackParamList = {
   BilliardsGame: { session: any };
   GameMode: { gameType: GameType };
   SessionStatus: { gameType: GameType; session: any };
+  GlobalChat: undefined;
+  DMList: undefined;
+  DMChat: { chatId: string; chatName: string };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -75,6 +81,9 @@ const AppNavigator = () => {
               <Stack.Screen name="BilliardsGame" component={BilliardsGameScreen} />
               <Stack.Screen name="GameMode" component={GameModeScreen} />
               <Stack.Screen name="SessionStatus" component={SessionStatusScreen} />
+              <Stack.Screen name="GlobalChat" component={GlobalChatScreen} />
+              <Stack.Screen name="DMList" component={DMListScreen} />
+              <Stack.Screen name="DMChat" component={DMChatScreen} />
             </>
           )}
         </Stack.Navigator>

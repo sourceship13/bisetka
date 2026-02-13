@@ -624,7 +624,7 @@
 				DEVELOPMENT_TEAM = "";
 				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = CM52HNMXXW;
 				ENABLE_BITCODE = NO;
-				INFOPLIST_FILE = "bisetka/Info.plist";
+				INFOPLIST_FILE = bisetka/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Bisetka-Staging";
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -660,7 +660,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = "";
 				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = CM52HNMXXW;
-				INFOPLIST_FILE = "bisetka/Info.plist";
+				INFOPLIST_FILE = bisetka/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Bisetka-Staging";
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
 				LD_RUNPATH_SEARCH_PATHS = (
