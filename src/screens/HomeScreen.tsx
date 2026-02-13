@@ -10,6 +10,7 @@ import {
   Dimensions,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import {systemWeights} from 'react-native-typography';
 import {useAuth} from '../context/AuthContext';
 
 const {width} = Dimensions.get('window');
@@ -166,21 +167,48 @@ const HomeScreen = ({navigation}: any) => {
         </LinearGradient>
 
         {/* Balance Card */}
-        <View style={styles.balanceCard}>
-          <LinearGradient
-            colors={['#11998e', '#38ef7d']}
-            start={{x: 0, y: 0}}
-            end={{x: 1, y: 1}}
-            style={styles.balanceGradient}>
-            <Text style={styles.balanceLabel}>Your Balance</Text>
-            <Text style={styles.balanceAmount}>
-              💰 {(user as any)?.balance?.toLocaleString() || '1,000'} coins
-            </Text>
-          </LinearGradient>
+        {/* Balance & Chat Quick Access */}
+        <View style={styles.quickAccessRow}>
+          <View style={[styles.balanceCard, ]}>
+            <LinearGradient
+              colors={['#11998e', '#38ef7d']}
+              start={{x: 0, y: 0}}
+              end={{x: 1, y: 1}}
+              style={[styles.balanceGradient, {backgroundColor: '#1a1742', padding: 20, borderRadius: 16, height: 150}]}>
+              <Text style={styles.balanceLabel}>Your Balance</Text>
+              <Text style={styles.balanceAmount}>
+                💰 {(user as any)?.balance?.toLocaleString() || '1,000'}
+              </Text>
+            </LinearGradient>
+          </View>
+          
+          <View style={styles.chatButtons}>
+            <TouchableOpacity 
+              onPress={() => navigation.navigate('GlobalChat')}
+              style={styles.chatButton}>
+              <LinearGradient
+                colors={['#667eea', '#764ba2']}
+                style={styles.chatButtonGradient}>
+                <Text style={styles.chatButtonText}>🌍</Text>
+                <Text style={styles.chatButtonLabel}>Global</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              onPress={() => navigation.navigate('DMList')}
+              style={styles.chatButton}>
+              <LinearGradient
+                colors={['#f093fb', '#f5576c']}
+                style={styles.chatButtonGradient}>
+                <Text style={styles.chatButtonText}>💬</Text>
+                <Text style={styles.chatButtonLabel}>DMs</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Section Title */}
-        <View style={styles.sectionHeader}>
+        <View style={[styles.sectionHeader, {backgroundColor: '#1a1742', padding: 20, borderRadius: 16, margin: 20}]}>
           <Text style={styles.sectionTitle}>🎮 Choose a Game</Text>
           <Text style={styles.sectionSubtitle}>
             Pick your game, then choose how to play
@@ -224,29 +252,40 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   welcomeText: {
+    ...systemWeights.regular,
     fontSize: 14,
     color: 'rgba(255,255,255,0.8)',
+    textAlign: 'center',
   },
   userName: {
+    ...systemWeights.bold,
     fontSize: 24,
-    fontWeight: '700',
     color: '#fff',
     marginTop: 4,
+    textAlign: 'center',
+    flexShrink: 1,
   },
   logoutBtn: {
     backgroundColor: 'rgba(255,255,255,0.2)',
-    paddingHorizontal: 16,
+    paddingHorizontal: 18,
     paddingVertical: 10,
     borderRadius: 20,
   },
   logoutText: {
+    ...systemWeights.semibold,
     color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 13,
+    letterSpacing: 0.2,
+    textAlign: 'center',
+  },
+  quickAccessRow: {
+    marginHorizontal: 20,
+    marginTop: 16,
+    flexDirection: 'row',
+    gap: 12,
   },
   balanceCard: {
-    marginHorizontal: 20,
-    marginTop: -12,
+    flex: 1,
     borderRadius: 16,
     overflow: 'hidden',
     shadowColor: '#11998e',
@@ -257,33 +296,75 @@ const styles = StyleSheet.create({
   },
   balanceGradient: {
     paddingVertical: 20,
-    paddingHorizontal: 24,
+    paddingHorizontal: 16,
     alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 16,
+    minHeight: 90,
+  },
+  chatButtons: {
+    gap: 8,
+  },
+  chatButton: {
+    borderRadius: 12,
+    overflow: 'hidden',
+    shadowColor: '#667eea',
+    shadowOffset: {width: 0, height: 4},
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  chatButtonGradient: {
+    width: 70,
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 12,
+  },
+  chatButtonText: {
+    fontSize: 20,
+    marginBottom: 2,
+    textAlign: 'center',
+  },
+  chatButtonLabel: {
+    ...systemWeights.semibold,
+    fontSize: 9,
+    color: '#fff',
+    letterSpacing: 0.3,
+    textAlign: 'center',
   },
   balanceLabel: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.8)',
+    ...systemWeights.regular,
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.9)',
     marginBottom: 4,
+    textAlign: 'center',
   },
   balanceAmount: {
-    fontSize: 28,
-    fontWeight: '800',
+    ...systemWeights.bold,
+    fontSize: 22,
     color: '#fff',
+    letterSpacing: 0.5,
+    textAlign: 'center',
   },
   sectionHeader: {
     paddingHorizontal: 20,
     marginTop: 28,
     marginBottom: 16,
+    alignItems: 'center',
   },
   sectionTitle: {
+    ...systemWeights.bold,
     fontSize: 22,
-    fontWeight: '700',
     color: '#fff',
+    textAlign: 'center',
   },
   sectionSubtitle: {
+    ...systemWeights.regular,
     fontSize: 14,
     color: 'rgba(255,255,255,0.6)',
     marginTop: 4,
+    textAlign: 'center',
   },
   gamesGrid: {
     flexDirection: 'row',
@@ -306,44 +387,58 @@ const styles = StyleSheet.create({
   },
   gameCard: {
     padding: 16,
-    minHeight: 140,
-    justifyContent: 'flex-end',
+    minHeight: 150,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 20,
   },
   gameIcon: {
-    fontSize: 40,
+    fontSize: 36,
     marginBottom: 8,
+    textAlign: 'center',
   },
   gameName: {
-    fontSize: 18,
-    fontWeight: '700',
+    ...systemWeights.bold,
+    fontSize: 15,
     color: '#fff',
     marginBottom: 4,
+    lineHeight: 18,
+    textAlign: 'center',
+    flexShrink: 1,
   },
   gameDescription: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.8)',
+    ...systemWeights.regular,
+    fontSize: 10,
+    color: 'rgba(255,255,255,0.85)',
+    lineHeight: 13,
+    textAlign: 'center',
+    flexShrink: 1,
   },
   comingSoonBadge: {
     position: 'absolute',
-    top: 12,
-    right: 12,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 10,
+    top: 14,
+    right: 14,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 12,
   },
   comingSoonText: {
+    ...systemWeights.bold,
     fontSize: 10,
-    fontWeight: '700',
     color: '#fff',
+    letterSpacing: 0.5,
+    textAlign: 'center',
   },
   footer: {
     marginTop: 32,
     alignItems: 'center',
   },
   footerText: {
+    ...systemWeights.regular,
     color: 'rgba(255,255,255,0.3)',
     fontSize: 14,
+    textAlign: 'center',
   },
 });
 
