@@ -26,11 +26,20 @@ interface GameState {
 
 const MultiplayerBlotScreen = ({ navigation, route }: any) => {
   const userId = route.params?.userId || 'test-user-' + Math.random().toString(36).substr(2, 9);
-  const initialMode = route.params?.mode; // 'ai' to skip menu and go directly to AI game
+  const initialMode = route.params?.mode; // 'ai', 'private-create', 'private-join', 'random'
   const initialDifficulty = route.params?.difficulty || 'medium';
+  const initialJoinCode = route.params?.joinCode;
+  
+  // Determine initial gameMode based on navigation params
+  const getInitialGameMode = () => {
+    if (initialMode === 'ai') return 'local';
+    if (initialMode === 'private-create') return 'private';
+    if (initialMode === 'random') return 'matchmaking';
+    return 'menu';
+  };
   
   const [gameMode, setGameMode] = useState<'menu' | 'matchmaking' | 'private' | 'game' | 'local'>(
-    initialMode === 'ai' ? 'local' : 'menu'
+    getInitialGameMode()
   );
   const [roomCode, setRoomCode] = useState('');
   const [joinRoomCode, setJoinRoomCode] = useState('');
@@ -59,6 +68,16 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
     }
     
     connectSocket();
+    
+    // Auto-create private room if coming from GameModeScreen with private-create mode
+    if (initialMode === 'private-create') {
+      createPrivateRoomOnMount();
+    }
+    
+    // Auto-find match if coming with random mode
+    if (initialMode === 'random') {
+      findMatchOnMount();
+    }
 
     return () => {
       socketService.removeAllListeners();
@@ -199,7 +218,50 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
 
   const handleCancelMatchmaking = () => {
     socketService.cancelMatchmaking(userId);
-    setGameMode('menu');
+    navigation.goBack();
+  };
+
+  // Auto-create private room when navigating with private-create mode
+  const createPrivateRoomOnMount = async () => {
+    // Reset all game state
+    setGameState(null);
+    setIsGameStarted(false);
+    setIsMyTurn(false);
+    setSelectedCard(null);
+    setOpponent(null);
+    
+    try {
+      const roomData = await socketService.createPrivateRoom('blot', userId);
+      setCurrentRoom({ roomId: roomData.roomId, roomCode: roomData.roomCode });
+      setRoomCode(roomData.roomCode);
+      setPlayerColor('white');
+    } catch (error: any) {
+      Alert.alert('Error', 'Failed to create room');
+      setGameMode('menu');
+      console.error(error);
+    }
+  };
+  
+  // Auto-find match when navigating with random mode
+  const findMatchOnMount = async () => {
+    setGameState(null);
+    setIsGameStarted(false);
+    setIsMyTurn(false);
+    setSelectedCard(null);
+    setCurrentRoom(null);
+    setOpponent(null);
+    
+    try {
+      const matchData = await socketService.findMatch('blot', userId);
+      setCurrentRoom({ roomId: matchData.roomId });
+      setPlayerColor(matchData.color);
+      setOpponent(matchData.opponent);
+      setIsMyTurn(matchData.color === 'white');
+      setGameMode('game');
+    } catch (error: any) {
+      Alert.alert('Matchmaking Error', error.message || 'Failed to find match');
+      setGameMode('menu');
+    }
   };
 
   const handleCreatePrivateRoom = async () => {
@@ -217,7 +279,6 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
       setCurrentRoom({ roomId: roomData.roomId, roomCode: roomData.roomCode });
       setRoomCode(roomData.roomCode);
       setPlayerColor('white');
-      Alert.alert('Room Created!', `Share this code: ${roomData.roomCode}`);
     } catch (error: any) {
       Alert.alert('Error', 'Failed to create room');
       setGameMode('menu');
@@ -478,7 +539,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
         </>
       )}
       <ActivityIndicator size="large" color="#007AFF" style={styles.loader} />
-      <TouchableOpacity style={styles.cancelButton} onPress={() => setGameMode('menu')}>
+      <TouchableOpacity style={styles.cancelButton} onPress={() => navigation.goBack()}>
         <Text style={styles.buttonText}>Cancel</Text>
       </TouchableOpacity>
     </View>
@@ -566,12 +627,12 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
               <Text style={styles.readyButtonText}>Ready to Play</Text>
             </TouchableOpacity>
             <TouchableOpacity style={[styles.cancelButton, { marginTop: 20 }]} onPress={() => {
-              setGameMode('menu');
               if (currentRoom?.roomId) {
                 socketService.resign(currentRoom.roomId, userId);
               }
+              navigation.goBack();
             }}>
-              <Text style={styles.cancelButtonText}>Cancel</Text>
+              <Text style={styles.buttonText}>Cancel</Text>
             </TouchableOpacity>
           </View>
         ) : (
@@ -953,12 +1014,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  readyButton: {
-    backgroundColor: '#34C759',
-    paddingHorizontal: 40,
-    paddingVertical: 20,
-    borderRadius: 10,
   },
   resignButton: {
     backgroundColor: '#FF3B30',

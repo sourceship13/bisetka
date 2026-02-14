@@ -120,8 +120,9 @@ const GameModeScreen: React.FC<Props> = ({route, navigation}) => {
       case 'Blot':
         navigation.navigate('Blot' as any, {
           userId: 'user',
-          mode: mode === 'ai' ? 'ai' : 'menu',
+          mode: mode, // Pass the actual mode: 'ai', 'private-create', 'private-join', 'random'
           difficulty: sessionData.difficulty || 'medium',
+          joinCode: sessionData.code, // For private-join, pass the room code
         });
         break;
       case 'BaazarBlot':
