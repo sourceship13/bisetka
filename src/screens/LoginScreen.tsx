@@ -267,9 +267,9 @@ const styles = StyleSheet.create({
   },
   loginButton: {
     borderRadius: 12,
-    padding: spacing.lg,
     alignItems: 'center',
-    marginBottom: spacing.lg,
+    minHeight: 48,
+    justifyContent: 'center',
   },
   buttonDisabled: {
     opacity: 0.6,
@@ -321,7 +321,7 @@ const styles = StyleSheet.create({
   },
   signupText: {
     color: colors.text.secondary,
-    fontSize: typography.fontSize.sm,
+    fontSize: typography.fontSize.md
   },
   signupLink: {
     color: colors.accent,
@@ -368,17 +368,17 @@ const styles = StyleSheet.create({
   },
   devUserButton: {
     borderRadius: 8,
-    padding: spacing.md,
-    marginBottom: spacing.xs,
+    padding: 12,
+    minHeight: 80,
   },
   devUserName: {
-    fontSize: typography.fontSize.sm,
+    fontSize: typography.fontSize.md,
     fontWeight: typography.fontWeight.semibold,
-    color: colors.text.primary,
+    color: '#000',
   },
   devUserEmail: {
-    fontSize: typography.fontSize.xs,
-    color: colors.text.secondary,
+    fontSize: typography.fontSize.md,
+    color: '#000',
     marginTop: 2,
   },
 });
