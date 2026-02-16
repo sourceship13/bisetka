@@ -2,7 +2,6 @@ import React, {useState, useEffect, useRef} from 'react';
 import {View, Text, StyleSheet, TouchableOpacity, Alert, Animated} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { aiMoveLogService } from '../services/aiMoveLog.service';
-import 'react-native-get-random-values';
 import { v4 as uuidv4 } from 'uuid';
 
 interface GameState {

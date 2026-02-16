@@ -1,5 +1,5 @@
-import { apiConfig } from '../libs/utils/api.utils';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import apiConfig from '../libs/utils/api.utils';
+import tokenService from './token.service';
 
 export interface GameResultInput {
   gameType: string;
@@ -52,7 +52,7 @@ class GameResultService {
 
   private async getAuthToken(): Promise<string | null> {
     try {
-      return await AsyncStorage.getItem('accessToken');
+      return await tokenService.getAccessToken();
     } catch {
       return null;
     }
@@ -84,7 +84,12 @@ class GameResultService {
 
       if (!response.ok) {
         const error = await response.json();
-        console.error('Failed to record game result:', error);
+        // Don't show error for auth failures - user might be playing as guest
+        if (error?.error === 'No token provided' || response.status === 401) {
+          console.log('Game result not recorded (user not authenticated)');
+        } else {
+          console.warn('Failed to record game result:', error);
+        }
         return null;
       }
 
