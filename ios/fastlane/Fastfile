@@ -5,6 +5,9 @@ default_platform(:ios)
 platform :ios do
   desc "Build and deploy staging to TestFlight"
   lane :staging do
+    # Set environment file for staging
+    ENV['ENVFILE'] = '.env.staging'
+    
     # Sync code signing
     setup_ci if ENV['CI']
     
@@ -12,17 +15,17 @@ platform :ios do
     match(
       type: "appstore",
       readonly: true,
-      app_identifier: "org.sera.dev.bisetka"
+      app_identifier: "org.sera.dev.bisetka.staging"
     )
     
     # Build the app
     gym(
       workspace: "bisetka.xcworkspace",
-      scheme: "bisetka",
+      scheme: "bisetka-staging",
       configuration: "Release",
       export_method: "app-store",
       output_directory: "./build",
-      output_name: "bisetka.ipa",
+      output_name: "bisetka-staging.ipa",
       clean: true
     )
     
@@ -42,6 +45,9 @@ platform :ios do
   
   desc "Build production release"
   lane :production do
+    # Set environment file for production
+    ENV['ENVFILE'] = '.env'
+    
     setup_ci if ENV['CI']
     
     gym(
