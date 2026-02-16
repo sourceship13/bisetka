@@ -100,7 +100,6 @@ const GAMES = [
     icon: '🎰',
     gradient: ['#ef4444', '#f87171'],
     gameType: 'slots',
-    comingSoon: true,
   },
 ] as const;
 
@@ -110,6 +109,11 @@ const HomeScreen = ({navigation}: any) => {
   const {user, signOut} = useAuth();
 
   const handleGamePress = (game: GameConfig) => {
+    // Slots is a solo game - navigate directly without game mode selection
+    if (game.gameType === 'slots') {
+      navigation.navigate('Slots');
+      return;
+    }
     navigation.navigate('GameMode', {gameType: game.gameType});
   };
 
@@ -160,7 +164,7 @@ const HomeScreen = ({navigation}: any) => {
             </Text>
           </View>
           <TouchableOpacity onPress={signOut} style={styles.logoutBtn}>
-            <Text style={styles.logoutText}>Out</Text>
+            <Text style={styles.logoutText}>Log Out</Text>
           </TouchableOpacity>
         </LinearGradient>
 
@@ -257,6 +261,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.2)',
     paddingHorizontal: 14,
     paddingVertical: 8,
+    marginRight:26,
     borderRadius: 14,
   },
   logoutText: {
