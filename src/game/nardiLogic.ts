@@ -81,13 +81,22 @@ export const calculatePossibleMoves = (
     return enterMoves;
   }
 
-  const diceValues = dice.die1 === dice.die2 
-    ? [dice.die1, dice.die1, dice.die1, dice.die1] // Doubles
-    : [dice.die1, dice.die2];
+  // Filter out used dice (value 0) and handle doubles
+  let diceValues: number[] = [];
+  if (dice.die1 === dice.die2 && dice.die1 > 0) {
+    // Doubles - 4 moves with same value
+    diceValues = [dice.die1, dice.die1, dice.die1, dice.die1];
+  } else {
+    if (dice.die1 > 0) diceValues.push(dice.die1);
+    if (dice.die2 > 0) diceValues.push(dice.die2);
+  }
+
+  // Remove duplicate die values to avoid duplicate moves
+  const uniqueDiceValues = [...new Set(diceValues)];
 
   points.forEach((point, fromPos) => {
     if (point.checkers.length > 0 && point.checkers[point.checkers.length - 1] === currentPlayer) {
-      diceValues.forEach(dieValue => {
+      uniqueDiceValues.forEach(dieValue => {
         const toPos = currentPlayer === 'white' 
           ? fromPos + dieValue 
           : fromPos - dieValue;
