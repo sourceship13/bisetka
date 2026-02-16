@@ -3,13 +3,13 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   TouchableOpacity,
   Alert,
   ActivityIndicator,
   TextInput,
   Modal,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   ChessGameState,
   initializeChessGame,
@@ -99,7 +99,7 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
         Alert.alert(
           'Game Over',
           didIWin ? 'Opponent resigned. You win!' : 'You resigned.',
-          [{text: 'OK', onPress: () => navigation.goBack()}]
+          [{text: 'OK', onPress: () => navigation.replace('GameMode', {gameType: 'chess-multiplayer'})}]
         );
       }
     });
@@ -108,7 +108,7 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
       Alert.alert(
         'Opponent Disconnected',
         'Your opponent has disconnected from the game.',
-        [{text: 'OK', onPress: () => navigation.goBack()}]
+        [{text: 'OK', onPress: () => navigation.replace('GameMode', {gameType: 'chess-multiplayer'})}]
       );
     });
 
@@ -258,11 +258,11 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
 
     if (isCheckMate) {
       Alert.alert('Checkmate!', 'You win!', [
-        {text: 'OK', onPress: () => navigation.goBack()},
+        {text: 'OK', onPress: () => navigation.replace('GameMode', {gameType: 'chess-multiplayer'})},
       ]);
     } else if (isStaleMate) {
       Alert.alert('Stalemate!', 'The game is a draw.', [
-        {text: 'OK', onPress: () => navigation.goBack()},
+        {text: 'OK', onPress: () => navigation.replace('GameMode', {gameType: 'chess-multiplayer'})},
       ]);
     }
   };
@@ -275,7 +275,7 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
         style: 'destructive',
         onPress: () => {
           socketService.resign(roomId, userId);
-          navigation.goBack();
+          navigation.replace('GameMode', {gameType: 'chess-multiplayer'});
         },
       },
     ]);

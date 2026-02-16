@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -10,8 +10,10 @@ import {
   ScrollView,
   Modal,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { socketService } from '../services/SocketService';
 import { blotAIService, LocalGameState, Card } from '../services/blotAI.service';
+import { gameResultService } from '../services/gameResult.service';
 
 interface GameState {
   deck: Card[];
@@ -56,15 +58,19 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [showDifficultyModal, setShowDifficultyModal] = useState(false);
   const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
+  const gameStartTime = useRef<Date | null>(null);
 
   useEffect(() => {
-    // If mode is 'ai', auto-start the AI game immediately
+    // If mode is 'ai', auto-start the AI game immediately (no socket needed)
     if (initialMode === 'ai') {
       setDifficulty(initialDifficulty);
       setIsLocalGame(true);
       const newGame = blotAIService.initializeGame();
       setLocalGameState(newGame);
       setIsGameStarted(true);
+      gameStartTime.current = new Date();
+      // Don't connect to socket for AI games
+      return;
     }
     
     connectSocket();
@@ -152,7 +158,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
       Alert.alert(
         'Game Over!',
         isWinner ? 'You won! 🎉' : 'You lost. Better luck next time!',
-        [{ text: 'OK', onPress: () => setGameMode('menu') }]
+        [{ text: 'OK', onPress: () => navigation.replace('GameMode', {gameType: 'blot'}) }]
       );
     });
 
@@ -164,7 +170,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
     // Matchmaking status
     socketService.onMatchmakingStatus((data: any) => {
       if (data.status === 'cancelled') {
-        setGameMode('menu');
+        navigation.replace('GameMode', {gameType: 'blot'});
       }
     });
 
@@ -186,6 +192,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
     setLocalGameState(newGame);
     setIsGameStarted(true);
     setShowDifficultyModal(false);
+    gameStartTime.current = new Date();
     Alert.alert('Local Game', `Playing against Computer (${selectedDifficulty})!`);
   };
 
@@ -218,7 +225,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
 
   const handleCancelMatchmaking = () => {
     socketService.cancelMatchmaking(userId);
-    navigation.goBack();
+    navigation.replace('GameMode', {gameType: 'blot'});
   };
 
   // Auto-create private room when navigating with private-create mode
@@ -387,30 +394,53 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
     socketService.makeMove(currentRoom.roomId, userId, move);
   };
 
-  const handleLocalGameEnd = (finalState: LocalGameState) => {
+  const handleLocalGameEnd = async (finalState: LocalGameState) => {
     const isWinner = finalState.winnerId === 'player';
     const isDraw = finalState.status === 'draw';
     
+    // Calculate duration
+    const durationSeconds = gameStartTime.current 
+      ? Math.floor((new Date().getTime() - gameStartTime.current.getTime()) / 1000)
+      : undefined;
+
+    // Record game result to backend
+    const result = isDraw ? 'draw' : (isWinner ? 'win' : 'loss');
+    const gameResultResponse = await gameResultService.recordGameResult({
+      gameType: 'blot',
+      gameMode: 'ai',
+      result,
+      difficulty,
+      playerScore: finalState.scores.player,
+      opponentScore: finalState.scores.computer,
+      durationSeconds,
+      startedAt: gameStartTime.current || undefined,
+    });
+
+    const pointsMessage = gameResultResponse?.pointsEarned 
+      ? `\n+${gameResultResponse.pointsEarned} points earned!`
+      : '';
+    
     Alert.alert(
       'Game Over!',
-      isDraw 
+      (isDraw 
         ? "It's a draw!" 
         : isWinner 
           ? 'You won! 🎉' 
-          : 'Computer won. Better luck next time!',
+          : 'Computer won. Better luck next time!') + pointsMessage,
       [{ 
         text: 'Play Again', 
         onPress: () => {
           const newGame = blotAIService.initializeGame();
           setLocalGameState(newGame);
+          gameStartTime.current = new Date();
         }
       },
       { 
         text: 'Main Menu', 
         onPress: () => {
-          setGameMode('menu');
           setIsLocalGame(false);
           setLocalGameState(null);
+          navigation.replace('GameMode', {gameType: 'blot'});
         }
       }]
     );
@@ -425,14 +455,30 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
         {
           text: 'Resign',
           style: 'destructive',
-          onPress: () => {
+          onPress: async () => {
             if (isLocalGame) {
-              setGameMode('menu');
+              // Record resignation for AI game
+              const durationSeconds = gameStartTime.current 
+                ? Math.floor((new Date().getTime() - gameStartTime.current.getTime()) / 1000)
+                : undefined;
+              
+              await gameResultService.recordGameResult({
+                gameType: 'blot',
+                gameMode: 'ai',
+                result: 'resigned',
+                difficulty,
+                playerScore: localGameState?.scores.player || 0,
+                opponentScore: localGameState?.scores.computer || 0,
+                durationSeconds,
+                startedAt: gameStartTime.current || undefined,
+              });
+              
               setIsLocalGame(false);
               setLocalGameState(null);
+              navigation.replace('GameMode', {gameType: 'blot'});
             } else if (currentRoom?.roomId) {
               socketService.resign(currentRoom.roomId, userId);
-              setGameMode('menu');
+              navigation.replace('GameMode', {gameType: 'blot'});
             }
           },
         },
@@ -697,7 +743,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       {gameMode === 'menu' && renderMenu()}
       {gameMode === 'matchmaking' && renderMatchmaking()}
       {gameMode === 'private' && renderPrivateRoom()}
@@ -772,7 +818,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
           </View>
         </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 };
 

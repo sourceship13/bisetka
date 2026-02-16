@@ -1,5 +1,6 @@
 import React, {useState, useEffect} from 'react';
-import {View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Alert} from 'react-native';
+import {View, Text, StyleSheet, TouchableOpacity, Alert} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 type PieceType = 'regular' | 'king';
 type PieceColor = 'red' | 'black';
