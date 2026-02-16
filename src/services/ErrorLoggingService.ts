@@ -1,6 +1,6 @@
 import { Platform } from 'react-native';
 import DeviceInfo from 'react-native-device-info';
-import { getBaseURL } from '../libs/utils/api.utils';
+import { apiConfig } from '../libs/utils/api.utils';
 
 interface ErrorLog {
   deviceId: string;
@@ -219,8 +219,7 @@ class ErrorLoggingService {
    * Send error to backend
    */
   private async sendError(errorLog: ErrorLog): Promise<void> {
-    const baseURL = getBaseURL();
-    const url = `${baseURL}/api/errors/log`;
+    const url = `${apiConfig.apiURL}/errors/log`;
 
     const response = await fetch(url, {
       method: 'POST',
@@ -242,8 +241,7 @@ class ErrorLoggingService {
     if (this.errorQueue.length === 0) return;
 
     try {
-      const baseURL = getBaseURL();
-      const url = `${baseURL}/api/errors/batch`;
+      const url = `${apiConfig.apiURL}/errors/batch`;
 
       const errors = [...this.errorQueue];
       this.errorQueue = [];
@@ -270,14 +268,13 @@ class ErrorLoggingService {
     endDate?: Date,
     platform?: 'ios' | 'android'
   ): Promise<any> {
-    const baseURL = getBaseURL();
     const params = new URLSearchParams();
     
     if (startDate) params.append('startDate', startDate.toISOString());
     if (endDate) params.append('endDate', endDate.toISOString());
     if (platform) params.append('platform', platform);
 
-    const url = `${baseURL}/api/errors/stats?${params.toString()}`;
+    const url = `${apiConfig.apiURL}/errors/stats?${params.toString()}`;
     const response = await fetch(url);
 
     if (!response.ok) {
