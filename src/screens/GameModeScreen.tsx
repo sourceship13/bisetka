@@ -1,5 +1,6 @@
 import React, {useState} from 'react';
-import {Alert, SafeAreaView, StyleSheet, StatusBar} from 'react-native';
+import {Alert, StyleSheet, StatusBar} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import GameModeSelector from '../components/GameModeSelector';
 import {GAME_LABELS, gameSessionsService} from '../services/gameSessions.service';
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
