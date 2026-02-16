@@ -116,7 +116,10 @@ const GameModeScreen: React.FC<Props> = ({route, navigation}) => {
         navigation.navigate('MultiplayerChess' as any, {userId: 'user'});
         break;
       case 'Nardi':
-        navigation.navigate('Nardi' as any);
+        navigation.navigate('Nardi' as any, {
+          session: sessionData,
+          mode: mode,
+        });
         break;
       case 'Blot':
         navigation.navigate('Blot' as any, {

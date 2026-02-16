@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useState, useEffect, useCallback} from 'react';
 import {View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -13,7 +13,13 @@ import {
 } from '../game/nardiLogic';
 import Checker from '../components/Checker';
 
-const NardiScreen = ({navigation}: any) => {
+type OpponentType = 'ai' | 'random' | 'private' | 'local';
+
+const NardiScreen = ({navigation, route}: any) => {
+  // Extract session mode from route params (if coming from GameModeScreen)
+  const routeMode = route?.params?.mode;
+  const opponentType: OpponentType = routeMode === 'ai' ? 'ai' : 'local';
+  
   const [selectedMode, setSelectedMode] = useState<GameMode | null>(null);
   const [gameState, setGameState] = useState<NardiGameState | null>(null);
 
@@ -22,8 +28,104 @@ const NardiScreen = ({navigation}: any) => {
     setGameState(initializeNardiGame(mode));
   };
 
+  // AI turn handler - executes AI moves when it's black's turn in AI mode
+  const executeAITurn = useCallback(() => {
+    if (!gameState || gameState.phase === 'gameOver' || gameState.winner) return;
+    if (opponentType !== 'ai' || gameState.currentPlayer !== 'black') return;
+
+    if (gameState.phase === 'rolling') {
+      // AI rolls dice
+      const dice = rollDice();
+      const newState = {
+        ...gameState,
+        dice,
+        phase: 'moving' as const,
+      };
+      
+      const moves = calculatePossibleMoves(newState);
+      
+      if (moves.length === 0) {
+        // No moves available, switch player
+        setTimeout(() => {
+          setGameState(switchPlayer(newState));
+        }, 1000);
+      } else {
+        setGameState({
+          ...newState,
+          possibleMoves: moves,
+        });
+      }
+    } else if (gameState.phase === 'moving') {
+      // AI makes a move
+      const moves = gameState.possibleMoves;
+      if (moves.length === 0) {
+        setGameState(switchPlayer(gameState));
+        return;
+      }
+
+      // Pick a random move (simple AI)
+      const move = moves[Math.floor(Math.random() * moves.length)];
+      const newState = executeMove(gameState, move);
+      
+      // Remove used die
+      const usedDieValue = move.to >= 24 || move.to < 0 
+        ? (gameState.currentPlayer === 'white' ? 24 - move.from : move.from + 1)
+        : Math.abs(move.to - move.from);
+      let newDice = { ...newState.dice };
+      
+      if (newDice.die1 === usedDieValue) {
+        newDice.die1 = 0;
+      } else if (newDice.die2 === usedDieValue) {
+        newDice.die2 = 0;
+      } else {
+        // For doubles or bearing off with higher die, consume first available
+        if (newDice.die1 > 0) {
+          newDice.die1 = 0;
+        } else if (newDice.die2 > 0) {
+          newDice.die2 = 0;
+        }
+      }
+
+      const updatedState = { ...newState, dice: newDice };
+      
+      // Check if any dice left
+      if (newDice.die1 === 0 && newDice.die2 === 0) {
+        // Turn complete
+        setTimeout(() => {
+          setGameState(switchPlayer(updatedState));
+        }, 500);
+      } else {
+        // Continue making moves
+        const remainingMoves = calculatePossibleMoves(updatedState);
+        if (remainingMoves.length === 0) {
+          setTimeout(() => {
+            setGameState(switchPlayer(updatedState));
+          }, 500);
+        } else {
+          setGameState({
+            ...updatedState,
+            possibleMoves: remainingMoves,
+            selectedPoint: null,
+          });
+        }
+      }
+    }
+  }, [gameState, opponentType]);
+
+  // UseEffect to trigger AI turns
+  useEffect(() => {
+    if (opponentType === 'ai' && gameState?.currentPlayer === 'black' && !gameState?.winner) {
+      const timer = setTimeout(() => {
+        executeAITurn();
+      }, 800);
+      return () => clearTimeout(timer);
+    }
+  }, [gameState, opponentType, executeAITurn]);
+
   const handleRollDice = () => {
     if (!gameState || gameState.phase !== 'rolling') return;
+    // Don't allow rolling during AI's turn
+    if (opponentType === 'ai' && gameState.currentPlayer === 'black') return;
 
     const dice = rollDice();
     const newState = {
@@ -50,6 +152,8 @@ const NardiScreen = ({navigation}: any) => {
 
   const handlePointPress = (pointIndex: number) => {
     if (!gameState || gameState.phase !== 'moving') return;
+    // Don't allow moves during AI's turn
+    if (opponentType === 'ai' && gameState.currentPlayer === 'black') return;
 
     const point = gameState.points[pointIndex];
     const hasCurrentPlayerChecker = point.checkers.length > 0 && 
@@ -82,14 +186,25 @@ const NardiScreen = ({navigation}: any) => {
 
     const newState = executeMove(gameState, move);
     
-    // Remove used die
-    const usedDieValue = Math.abs(move.to - move.from);
+    // Calculate used die value - handle bearing off specially
+    const isBearingOff = move.to >= 24 || move.to < 0;
+    const usedDieValue = isBearingOff
+      ? (gameState.currentPlayer === 'white' ? 24 - move.from : move.from + 1)
+      : Math.abs(move.to - move.from);
+    
     let newDice = { ...newState.dice };
     
     if (newDice.die1 === usedDieValue) {
       newDice.die1 = 0;
     } else if (newDice.die2 === usedDieValue) {
       newDice.die2 = 0;
+    } else {
+      // For doubles or bearing off with higher die, consume first available
+      if (newDice.die1 > 0) {
+        newDice.die1 = 0;
+      } else if (newDice.die2 > 0) {
+        newDice.die2 = 0;
+      }
     }
 
     const updatedState = { ...newState, dice: newDice };
@@ -182,10 +297,13 @@ const NardiScreen = ({navigation}: any) => {
             </View>
           </View>
         )}
-        {gameState.phase === 'rolling' && (
+        {gameState.phase === 'rolling' && !(opponentType === 'ai' && gameState.currentPlayer === 'black') && (
           <TouchableOpacity style={styles.rollButton} onPress={handleRollDice} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
             <Text style={styles.rollButtonText}>Roll Dice</Text>
           </TouchableOpacity>
+        )}
+        {opponentType === 'ai' && gameState.currentPlayer === 'black' && (
+          <Text style={styles.aiThinkingText}>AI is thinking...</Text>
         )}
       </View>
 
@@ -432,6 +550,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#654321',
+  },
+  aiThinkingText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#FFD700',
+    marginTop: 12,
+    fontStyle: 'italic',
   },
   boardContainer: {
     flex: 1,
