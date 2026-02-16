@@ -1,6 +1,9 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import {View, Text, StyleSheet, TouchableOpacity, Alert} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { aiMoveLogService } from '../services/aiMoveLog.service';
+import 'react-native-get-random-values';
+import { v4 as uuidv4 } from 'uuid';
 
 type PieceType = 'regular' | 'king';
 type PieceColor = 'red' | 'black';
@@ -28,6 +31,9 @@ interface GameState {
 const CheckersScreen = ({navigation, route}: any) => {
   const {session, gameType, mode} = route.params;
   const [gameState, setGameState] = useState<GameState>(initializeGame(mode));
+  const gameIdRef = useRef<string>(uuidv4());
+  const moveCountRef = useRef(0);
+  const lastPlayerMoveRef = useRef<{ from: Position; to: Position; isJump?: boolean } | null>(null);
 
   useEffect(() => {
     // AI's turn
@@ -59,13 +65,17 @@ const CheckersScreen = ({navigation, route}: any) => {
 
   // Separate function for AI move execution to avoid stale closure
   function executeAIMove(from: Position, to: Position) {
+    const isJump = Math.abs(to.row - from.row) === 2;
+    
     setGameState(prevState => {
       const newBoard = prevState.board.map(row => [...row]);
       const piece = newBoard[from.row][from.col];
       if (!piece) return prevState;
+      
+      const boardBefore = prevState.board;
 
       // Check if it's a jump
-      if (Math.abs(to.row - from.row) === 2) {
+      if (isJump) {
         const jumpedRow = (from.row + to.row) / 2;
         const jumpedCol = (from.col + to.col) / 2;
         newBoard[jumpedRow][jumpedCol] = null;
@@ -76,6 +86,7 @@ const CheckersScreen = ({navigation, route}: any) => {
       newBoard[from.row][from.col] = null;
 
       // Check for king promotion
+      const wasKing = piece.type === 'king';
       if (piece.color === 'black' && to.row === 7) {
         newBoard[to.row][to.col] = { ...piece, type: 'king' };
       }
@@ -85,6 +96,51 @@ const CheckersScreen = ({navigation, route}: any) => {
 
       if (!hasMovesLeft) {
         setTimeout(() => Alert.alert('Game Over!', 'Black wins!'), 100);
+      }
+
+      // Log AI move
+      if (lastPlayerMoveRef.current && prevState.gameMode === 'ai') {
+        moveCountRef.current++;
+        const playerPieces = newBoard.flat().filter(p => p?.color === 'red').length;
+        const aiPieces = newBoard.flat().filter(p => p?.color === 'black').length;
+        
+        aiMoveLogService.logCheckersMove({
+          gameId: gameIdRef.current,
+          moveNumber: moveCountRef.current,
+          playerMove: lastPlayerMoveRef.current,
+          aiMove: { from, to, isJump },
+          boardStateBefore: boardBefore,
+          boardStateAfter: newBoard,
+          playerPiecesRemaining: playerPieces,
+          aiPiecesRemaining: aiPieces,
+          wasKingMove: wasKing,
+        });
+        lastPlayerMoveRef.current = null
+      // Check for game over
+      const hasMovesLeft = checkIfPlayerHasMoves(newBoard, 'red');
+
+      if (!hasMovesLeft) {
+        setTimeout(() => Alert.alert('Game Over!', 'Black wins!'), 100);
+      }
+
+      // Log AI move
+      if (lastPlayerMoveRef.current && prevState.gameMode === 'ai') {
+        moveCountRef.current++;
+        const playerPieces = newBoard.flat().filter(p => p?.color === 'red').length;
+        const aiPieces = newBoard.flat().filter(p => p?.color === 'black').length;
+        
+        aiMoveLogService.logCheckersMove({
+          gameId: gameIdRef.current,
+          moveNumber: moveCountRef.current,
+          playerMove: lastPlayerMoveRef.current,
+          aiMove: { from, to, isJump },
+          boardStateBefore: boardBefore,
+          boardStateAfter: newBoard,
+          playerPiecesRemaining: playerPieces,
+          aiPiecesRemaining: aiPieces,
+          wasKingMove: wasKing,
+        });
+        lastPlayerMoveRef.current = null;
       }
 
       return {
@@ -169,10 +225,16 @@ const CheckersScreen = ({navigation, route}: any) => {
     if (!piece) return;
 
     // Check if it's a jump
-    if (Math.abs(to.row - from.row) === 2) {
+    const isJump = Math.abs(to.row - from.row) === 2;
+    if (isJump) {
       const jumpedRow = (from.row + to.row) / 2;
       const jumpedCol = (from.col + to.col) / 2;
       newBoard[jumpedRow][jumpedCol] = null; // Remove jumped piece
+    }
+
+    // Capture player move for AI logging (only for player's moves in AI mode)
+    if (gameState.gameMode === 'ai' && gameState.currentPlayer === 'red') {
+      lastPlayerMoveRef.current = { from, to, isJump };
     }
 
     // Move piece
@@ -286,6 +348,9 @@ const CheckersScreen = ({navigation, route}: any) => {
 
   function resetGame() {
     setGameState(initializeGame(gameState.gameMode));
+    gameIdRef.current = uuidv4();
+    moveCountRef.current = 0;
+    lastPlayerMoveRef.current = null;
   }
 
   return (

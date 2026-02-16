@@ -1,6 +1,9 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import {View, Text, StyleSheet, TouchableOpacity, Alert, Animated} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { aiMoveLogService } from '../services/aiMoveLog.service';
+import 'react-native-get-random-values';
+import { v4 as uuidv4 } from 'uuid';
 
 interface GameState {
   playerDice: number[];
@@ -22,10 +25,13 @@ const MrotsiScreen = ({navigation, route}: any) => {
   const [diceAnimations] = useState(
     Array(5).fill(0).map(() => new Animated.Value(0))
   );
+  const gameIdRef = useRef<string>(uuidv4());
+  const lastPlayerDiceRef = useRef<{ dice: number[]; score: number } | null>(null);
 
   useEffect(() => {
     // AI opponent's turn - use full gameState to avoid stale closures in production builds
     if (gameState.gameMode === 'ai' && gameState.playerRolled && !gameState.opponentRolled && !gameState.isGameOver) {
+      const currentRound = gameState.currentRound;
       const timer = setTimeout(() => {
         // Calculate AI dice roll inline to avoid stale closure
         const newDice = [
@@ -39,15 +45,15 @@ const MrotsiScreen = ({navigation, route}: any) => {
         // Calculate score for the dice
         const counts: {[key: number]: number} = {};
         newDice.forEach(d => { counts[d] = (counts[d] || 0) + 1; });
-        let score = 0;
+        let aiScore = 0;
         const values = Object.entries(counts);
         for (const [value, count] of values) {
           if (count >= 3) {
-            score += parseInt(value) * count;
+            aiScore += parseInt(value) * count;
           }
         }
-        if (score === 0) {
-          score = Math.max(...newDice);
+        if (aiScore === 0) {
+          aiScore = Math.max(...newDice);
         }
         
         setGameState(prevState => {
@@ -55,10 +61,34 @@ const MrotsiScreen = ({navigation, route}: any) => {
           if (prevState.opponentRolled || prevState.isGameOver) {
             return prevState;
           }
+          
+          const newOpponentScore = prevState.opponentScore + aiScore;
+          const newPlayerScore = prevState.playerScore;
+          
+          // Log AI move
+          if (lastPlayerDiceRef.current) {
+            const playerDiceData = lastPlayerDiceRef.current;
+            const roundWinner = playerDiceData.score > aiScore ? 'player' : 
+                               playerDiceData.score < aiScore ? 'opponent' : 'tie';
+            
+            aiMoveLogService.logMrotsiMove({
+              gameId: gameIdRef.current,
+              roundNumber: currentRound,
+              playerDice: playerDiceData.dice,
+              playerScore: playerDiceData.score,
+              aiDice: newDice,
+              aiScore: aiScore,
+              roundWinner,
+              playerTotalScore: newPlayerScore,
+              aiTotalScore: newOpponentScore,
+            });
+            lastPlayerDiceRef.current = null;
+          }
+          
           return {
             ...prevState,
             opponentDice: newDice,
-            opponentScore: prevState.opponentScore + score,
+            opponentScore: newOpponentScore,
             opponentRolled: true,
           };
         });
@@ -183,6 +213,11 @@ const MrotsiScreen = ({navigation, route}: any) => {
       const newDice = rollDice();
       const score = calculateScore(newDice);
       
+      // Capture player dice for AI logging
+      if (gameState.gameMode === 'ai') {
+        lastPlayerDiceRef.current = { dice: newDice, score };
+      }
+      
       setGameState(prev => ({
         ...prev,
         playerDice: newDice,
@@ -208,6 +243,8 @@ const MrotsiScreen = ({navigation, route}: any) => {
 
   function resetGame() {
     setGameState(initializeGame(gameState.gameMode));
+    gameIdRef.current = uuidv4();
+    lastPlayerDiceRef.current = null;
   }
 
   function getDiceEmoji(value: number): string {
