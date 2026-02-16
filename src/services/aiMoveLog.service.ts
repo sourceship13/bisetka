@@ -3,8 +3,8 @@
  * Frontend service for logging AI moves to the backend
  */
 
-import { apiConfig } from './api.config';
-import { authService } from './auth.service';
+import apiConfig from '../libs/utils/api.utils';
+import tokenService from './token.service';
 
 // ============================================
 // TYPES
@@ -147,8 +147,8 @@ class AIMoveLogService {
     this.baseUrl = `${apiConfig.apiURL}/ai-moves`;
   }
 
-  private async getAuthHeaders(): Promise<HeadersInit> {
-    const token = await authService.getAccessToken();
+  private async getAuthHeaders(): Promise<Record<string, string>> {
+    const token = await tokenService.getAccessToken();
     return {
       'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),

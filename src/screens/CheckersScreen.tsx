@@ -2,7 +2,6 @@ import React, {useState, useEffect, useRef} from 'react';
 import {View, Text, StyleSheet, TouchableOpacity, Alert} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { aiMoveLogService } from '../services/aiMoveLog.service';
-import 'react-native-get-random-values';
 import { v4 as uuidv4 } from 'uuid';
 
 type PieceType = 'regular' | 'king';
@@ -91,31 +90,6 @@ const CheckersScreen = ({navigation, route}: any) => {
         newBoard[to.row][to.col] = { ...piece, type: 'king' };
       }
 
-      // Check for game over
-      const hasMovesLeft = checkIfPlayerHasMoves(newBoard, 'red');
-
-      if (!hasMovesLeft) {
-        setTimeout(() => Alert.alert('Game Over!', 'Black wins!'), 100);
-      }
-
-      // Log AI move
-      if (lastPlayerMoveRef.current && prevState.gameMode === 'ai') {
-        moveCountRef.current++;
-        const playerPieces = newBoard.flat().filter(p => p?.color === 'red').length;
-        const aiPieces = newBoard.flat().filter(p => p?.color === 'black').length;
-        
-        aiMoveLogService.logCheckersMove({
-          gameId: gameIdRef.current,
-          moveNumber: moveCountRef.current,
-          playerMove: lastPlayerMoveRef.current,
-          aiMove: { from, to, isJump },
-          boardStateBefore: boardBefore,
-          boardStateAfter: newBoard,
-          playerPiecesRemaining: playerPieces,
-          aiPiecesRemaining: aiPieces,
-          wasKingMove: wasKing,
-        });
-        lastPlayerMoveRef.current = null
       // Check for game over
       const hasMovesLeft = checkIfPlayerHasMoves(newBoard, 'red');
 
