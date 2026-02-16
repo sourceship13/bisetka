@@ -15,7 +15,6 @@ import { socketService } from '../services/SocketService';
 import { blotAIService, LocalGameState, Card } from '../services/blotAI.service';
 import { gameResultService } from '../services/gameResult.service';
 import { aiMoveLogService } from '../services/aiMoveLog.service';
-import 'react-native-get-random-values';
 import { v4 as uuidv4 } from 'uuid';
 
 interface GameState {
@@ -482,8 +481,8 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
       gameMode: 'ai',
       result,
       difficulty,
-      playerScore: finalState.scores.player,
-      opponentScore: finalState.scores.computer,
+      playerScore: finalState.playerScore,
+      opponentScore: finalState.computerScore,
       durationSeconds,
       startedAt: gameStartTime.current || undefined,
     });
@@ -543,8 +542,8 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
                 gameMode: 'ai',
                 result: 'resigned',
                 difficulty,
-                playerScore: localGameState?.scores.player || 0,
-                opponentScore: localGameState?.scores.computer || 0,
+                playerScore: localGameState?.playerScore || 0,
+                opponentScore: localGameState?.computerScore || 0,
                 durationSeconds,
                 startedAt: gameStartTime.current || undefined,
               });
