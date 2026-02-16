@@ -14,6 +14,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { socketService } from '../services/SocketService';
 import { blotAIService, LocalGameState, Card } from '../services/blotAI.service';
 import { gameResultService } from '../services/gameResult.service';
+import { aiMoveLogService } from '../services/aiMoveLog.service';
+import 'react-native-get-random-values';
+import { v4 as uuidv4 } from 'uuid';
 
 interface GameState {
   deck: Card[];
@@ -59,6 +62,9 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
   const [showDifficultyModal, setShowDifficultyModal] = useState(false);
   const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
   const gameStartTime = useRef<Date | null>(null);
+  const blotGameIdRef = useRef<string>(uuidv4());
+  const trickCountRef = useRef(0);
+  const lastPlayerCardRef = useRef<Card | null>(null);
 
   // Handle computer's turn when it needs to lead a trick (e.g., after winning a trick)
   useEffect(() => {
@@ -88,6 +94,10 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
     if (initialMode === 'ai') {
       setDifficulty(initialDifficulty);
       setIsLocalGame(true);
+      // Reset logging refs for new game
+      blotGameIdRef.current = uuidv4();
+      trickCountRef.current = 0;
+      lastPlayerCardRef.current = null;
       const newGame = blotAIService.initializeGame();
       setLocalGameState(newGame);
       setIsGameStarted(true);
@@ -211,6 +221,10 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
     setDifficulty(selectedDifficulty);
     setIsLocalGame(true);
     setGameMode('local');
+    // Reset logging refs for new game
+    blotGameIdRef.current = uuidv4();
+    trickCountRef.current = 0;
+    lastPlayerCardRef.current = null;
     const newGame = blotAIService.initializeGame();
     setLocalGameState(newGame);
     setIsGameStarted(true);
@@ -369,6 +383,12 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
     if (!localGameState || localGameState.currentTurn !== 'player') return;
 
     setSelectedCard(card);
+    lastPlayerCardRef.current = card;
+    
+    // Capture state before player move
+    const playerHandBefore = [...localGameState.playerHand];
+    const aiHandBefore = [...localGameState.computerHand];
+    const trumpSuit = localGameState.trumpSuit;
     
     // Player plays card
     let newState = blotAIService.playCard(localGameState, card);
@@ -384,6 +404,35 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
     if (newState.currentTurn === 'computer') {
       setTimeout(() => {
         const stateAfterComputer = blotAIService.computerMove(newState);
+        
+        // Find AI card played (the one added to currentTrick by AI)
+        const aiCard = stateAfterComputer.currentTrick.length > 0 
+          ? stateAfterComputer.currentTrick[stateAfterComputer.currentTrick.length - 1]
+          : null;
+        
+        // Log the trick
+        if (lastPlayerCardRef.current && aiCard) {
+          trickCountRef.current++;
+          const trickWinner = stateAfterComputer.currentTrick.length === 0 
+            ? (stateAfterComputer.currentTurn === 'player' ? 'computer' : 'player')
+            : undefined;
+          
+          aiMoveLogService.logBlotMove({
+            gameId: blotGameIdRef.current,
+            trickNumber: trickCountRef.current,
+            playerCard: lastPlayerCardRef.current,
+            aiCard: aiCard,
+            trickWinner: trickWinner,
+            trumpSuit: trumpSuit || undefined,
+            playerHandBefore,
+            aiHandBefore,
+            playerScoreAfter: stateAfterComputer.playerScore,
+            aiScoreAfter: stateAfterComputer.computerScore,
+            difficulty,
+          });
+          lastPlayerCardRef.current = null;
+        }
+        
         setLocalGameState(stateAfterComputer);
         
         // Check if game ended after computer move
@@ -453,6 +502,10 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
       [{ 
         text: 'Play Again', 
         onPress: () => {
+          // Reset logging refs for new game
+          blotGameIdRef.current = uuidv4();
+          trickCountRef.current = 0;
+          lastPlayerCardRef.current = null;
           const newGame = blotAIService.initializeGame();
           setLocalGameState(newGame);
           gameStartTime.current = new Date();

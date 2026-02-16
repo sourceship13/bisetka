@@ -12,6 +12,9 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {RootStackParamList} from '../navigation/AppNavigator';
+import {aiMoveLogService} from '../services/aiMoveLog.service';
+import 'react-native-get-random-values';
+import {v4 as uuidv4} from 'uuid';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'BilliardsGame'>;
 
@@ -323,6 +326,14 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
   playerTypeRef.current = playerType;
   const aiTypeRef = useRef(aiType);
   aiTypeRef.current = aiType;
+
+  // AI move logging refs
+  const billiardsGameIdRef = useRef<string>(uuidv4());
+  const shotCountRef = useRef(0);
+  const lastPlayerShotRef = useRef<{
+    cueBallVelocity: Vec2;
+    targetBall?: { number: number; type: string };
+  } | null>(null);
 
   const cueBall = balls.find(b => b.type === 'cue' && !b.pocketed);
 
@@ -664,13 +675,46 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
         firstHitRef.current = null;
         cueScratchRef.current = false;
 
+        // Calculate AI shot velocity
+        const aiVelX = (dx / d + (Math.random() - 0.5) * jitter) * speed;
+        const aiVelY = (dy / d + (Math.random() - 0.5) * jitter) * speed;
+
+        // Increment shot count and log AI shot
+        shotCountRef.current += 1;
+        const tableState = ballsRef.current.map(b => ({
+          number: b.number,
+          type: b.type,
+          pocketed: b.pocketed,
+          position: b.pos,
+        }));
+        
+        aiMoveLogService.logBilliardsMove({
+          gameId: billiardsGameIdRef.current,
+          shotNumber: shotCountRef.current,
+          variant: variant,
+          aiDifficulty: difficulty,
+          playerShot: lastPlayerShotRef.current || undefined,
+          aiShot: {
+            targetBall: { number: best.number, type: best.type },
+            cueBallVelocity: { x: aiVelX, y: aiVelY },
+            jitter: jitter,
+            speed: speed,
+          },
+          tableState: tableState,
+          playerType: playerType,
+          aiType: aiType,
+        }).catch(err => console.warn('Failed to log billiards move:', err));
+
+        // Clear player shot ref after logging
+        lastPlayerShotRef.current = null;
+
         setBalls(prev => {
           const next = prev.map(b => ({...b, pos: {...b.pos}, vel: {...b.vel}}));
           const c = next.find(b => b.type === 'cue' && !b.pocketed);
           if (c) {
             c.vel = {
-              x: (dx / d + (Math.random() - 0.5) * jitter) * speed,
-              y: (dy / d + (Math.random() - 0.5) * jitter) * speed,
+              x: aiVelX,
+              y: aiVelY,
             };
           }
           return next;
@@ -782,6 +826,13 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
         firstHitRef.current = null;
         cueScratchRef.current = false;
 
+        // Capture player shot info for logging
+        const cueBallVelocity = {x: Math.cos(angle) * force, y: Math.sin(angle) * force};
+        lastPlayerShotRef.current = {
+          cueBallVelocity,
+          targetBall: undefined, // Player shot - no specific target tracked
+        };
+
         setBalls(prev => {
           const next = prev.map(b => ({...b, pos: {...b.pos}, vel: {...b.vel}}));
           const c = next.find(b => b.type === 'cue' && !b.pocketed);
@@ -827,6 +878,11 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
   const cueGeo = getCueStick();
 
   const handleNewGame = () => {
+    // Reset AI logging refs for new game
+    billiardsGameIdRef.current = uuidv4();
+    shotCountRef.current = 0;
+    lastPlayerShotRef.current = null;
+    
     setBalls(variant === '9-ball' ? createRack9Ball() : createRack8Ball());
     setIsMoving(false);
     setPlayerTurn(true);

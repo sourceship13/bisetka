@@ -3,6 +3,9 @@ import {View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert} from 'react
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {RootStackParamList} from '../navigation/AppNavigator';
+import { aiMoveLogService } from '../services/aiMoveLog.service';
+import 'react-native-get-random-values';
+import { v4 as uuidv4 } from 'uuid';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'PokerRoom'>;
 
@@ -46,6 +49,10 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
   // Refs to hold current state for avoiding stale closures in AI moves
   const playersRef = useRef<Player[]>([]);
   const currentBetRef = useRef(0);
+  const pokerGameIdRef = useRef<string>(uuidv4());
+  const handNumberRef = useRef(0);
+  const lastPlayerActionRef = useRef<{ action: string; amount: number } | null>(null);
+  const aiActionsThisRoundRef = useRef<Array<{ playerId: number; action: string; amount?: number }>>([]);
   
   // Keep refs in sync with state
   useEffect(() => {
@@ -164,6 +171,11 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
   };
 
   const startNewHand = (currentPlayers: Player[]) => {
+    // Increment hand number and reset round refs
+    handNumberRef.current += 1;
+    lastPlayerActionRef.current = null;
+    aiActionsThisRoundRef.current = [];
+    
     const deck = createDeck();
     
     // Move dealer button to next player
@@ -226,6 +238,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
 
   const handleFold = () => {
     setTimerActive(false);
+    lastPlayerActionRef.current = { action: 'fold', amount: 0 };
     const updatedPlayers = [...players];
     updatedPlayers[playerIndex].folded = true;
     updatedPlayers[playerIndex].isActive = false;
@@ -245,6 +258,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
       return;
     }
 
+    lastPlayerActionRef.current = { action: 'call', amount: callAmount };
     const updatedPlayers = [...players];
     updatedPlayers[playerIndex].chips -= callAmount;
     updatedPlayers[playerIndex].currentBet = currentBet;
@@ -267,6 +281,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
       return;
     }
 
+    lastPlayerActionRef.current = { action: 'raise', amount: totalAmount };
     const updatedPlayers = [...players];
     updatedPlayers[playerIndex].chips -= totalAmount;
     updatedPlayers[playerIndex].currentBet = raiseAmount;
@@ -293,6 +308,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
       return;
     }
 
+    lastPlayerActionRef.current = { action: 'check', amount: 0 };
     const updatedPlayers = [...players];
     updatedPlayers[playerIndex].isActive = false;
     updatedPlayers[playerIndex].hasActed = true;
@@ -337,6 +353,25 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
       const winnerIndex = updatedPlayers.findIndex(p => p.id === winner.id);
       updatedPlayers[winnerIndex].chips += pot;
       setPlayers(updatedPlayers);
+      
+      // Log AI poker hand data
+      if (aiActionsThisRoundRef.current.length > 0) {
+        aiMoveLogService.logPokerMove({
+          gameId: pokerGameIdRef.current,
+          handNumber: handNumberRef.current,
+          phase: gamePhase,
+          playerAction: lastPlayerActionRef.current || undefined,
+          aiActions: aiActionsThisRoundRef.current,
+          communityCards: communityCards,
+          potSize: pot,
+          winnerInfo: {
+            playerId: winner.id,
+            playerName: winner.name,
+            isAI: winner.id !== playerIndex,
+            winAmount: pot,
+          },
+        }).catch(err => console.warn('Failed to log poker hand:', err));
+      }
       
       Alert.alert('Winner!', `${winner.name} wins $${pot}!`, [
         {
@@ -389,6 +424,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
     const updatedPlayers = [...currentPlayers];
     let newCurrentBet = betAmount;
     let potIncrease = 0;
+    let aiAction: { playerId: number; action: string; amount?: number };
     
     // AI is less likely to fold - only 8% chance
     // More conservative play to reach showdown more often
@@ -397,6 +433,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
       updatedPlayers[aiPlayerIndex].folded = true;
       updatedPlayers[aiPlayerIndex].hasActed = true;
       updatedPlayers[aiPlayerIndex].cards = []; // Clear cards on fold
+      aiAction = { playerId: aiPlayerIndex, action: 'fold' };
     } else if (random < 0.75) {
       // Call (67% chance)
       const callAmount = betAmount - aiPlayer.currentBet;
@@ -404,6 +441,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
       updatedPlayers[aiPlayerIndex].currentBet = betAmount;
       updatedPlayers[aiPlayerIndex].hasActed = true;
       potIncrease = callAmount;
+      aiAction = { playerId: aiPlayerIndex, action: 'call', amount: callAmount };
     } else {
       // Raise (25% chance)
       const raiseAmount = betAmount + 20;
@@ -413,6 +451,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
       updatedPlayers[aiPlayerIndex].hasActed = true;
       newCurrentBet = raiseAmount;
       potIncrease = totalAmount;
+      aiAction = { playerId: aiPlayerIndex, action: 'raise', amount: totalAmount };
       
       // Reset hasActed for all other players
       for (let i = 0; i < updatedPlayers.length; i++) {
@@ -421,6 +460,9 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
         }
       }
     }
+    
+    // Track AI action for logging
+    aiActionsThisRoundRef.current.push(aiAction);
     
     updatedPlayers[aiPlayerIndex].isActive = false;
     
@@ -501,9 +543,58 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
     
     if (activePlayers.length === 1) {
       const winner = activePlayers[0];
+      
+      // Log AI poker hand data at showdown
+      if (aiActionsThisRoundRef.current.length > 0) {
+        aiMoveLogService.logPokerMove({
+          gameId: pokerGameIdRef.current,
+          handNumber: handNumberRef.current,
+          phase: 'showdown',
+          playerAction: lastPlayerActionRef.current || undefined,
+          aiActions: aiActionsThisRoundRef.current,
+          communityCards: communityCards,
+          potSize: pot,
+          winnerInfo: {
+            playerId: winner.id,
+            playerName: winner.name,
+            isAI: winner.id !== playerIndex,
+            winAmount: pot,
+          },
+        }).catch(err => console.warn('Failed to log poker hand:', err));
+      }
+      
       Alert.alert('Winner!', `${winner.name} wins ${pot} chips!`);
       const updatedPlayers = [...currentPlayers];
       const winnerIndex = updatedPlayers.findIndex(p => p.id === winner.id);
+      updatedPlayers[winnerIndex].chips += pot;
+      setPlayers(updatedPlayers);
+      setPot(0);
+    } else if (activePlayers.length > 1) {
+      // Multiple players at showdown - pick random winner for now (should implement proper hand evaluation)
+      const randomWinner = activePlayers[Math.floor(Math.random() * activePlayers.length)];
+      
+      // Log AI poker hand data at showdown
+      if (aiActionsThisRoundRef.current.length > 0) {
+        aiMoveLogService.logPokerMove({
+          gameId: pokerGameIdRef.current,
+          handNumber: handNumberRef.current,
+          phase: 'showdown',
+          playerAction: lastPlayerActionRef.current || undefined,
+          aiActions: aiActionsThisRoundRef.current,
+          communityCards: communityCards,
+          potSize: pot,
+          winnerInfo: {
+            playerId: randomWinner.id,
+            playerName: randomWinner.name,
+            isAI: randomWinner.id !== playerIndex,
+            winAmount: pot,
+          },
+        }).catch(err => console.warn('Failed to log poker hand:', err));
+      }
+      
+      Alert.alert('Winner!', `${randomWinner.name} wins ${pot} chips at showdown!`);
+      const updatedPlayers = [...currentPlayers];
+      const winnerIndex = updatedPlayers.findIndex(p => p.id === randomWinner.id);
       updatedPlayers[winnerIndex].chips += pot;
       setPlayers(updatedPlayers);
       setPot(0);
