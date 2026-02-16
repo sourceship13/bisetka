@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import {View, Text, StyleSheet, TouchableOpacity, Alert} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -14,18 +14,28 @@ import {
   Position,
 } from '../game/chessLogic';
 import ChessPiece from '../components/ChessPiece';
+import { aiMoveLogService } from '../services/aiMoveLog.service';
+import 'react-native-get-random-values';
+import { v4 as uuidv4 } from 'uuid';
 
 const ChessScreen = ({navigation}: any) => {
   const [difficulty, setDifficulty] = useState<Difficulty | null>(null);
   const [gameState, setGameState] = useState<ChessGameState | null>(null);
+  const gameIdRef = useRef<string | null>(null);
+  const moveCountRef = useRef(0);
+  const lastPlayerMoveRef = useRef<{ from: Position; to: Position; piece: string; captured?: string } | null>(null);
 
   useEffect(() => {
     // Computer's turn
     if (gameState && gameState.currentPlayer === 'black' && !gameState.isCheckmate && !gameState.isStalemate) {
+      const boardBefore = gameState.board;
       const timer = setTimeout(() => {
         // Get computer move using current gameState
         const computerMove = getComputerMove(gameState.board, gameState.difficulty, 'black');
         if (computerMove) {
+          const aiPiece = gameState.board[computerMove.from.row][computerMove.from.col];
+          const capturedPiece = gameState.board[computerMove.to.row][computerMove.to.col];
+          
           // Execute move using functional update to avoid stale state
           setGameState(prevState => {
             if (!prevState) return prevState;
@@ -36,6 +46,28 @@ const ChessScreen = ({navigation}: any) => {
             const isCheck = isKingInCheck(newBoard, nextPlayer);
             const isCheckMate = isCheckmate(newBoard, nextPlayer);
             const isStaleMate = isStalemate(newBoard, nextPlayer);
+
+            // Log AI move after state update
+            if (gameIdRef.current && lastPlayerMoveRef.current) {
+              moveCountRef.current++;
+              aiMoveLogService.logChessMove({
+                gameId: gameIdRef.current,
+                moveNumber: moveCountRef.current,
+                playerMove: lastPlayerMoveRef.current,
+                aiMove: {
+                  from: computerMove.from,
+                  to: computerMove.to,
+                  piece: aiPiece?.type || 'unknown',
+                  captured: capturedPiece?.type,
+                },
+                boardStateBefore: boardBefore,
+                boardStateAfter: newBoard,
+                difficulty: prevState.difficulty,
+                isCheck,
+                isCheckmate: isCheckMate,
+              });
+              lastPlayerMoveRef.current = null;
+            }
 
             return {
               ...prevState,
@@ -57,6 +89,9 @@ const ChessScreen = ({navigation}: any) => {
   const startGame = (selectedDifficulty: Difficulty) => {
     setDifficulty(selectedDifficulty);
     setGameState(initializeChessGame(selectedDifficulty));
+    gameIdRef.current = uuidv4();
+    moveCountRef.current = 0;
+    lastPlayerMoveRef.current = null;
   };
 
   const handleSquarePress = (row: number, col: number) => {
@@ -107,6 +142,16 @@ const ChessScreen = ({navigation}: any) => {
   const executeMove = (from: Position, to: Position) => {
     if (!gameState) return;
 
+    // Capture player move info for AI logging
+    const playerPiece = gameState.board[from.row][from.col];
+    const capturedPiece = gameState.board[to.row][to.col];
+    lastPlayerMoveRef.current = {
+      from,
+      to,
+      piece: playerPiece?.type || 'unknown',
+      captured: capturedPiece?.type,
+    };
+
     const newBoard = makeMove(gameState.board, { from, to });
     const nextPlayer = gameState.currentPlayer === 'white' ? 'black' : 'white';
 
@@ -138,6 +183,9 @@ const ChessScreen = ({navigation}: any) => {
   const resetGame = () => {
     setDifficulty(null);
     setGameState(null);
+    gameIdRef.current = null;
+    moveCountRef.current = 0;
+    lastPlayerMoveRef.current = null;
   };
 
   // Difficulty selection screen
