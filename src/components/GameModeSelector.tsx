@@ -264,9 +264,7 @@ const styles = StyleSheet.create({
   modeCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: spacing.xl,
-    paddingHorizontal: spacing.xl,
-    minHeight: 90,
+    minHeight: 160,
   },
   cardContent: {
     flex: 1,

@@ -13,6 +13,7 @@ import MrotsiScreen from '../screens/MrotsiScreen';
 import CheckersScreen from '../screens/CheckersScreen';
 import PokerRoomScreen from '../screens/PokerRoomScreen';
 import BilliardsGameScreen from '../screens/BilliardsGameScreen';
+import SlotsScreen from '../screens/SlotsScreen';
 import GameModeScreen from '../screens/GameModeScreen';
 import SessionStatusScreen from '../screens/SessionStatusScreen';
 import GlobalChatScreen from '../screens/GlobalChatScreen';
@@ -34,6 +35,7 @@ export type RootStackParamList = {
   Mrotsi: { session: any; gameType: GameType; mode: string };
   PokerRoom: { session: any; gameType: GameType; mode: string };
   BilliardsGame: { session: any };
+  Slots: undefined;
   GameMode: { gameType: GameType };
   SessionStatus: { gameType: GameType; session: any };
   GlobalChat: undefined;
@@ -79,6 +81,7 @@ const AppNavigator = () => {
               <Stack.Screen name="Mrotsi" component={MrotsiScreen} />
               <Stack.Screen name="PokerRoom" component={PokerRoomScreen} />
               <Stack.Screen name="BilliardsGame" component={BilliardsGameScreen} />
+              <Stack.Screen name="Slots" component={SlotsScreen} />
               <Stack.Screen name="GameMode" component={GameModeScreen} />
               <Stack.Screen name="SessionStatus" component={SessionStatusScreen} />
               <Stack.Screen name="GlobalChat" component={GlobalChatScreen} />
