@@ -24,13 +24,48 @@ const MrotsiScreen = ({navigation, route}: any) => {
   );
 
   useEffect(() => {
-    // AI opponent's turn
+    // AI opponent's turn - use full gameState to avoid stale closures in production builds
     if (gameState.gameMode === 'ai' && gameState.playerRolled && !gameState.opponentRolled && !gameState.isGameOver) {
-      setTimeout(() => {
-        rollOpponentDice();
+      const timer = setTimeout(() => {
+        // Calculate AI dice roll inline to avoid stale closure
+        const newDice = [
+          Math.floor(Math.random() * 6) + 1,
+          Math.floor(Math.random() * 6) + 1,
+          Math.floor(Math.random() * 6) + 1,
+          Math.floor(Math.random() * 6) + 1,
+          Math.floor(Math.random() * 6) + 1,
+        ];
+        
+        // Calculate score for the dice
+        const counts: {[key: number]: number} = {};
+        newDice.forEach(d => { counts[d] = (counts[d] || 0) + 1; });
+        let score = 0;
+        const values = Object.entries(counts);
+        for (const [value, count] of values) {
+          if (count >= 3) {
+            score += parseInt(value) * count;
+          }
+        }
+        if (score === 0) {
+          score = Math.max(...newDice);
+        }
+        
+        setGameState(prevState => {
+          // Double-check we should still make this move
+          if (prevState.opponentRolled || prevState.isGameOver) {
+            return prevState;
+          }
+          return {
+            ...prevState,
+            opponentDice: newDice,
+            opponentScore: prevState.opponentScore + score,
+            opponentRolled: true,
+          };
+        });
       }, 1000);
+      return () => clearTimeout(timer);
     }
-  }, [gameState.playerRolled]);
+  }, [gameState]);
 
   useEffect(() => {
     // Check if round is complete (both players rolled)

@@ -32,11 +32,72 @@ const CheckersScreen = ({navigation, route}: any) => {
   useEffect(() => {
     // AI's turn
     if (gameState.gameMode === 'ai' && gameState.currentPlayer === 'black' && !gameState.isGameOver) {
-      setTimeout(() => {
-        makeAIMove();
+      const timer = setTimeout(() => {
+        // Calculate AI move using current gameState
+        const allMoves: Array<{ from: Position; to: Position }> = [];
+        
+        for (let row = 0; row < 8; row++) {
+          for (let col = 0; col < 8; col++) {
+            const piece = gameState.board[row][col];
+            if (piece && piece.color === 'black') {
+              const moves = getPossibleMoves(gameState.board, { row, col });
+              moves.forEach(move => {
+                allMoves.push({ from: { row, col }, to: move });
+              });
+            }
+          }
+        }
+
+        if (allMoves.length > 0) {
+          const randomMove = allMoves[Math.floor(Math.random() * allMoves.length)];
+          executeAIMove(randomMove.from, randomMove.to);
+        }
       }, 500);
+      return () => clearTimeout(timer);
     }
-  }, [gameState.currentPlayer]);
+  }, [gameState]);
+
+  // Separate function for AI move execution to avoid stale closure
+  function executeAIMove(from: Position, to: Position) {
+    setGameState(prevState => {
+      const newBoard = prevState.board.map(row => [...row]);
+      const piece = newBoard[from.row][from.col];
+      if (!piece) return prevState;
+
+      // Check if it's a jump
+      if (Math.abs(to.row - from.row) === 2) {
+        const jumpedRow = (from.row + to.row) / 2;
+        const jumpedCol = (from.col + to.col) / 2;
+        newBoard[jumpedRow][jumpedCol] = null;
+      }
+
+      // Move piece
+      newBoard[to.row][to.col] = piece;
+      newBoard[from.row][from.col] = null;
+
+      // Check for king promotion
+      if (piece.color === 'black' && to.row === 7) {
+        newBoard[to.row][to.col] = { ...piece, type: 'king' };
+      }
+
+      // Check for game over
+      const hasMovesLeft = checkIfPlayerHasMoves(newBoard, 'red');
+
+      if (!hasMovesLeft) {
+        setTimeout(() => Alert.alert('Game Over!', 'Black wins!'), 100);
+      }
+
+      return {
+        ...prevState,
+        board: newBoard,
+        currentPlayer: 'red' as PieceColor,
+        selectedSquare: null,
+        possibleMoves: [],
+        isGameOver: !hasMovesLeft,
+        winner: !hasMovesLeft ? 'black' as PieceColor : null,
+      };
+    });
+  }
 
   function initializeGame(mode: string): GameState {
     const board: (Piece | null)[][] = Array(8).fill(null).map(() => Array(8).fill(null));

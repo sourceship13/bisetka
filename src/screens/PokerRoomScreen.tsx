@@ -43,6 +43,18 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
   const lastResetTimeRef = useRef(0);
   const lastActivePlayerRef = useRef(-1);
   const aiMoveTriggeredRef = useRef(false);
+  // Refs to hold current state for avoiding stale closures in AI moves
+  const playersRef = useRef<Player[]>([]);
+  const currentBetRef = useRef(0);
+  
+  // Keep refs in sync with state
+  useEffect(() => {
+    playersRef.current = players;
+  }, [players]);
+  
+  useEffect(() => {
+    currentBetRef.current = currentBet;
+  }, [currentBet]);
 
   useEffect(() => {
     initializeGame();
@@ -90,14 +102,16 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
       setTimerActive(true);
     }, 50);
     
-    // Trigger AI move if not human player
+    // Trigger AI move if not human player - simulateAIMove now uses refs to avoid stale closures
     if (activePlayerIndex !== playerIndex && !aiMoveTriggeredRef.current) {
       aiMoveTriggeredRef.current = true;
-      setTimeout(() => {
-        simulateAIMove(activePlayerIndex);
+      const aiIdx = activePlayerIndex; // Capture the index
+      const timer = setTimeout(() => {
+        simulateAIMove(aiIdx);
       }, 1000);
+      return () => clearTimeout(timer);
     }
-  }, [activePlayerIndex, gamePhase, players]);
+  }, [activePlayerIndex, gamePhase, players.length]);
 
   const handleTimeExpired = () => {
     console.log('Time expired for player', activePlayerIndex);
@@ -362,15 +376,18 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
   };
 
   const simulateAIMove = (aiPlayerIndex: number) => {
-    // Get current state values
-    const aiPlayer = players[aiPlayerIndex];
+    // Use refs to get current state values and avoid stale closures
+    const currentPlayers = playersRef.current;
+    const betAmount = currentBetRef.current;
+    
+    const aiPlayer = currentPlayers[aiPlayerIndex];
     if (!aiPlayer || aiPlayer.folded || !aiPlayer.isActive) {
       return;
     }
     
     const random = Math.random();
-    const updatedPlayers = [...players];
-    let newCurrentBet = currentBet;
+    const updatedPlayers = [...currentPlayers];
+    let newCurrentBet = betAmount;
     let potIncrease = 0;
     
     // AI is less likely to fold - only 8% chance
@@ -382,14 +399,14 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
       updatedPlayers[aiPlayerIndex].cards = []; // Clear cards on fold
     } else if (random < 0.75) {
       // Call (67% chance)
-      const callAmount = currentBet - aiPlayer.currentBet;
+      const callAmount = betAmount - aiPlayer.currentBet;
       updatedPlayers[aiPlayerIndex].chips -= callAmount;
-      updatedPlayers[aiPlayerIndex].currentBet = currentBet;
+      updatedPlayers[aiPlayerIndex].currentBet = betAmount;
       updatedPlayers[aiPlayerIndex].hasActed = true;
       potIncrease = callAmount;
     } else {
       // Raise (25% chance)
-      const raiseAmount = currentBet + 20;
+      const raiseAmount = betAmount + 20;
       const totalAmount = raiseAmount - aiPlayer.currentBet;
       updatedPlayers[aiPlayerIndex].chips -= totalAmount;
       updatedPlayers[aiPlayerIndex].currentBet = raiseAmount;
@@ -412,7 +429,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
     if (potIncrease > 0) {
       setPot(prev => prev + potIncrease);
     }
-    if (newCurrentBet !== currentBet) {
+    if (newCurrentBet !== betAmount) {
       setCurrentBet(newCurrentBet);
     }
     

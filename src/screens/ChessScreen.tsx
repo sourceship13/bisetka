@@ -22,14 +22,37 @@ const ChessScreen = ({navigation}: any) => {
   useEffect(() => {
     // Computer's turn
     if (gameState && gameState.currentPlayer === 'black' && !gameState.isCheckmate && !gameState.isStalemate) {
-      setTimeout(() => {
+      const timer = setTimeout(() => {
+        // Get computer move using current gameState
         const computerMove = getComputerMove(gameState.board, gameState.difficulty, 'black');
         if (computerMove) {
-          executeMove(computerMove.from, computerMove.to);
+          // Execute move using functional update to avoid stale state
+          setGameState(prevState => {
+            if (!prevState) return prevState;
+            
+            const newBoard = makeMove(prevState.board, { from: computerMove.from, to: computerMove.to });
+            const nextPlayer = 'white';
+
+            const isCheck = isKingInCheck(newBoard, nextPlayer);
+            const isCheckMate = isCheckmate(newBoard, nextPlayer);
+            const isStaleMate = isStalemate(newBoard, nextPlayer);
+
+            return {
+              ...prevState,
+              board: newBoard,
+              currentPlayer: nextPlayer,
+              selectedSquare: null,
+              possibleMoves: [],
+              isCheck,
+              isCheckmate: isCheckMate,
+              isStalemate: isStaleMate,
+            };
+          });
         }
       }, 500);
+      return () => clearTimeout(timer);
     }
-  }, [gameState?.currentPlayer]);
+  }, [gameState]);
 
   const startGame = (selectedDifficulty: Difficulty) => {
     setDifficulty(selectedDifficulty);
