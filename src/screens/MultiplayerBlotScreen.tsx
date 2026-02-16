@@ -60,6 +60,29 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
   const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
   const gameStartTime = useRef<Date | null>(null);
 
+  // Handle computer's turn when it needs to lead a trick (e.g., after winning a trick)
+  useEffect(() => {
+    if (!isLocalGame || !localGameState || localGameState.status !== 'active') return;
+    
+    // Computer should move when it's their turn and the trick is empty (leading)
+    if (localGameState.currentTurn === 'computer' && localGameState.currentTrick.length === 0) {
+      const timer = setTimeout(() => {
+        setLocalGameState(prevState => {
+          if (!prevState || prevState.currentTurn !== 'computer' || prevState.currentTrick.length !== 0) {
+            return prevState;
+          }
+          const stateAfterComputer = blotAIService.computerMove(prevState);
+          // Check if game ended after computer move
+          if (stateAfterComputer.status !== 'active') {
+            handleLocalGameEnd(stateAfterComputer);
+          }
+          return stateAfterComputer;
+        });
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [localGameState, isLocalGame]);
+
   useEffect(() => {
     // If mode is 'ai', auto-start the AI game immediately (no socket needed)
     if (initialMode === 'ai') {
