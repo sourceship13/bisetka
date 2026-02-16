@@ -1,5 +1,6 @@
 import React, {useState, useEffect} from 'react';
-import {View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Alert, Animated} from 'react-native';
+import {View, Text, StyleSheet, TouchableOpacity, Alert, Animated} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface GameState {
   playerDice: number[];
