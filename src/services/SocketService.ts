@@ -1,5 +1,6 @@
 import { io, Socket } from 'socket.io-client';
 import { Platform } from 'react-native';
+import { apiConfig } from '../libs/utils/api.utils';
 
 export interface GameMove {
   from: { row: number; col: number };
@@ -18,23 +19,12 @@ export interface MultiplayerGameState {
 class SocketService {
   private socket: Socket | null = null;
   
-  // Automatically use the right URL based on platform
+  // Use apiConfig to get the correct server URL based on environment
   private getServerUrl(): string {
-    // For development and debugging, use local network IP
-    // This works for both development and production builds when testing locally
-    const localIP = '192.168.26.21';
-    
-    // Always use local IP for iOS (works for both simulator and physical device when on same network)
-    // For Android emulator, use the special host IP
-    if (Platform.OS === 'ios') {
-      return `http://${localIP}:3000`;
-    } else if (Platform.OS === 'android') {
-      // Android emulator uses special IP to reach host
-      return 'http://10.0.2.2:3000';
-    }
-    
-    // Fallback
-    return `http://${localIP}:3000`;
+    // Use the same base URL as the API (handles local/staging/production automatically)
+    const baseUrl = apiConfig.baseURL;
+    console.log('🔌 Socket server URL from apiConfig:', baseUrl);
+    return baseUrl;
   }
   
   private serverUrl: string = this.getServerUrl();
