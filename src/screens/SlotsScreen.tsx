@@ -451,7 +451,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     paddingTop:36,
     alignItems: 'center',
-    flex:1
+
   },
   balanceLabel: {
     fontSize: 12,
@@ -464,7 +464,6 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   machine: {
-    backgroundColor:'red',
     marginHorizontal: MACHINE_HORIZONTAL_PADDING,
     borderRadius: 16,
     overflow: 'hidden',
@@ -473,10 +472,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.4,
     shadowRadius: 16,
     elevation: 8,
+    flex: 4,
   },
   machineFrame: {
     paddingVertical: MACHINE_FRAME_PADDING,
     borderRadius: 16,
+    flex:4
   },
   reelsContainer: {
     flexDirection: 'row',
@@ -536,7 +537,8 @@ const styles = StyleSheet.create({
   },
   controls: {
     marginHorizontal: MACHINE_HORIZONTAL_PADDING,
-    flex: 1,
+    flex: 5,
+    paddingVertical:10
   },
   betLabel: {
     fontSize: 12,
@@ -592,6 +594,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 12,
     marginTop: 16,
+
   },
   quickBet: {
     paddingHorizontal: 20,
@@ -622,14 +625,14 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.5,
     shadowRadius: 16,
     elevation: 8,
-    backgroundColor: 'red',
   },
   spinBtnDisabled: {
     opacity: 0.5,
   },
   spinGradient: {
-    paddingVertical: 20,
     alignItems: 'center',
+    borderRadius: 20,
+    justifyContent: 'center',
   },
   spinText: {
     fontSize: 20,
