@@ -97,34 +97,34 @@ const GameModeScreen: React.FC<Props> = ({route, navigation}) => {
     };
 
     // Navigate to the appropriate screen
-    // Most game screens accept a session prop
+    // Use replace to avoid double back navigation
     switch (screenName) {
       case 'BilliardsGame':
-        navigation.navigate('BilliardsGame', {session: sessionData});
+        navigation.replace('BilliardsGame', {session: sessionData});
         break;
       case 'PokerRoom':
-        navigation.navigate('PokerRoom', {session: sessionData} as any);
+        navigation.replace('PokerRoom', {session: sessionData} as any);
         break;
       case 'Checkers':
-        navigation.navigate('Checkers', {session: sessionData} as any);
+        navigation.replace('Checkers', {session: sessionData} as any);
         break;
       case 'Mrotsi':
-        navigation.navigate('Mrotsi', {session: sessionData} as any);
+        navigation.replace('Mrotsi', {session: sessionData} as any);
         break;
       case 'Chess':
-        navigation.navigate('Chess' as any);
+        navigation.replace('Chess' as any);
         break;
       case 'MultiplayerChess':
-        navigation.navigate('MultiplayerChess' as any, {userId: user?.id || 'guest'});
+        navigation.replace('MultiplayerChess' as any, {userId: user?.id || 'guest'});
         break;
       case 'Nardi':
-        navigation.navigate('Nardi' as any, {
+        navigation.replace('Nardi' as any, {
           session: sessionData,
           mode: mode,
         });
         break;
       case 'Blot':
-        navigation.navigate('Blot' as any, {
+        navigation.replace('Blot' as any, {
           userId: user?.id || 'guest',
           mode: mode, // Pass the actual mode: 'ai', 'private-create', 'private-join', 'random'
           difficulty: sessionData.difficulty || 'medium',
@@ -132,7 +132,7 @@ const GameModeScreen: React.FC<Props> = ({route, navigation}) => {
         });
         break;
       case 'BaazarBlot':
-        navigation.navigate('BaazarBlot' as any, {
+        navigation.replace('BaazarBlot' as any, {
           userId: user?.id || 'guest',
           mode: mode, // Pass the actual mode: 'ai', 'private-create', 'private-join', 'random'
           difficulty: sessionData.difficulty || 'medium',
@@ -141,7 +141,7 @@ const GameModeScreen: React.FC<Props> = ({route, navigation}) => {
         break;
       default:
         // Fallback to SessionStatus for games that need matchmaking UI
-        navigation.navigate('SessionStatus', {
+        navigation.replace('SessionStatus', {
           gameType,
           session: sessionData,
         });
