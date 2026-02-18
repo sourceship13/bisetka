@@ -288,7 +288,7 @@ const SlotsScreen = ({ navigation }: any) => {
           end={{ x: 1, y: 0 }}
           style={styles.balanceCard}
         >
-          <Text style={styles.balanceLabel}>Balance</Text>
+          {/* <Text style={styles.balanceLabel}>Balance</Text> */}
           <Text style={styles.balanceText}>💰 {balance.toLocaleString()}</Text>
         </LinearGradient>
 
@@ -449,19 +449,18 @@ const styles = StyleSheet.create({
   },
   balanceCard: {
     borderRadius: 16,
-    paddingTop:36,
+    paddingTop:44,
     alignItems: 'center',
-
+    flex:1
   },
   balanceLabel: {
     fontSize: 12,
     color: 'rgba(255,255,255,0.8)',
   },
   balanceText: {
-    fontSize: 28,
+    fontSize: 48,
     fontWeight: '800',
     color: '#fff',
-    marginTop: 4,
   },
   machine: {
     marginHorizontal: MACHINE_HORIZONTAL_PADDING,
