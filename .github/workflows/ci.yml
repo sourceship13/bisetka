@@ -106,14 +106,14 @@ jobs:
           APP_STORE_ISSUER_ID: ${{ secrets.APP_STORE_ISSUER_ID }}
           APP_STORE_API_KEY_CONTENT: ${{ secrets.APP_STORE_API_KEY_CONTENT }}
         run: |
+          mkdir -p ios/fastlane
           cd ios/fastlane
-          cat > api_key.json << EOF
-          {
-            "key_id": "$APP_STORE_API_KEY_ID",
-            "issuer_id": "$APP_STORE_ISSUER_ID",
-            "key": "$APP_STORE_API_KEY_CONTENT"
-          }
-          EOF
+          # Use jq to properly create JSON with escaped content
+          jq -n \
+            --arg key_id "$APP_STORE_API_KEY_ID" \
+            --arg issuer_id "$APP_STORE_ISSUER_ID" \
+            --arg key "$APP_STORE_API_KEY_CONTENT" \
+            '{key_id: $key_id, issuer_id: $issuer_id, key: $key}' > api_key.json
       - name: Build and Deploy iOS with Fastlane
         env:
           MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
