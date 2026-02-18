@@ -253,7 +253,9 @@ const BaazarBlotScreen = ({ navigation, route }: any) => {
       setOpponent(matchData.opponent);
       setIsMyTurn(matchData.color === 'white');
       
-      // Don't auto-ready, let user click the button
+      // Auto-ready for random matchmaking (both players chose to play)
+      socketService.playerReady(matchData.roomId, userId);
+      
       setGameMode('game');
     } catch (error: any) {
       Alert.alert('Matchmaking Error', error.message || 'Failed to find match');
@@ -302,6 +304,10 @@ const BaazarBlotScreen = ({ navigation, route }: any) => {
       setPlayerColor(matchData.color);
       setOpponent(matchData.opponent);
       setIsMyTurn(matchData.color === 'white');
+      
+      // Auto-ready for random matchmaking (both players chose to play)
+      socketService.playerReady(matchData.roomId, userId);
+      
       setGameMode('game');
     } catch (error: any) {
       Alert.alert('Matchmaking Error', error.message || 'Failed to find match');
@@ -745,11 +751,13 @@ const BaazarBlotScreen = ({ navigation, route }: any) => {
               Playing as: {playerColor === 'white' ? '⚪ White' : '⚫ Black'}
             </Text>
             <Text style={styles.waitingSubtext}>
-              {opponent ? 'Opponent found!' : 'Waiting for opponent...'}
+              {opponent ? 'Starting game...' : 'Waiting for opponent...'}
             </Text>
-            <TouchableOpacity style={styles.readyButton} onPress={handlePlayerReady}>
-              <Text style={styles.readyButtonText}>Ready to Play</Text>
-            </TouchableOpacity>
+            {gameMode === 'private' && (
+              <TouchableOpacity style={styles.readyButton} onPress={handlePlayerReady}>
+                <Text style={styles.readyButtonText}>Ready to Play</Text>
+              </TouchableOpacity>
+            )}
             <TouchableOpacity style={[styles.cancelButton, { marginTop: 20 }]} onPress={() => {
               if (currentRoom?.roomId) {
                 socketService.resign(currentRoom.roomId, userId);
