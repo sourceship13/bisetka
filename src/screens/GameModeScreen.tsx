@@ -81,7 +81,12 @@ const GameModeScreen: React.FC<Props> = ({route, navigation}) => {
   });
 
   const navigateToGame = (mode: SessionMode, result: any) => {
-    const screenName = GAME_SCREEN_MAP[gameType];
+    let screenName = GAME_SCREEN_MAP[gameType];
+    
+    // For chess, route to multiplayer screen if not AI mode
+    if (gameType === 'chess' && mode !== 'ai') {
+      screenName = 'MultiplayerChess';
+    }
     
     if (!screenName || screenName === 'Home') {
       Alert.alert('Coming Soon', `${label.title} is not available yet!`);
@@ -115,7 +120,11 @@ const GameModeScreen: React.FC<Props> = ({route, navigation}) => {
         navigation.replace('Chess' as any);
         break;
       case 'MultiplayerChess':
-        navigation.replace('MultiplayerChess' as any, {userId: user?.id || 'guest'});
+        navigation.replace('MultiplayerChess' as any, {
+          userId: user?.id || 'guest',
+          mode: mode,
+          joinCode: sessionData.code,
+        });
         break;
       case 'Nardi':
         navigation.replace('Nardi' as any, {
