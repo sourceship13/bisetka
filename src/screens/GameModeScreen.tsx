@@ -6,6 +6,7 @@ import {GAME_LABELS, gameSessionsService} from '../services/gameSessions.service
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {RootStackParamList} from '../navigation/AppNavigator';
 import {colors} from '../theme';
+import {useAuth} from '../context/AuthContext';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'GameMode'>;
 
@@ -69,6 +70,7 @@ const formatSuccessMessage = (
 
 const GameModeScreen: React.FC<Props> = ({route, navigation}) => {
   const {gameType} = route.params;
+  const {user} = useAuth();
   const label = GAME_LABELS[gameType] || {title: 'Game', description: ''};
   
   const [loading, setLoading] = useState({
@@ -113,7 +115,7 @@ const GameModeScreen: React.FC<Props> = ({route, navigation}) => {
         navigation.navigate('Chess' as any);
         break;
       case 'MultiplayerChess':
-        navigation.navigate('MultiplayerChess' as any, {userId: 'user'});
+        navigation.navigate('MultiplayerChess' as any, {userId: user?.id || 'guest'});
         break;
       case 'Nardi':
         navigation.navigate('Nardi' as any, {
@@ -123,14 +125,19 @@ const GameModeScreen: React.FC<Props> = ({route, navigation}) => {
         break;
       case 'Blot':
         navigation.navigate('Blot' as any, {
-          userId: 'user',
+          userId: user?.id || 'guest',
           mode: mode, // Pass the actual mode: 'ai', 'private-create', 'private-join', 'random'
           difficulty: sessionData.difficulty || 'medium',
           joinCode: sessionData.code, // For private-join, pass the room code
         });
         break;
       case 'BaazarBlot':
-        navigation.navigate('BaazarBlot' as any);
+        navigation.navigate('BaazarBlot' as any, {
+          userId: user?.id || 'guest',
+          mode: mode, // Pass the actual mode: 'ai', 'private-create', 'private-join', 'random'
+          difficulty: sessionData.difficulty || 'medium',
+          joinCode: sessionData.code, // For private-join, pass the room code
+        });
         break;
       default:
         // Fallback to SessionStatus for games that need matchmaking UI
