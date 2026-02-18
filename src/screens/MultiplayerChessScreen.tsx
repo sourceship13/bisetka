@@ -24,7 +24,7 @@ import ChessPiece from '../components/ChessPiece';
 import {socketService, GameMove} from '../services/SocketService';
 
 const MultiplayerChessScreen = ({navigation, route}: any) => {
-  const {userId} = route.params; // Get from auth context
+  const {userId, mode: routeMode, joinCode} = route.params; // Get from auth context
   const [mode, setMode] = useState<'menu' | 'matchmaking' | 'private' | 'game'>('menu');
   const [gameState, setGameState] = useState<ChessGameState | null>(null);
   const [roomId, setRoomId] = useState<string>('');
@@ -41,14 +41,7 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
     // Connect to socket server
     connectToServer();
 
-    return () => {
-      socketService.removeAllListeners();
-      socketService.disconnect();
-    };
-  }, []);
-
-  useEffect(() => {
-    // Setup socket listeners
+    // Setup socket listeners (only once on mount)
     socketService.onMatchmakingStatus((data) => {
       if (data.status === 'searching') {
         setGameStatus('Searching for opponent...');
@@ -68,25 +61,33 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
     });
 
     socketService.onMoveMade((data) => {
-      if (!gameState) return;
+      // Use the current turn from the server (not nextTurn)
+      const nextPlayer = data.currentTurn;
+      console.log('♟️  move_made received:', {
+        move: data.move,
+        currentTurn: data.currentTurn,
+        willBeMyTurn: nextPlayer === myColor
+      });
 
-      // Update the board with opponent's move
-      const newBoard = makeChessMove(gameState.board, data.move);
-      const nextPlayer = data.nextTurn;
+      // Update game state - use functional update to avoid stale closure
+      setGameState((prevState) => {
+        if (!prevState) return prevState;
 
-      const isCheck = isKingInCheck(newBoard, nextPlayer);
-      const isCheckMate = isCheckmate(newBoard, nextPlayer);
-      const isStaleMate = isStalemate(newBoard, nextPlayer);
+        const newBoard = makeChessMove(prevState.board, data.move);
+        const isCheck = isKingInCheck(newBoard, nextPlayer);
+        const isCheckMate = isCheckmate(newBoard, nextPlayer);
+        const isStaleMate = isStalemate(newBoard, nextPlayer);
 
-      setGameState({
-        ...gameState,
-        board: newBoard,
-        currentPlayer: nextPlayer,
-        selectedSquare: null,
-        possibleMoves: [],
-        isCheck,
-        isCheckmate: isCheckMate,
-        isStalemate: isStaleMate,
+        return {
+          ...prevState,
+          board: newBoard,
+          currentPlayer: nextPlayer,
+          selectedSquare: null,
+          possibleMoves: [],
+          isCheck,
+          isCheckmate: isCheckMate,
+          isStalemate: isStaleMate,
+        };
       });
 
       setCurrentTurn(nextPlayer);
@@ -94,6 +95,7 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
     });
 
     socketService.onGameEnded((data) => {
+      console.log('🏁 game_ended received:', data);
       if (data.result === 'resignation') {
         const didIWin = data.winnerId === userId;
         Alert.alert(
@@ -105,6 +107,7 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
     });
 
     socketService.onOpponentDisconnected(() => {
+      console.log('👋 opponent_disconnected received');
       Alert.alert(
         'Opponent Disconnected',
         'Your opponent has disconnected from the game.',
@@ -113,9 +116,33 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
     });
 
     socketService.onError((error) => {
+      console.error('❌ Socket error:', error);
       Alert.alert('Error', error.message);
     });
-  }, [gameState, myColor, userId]);
+
+    // Auto-start based on route mode
+    if (routeMode === 'random') {
+      handleFindMatch();
+    } else if (routeMode === 'private-create') {
+      handleCreatePrivateRoom();
+    } else if (routeMode === 'private-join' && joinCode) {
+      setJoinRoomCode(joinCode);
+    }
+
+    return () => {
+      console.log('🧹 Cleaning up socket listeners');
+      socketService.removeAllListeners();
+      socketService.disconnect();
+    };
+  }, []); // Empty dependencies - listeners set up once on mount
+
+  // Auto-join private room when code is set
+  // Auto-join private room when code is set
+  useEffect(() => {
+    if (routeMode === 'private-join' && joinRoomCode) {
+      handleJoinPrivateRoom();
+    }
+  }, [joinRoomCode, routeMode]);
 
   const connectToServer = async () => {
     try {
@@ -231,6 +258,8 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
   const executeMove = (from: Position, to: Position) => {
     if (!gameState) return;
 
+    console.log('🎯 Executing move:', {from, to, myColor, currentTurn});
+
     const newBoard = makeChessMove(gameState.board, {from, to});
     const nextPlayer = myColor === 'white' ? 'black' : 'white';
 
@@ -251,10 +280,12 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
 
     // Send move to server
     const move: GameMove = {from, to};
+    console.log('📤 Sending move to server:', {roomId, userId, move});
     socketService.makeMove(roomId, userId, move);
     
     setCurrentTurn(nextPlayer);
     setIsMyTurn(false);
+    console.log('✅ Move executed locally, turn switched to:', nextPlayer);
 
     if (isCheckMate) {
       Alert.alert('Checkmate!', 'You win!', [
