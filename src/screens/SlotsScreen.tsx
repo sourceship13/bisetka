@@ -1,39 +1,31 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
+  SafeAreaView,
   Animated,
   Dimensions,
-  Easing,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import { useAuth } from '../context/AuthContext';
-import { gameResultService } from '../services/gameResult.service';
+import Svg, { Polyline } from 'react-native-svg';
 
 const { width } = Dimensions.get('window');
-// Calculate responsive sizes based on screen width
-const MACHINE_HORIZONTAL_PADDING = 12; // Machine container horizontal margin
-const MACHINE_FRAME_PADDING = 6; // Inside machineFrame (reduced for better fit)
-const REELS_CONTAINER_PADDING = 6; // Inside reelsContainer
-const REEL_GAP = 3; // Gap between reels
-const NUM_REELS = 5;
+const REEL_WIDTH = (width - 80) / 5;
+const SYMBOL_HEIGHT = 70;
 
-// Calculate available width for reels
-const AVAILABLE_WIDTH =
-  width -
-  MACHINE_HORIZONTAL_PADDING * 2 -
-  MACHINE_FRAME_PADDING * 2 -
-  REELS_CONTAINER_PADDING * 2 -
-  REEL_GAP * (NUM_REELS - 1);
-const REEL_WIDTH = Math.floor(AVAILABLE_WIDTH / NUM_REELS);
-const SYMBOL_HEIGHT = Math.min(60, REEL_WIDTH * 1.1); // Scale symbol height with reel width
-const NUM_VISIBLE_ROWS = 3;
-const STRIP_LENGTH = 20; // How many symbols in spinning strip
+const SYMBOLS = ['7️⃣', '💎', '⭐', '🔔', '🍒', '🍋', 'BAR'];
 
-const SYMBOLS = ['7️⃣', '💎', '⭐', '🔔', '🍒', '🍋', '🅱️'];
+// Paylines (row indices for each reel)
+const PAYLINES = [
+  { id: 1, path: [1, 1, 1, 1, 1], color: '#fbbf24', label: 'Center' },
+  { id: 2, path: [0, 0, 0, 0, 0], color: '#10b981', label: 'Top' },
+  { id: 3, path: [2, 2, 2, 2, 2], color: '#3b82f6', label: 'Bottom' },
+  { id: 4, path: [0, 1, 2, 1, 0], color: '#ec4899', label: 'V' },
+  { id: 5, path: [2, 1, 0, 1, 2], color: '#8b5cf6', label: 'Λ' },
+];
 
 interface SpinResult {
   result: string[][];
@@ -43,33 +35,14 @@ interface SpinResult {
   activePaylines: number;
 }
 
-// Generate a random symbol strip for spinning effect
-const generateRandomStrip = (finalSymbols: string[]): string[] => {
-  const strip: string[] = [];
-  // Add random symbols for the spinning part
-  for (let i = 0; i < STRIP_LENGTH - NUM_VISIBLE_ROWS; i++) {
-    strip.push(SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)]);
-  }
-  // Add the final result symbols at the end
-  strip.push(...finalSymbols);
-  return strip;
-};
-
 const SlotsScreen = ({ navigation }: any) => {
   const { user } = useAuth();
   const [balance, setBalance] = useState((user as any)?.balance || 1000);
   const [betAmount, setBetAmount] = useState(10);
   const [spinning, setSpinning] = useState(false);
-  const [displayedReels, setDisplayedReels] = useState<string[][]>([
-    ['🍒', '💎', '⭐'],
-    ['7️⃣', '🔔', '🍋'],
-    ['💎', '⭐', '🍒'],
-    ['🅱️', '7️⃣', '🔔'],
-    ['⭐', '🍋', '💎'],
-  ]);
+  const [result, setResult] = useState<string[][] | null>(null);
   const [winnings, setWinnings] = useState<SpinResult | null>(null);
-
-  // Animation values for each reel
+  
   const reelAnims = useRef([
     new Animated.Value(0),
     new Animated.Value(0),
@@ -78,185 +51,106 @@ const SlotsScreen = ({ navigation }: any) => {
     new Animated.Value(0),
   ]).current;
 
-  // Reel strips during animation
-  const reelStrips = useRef<string[][]>([[], [], [], [], []]);
-
-  // Generate a random spin result (5 reels x 3 rows)
-  const generateSpinResult = (): string[][] => {
-    return [0, 1, 2, 3, 4].map(() =>
-      [0, 1, 2].map(() => SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)]),
-    );
+  const getActivePaylines = () => {
+    if (betAmount >= 50) return 5;
+    if (betAmount >= 25) return 3;
+    if (betAmount >= 15) return 2;
+    return 1;
   };
 
-  // Calculate winnings based on middle row (row index 1)
-  const calculateWinnings = (result: string[][]): SpinResult => {
-    const middleRow = result.map(col => col[1]); // Get middle symbol from each reel
-    const winningLines: Array<{
-      line: number;
-      symbols: string;
-      payout: number;
-    }> = [];
-    let totalPayout = 0;
-
-    // Check for matches (simplified - check consecutive from left)
-    const firstSymbol = middleRow[0];
-    let matchCount = 1;
-    for (let i = 1; i < middleRow.length; i++) {
-      if (middleRow[i] === firstSymbol) {
-        matchCount++;
-      } else {
-        break;
-      }
-    }
-
-    // Payout based on match count
-    const payouts: Record<string, Record<number, number>> = {
-      '7️⃣': { 3: 50, 4: 200, 5: 777 },
-      '💎': { 3: 30, 4: 100, 5: 300 },
-      '⭐': { 3: 20, 4: 60, 5: 150 },
-      '🔔': { 3: 15, 4: 40, 5: 100 },
-      '🍒': { 3: 10, 4: 25, 5: 60 },
-      '🍋': { 3: 5, 4: 15, 5: 40 },
-      '🅱️': { 3: 25, 4: 80, 5: 250 },
-    };
-
-    if (matchCount >= 3 && payouts[firstSymbol]) {
-      const multiplier = payouts[firstSymbol][matchCount] || 0;
-      const payout = betAmount * multiplier;
-      totalPayout = payout;
-      winningLines.push({
-        line: 1,
-        symbols: firstSymbol.repeat(matchCount),
-        payout,
-      });
-    }
-
-    return {
-      result,
-      winningLines,
-      totalPayout,
-      netResult: totalPayout - betAmount,
-      activePaylines:
-        betAmount >= 50 ? 5 : betAmount >= 25 ? 3 : betAmount >= 15 ? 2 : 1,
-    };
-  };
-
-  // Track spin start time for duration calculation
-  const spinStartTime = useRef<number>(0);
-  const spinCountRef = useRef<number>(0);
-
-  // Log spin result to backend
-  const logSpinResult = async (spinData: SpinResult) => {
-    try {
-      const durationSeconds = Math.round(
-        (Date.now() - spinStartTime.current) / 1000,
-      );
-      const isWin = spinData.totalPayout > 0;
-
-      await gameResultService.recordGameResult({
-        gameType: 'slots',
-        gameMode: 'solo',
-        result: isWin ? 'win' : 'loss',
-        playerScore: spinData.totalPayout,
-        opponentScore: betAmount, // Bet amount as "opponent" score
-        durationSeconds,
-        movesCount: 1, // Each spin is 1 "move"
-        gameData: {
-          betAmount,
-          totalPayout: spinData.totalPayout,
-          netResult: spinData.netResult,
-          winningLines: spinData.winningLines,
-          finalSymbols: spinData.result.map(col => col[1]), // Middle row
-          spinNumber: spinCountRef.current,
-        },
-      });
-    } catch (error) {
-      console.warn('Failed to log slots result:', error);
-      // Don't block gameplay if logging fails
-    }
-  };
-
-  const spin = () => {
+  const spin = async () => {
     if (spinning || balance < betAmount) return;
-
+    
     setSpinning(true);
     setWinnings(null);
     setBalance((prev: number) => prev - betAmount);
 
-    // Track spin start time and increment counter
-    spinStartTime.current = Date.now();
-    spinCountRef.current += 1;
-
-    // Reset animations to start
-    reelAnims.forEach(anim => anim.setValue(0));
-
-    // Generate result locally (works offline)
-    const spinResult = generateSpinResult();
-    const data = calculateWinnings(spinResult);
-
-    // Generate spinning strips with final results
-    reelStrips.current = data.result.map((col: string[]) =>
-      generateRandomStrip(col),
-    );
-
-    // Force a re-render to show the new strips
-    setDisplayedReels([...reelStrips.current]);
-
-    // Animate each reel with staggered timing
-    const animations = reelAnims.map((anim, i) =>
+    const spinAnims = reelAnims.map((anim, i) =>
       Animated.timing(anim, {
         toValue: 1,
-        duration: 800 + i * 300, // Stagger each reel
-        easing: Easing.out(Easing.cubic),
+        duration: 1500 + i * 200,
         useNativeDriver: true,
-      }),
+      })
     );
 
-    Animated.stagger(150, animations).start(() => {
-      // Animation complete - reset animations and show just the result
-      reelAnims.forEach(anim => anim.setValue(0));
-      setDisplayedReels(data.result);
-      setWinnings(data);
+    Animated.parallel(spinAnims).start();
 
+    try {
+      const response = await fetch(`http://localhost:3000/api/slots/spin`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${(user as any)?.token}`,
+        },
+        body: JSON.stringify({ betAmount }),
+      });
+
+      const data: SpinResult = await response.json();
+      
+      reelAnims.forEach(anim => anim.setValue(0));
+      
+      setResult(data.result);
+      setWinnings(data);
+      
       if (data.totalPayout > 0) {
         setBalance((prev: number) => prev + data.totalPayout);
       }
-
-      // Log result to backend
-      logSpinResult(data);
-
+    } catch (error) {
+      console.error('Spin failed:', error);
+      setBalance((prev: number) => prev + betAmount);
+    } finally {
       setSpinning(false);
-    });
+    }
   };
 
-  const adjustBet = useCallback((delta: number) => {
-    setBetAmount(prev => {
-      const newValue = prev + delta;
-      return Math.max(1, Math.min(100, newValue));
-    });
-  }, []);
+  const renderPaylineOverlay = () => {
+    const activeCount = getActivePaylines();
+    const activePaylines = PAYLINES.slice(0, activeCount);
+    const winningLineNums = winnings?.winningLines.map(w => w.line) || [];
+
+    return (
+      <Svg height={SYMBOL_HEIGHT * 3} width={REEL_WIDTH * 5} style={styles.paylinesOverlay}>
+        {activePaylines.map((payline) => {
+          const isWinning = winningLineNums.includes(payline.id);
+          const points = payline.path.map((row, col) => {
+            const x = col * REEL_WIDTH + REEL_WIDTH / 2;
+            const y = row * SYMBOL_HEIGHT + SYMBOL_HEIGHT / 2;
+            return `${x},${y}`;
+          }).join(' ');
+
+          return (
+            <Polyline
+              key={payline.id}
+              points={points}
+              fill="none"
+              stroke={isWinning ? '#fbbf24' : payline.color}
+              strokeWidth={isWinning ? 4 : 2}
+              strokeOpacity={isWinning ? 1 : 0.5}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          );
+        })}
+      </Svg>
+    );
+  };
 
   const renderReel = (colIndex: number) => {
-    const strip = displayedReels[colIndex] || ['?', '?', '?'];
-    const spinAnim = reelAnims[colIndex];
-    const totalHeight = strip.length * SYMBOL_HEIGHT;
-    const finalOffset = -(totalHeight - NUM_VISIBLE_ROWS * SYMBOL_HEIGHT);
+    const symbols = result ? result[colIndex] : ['?', '?', '?'];
+    const spinAnim = reelAnims[colIndex]!;
 
     return (
       <View key={colIndex} style={styles.reel}>
         <Animated.View
           style={{
-            transform: [
-              {
-                translateY: spinAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0, finalOffset],
-                }),
-              },
-            ],
-          }}
-        >
-          {strip.map((sym, i) => (
+            transform: [{
+              translateY: spinAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0, -SYMBOL_HEIGHT * 10],
+              }),
+            }],
+          }}>
+          {[...SYMBOLS, ...SYMBOLS, ...symbols].map((sym, i) => (
             <View key={i} style={styles.symbolCell}>
               <Text style={styles.symbol}>{sym}</Text>
             </View>
@@ -266,13 +160,26 @@ const SlotsScreen = ({ navigation }: any) => {
     );
   };
 
+  const renderPaylineIndicators = () => {
+    const activeCount = getActivePaylines();
+    return (
+      <View style={styles.paylinesList}>
+        {PAYLINES.slice(0, activeCount).map((payline) => (
+          <View key={payline.id} style={styles.paylineItem}>
+            <View style={[styles.paylineDot, { backgroundColor: payline.color }]} />
+            <Text style={styles.paylineLabel}>{payline.label}</Text>
+          </View>
+        ))}
+      </View>
+    );
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <LinearGradient
         colors={['#0f0f23', '#1a1742', '#0f0f23']}
-        style={styles.gradient}
-      >
-        {/* Header */}
+        style={styles.gradient}>
+        
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()}>
             <Text style={styles.backBtn}>← Back</Text>
@@ -281,56 +188,39 @@ const SlotsScreen = ({ navigation }: any) => {
           <View style={{ width: 60 }} />
         </View>
 
-        {/* Balance */}
         <LinearGradient
           colors={['#10b981', '#34d399']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
-          style={styles.balanceCard}
-        >
-          {/* <Text style={styles.balanceLabel}>Balance</Text> */}
+          style={styles.balanceCard}>
+          <Text style={styles.balanceLabel}>Balance</Text>
           <Text style={styles.balanceText}>💰 {balance.toLocaleString()}</Text>
         </LinearGradient>
 
-        {/* Slot Machine */}
         <View style={styles.machine}>
           <LinearGradient
             colors={['#6366f1', '#8b5cf6', '#ec4899']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-            style={styles.machineFrame}
-          >
-            {/* Reels Container */}
-            <View style={styles.reelsContainer}>
-              {[0, 1, 2, 3, 4].map(renderReel)}
+            style={styles.machineFrame}>
+            
+            <View style={styles.reelsWrapper}>
+              <View style={styles.reelsContainer}>
+                {[0, 1, 2, 3, 4].map(renderReel)}
+              </View>
+              {renderPaylineOverlay()}
             </View>
 
-            {/* Paylines Indicator */}
-            <View style={styles.paylinesIndicator}>
-              <Text style={styles.paylinesText}>
-                {betAmount >= 50
-                  ? '5'
-                  : betAmount >= 25
-                  ? '3'
-                  : betAmount >= 15
-                  ? '2'
-                  : '1'}{' '}
-                PAYLINES ACTIVE
-              </Text>
-            </View>
+            {renderPaylineIndicators()}
           </LinearGradient>
         </View>
 
-        {/* Winnings Display */}
         {winnings && winnings.totalPayout > 0 && (
           <LinearGradient
             colors={['#fbbf24', '#f59e0b']}
-            style={styles.winCard}
-          >
+            style={styles.winCard}>
             <Text style={styles.winTitle}>🎉 WIN!</Text>
-            <Text style={styles.winAmount}>
-              +{winnings.totalPayout.toLocaleString()}
-            </Text>
+            <Text style={styles.winAmount}>+{winnings.totalPayout.toLocaleString()}</Text>
             {winnings.winningLines.map((line, i) => (
               <Text key={i} style={styles.winLine}>
                 Line {line.line}: {line.symbols} → {line.payout}
@@ -339,56 +229,38 @@ const SlotsScreen = ({ navigation }: any) => {
           </LinearGradient>
         )}
 
-        {/* Bet Controls */}
         <View style={styles.controls}>
           <Text style={styles.betLabel}>BET AMOUNT</Text>
           <View style={styles.betRow}>
             <TouchableOpacity
-              style={[styles.betBtn, spinning && styles.betBtnDisabled]}
-              onPress={() => adjustBet(-5)}
-              disabled={spinning}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.betBtnText}>−</Text>
+              style={styles.betBtn}
+              onPress={() => setBetAmount(prev => Math.max(1, prev - 5))}
+              disabled={spinning}>
+              <Text style={styles.betBtnText}>-</Text>
             </TouchableOpacity>
-
-            <View style={styles.betDisplay}>
-              <LinearGradient
-                colors={['#6366f1', '#8b5cf6']}
-                style={styles.betDisplayGradient}
-              >
-                <Text style={styles.betAmount}>{betAmount}</Text>
-              </LinearGradient>
-            </View>
-
+            
+            <LinearGradient
+              colors={['#6366f1', '#8b5cf6']}
+              style={styles.betDisplay}>
+              <Text style={styles.betAmount}>{betAmount}</Text>
+            </LinearGradient>
+            
             <TouchableOpacity
-              style={[styles.betBtn, spinning && styles.betBtnDisabled]}
-              onPress={() => adjustBet(5)}
-              disabled={spinning}
-              activeOpacity={0.7}
-            >
+              style={styles.betBtn}
+              onPress={() => setBetAmount(prev => Math.min(100, prev + 5))}
+              disabled={spinning}>
               <Text style={styles.betBtnText}>+</Text>
             </TouchableOpacity>
           </View>
 
-          {/* Quick Bet Buttons */}
           <View style={styles.quickBets}>
             {[10, 25, 50].map(amt => (
               <TouchableOpacity
                 key={amt}
-                style={[
-                  styles.quickBet,
-                  betAmount === amt && styles.quickBetActive,
-                ]}
+                style={[styles.quickBet, betAmount === amt && styles.quickBetActive]}
                 onPress={() => setBetAmount(amt)}
-                disabled={spinning}
-              >
-                <Text
-                  style={[
-                    styles.quickBetText,
-                    betAmount === amt && styles.quickBetTextActive,
-                  ]}
-                >
+                disabled={spinning}>
+                <Text style={[styles.quickBetText, betAmount === amt && styles.quickBetTextActive]}>
                   {amt}
                 </Text>
               </TouchableOpacity>
@@ -396,20 +268,14 @@ const SlotsScreen = ({ navigation }: any) => {
           </View>
         </View>
 
-        {/* Spin Button */}
         <TouchableOpacity
-          style={[
-            styles.spinBtn,
-            (spinning || balance < betAmount) && styles.spinBtnDisabled,
-          ]}
+          style={[styles.spinBtn, (spinning || balance < betAmount) && styles.spinBtnDisabled]}
           onPress={spin}
           disabled={spinning || balance < betAmount}
-          activeOpacity={0.8}
-        >
+          activeOpacity={0.8}>
           <LinearGradient
             colors={spinning ? ['#666', '#444'] : ['#ec4899', '#f472b6']}
-            style={styles.spinGradient}
-          >
+            style={styles.spinGradient}>
             <Text style={styles.spinText}>
               {spinning ? '🎰 SPINNING...' : '🎰 SPIN'}
             </Text>
@@ -433,6 +299,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 12,
   },
   backBtn: {
     color: '#a0a0ff',
@@ -448,49 +316,57 @@ const styles = StyleSheet.create({
     textShadowRadius: 8,
   },
   balanceCard: {
+    marginHorizontal: 20,
+    marginTop: 12,
     borderRadius: 16,
-    paddingTop:44,
+    padding: 16,
     alignItems: 'center',
-    flex:1
   },
   balanceLabel: {
     fontSize: 12,
     color: 'rgba(255,255,255,0.8)',
   },
   balanceText: {
-    fontSize: 48,
+    fontSize: 28,
     fontWeight: '800',
     color: '#fff',
+    marginTop: 4,
   },
   machine: {
-    marginHorizontal: MACHINE_HORIZONTAL_PADDING,
-    borderRadius: 16,
+    marginHorizontal: 20,
+    marginTop: 20,
+    borderRadius: 20,
     overflow: 'hidden',
     shadowColor: '#6366f1',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.4,
     shadowRadius: 16,
     elevation: 8,
-    flex: 4,
   },
   machineFrame: {
-    paddingVertical: MACHINE_FRAME_PADDING,
-    borderRadius: 16,
-    flex:4
+    padding: 16,
+  },
+  reelsWrapper: {
+    position: 'relative',
   },
   reelsContainer: {
     flexDirection: 'row',
     backgroundColor: 'rgba(0,0,0,0.4)',
-    borderRadius: 10,
-    padding: REELS_CONTAINER_PADDING,
-    gap: REEL_GAP,
-    height: SYMBOL_HEIGHT * 3 + REELS_CONTAINER_PADDING * 2,
+    borderRadius: 12,
+    padding: 8,
+    gap: 4,
+    height: SYMBOL_HEIGHT * 3 + 16,
     overflow: 'hidden',
   },
+  paylinesOverlay: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+  },
   reel: {
-    flex: 1,
+    width: REEL_WIDTH,
     backgroundColor: '#1a1742',
-    borderRadius: 6,
+    borderRadius: 8,
     overflow: 'hidden',
   },
   symbolCell: {
@@ -499,21 +375,37 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   symbol: {
-    fontSize: Math.min(32, REEL_WIDTH * 0.6),
+    fontSize: 40,
   },
-  paylinesIndicator: {
-    margin: 12,
+  paylinesList: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    flexWrap: 'wrap',
+    marginTop: 12,
+    gap: 8,
+  },
+  paylineItem: {
+    flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+    gap: 6,
   },
-  paylinesText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: 'rgba(255,255,255,0.9)',
-    letterSpacing: 1,
+  paylineDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  paylineLabel: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#fff',
   },
   winCard: {
-    marginHorizontal: MACHINE_HORIZONTAL_PADDING,
-    margin: 16,
+    marginHorizontal: 20,
+    marginTop: 16,
     borderRadius: 16,
     padding: 16,
     alignItems: 'center',
@@ -535,9 +427,8 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   controls: {
-    marginHorizontal: MACHINE_HORIZONTAL_PADDING,
-    flex: 5,
-    paddingVertical:10
+    marginHorizontal: 20,
+    marginTop: 24,
   },
   betLabel: {
     fontSize: 12,
@@ -557,31 +448,19 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: 'rgba(255,255,255,0.1)',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
-  },
-  betBtnDisabled: {
-    opacity: 0.4,
   },
   betBtnText: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: '700',
     color: '#fff',
   },
   betDisplay: {
+    paddingHorizontal: 32,
+    paddingVertical: 12,
     borderRadius: 16,
-    overflow: 'hidden',
-    flex: 1,
-    maxWidth:120,
-  },
-  betDisplayGradient: {
-    marginHorizontal:20,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   betAmount: {
     fontSize: 32,
@@ -593,7 +472,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 12,
     marginTop: 16,
-
   },
   quickBet: {
     paddingHorizontal: 20,
@@ -616,7 +494,9 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
   spinBtn: {
-    marginHorizontal: MACHINE_HORIZONTAL_PADDING,
+    marginHorizontal: 20,
+    marginTop: 24,
+    marginBottom: 20,
     borderRadius: 20,
     overflow: 'hidden',
     shadowColor: '#ec4899',
@@ -629,16 +509,14 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   spinGradient: {
+    paddingVertical: 20,
     alignItems: 'center',
-    borderRadius: 20,
-    justifyContent: 'center',
   },
   spinText: {
     fontSize: 20,
     fontWeight: '800',
     color: '#fff',
     letterSpacing: 2,
-    marginVertical: 20,
   },
 });
 
