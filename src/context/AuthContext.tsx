@@ -85,9 +85,22 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({
       if (nextAppState === 'active') {
         console.log('📱 App resumed to foreground — checking token health...');
         try {
+          const accessToken = await tokenService.getAccessToken();
+          const refreshToken = await tokenService.getRefreshToken();
+          
+          // If no tokens at all, force logout
+          if (!accessToken && !refreshToken) {
+            console.warn('⚠️ No tokens found on resume — forcing logout');
+            await tokenService.clearSession();
+            return;
+          }
+          
+          // Try to refresh if needed
           await tokenService.checkAndRefreshIfNeeded();
         } catch (error) {
-          console.warn('Token check on resume failed:', error);
+          console.error('❌ Token check on resume failed:', error);
+          // On failure, clear session and force re-login
+          await tokenService.clearSession();
         }
       }
     });

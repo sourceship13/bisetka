@@ -71,15 +71,22 @@ class TokenService {
           const payload = JSON.parse(base64Decode(this.accessTokenCache.split('.')[1]!));
           if (payload.exp) {
             this.tokenExpiresAt = payload.exp * 1000;
-            // If token is expired or will expire in next minute, schedule refresh (don't block init)
-            if (this.tokenExpiresAt < Date.now() + 60 * 1000) {
-              console.log('🔄 Token expired or expiring soon, scheduling background refresh...');
-              // Don't await — refresh in background so init completes quickly
+            const expiresIn = this.tokenExpiresAt - Date.now();
+            
+            // If token is already expired, refresh immediately
+            if (expiresIn < 0) {
+              console.log('🔄 Token expired, refreshing immediately...');
               this.refreshSession().catch(err => {
-                console.warn('Background refresh during init failed:', err.message);
+                console.warn('Token refresh failed, clearing session:', err.message);
+                this.clearSession();
               });
-            } else {
+            } 
+            // If expires within next day, schedule proactive refresh
+            else if (expiresIn < 24 * 60 * 60 * 1000) {
+              console.log(`⏰ Token expires in ${Math.round(expiresIn / 3600000)}h — scheduling refresh`);
               this.scheduleProactiveRefresh();
+            } else {
+              console.log(`✅ Token valid for ${Math.round(expiresIn / 86400000)} days`);
             }
           }
         } catch (error) {
@@ -139,18 +146,24 @@ class TokenService {
 
     if (!this.tokenExpiresAt) return;
 
-    // Refresh 3 minutes before expiration
-    const refreshAt = this.tokenExpiresAt - 3 * 60 * 1000;
+    // For 7-day tokens, refresh 1 day before expiration
+    // For shorter tokens, refresh at 80% of lifetime
+    const tokenLifetime = this.tokenExpiresAt - Date.now();
+    const refreshBuffer = tokenLifetime > 7 * 24 * 60 * 60 * 1000 
+      ? 24 * 60 * 60 * 1000  // 1 day for long-lived tokens
+      : tokenLifetime * 0.2;  // 20% of lifetime for shorter tokens
+    
+    const refreshAt = this.tokenExpiresAt - refreshBuffer;
     const delay = refreshAt - Date.now();
 
-    if (delay > 0 && delay < 24 * 60 * 60 * 1000) {
-      // Only schedule if delay is positive and less than 24 hours
+    if (delay > 0) {
+      console.log(`⏰ Scheduling token refresh in ${Math.round(delay / 3600000)}h`);
       this.refreshTimer = setTimeout(async () => {
         try {
           console.log('🔄 Proactively refreshing token...');
           await this.refreshSession();
         } catch (error) {
-          console.warn('Proactive refresh failed:', error);
+          console.warn('Proactive refresh failed, will retry on next API call:', error);
         }
       }, delay);
     }
