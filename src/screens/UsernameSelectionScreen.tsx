@@ -67,8 +67,9 @@ const UsernameSelectionScreen: React.FC<UsernameSelectionScreenProps> = ({
       setSubmitting(true);
       const response = await apiService.updateUsername(username);
       
-      // Update user in context
-      setUser(response.user);
+      // Update user in context and clear the needsUsernameSelection flag
+      const updatedUser = {...response.user, needsUsernameSelection: false};
+      setUser(updatedUser);
       
       Alert.alert('Success', 'Username updated successfully!', [
         {text: 'OK', onPress: () => navigation.replace('Home')},
