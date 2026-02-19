@@ -65,7 +65,9 @@ const UsernameSelectionScreen: React.FC<UsernameSelectionScreenProps> = ({
 
     try {
       setSubmitting(true);
+      console.log('🚀 Submitting username:', username);
       const response = await apiService.updateUsername(username);
+      console.log('✅ Username update response:', response);
       
       // Update user in context and clear the needsUsernameSelection flag
       const updatedUser = {...response.user, needsUsernameSelection: false};
@@ -75,6 +77,7 @@ const UsernameSelectionScreen: React.FC<UsernameSelectionScreenProps> = ({
         {text: 'OK', onPress: () => navigation.replace('Home')},
       ]);
     } catch (error: any) {
+      console.error('❌ Username update error:', error);
       Alert.alert('Error', error.message || 'Failed to update username');
     } finally {
       setSubmitting(false);
