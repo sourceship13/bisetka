@@ -10,12 +10,16 @@ import {
   Alert,
   ActivityIndicator,
   ScrollView,
+  Button,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import {useAuth} from '../context/AuthContext';
 import AuthService from '../services/AuthService';
 import {colors, spacing, typography} from '../theme';
+import * as Sentry from '@sentry/react-native';
+
+
 
 // Dev test users - password is "test123" for all
 const DEV_TEST_USERS = [
@@ -119,6 +123,8 @@ const LoginScreen = ({navigation}: any) => {
                 />
               </View>
             </View>
+
+            <Button title='Try!' onPress={ () => { Sentry.captureException(new Error('First error')) }}/>
 
             <TouchableOpacity
               activeOpacity={0.85}
