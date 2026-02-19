@@ -12,6 +12,7 @@ import type {User} from '../types/auth';
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
+  setUser: (user: User | null) => void;
   signInWithApple: () => Promise<void>;
   signInWithEmail: (email: string, password: string) => Promise<void>;
   signUpWithEmail: (
@@ -222,6 +223,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({
       value={{
         user,
         isLoading,
+        setUser,
         signInWithApple,
         signInWithEmail,
         signUpWithEmail,

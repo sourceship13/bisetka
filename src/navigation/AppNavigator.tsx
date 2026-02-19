@@ -4,6 +4,7 @@ import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
 import LoginScreen from '../screens/LoginScreen';
 import HomeScreen from '../screens/HomeScreen';
+import UsernameSelectionScreen from '../screens/UsernameSelectionScreen';
 import MultiplayerBlotScreen from '../screens/MultiplayerBlotScreen';
 import BaazarBlotScreen from '../screens/BaazarBlotScreen';
 import NardiScreen from '../screens/NardiScreen';
@@ -25,6 +26,7 @@ import {GameType} from '../services/gameSessions.service';
 
 export type RootStackParamList = {
   Login: undefined;
+  UsernameSelection: undefined;
   Home: undefined;
   Blot: { userId: string; mode?: 'ai' | 'menu' | 'private-create' | 'private-join' | 'random'; difficulty?: 'easy' | 'medium' | 'hard'; joinCode?: string };
   BaazarBlot: undefined;
@@ -48,6 +50,14 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 const AppNavigator = () => {
   const {user, isLoading} = useAuth();
 
+  // Check if user needs to select a username
+  const needsUsername = user && (
+    !user.username || 
+    user.username.includes('null') || 
+    user.username.includes('undefined') ||
+    user.username.startsWith('user_') // Auto-generated username
+  );
+
   if (isLoading) {
     return (
       <SafeAreaProvider>
@@ -68,8 +78,11 @@ const AppNavigator = () => {
           {!user ? (
             // Auth Stack - User is NOT signed in
             <Stack.Screen name="Login" component={LoginScreen} />
+          ) : needsUsername ? (
+            // Username Selection - User needs to pick a username
+            <Stack.Screen name="UsernameSelection" component={UsernameSelectionScreen} />
           ) : (
-            // App Stack - User IS signed in
+            // App Stack - User IS signed in with valid username
             <>
               <Stack.Screen name="Home" component={HomeScreen} />
               <Stack.Screen name="Blot" component={MultiplayerBlotScreen} />
