@@ -17,6 +17,7 @@ import { RootStackParamList } from '../navigation/AppNavigator';
 import { colors } from '../theme';
 import apiConfig from '../libs/utils/api.utils';
 import tokenService from '../services/token.service';
+import { BACKGROUND_ANIMATION_DURATION } from '@sentry/react-native/dist/js/feedback/FeedbackWidgetManager';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'GameInfo'>;
 
@@ -187,7 +188,7 @@ const GameInfoScreen: React.FC<Props> = ({ route, navigation }) => {
 
     // Simple markdown-like parsing for the rules
     const lines = gameInfo.rules.split('\n');
-    const elements: React.ReactElement[] = [];
+    const elements: JSX.Element[] = [];
     
     lines.forEach((line, index) => {
       if (line.startsWith('# ')) {
@@ -265,10 +266,10 @@ const GameInfoScreen: React.FC<Props> = ({ route, navigation }) => {
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.header}>
-        <TouchableOpacity style={styles.backButtonHeader} onPress={() => navigation.goBack()}>
+        <TouchableOpacity style={[styles.backButtonHeader]} onPress={() => navigation.goBack()}>
           <Text style={styles.backButtonIcon}>←</Text>
         </TouchableOpacity>
-        <View style={styles.headerContent}>
+        <View style={[styles.headerContent]}>
           <Text style={styles.gameIconLarge}>{gameInfo.icon}</Text>
           <Text style={styles.gameTitle}>{gameInfo.displayName}</Text>
           <Text style={styles.gameSubtitle}>{gameInfo.shortDescription}</Text>
@@ -324,7 +325,7 @@ const GameInfoScreen: React.FC<Props> = ({ route, navigation }) => {
       </ScrollView>
 
       {/* Play Button */}
-      <View style={styles.footer}>
+      <View style={[styles.footer]}>
         <TouchableOpacity
           style={styles.playButton}
           onPress={handlePlayNow}
@@ -394,9 +395,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   header: {
-    paddingTop: 16,
-    paddingBottom: 24,
-    paddingHorizontal: 20,
+    borderRadius:12,
   },
   backButtonHeader: {
     width: 40,
@@ -411,7 +410,8 @@ const styles = StyleSheet.create({
   },
   headerContent: {
     alignItems: 'center',
-    marginTop: 8,
+    marginVertical:20,
+    justifyContent:'center'
   },
   gameIconLarge: {
     fontSize: 80,
@@ -598,6 +598,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(15, 15, 35, 0.95)',
     borderTopWidth: 1,
     borderTopColor: 'rgba(255,255,255,0.1)',
+    height:100,
+    justifyContent:'center'
   },
   playButton: {
     borderRadius: 16,
@@ -615,7 +617,9 @@ const styles = StyleSheet.create({
     }),
   },
   playButtonGradient: {
-    paddingVertical: 18,
+    paddingVertical: 20,
+    minHeight:100,
+    borderRadius:12,
     alignItems: 'center',
   },
   playButtonText: {
