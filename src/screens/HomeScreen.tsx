@@ -159,7 +159,7 @@ const HomeScreen = ({navigation}: any) => {
           <View style={[styles.headerContent, {minHeight: 80  }]}>
             <Text style={styles.welcomeText}>Welcome back,</Text>
             <Text style={styles.userName}>
-              {user?.fullName?.givenName || user?.username || 'Player'}! 👋
+              {user?.username || 'Player'}! 👋
             </Text>
           </View>
           <TouchableOpacity onPress={signOut} style={styles.logoutBtn}>
