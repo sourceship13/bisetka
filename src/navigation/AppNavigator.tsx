@@ -52,11 +52,19 @@ const AppNavigator = () => {
 
   // Check if user needs to select a username
   const needsUsername = user && (
+    user.needsUsernameSelection || // Flagged by auth flow
     !user.username || 
     user.username.includes('null') || 
     user.username.includes('undefined') ||
-    user.username.startsWith('user_') // Auto-generated username
+    user.username.startsWith('user_') // Auto-generated username pattern
   );
+
+  console.log('🧭 Navigation check:', {
+    hasUser: !!user,
+    username: user?.username,
+    needsUsernameSelection: user?.needsUsernameSelection,
+    needsUsername,
+  });
 
   if (isLoading) {
     return (

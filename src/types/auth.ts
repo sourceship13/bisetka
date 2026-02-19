@@ -10,10 +10,12 @@ export interface User {
     familyName: string | null;
   } | null;
   provider?: string;
+  needsUsernameSelection?: boolean;
 }
 
 export interface AuthResponse {
   user: User;
   token: string;
   refreshToken: string;
+  isNewUser?: boolean;
 }
