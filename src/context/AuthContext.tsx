@@ -135,8 +135,21 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({
         fullName: fullNameString,
       });
       
+      console.log('📥 Backend response:', {
+        isNewUser: backendResponse.isNewUser,
+        provider: backendResponse.user.provider,
+        username: backendResponse.user.username,
+      });
+      
       await tokenService.storeSession(backendResponse);
       const mappedUser = mapBackendUser(backendResponse.user);
+      
+      // Flag new OAuth users to select username
+      if (backendResponse.isNewUser && (mappedUser.provider === 'apple' || mappedUser.provider === 'google')) {
+        mappedUser.needsUsernameSelection = true;
+        console.log('✅ Flagged user to select username');
+      }
+      
       setUser(mappedUser);
 
       // Register device info (non-blocking)
