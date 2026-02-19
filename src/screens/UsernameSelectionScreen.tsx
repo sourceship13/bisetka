@@ -269,10 +269,9 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   submitButtonGradient: {
-    paddingVertical: spacing.lg,
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 48,
+    minHeight: 60,
   },
   submitButtonText: {
     color: colors.text.primary,
