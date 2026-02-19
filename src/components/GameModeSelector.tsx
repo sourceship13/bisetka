@@ -270,6 +270,7 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
+    marginHorizontal:30
   },
   cardIcon: {
     fontSize: 36,
@@ -295,6 +296,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.2)',
     alignItems: 'center',
     justifyContent: 'center',
+    margin:30
   },
   arrowText: {
     color: colors.text.primary,
