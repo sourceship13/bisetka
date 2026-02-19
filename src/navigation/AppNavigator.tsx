@@ -16,6 +16,7 @@ import PokerRoomScreen from '../screens/PokerRoomScreen';
 import BilliardsGameScreen from '../screens/BilliardsGameScreen';
 import SlotsScreen from '../screens/SlotsScreen';
 import GameModeScreen from '../screens/GameModeScreen';
+import GameInfoScreen from '../screens/GameInfoScreen';
 import SessionStatusScreen from '../screens/SessionStatusScreen';
 import GlobalChatScreen from '../screens/GlobalChatScreen';
 import DMListScreen from '../screens/DMListScreen';
@@ -39,6 +40,7 @@ export type RootStackParamList = {
   BilliardsGame: { session: any };
   Slots: undefined;
   GameMode: { gameType: GameType };
+  GameInfo: { gameType: GameType; gradient?: string[] };
   SessionStatus: { gameType: GameType; session: any };
   GlobalChat: undefined;
   DMList: undefined;
@@ -103,6 +105,7 @@ const AppNavigator = () => {
               <Stack.Screen name="PokerRoom" component={PokerRoomScreen} />
               <Stack.Screen name="BilliardsGame" component={BilliardsGameScreen} />
               <Stack.Screen name="Slots" component={SlotsScreen} />
+              <Stack.Screen name="GameInfo" component={GameInfoScreen} />
               <Stack.Screen name="GameMode" component={GameModeScreen} />
               <Stack.Screen name="SessionStatus" component={SessionStatusScreen} />
               <Stack.Screen name="GlobalChat" component={GlobalChatScreen} />
