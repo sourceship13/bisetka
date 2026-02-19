@@ -24,11 +24,19 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const mapBackendUser = (user: User): User => ({
-  ...user,
-  // Ensure camelCase fallback if backend uses snake_case
-  fullName: user.fullName || (user.full_name ? {givenName: user.full_name, familyName: null} : null),
-});
+const mapBackendUser = (user: User): User => {
+  // Skip invalid full_name values like 'null null', 'undefined undefined', etc.
+  const isValidFullName = user.full_name && 
+                          user.full_name.trim() !== '' && 
+                          !user.full_name.includes('null') &&
+                          !user.full_name.includes('undefined');
+  
+  return {
+    ...user,
+    // Ensure camelCase fallback if backend uses snake_case
+    fullName: user.fullName || (isValidFullName ? {givenName: user.full_name, familyName: null} : null),
+  };
+};
 
 export const AuthProvider: React.FC<{children: React.ReactNode}> = ({
   children,
@@ -108,14 +116,27 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({
         throw new Error('No identity token returned');
       }
 
+      // Only send fullName if Apple actually provided it (not null)
+      // Apple only provides name on FIRST sign-in, subsequent logins return null
+      const fullNameString = fullName?.givenName && fullName?.familyName 
+        ? `${fullName.givenName} ${fullName.familyName}`.trim()
+        : undefined;
+
+      console.log('🍎 Apple Sign-In:', {
+        hasToken: !!identityToken,
+        email: email || 'private',
+        fullName: fullNameString || 'not provided (subsequent login)',
+      });
+
       const backendResponse = await apiService.appleSignIn({
         idToken: identityToken,
         email,
-        fullName: fullName ? `${fullName.givenName} ${fullName.familyName}` : undefined,
+        fullName: fullNameString,
       });
-
+      
       await tokenService.storeSession(backendResponse);
-      setUser(mapBackendUser(backendResponse.user));
+      const mappedUser = mapBackendUser(backendResponse.user);
+      setUser(mappedUser);
 
       // Register device info (non-blocking)
       registerDevice(apiConfig.apiURL, backendResponse.token).catch(err => {
