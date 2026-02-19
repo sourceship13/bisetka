@@ -182,6 +182,32 @@ class ApiService {
     }, true);
   }
 
+  /**
+   * Check if username is available
+   * GET /api/auth/check-username/:username
+   */
+  async checkUsername(username: string): Promise<{ available: boolean; message: string }> {
+    return this.request<{ available: boolean; message: string }>(
+      `/auth/check-username/${encodeURIComponent(username)}`,
+      { method: 'GET' }
+    );
+  }
+
+  /**
+   * Update username (authenticated)
+   * POST /api/auth/update-username
+   */
+  async updateUsername(username: string): Promise<{ message: string; user: User }> {
+    return this.request<{ message: string; user: User }>(
+      '/auth/update-username',
+      {
+        method: 'POST',
+        body: JSON.stringify({ username }),
+      },
+      true
+    );
+  }
+
   // ========== GAME ENDPOINTS ==========
 
   /**
