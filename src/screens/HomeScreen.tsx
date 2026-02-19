@@ -109,12 +109,11 @@ const HomeScreen = ({navigation}: any) => {
   const {user, signOut} = useAuth();
 
   const handleGamePress = (game: GameConfig) => {
-    // Slots is a solo game - navigate directly without game mode selection
-    if (game.gameType === 'slots') {
-      navigation.navigate('Slots');
-      return;
-    }
-    navigation.navigate('GameMode', {gameType: game.gameType});
+    // Navigate to GameInfo screen first to show rules and points
+    navigation.navigate('GameInfo', {
+      gameType: game.gameType,
+      gradient: game.gradient as unknown as string[],
+    });
   };
 
   const renderGameCard = (game: GameConfig) => {
