@@ -1,4 +1,4 @@
-package com.bisetka
+package com.sera.dev.bisetka
 
 import android.app.Application
 import com.facebook.react.PackageList

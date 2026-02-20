@@ -188,7 +188,7 @@ const GameInfoScreen: React.FC<Props> = ({ route, navigation }) => {
 
     // Simple markdown-like parsing for the rules
     const lines = gameInfo.rules.split('\n');
-    const elements: JSX.Element[] = [];
+    const elements: React.ReactElement[] = [];
     
     lines.forEach((line, index) => {
       if (line.startsWith('# ')) {

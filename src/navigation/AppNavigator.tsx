@@ -22,7 +22,9 @@ import GlobalChatScreen from '../screens/GlobalChatScreen';
 import DMListScreen from '../screens/DMListScreen';
 import DMChatScreen from '../screens/DMChatScreen';
 import LeaderboardScreen from '../screens/LeaderboardScreen';
-import {useAuth} from '../context/AuthContext';
+import ChatRoomsListScreen from '../screens/ChatRoomsListScreen';
+import ChatRoomScreen from '../screens/ChatRoomScreen';
+import {useAuth} from '../libs/hooks/useAuth';
 import {ActivityIndicator, View, StyleSheet} from 'react-native';
 import {GameType} from '../services/gameSessions.service';
 
@@ -47,6 +49,8 @@ export type RootStackParamList = {
   DMList: undefined;
   DMChat: { chatId: string; chatName: string };
   Leaderboard: undefined;
+  ChatRoomsList: undefined;
+  ChatRoom: { roomId: string };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -114,6 +118,8 @@ const AppNavigator = () => {
               <Stack.Screen name="DMList" component={DMListScreen} />
               <Stack.Screen name="DMChat" component={DMChatScreen} />
               <Stack.Screen name="Leaderboard" component={LeaderboardScreen} />
+              <Stack.Screen name="ChatRoomsList" component={ChatRoomsListScreen} />
+              <Stack.Screen name="ChatRoom" component={ChatRoomScreen} />
             </>
           )}
         </Stack.Navigator>
