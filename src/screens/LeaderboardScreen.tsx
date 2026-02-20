@@ -327,8 +327,8 @@ const styles = StyleSheet.create({
   itemGradient: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.md,
+    margin:4,
+
     borderRadius: 12,
   },
   currentUserItem: {
@@ -338,15 +338,17 @@ const styles = StyleSheet.create({
   rankContainer: {
     width: 50,
     alignItems: 'center',
+    margin:6
   },
   rankNumber: {
     fontSize: 18,
     fontWeight: 'bold',
     color: colors.text.primary,
+    margin:12
   },
   userInfo: {
     flex: 1,
-    marginLeft: spacing.sm,
+    margin:12
   },
   username: {
     fontSize: 16,
@@ -372,7 +374,7 @@ const styles = StyleSheet.create({
   },
   pointsContainer: {
     alignItems: 'flex-end',
-    marginLeft: spacing.sm,
+    margin:12
   },
   pointsValue: {
     fontSize: 20,
