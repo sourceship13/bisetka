@@ -1,4 +1,4 @@
-package com.bisetka
+package com.sera.dev.bisetka
 
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate

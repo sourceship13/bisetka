@@ -14,7 +14,7 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import apiService from '../services/api.service';
 import {colors, spacing, typography} from '../theme';
-import {useAuth} from '../context/AuthContext';
+import {useAuth} from '../libs/hooks/useAuth';
 import tokenService from '../services/token.service';
 
 interface UsernameSelectionScreenProps {

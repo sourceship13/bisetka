@@ -15,7 +15,7 @@ import { socketService } from '../services/SocketService';
 import { baazarBlotAIService, LocalGameState, Card } from '../services/baazarBlotAI.service';
 import { gameResultService } from '../services/gameResult.service';
 import { aiMoveLogService } from '../services/aiMoveLog.service';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../libs/hooks/useAuth';
 import { v4 as uuidv4 } from 'uuid';
 
 interface GameState {

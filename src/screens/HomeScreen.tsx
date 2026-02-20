@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
-import {useAuth} from '../context/AuthContext';
+import {useAuth} from '../libs/hooks/useAuth';
 import {iOSUIKit} from 'react-native-typography';
 import {colors} from '../theme';
 import packageJson from '../../package.json';
@@ -117,7 +117,7 @@ const HomeScreen = ({navigation}: any) => {
   };
 
   const renderGameCard = (game: GameConfig) => {
-    const isComingSoon = 'comingSoon' in game && game.comingSoon;
+    const isComingSoon: boolean = 'comingSoon' in game && (game as any).comingSoon === true;
 
     return (
       <TouchableOpacity
@@ -162,19 +162,19 @@ const HomeScreen = ({navigation}: any) => {
               {user?.username || 'Player'}! 👋
             </Text>
           </View>
-          <TouchableOpacity onPress={signOut} style={styles.logoutBtn}>
+          <TouchableOpacity onPress={() => signOut()} style={styles.logoutBtn}>
             <Text style={styles.logoutText}>Log Out</Text>
           </TouchableOpacity>
         </LinearGradient>
 
-        {/* Balance & Chat Buttons */}
+        {/* Balance & Action Buttons */}
         <View style={styles.quickRow}>
-          <View style={[styles.balanceWrap]}>
+          <View style={styles.balanceWrap}>
             <LinearGradient
               colors={['#10b981', '#34d399']}
               start={{x: 0, y: 0}}
               end={{x: 1, y: 1}}
-              style={[{minHeight: 100, borderRadius: 16, alignItems: 'flex-start', justifyContent: 'center', margin: 8}]}>
+              style={styles.balanceGrad}>
               <Text style={[styles.balanceLabel, iOSUIKit.bodyEmphasizedWhite]}>Points</Text>
               <Text style={styles.balanceAmount}>
                 🏆 {(user as any)?.totalPoints?.toLocaleString() || '0'}
@@ -182,34 +182,44 @@ const HomeScreen = ({navigation}: any) => {
             </LinearGradient>
           </View>
           
-          <View style={styles.chatBtns}>
+          <View style={styles.actionBtns}>
             <TouchableOpacity 
               onPress={() => navigation.navigate('GlobalChat')}
-              style={styles.chatBtn}>
+              style={styles.actionBtn}>
               <LinearGradient
                 colors={['#6366f1', '#8b5cf6']}
-                style={styles.chatGrad}>
-                <Text style={styles.chatIcon}>🌍</Text>
+                style={styles.actionGrad}>
+                <Text style={styles.actionIcon}>🌍</Text>
               </LinearGradient>
             </TouchableOpacity>
             
             <TouchableOpacity 
               onPress={() => navigation.navigate('DMList')}
-              style={styles.chatBtn}>
+              style={styles.actionBtn}>
               <LinearGradient
                 colors={['#ec4899', '#f472b6']}
-                style={styles.chatGrad}>
-                <Text style={styles.chatIcon}>💬</Text>
+                style={styles.actionGrad}>
+                <Text style={styles.actionIcon}>💬</Text>
               </LinearGradient>
             </TouchableOpacity>
 
             <TouchableOpacity 
               onPress={() => navigation.navigate('Leaderboard')}
-              style={styles.chatBtn}>
+              style={styles.actionBtn}>
               <LinearGradient
                 colors={['#f59e0b', '#fbbf24']}
-                style={styles.chatGrad}>
-                <Text style={styles.chatIcon}>🏆</Text>
+                style={styles.actionGrad}>
+                <Text style={styles.actionIcon}>🏆</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              onPress={() => navigation.navigate('ChatRoomsList')}
+              style={styles.actionBtn}>
+              <LinearGradient
+                colors={['#14b8a6', '#2dd4bf']}
+                style={styles.actionGrad}>
+                <Text style={styles.actionIcon}>🏠</Text>
               </LinearGradient>
             </TouchableOpacity>
           </View>
@@ -283,9 +293,10 @@ const styles = StyleSheet.create({
     marginTop: 0,
     flexDirection: 'row',
     gap: 8,
+    alignItems: 'center',
   },
   balanceWrap: {
-    flex: 2,
+    flex: 1,
     borderRadius: 14,
     overflow: 'hidden',
     shadowColor: '#10b981',
@@ -295,28 +306,32 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   balanceGrad: {
-    alignItems: 'center',
+    flex:1,
+    borderRadius: 14,
+    alignItems: 'flex-start',
+    justifyContent: 'center',
   },
   balanceLabel: {
-    fontSize: 22,
+    fontSize: 14,
     color: 'rgba(255,255,255,0.8)',
-    marginBottom: 4,
-    marginHorizontal:40,
+    marginBottom: 2,
+    marginLeft:16
   },
   balanceAmount: {
-    fontSize: 22,
+    fontSize: 28,
     fontWeight: '800',
     fontFamily: Platform.OS === 'ios' ? 'System' : 'Roboto',    
     color: '#fff',
-    marginHorizontal: 40,
+    marginLeft:20
   },
-  chatBtns: {
-    gap: 8,
-    flex:1,
+  actionBtns: {
+    flex: 1.5,
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    gap: 8,
   },
-  chatBtn: {
+  actionBtn: {
+    flex: 1,
+    height: 70,
     borderRadius: 12,
     overflow: 'hidden',
     shadowColor: '#6366f1',
@@ -324,16 +339,15 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 6,
     elevation: 3,
-    flex: 1,
   },
-  chatGrad: {
+  actionGrad: {
     flex: 1,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  chatIcon: {
-    fontSize: 24,
+  actionIcon: {
+    fontSize: 28,
   },
   sectionHead: {
     paddingHorizontal: 16,
