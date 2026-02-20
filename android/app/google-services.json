@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "545091316724",
+    "project_id": "bisetka-e82d8",
+    "storage_bucket": "bisetka-e82d8.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:545091316724:android:38cc76a916ea80128de7a1",
+        "android_client_info": {
+          "package_name": "com.sera.dev.bisetka"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA4Rbnesj1ErbUFlcJbd6IC3-QqnLAkxcs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:545091316724:android:362e91746e51a1b88de7a1",
+        "android_client_info": {
+          "package_name": "com.sera.dev.bisetka.staging"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA4Rbnesj1ErbUFlcJbd6IC3-QqnLAkxcs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

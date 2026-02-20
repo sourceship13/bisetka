@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
-import {useAuth} from '../context/AuthContext';
+import {useAuth} from '../libs/hooks/useAuth';
 import AuthService from '../services/AuthService';
 import {colors, spacing, typography} from '../theme';
 import * as Sentry from '@sentry/react-native';

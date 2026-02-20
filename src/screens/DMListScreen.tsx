@@ -10,7 +10,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import chatService, { Chat } from '../services/chat.service';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../libs/hooks/useAuth';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import {colors, spacing, typography} from '../theme';
@@ -190,7 +190,5 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 });
-
-export default DMListScreen;
 
 export default DMListScreen;
