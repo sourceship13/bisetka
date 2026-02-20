@@ -175,9 +175,9 @@ const HomeScreen = ({navigation}: any) => {
               start={{x: 0, y: 0}}
               end={{x: 1, y: 1}}
               style={[{minHeight: 100, borderRadius: 16, alignItems: 'flex-start', justifyContent: 'center', margin: 8}]}>
-              <Text style={[styles.balanceLabel, iOSUIKit.bodyEmphasizedWhite]}>Balance</Text>
+              <Text style={[styles.balanceLabel, iOSUIKit.bodyEmphasizedWhite]}>Points</Text>
               <Text style={styles.balanceAmount}>
-                💰 {(user as any)?.balance?.toLocaleString() || '1,000'}
+                🏆 {(user as any)?.totalPoints?.toLocaleString() || '0'}
               </Text>
             </LinearGradient>
           </View>
@@ -200,6 +200,16 @@ const HomeScreen = ({navigation}: any) => {
                 colors={['#ec4899', '#f472b6']}
                 style={styles.chatGrad}>
                 <Text style={styles.chatIcon}>💬</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              onPress={() => navigation.navigate('Leaderboard')}
+              style={styles.chatBtn}>
+              <LinearGradient
+                colors={['#f59e0b', '#fbbf24']}
+                style={styles.chatGrad}>
+                <Text style={styles.chatIcon}>🏆</Text>
               </LinearGradient>
             </TouchableOpacity>
           </View>
