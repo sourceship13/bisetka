@@ -1,5 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ActivityIndicator,
+  TouchableOpacity,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import ChatPanel from '../components/ChatPanel';
@@ -7,7 +13,7 @@ import chatService from '../services/chat.service';
 import { useAuth } from '../context/AuthContext';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
-import {colors, spacing, typography} from '../theme';
+import { colors, spacing, typography } from '../theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'GlobalChat'>;
 
@@ -55,20 +61,25 @@ const GlobalChatScreen: React.FC<Props> = ({ navigation }) => {
     <SafeAreaView style={styles.container}>
       <LinearGradient
         colors={colors.gradients.primary}
-        start={{x: 0, y: 0}}
-        end={{x: 1, y: 0}}
-        style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={styles.header}
+      >
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backButton}
+        >
           <Text style={styles.backText}>← Back</Text>
         </TouchableOpacity>
         <Text style={styles.title}>🌍 Global Chat</Text>
         <View style={styles.placeholder} />
       </LinearGradient>
-      
-      <ChatPanel 
+
+      <ChatPanel
         chatId={chatId}
         chatType="global"
         currentUserId={user?.id || ''}
+        keyboardAvoidingViewStyle={{ flex: 10, borderBottomLeftRadius: 12, borderBottomRightRadius: 12 }}
       />
     </SafeAreaView>
   );
@@ -83,8 +94,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+    borderTopLeftRadius:12,
+    borderTopRightRadius:12,
+    // marginVertical: 20,
+    flex: 1,
   },
   backButton: {
     padding: spacing.sm,
