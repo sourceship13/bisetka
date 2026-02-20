@@ -21,6 +21,7 @@ import SessionStatusScreen from '../screens/SessionStatusScreen';
 import GlobalChatScreen from '../screens/GlobalChatScreen';
 import DMListScreen from '../screens/DMListScreen';
 import DMChatScreen from '../screens/DMChatScreen';
+import LeaderboardScreen from '../screens/LeaderboardScreen';
 import {useAuth} from '../context/AuthContext';
 import {ActivityIndicator, View, StyleSheet} from 'react-native';
 import {GameType} from '../services/gameSessions.service';
@@ -45,6 +46,7 @@ export type RootStackParamList = {
   GlobalChat: undefined;
   DMList: undefined;
   DMChat: { chatId: string; chatName: string };
+  Leaderboard: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -111,6 +113,7 @@ const AppNavigator = () => {
               <Stack.Screen name="GlobalChat" component={GlobalChatScreen} />
               <Stack.Screen name="DMList" component={DMListScreen} />
               <Stack.Screen name="DMChat" component={DMChatScreen} />
+              <Stack.Screen name="Leaderboard" component={LeaderboardScreen} />
             </>
           )}
         </Stack.Navigator>
