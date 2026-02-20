@@ -6,7 +6,7 @@ import {GAME_LABELS, gameSessionsService} from '../services/gameSessions.service
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {RootStackParamList} from '../navigation/AppNavigator';
 import {colors} from '../theme';
-import {useAuth} from '../context/AuthContext';
+import {useAuth} from '../libs/hooks/useAuth';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'GameMode'>;
 

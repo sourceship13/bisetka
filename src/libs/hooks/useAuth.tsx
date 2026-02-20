@@ -1,0 +1,342 @@
+import React, { createContext, useState, useContext, useEffect, useRef } from 'react';
+import AuthService from '../../services/AuthService';
+import apiService from '../../services/api.service';
+import { Platform, AppState, AppStateStatus } from 'react-native';
+import { appleAuth } from '@invertase/react-native-apple-authentication';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import tokenService from '../../services/token.service';
+import { registerDevice } from '../utils/deviceInfo';
+import { apiConfig } from '../utils/api.utils';
+// import chatSocketService from '../../services/chatSocket.service';
+// import pushNotificationService from '../../services/pushNotification.service';
+import * as Sentry from '@sentry/react-native';
+import type { User } from '../../types/auth';
+
+interface AuthContextType {
+  user: User | null;
+  isLoading: boolean;
+  isAuthenticated: boolean;
+  setUser: (user: User | null) => void;
+  signInWithApple: () => Promise<void>;
+  signInWithEmail: (email: string, password: string) => Promise<void>;
+  signUpWithEmail: (
+    email: string,
+    password: string,
+    fullName?: { givenName: string; familyName: string },
+  ) => Promise<void>;
+  signOut: (logoutAll?: boolean) => Promise<void>;
+  refreshUser: () => Promise<void>;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+const mapBackendUser = (user: User): User => ({
+  ...user,
+  fullName: user.fullName || (user.full_name ? { givenName: user.full_name, familyName: null } : null),
+});
+
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // App state reference for background/foreground handling
+  const appState = useRef(AppState.currentState);
+  const isHandlingAppStateChange = useRef(false);
+
+  // Helper to wait for storage to be ready
+  const waitForStorageReady = async (): Promise<void> => {
+    const MAX_WAIT_TIME = 2000;
+    const CHECK_INTERVAL = 100;
+    const startTime = Date.now();
+
+    while (Date.now() - startTime < MAX_WAIT_TIME) {
+      try {
+        await AsyncStorage.getItem('_storage_ready_test');
+        return;
+      } catch (error) {
+        await new Promise<void>(resolve => setTimeout(() => resolve(), CHECK_INTERVAL));
+      }
+    }
+  };
+
+  useEffect(() => {
+    let isMounted = true;
+
+    tokenService.registerUserUpdater(nextUser => {
+      if (isMounted) {
+        setUser(nextUser ? mapBackendUser(nextUser) : null);
+      }
+    });
+
+    const bootstrap = async () => {
+      try {
+        await waitForStorageReady();
+        await tokenService.initialize();
+        const storedUser = await tokenService.getStoredUser();
+        
+        if (storedUser && isMounted) {
+          setUser(mapBackendUser(storedUser));
+          
+          // Try to refresh from server
+          try {
+            const freshUser = await apiService.getProfile();
+            if (isMounted) {
+              setUser(mapBackendUser(freshUser));
+            }
+          } catch (error) {
+            console.warn('⚠️ Using cached user, server refresh failed:', error);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to initialize auth state', error);
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    bootstrap();
+
+    let unsubscribe: (() => void) | undefined;
+    if (Platform.OS === 'ios' && AuthService.isAppleAuthAvailable()) {
+      unsubscribe = appleAuth.onCredentialRevoked(async () => {
+        console.warn('Apple credentials revoked');
+        await tokenService.clearSession();
+        // chatSocketService.disconnect();
+        setUser(null);
+      });
+    }
+
+    // Enhanced AppState listener with robust background handling
+    const appStateSubscription = AppState.addEventListener('change', async (nextAppState: AppStateStatus) => {
+      if (isHandlingAppStateChange.current) {
+        return;
+      }
+
+      if (appState.current.match(/inactive|background/) && nextAppState === 'active') {
+        isHandlingAppStateChange.current = true;
+
+        try {
+          console.log('📱 App resumed to foreground — checking auth...');
+
+          await waitForStorageReady();
+          await new Promise<void>(resolve => setTimeout(() => resolve(), 250));
+
+          const accessToken = await tokenService.getAccessToken();
+          const refreshToken = await tokenService.getRefreshToken();
+
+          // If no tokens at all, force logout
+          if (!accessToken && !refreshToken) {
+            console.warn('⚠️ No tokens found on resume — forcing logout');
+            await tokenService.clearSession();
+            // chatSocketService.disconnect();
+            if (isMounted) setUser(null);
+            return;
+          }
+
+          // Try to refresh if needed
+          try {
+            await tokenService.checkAndRefreshIfNeeded();
+          } catch (error) {
+            console.error('❌ Token check failed on resume:', error);
+            await tokenService.clearSession();
+            // chatSocketService.disconnect();
+            if (isMounted) setUser(null);
+            return;
+          }
+
+          // Refresh user data
+          if (user) {
+            refreshUser().catch(err => console.error('Failed to refresh user:', err));
+          }
+        } finally {
+          setTimeout(() => {
+            isHandlingAppStateChange.current = false;
+          }, 1000);
+        }
+      }
+
+      appState.current = nextAppState;
+    });
+
+    return () => {
+      isMounted = false;
+      tokenService.registerUserUpdater(undefined);
+      if (unsubscribe) {
+        unsubscribe();
+      }
+      appStateSubscription.remove();
+    };
+  }, []);
+
+  // Sync user to Sentry
+  useEffect(() => {
+    if (user) {
+      Sentry.setUser({
+        id: user.id,
+        email: user.email || undefined,
+        username: user.username || user.email || undefined,
+      });
+      
+      // Initialize push notifications
+      // pushNotificationService.initialize().catch(err =>
+      //   console.warn('Push initialization failed:', err)
+      // );
+    } else {
+      Sentry.setUser(null);
+    }
+  }, [user]);
+
+  const signInWithApple = async () => {
+    try {
+      setIsLoading(true);
+
+      const appleAuthRequestResponse = await appleAuth.performRequest({
+        requestedOperation: appleAuth.Operation.LOGIN,
+        requestedScopes: [appleAuth.Scope.EMAIL, appleAuth.Scope.FULL_NAME],
+      });
+
+      const { identityToken, email, fullName } = appleAuthRequestResponse;
+
+      if (!identityToken) {
+        throw new Error('No identity token returned');
+      }
+
+      const backendResponse = await apiService.appleSignIn({
+        idToken: identityToken,
+        email,
+        fullName: fullName ? `${fullName.givenName} ${fullName.familyName}` : undefined,
+      });
+
+      await tokenService.storeSession(backendResponse);
+      setUser(mapBackendUser(backendResponse.user));
+
+      registerDevice(apiConfig.apiURL, backendResponse.token).catch(err =>
+        console.warn('Device registration failed:', err)
+      );
+
+      // chatSocketService.connect(backendResponse.user.id, backendResponse.token).catch(err =>
+      //   console.warn('Chat socket connection failed:', err)
+      // );
+    } catch (error: any) {
+      console.error('❌ Apple Sign In error:', error?.message || error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const signInWithEmail = async (email: string, password: string) => {
+    try {
+      setIsLoading(true);
+
+      const backendResponse = await apiService.login({ email, password });
+
+      await tokenService.storeSession(backendResponse);
+      setUser(mapBackendUser(backendResponse.user));
+
+      registerDevice(apiConfig.apiURL, backendResponse.token).catch(err =>
+        console.warn('Device registration failed:', err)
+      );
+
+      // chatSocketService.connect(backendResponse.user.id, backendResponse.token).catch(err =>
+      //   console.warn('Chat socket connection failed:', err)
+      // );
+    } catch (error: any) {
+      console.error('❌ Email Sign In error:', error?.message || error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const signUpWithEmail = async (
+    email: string,
+    password: string,
+    fullName?: { givenName: string; familyName: string },
+  ) => {
+    try {
+      setIsLoading(true);
+
+      const backendResponse = await apiService.register({
+        email,
+        password,
+        fullName,
+      });
+
+      await tokenService.storeSession(backendResponse);
+      setUser(mapBackendUser(backendResponse.user));
+
+      registerDevice(apiConfig.apiURL, backendResponse.token).catch(err =>
+        console.warn('Device registration failed:', err)
+      );
+
+      // chatSocketService.connect(backendResponse.user.id, backendResponse.token).catch(err =>
+      //   console.warn('Chat socket connection failed:', err)
+      // );
+    } catch (error: any) {
+      console.error('❌ Email Sign Up error:', error?.message || error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const signOut = async (logoutAll: boolean = false) => {
+    try {
+      setIsLoading(true);
+      
+      // TODO: Call backend to revoke all sessions if logoutAll is true
+      
+      await AuthService.signOut();
+      await tokenService.clearSession();
+      // chatSocketService.disconnect();
+      setUser(null);
+    } catch (error) {
+      console.error('Sign out error:', error);
+      setUser(null);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const refreshUser = async () => {
+    try {
+      const freshUser = await apiService.getProfile();
+      setUser(mapBackendUser(freshUser));
+    } catch (error) {
+      console.error('Error refreshing user:', error);
+      
+      const accessToken = await tokenService.getAccessToken();
+      if (!accessToken) {
+        setUser(null);
+      }
+    }
+  };
+
+  return (
+    <AuthContext.Provider
+      value={{
+        setUser,
+        user,
+        isLoading,
+        isAuthenticated: !!user,
+        signInWithApple,
+        signInWithEmail,
+        signUpWithEmail,
+        signOut,
+        refreshUser,
+      }}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};

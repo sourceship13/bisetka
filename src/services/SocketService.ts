@@ -237,6 +237,11 @@ class SocketService {
   isConnected(): boolean {
     return this.socket?.connected || false;
   }
+
+  // Get socket instance for custom events (e.g., chat rooms)
+  getSocket(): Socket | null {
+    return this.socket;
+  }
 }
 
 // Export singleton instance

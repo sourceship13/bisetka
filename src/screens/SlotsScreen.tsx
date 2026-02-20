@@ -9,8 +9,9 @@ import {
   Dimensions,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../libs/hooks/useAuth';
 import Svg, { Polyline } from 'react-native-svg';
+import apiConfig from '../libs/utils/api.utils';
 
 const { width } = Dimensions.get('window');
 const REEL_WIDTH = (width - 80) / 5;
@@ -76,7 +77,7 @@ const SlotsScreen = ({ navigation }: any) => {
     Animated.parallel(spinAnims).start();
 
     try {
-      const response = await fetch(`http://localhost:3000/api/slots/spin`, {
+      const response = await fetch(`${apiConfig.baseURL}/api/slots/spin`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
