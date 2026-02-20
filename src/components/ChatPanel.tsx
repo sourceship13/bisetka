@@ -17,9 +17,10 @@ interface ChatPanelProps {
   chatType: 'global' | 'room' | 'direct';
   currentUserId: string;
   onNewMessage?: (message: Message) => void;
+  keyboardAvoidingViewStyle?: any;
 }
 
-const ChatPanel: React.FC<ChatPanelProps> = ({ chatId, chatType, currentUserId, onNewMessage }) => {
+const ChatPanel: React.FC<ChatPanelProps> = ({ chatId, chatType, currentUserId, onNewMessage, keyboardAvoidingViewStyle }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(false);
@@ -104,7 +105,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ chatId, chatType, currentUserId, 
 
   return (
     <KeyboardAvoidingView 
-      style={styles.container}
+      style={[styles.container, keyboardAvoidingViewStyle]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}>
       
