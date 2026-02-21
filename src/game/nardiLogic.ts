@@ -29,6 +29,7 @@ export interface NardiGameState {
   selectedPoint: number | null;
   winner: PlayerColor | null;
   phase: 'setup' | 'rolling' | 'moving' | 'gameOver';
+  movesRemaining: number; // Track remaining moves (2 for normal, 4 for doubles)
 }
 
 // Initialize board based on mode
@@ -71,21 +72,29 @@ export const calculatePossibleMoves = (
   state: NardiGameState
 ): Move[] => {
   const moves: Move[] = [];
-  const { points, dice, currentPlayer, mode, bar } = state;
+  const { points, dice, currentPlayer, mode, bar, movesRemaining } = state;
 
-  if (!dice.rolled) return moves;
+  console.log('🔍 Calculating moves for', currentPlayer, '| dice:', dice, '| movesRemaining:', movesRemaining);
+
+  if (!dice.rolled || movesRemaining === 0) {
+    console.log('⚠️ Cannot calculate moves:', { rolled: dice.rolled, movesRemaining });
+    return moves;
+  }
 
   // Check if player has checkers on bar (short mode only)
   if (mode === 'short' && bar[currentPlayer] > 0) {
     const enterMoves = getBarEntryMoves(state);
+    console.log('📍 Player has', bar[currentPlayer], 'checkers on bar, returning', enterMoves.length, 'entry moves');
     return enterMoves;
   }
 
-  // Filter out used dice (value 0) and handle doubles
+  // Use dice values based on what's still available
   let diceValues: number[] = [];
   if (dice.die1 === dice.die2 && dice.die1 > 0) {
-    // Doubles - 4 moves with same value
-    diceValues = [dice.die1, dice.die1, dice.die1, dice.die1];
+    // Doubles - use the same value for remaining moves
+    for (let i = 0; i < movesRemaining; i++) {
+      diceValues.push(dice.die1);
+    }
   } else {
     if (dice.die1 > 0) diceValues.push(dice.die1);
     if (dice.die2 > 0) diceValues.push(dice.die2);
@@ -93,6 +102,7 @@ export const calculatePossibleMoves = (
 
   // Remove duplicate die values to avoid duplicate moves
   const uniqueDiceValues = [...new Set(diceValues)];
+  console.log('🎲 Dice values to use:', uniqueDiceValues);
 
   points.forEach((point, fromPos) => {
     if (point.checkers.length > 0 && point.checkers[point.checkers.length - 1] === currentPlayer) {
@@ -109,7 +119,7 @@ export const calculatePossibleMoves = (
       // Check for bearing off
       if (canBearOff(state, fromPos)) {
         const bearOffPos = currentPlayer === 'white' ? 24 : -1;
-        diceValues.forEach(dieValue => {
+        uniqueDiceValues.forEach(dieValue => {
           const exactPos = currentPlayer === 'white' ? fromPos + dieValue : fromPos - dieValue;
           if (exactPos >= 24 || exactPos < 0) {
             moves.push({ from: fromPos, to: bearOffPos, checker: currentPlayer });
@@ -119,6 +129,7 @@ export const calculatePossibleMoves = (
     }
   });
 
+  console.log('✅ Generated', moves.length, 'possible moves for', currentPlayer);
   return moves;
 };
 
@@ -250,6 +261,7 @@ export const initializeNardiGame = (mode: GameMode): NardiGameState => {
     selectedPoint: null,
     winner: null,
     phase: 'rolling',
+    movesRemaining: 0,
   };
 };
 
@@ -262,5 +274,6 @@ export const switchPlayer = (state: NardiGameState): NardiGameState => {
     possibleMoves: [],
     selectedPoint: null,
     phase: 'rolling',
+    movesRemaining: 0,
   };
 };
