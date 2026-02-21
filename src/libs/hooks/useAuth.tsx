@@ -7,9 +7,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import tokenService from '../../services/token.service';
 import { registerDevice } from '../utils/deviceInfo';
 import { apiConfig } from '../utils/api.utils';
-// import chatSocketService from '../../services/chatSocket.service';
-// import pushNotificationService from '../../services/pushNotification.service';
 import * as Sentry from '@sentry/react-native';
+import pushNotificationService from '../../services/pushNotification.service';
 import type { User } from '../../types/auth';
 
 interface AuthContextType {
@@ -179,10 +178,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         username: user.username || user.email || undefined,
       });
       
-      // Initialize push notifications
-      // pushNotificationService.initialize().catch(err =>
-      //   console.warn('Push initialization failed:', err)
-      // );
+      // Initialize push notifications (will only request if already granted)
+      pushNotificationService.initialize().catch(err =>
+        console.warn('Push initialization failed:', err)
+      );
     } else {
       Sentry.setUser(null);
     }
