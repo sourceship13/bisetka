@@ -1,9 +1,12 @@
-import React from 'react';
+import React, {useState, useEffect} from 'react';
 import {NavigationContainer} from '@react-navigation/native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import LoginScreen from '../screens/LoginScreen';
 import HomeScreen from '../screens/HomeScreen';
+import OnboardingScreen from '../screens/OnboardingScreen';
+import {ONBOARDING_COMPLETE_KEY} from '../screens/OnboardingScreen';
 import UsernameSelectionScreen from '../screens/UsernameSelectionScreen';
 import MultiplayerBlotScreen from '../screens/MultiplayerBlotScreen';
 import BaazarBlotScreen from '../screens/BaazarBlotScreen';
@@ -31,6 +34,7 @@ import {GameType} from '../services/gameSessions.service';
 export type RootStackParamList = {
   Login: undefined;
   UsernameSelection: undefined;
+  Onboarding: undefined;
   Home: undefined;
   Blot: { userId: string; mode?: 'ai' | 'menu' | 'private-create' | 'private-join' | 'random'; difficulty?: 'easy' | 'medium' | 'hard'; joinCode?: string };
   BaazarBlot: undefined;
@@ -57,6 +61,19 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 
 const AppNavigator = () => {
   const {user, isLoading} = useAuth();
+  const [needsOnboarding, setNeedsOnboarding] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const checkOnboarding = async () => {
+      try {
+        const completed = await AsyncStorage.getItem(ONBOARDING_COMPLETE_KEY);
+        setNeedsOnboarding(completed !== 'true');
+      } catch {
+        setNeedsOnboarding(false);
+      }
+    };
+    checkOnboarding();
+  }, []);
 
   // Check if user needs to select a username
   const needsUsername = user && (
@@ -74,7 +91,7 @@ const AppNavigator = () => {
     needsUsername,
   });
 
-  if (isLoading) {
+  if (isLoading || needsOnboarding === null) {
     return (
       <SafeAreaProvider>
         <View style={styles.loadingContainer}>
@@ -100,6 +117,9 @@ const AppNavigator = () => {
           ) : (
             // App Stack - User IS signed in with valid username
             <>
+              {needsOnboarding && (
+                <Stack.Screen name="Onboarding" component={OnboardingScreen} />
+              )}
               <Stack.Screen name="Home" component={HomeScreen} />
               <Stack.Screen name="Blot" component={MultiplayerBlotScreen} />
               <Stack.Screen name="BaazarBlot" component={BaazarBlotScreen} />
