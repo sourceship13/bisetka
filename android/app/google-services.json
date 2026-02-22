@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "545091316724",
-    "project_id": "bisetka-e82d8",
-    "storage_bucket": "bisetka-e82d8.firebasestorage.app"
+    "project_number": "378583720606",
+    "project_id": "bisetka-59c3a",
+    "storage_bucket": "bisetka-59c3a.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:545091316724:android:38cc76a916ea80128de7a1",
+        "mobilesdk_app_id": "1:378583720606:android:0c3444898c3c6ea067118f",
         "android_client_info": {
           "package_name": "com.sera.dev.bisetka"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyA4Rbnesj1ErbUFlcJbd6IC3-QqnLAkxcs"
+          "current_key": "AIzaSyAUz8nZmV02pj3DHvC0WWI5qrVhCx4ii7A"
         }
       ],
       "services": {
@@ -26,7 +26,7 @@
     },
     {
       "client_info": {
-        "mobilesdk_app_id": "1:545091316724:android:362e91746e51a1b88de7a1",
+        "mobilesdk_app_id": "1:378583720606:android:c053754b7fbc72e367118f",
         "android_client_info": {
           "package_name": "com.sera.dev.bisetka.staging"
         }
@@ -34,7 +34,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyA4Rbnesj1ErbUFlcJbd6IC3-QqnLAkxcs"
+          "current_key": "AIzaSyAUz8nZmV02pj3DHvC0WWI5qrVhCx4ii7A"
         }
       ],
       "services": {

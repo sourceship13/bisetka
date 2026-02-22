@@ -61,19 +61,37 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 
 const AppNavigator = () => {
   const {user, isLoading} = useAuth();
-  const [needsOnboarding, setNeedsOnboarding] = useState<boolean | null>(null);
+
+  // Async-storage fallback result — only used when user.onboarding_shown is undefined
+  // (i.e. a stale cached user that pre-dates the DB column).
+  const [asyncOnboardingResult, setAsyncOnboardingResult] = useState<boolean | null>(null);
 
   useEffect(() => {
-    const checkOnboarding = async () => {
-      try {
-        const completed = await AsyncStorage.getItem(ONBOARDING_COMPLETE_KEY);
-        setNeedsOnboarding(completed !== 'true');
-      } catch {
-        setNeedsOnboarding(false);
-      }
-    };
-    checkOnboarding();
-  }, []);
+    // Only hit AsyncStorage when the server hasn't given us a definitive value.
+    // For all other cases needsOnboarding is computed synchronously below, so the
+    // NavigationContainer always mounts with the CORRECT value even when React 18
+    // batches setUser() + setIsLoading(false) into a single render.
+    if (user && user.onboarding_shown === undefined) {
+      setAsyncOnboardingResult(null); // show spinner while we check
+      AsyncStorage.getItem(ONBOARDING_COMPLETE_KEY)
+        .then(val => setAsyncOnboardingResult(val !== 'true'))
+        .catch(() => setAsyncOnboardingResult(false));
+    }
+  }, [user]);
+
+  // ── Synchronous derivation ──────────────────────────────────────────────────
+  // Compute needsOnboarding RIGHT NOW from the current user object.
+  // This is the key fix: by deriving inline (not in an effect), the first render
+  // after login/bootstrap already has the correct value — React Navigation's
+  // NavigationContainer therefore mounts with Onboarding as the initial screen
+  // rather than Home.
+  const needsOnboarding: boolean | null = (() => {
+    if (!user) return false;
+    if (user.onboarding_shown === true) return false;   // DB says done
+    if (user.onboarding_shown === false) return true;   // DB says not done → show
+    // onboarding_shown is undefined (pre-migration cached user) — wait for AsyncStorage
+    return asyncOnboardingResult; // null = still resolving → keep spinner
+  })();
 
   // Check if user needs to select a username
   const needsUsername = user && (

@@ -149,6 +149,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (user) {
             refreshUser().catch(err => console.error('Failed to refresh user:', err));
           }
+
+          // Re-run push init on every foreground resume.
+          // This is the key case: user went to Settings, enabled notifications,
+          // came back to the app — silentInit now sees GRANTED and registers the token.
+          pushNotificationService.silentInit().catch(err =>
+            console.warn('Push silentInit on resume failed:', err)
+          );
         } finally {
           setTimeout(() => {
             isHandlingAppStateChange.current = false;
@@ -178,9 +185,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         username: user.username || user.email || undefined,
       });
       
-      // Initialize push notifications (will only request if already granted)
-      pushNotificationService.initialize().catch(err =>
-        console.warn('Push initialization failed:', err)
+      // Re-register FCM token if permission was already granted (does NOT prompt)
+      pushNotificationService.silentInit().catch(err =>
+        console.warn('Push silent init failed:', err)
       );
     } else {
       Sentry.setUser(null);

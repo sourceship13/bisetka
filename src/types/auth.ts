@@ -11,6 +11,7 @@ export interface User {
   } | null;
   provider?: string;
   needsUsernameSelection?: boolean;
+  onboarding_shown?: boolean;
 }
 
 export interface AuthResponse {
