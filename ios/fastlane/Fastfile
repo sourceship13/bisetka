@@ -82,4 +82,15 @@ platform :ios do
       UI.important("⚠️  APP_STORE_API_KEY_ID not set - skipping TestFlight upload")
     end
   end
+
+  desc "Regenerate provisioning profiles with Push Notifications enabled. Run this after enabling Push Notifications in Apple Developer Portal."
+  lane :sync_push_profiles do
+    match(
+      type: "appstore",
+      readonly: false,
+      force: true,
+      app_identifier: ["org.sera.dev.bisetka", "org.sera.dev.bisetka.staging"]
+    )
+    UI.success("✅ Provisioning profiles regenerated with Push Notifications!")
+  end
 end
