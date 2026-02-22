@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,10 +8,12 @@ import {
   StatusBar,
   Dimensions,
   Platform,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import {useAuth} from '../libs/hooks/useAuth';
+import pushNotificationService from '../services/pushNotification.service';
 import {iOSUIKit} from 'react-native-typography';
 import {colors} from '../theme';
 import packageJson from '../../package.json';
@@ -107,6 +109,52 @@ type GameConfig = (typeof GAMES)[number];
 
 const HomeScreen = ({navigation}: any) => {
   const {user, signOut} = useAuth();
+
+  // Ensure push permission is granted and the FCM token is registered.
+  //
+  // Race condition this prevents:
+  //   1. App opens (already logged in) → silentInit fires but perm not yet granted → bails
+  //   2. HomeScreen mounts → permission prompt → user taps Allow
+  //   3. silentInit never re-runs (user object didn't change) → push_token stays NULL
+  //
+  // By always calling silentInit() at the end (after any prompt), we guarantee the
+  // FCM token is sent to the backend even if the timing was off on login.
+  useEffect(() => {
+    const setupPush = async () => {
+      const status = await pushNotificationService.checkPermission();
+
+      if (status === 'undetermined' || status === 'denied') {
+        // Give the UI a moment to settle before the system dialog appears
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        await pushNotificationService.initialize();
+      } else if (status === 'blocked') {
+        // Previously denied — prompt user to enable manually in Settings
+        Alert.alert(
+          'Enable Notifications',
+          'Turn on notifications in Settings to be notified when someone sends a message.',
+          [
+            { text: 'Not Now', style: 'cancel' },
+            {
+              text: 'Open Settings',
+              onPress: () => pushNotificationService.openNotificationSettings(),
+            },
+          ],
+        );
+        // Still try silentInit in case they already enabled it in Settings
+        // before opening the app this session.
+      }
+
+      // Always call silentInit regardless of the path above.
+      // • If just granted above  → registers the FCM token now.
+      // • If already granted     → re-registers / refreshes the token.
+      // • If still blocked       → silentInit checks internally and returns early (no-op).
+      await pushNotificationService.silentInit();
+    };
+
+    setupPush().catch(err =>
+      console.warn('Push setup failed:', err)
+    );
+  }, []);
 
   const handleGamePress = (game: GameConfig) => {
     // Navigate to GameInfo screen first to show rules and points

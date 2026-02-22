@@ -20,7 +20,7 @@ import { Platform, NativeModules } from 'react-native';
  */
 
 // ========== CONFIGURATION FLAGS ==========
-const FORCE_LOCAL = true; // Set to true to use local server
+const FORCE_LOCAL = true; // true = use LOCAL_API_URL for all __DEV__ builds (simulator + physical device)
 
 // Safely load Config value with fallback - handles Android null Config
 // Cache values to avoid repeated Config access
@@ -43,30 +43,53 @@ function getConfigValue(key: string, fallback: string): string {
 }
 
 // ========== API URLS ==========
-// Lazy load environment URLs from Config with fallbacks and caching
+
+/**
+ * PERMANENT FIX — auto-derives the dev machine IP at runtime.
+ *
+ * In debug / Metro builds the device already has the right host URL because it
+ * loaded the JS bundle from Metro. We parse that host out of
+ * NativeModules.SourceCode.scriptURL (e.g. "http://192.168.1.42:8081/...") and
+ * use port 3000 for the API.  This means the IP is NEVER hardcoded — no .env
+ * edit, no rebuild needed when your Wi-Fi IP changes.
+ *
+ * Fallback chain (in order):
+ *  1. Metro scriptURL  → derive host at runtime  (debug / physical device / sim)
+ *  2. LOCAL_API_URL in .env / .env.staging       (release builds with FORCE_LOCAL)
+ *  3. Platform defaults (localhost / 10.0.2.2)
+ */
 const getLocalURL = () => {
   if (cachedLocalURL === null) {
-    // Check for env override first
+    // ── 1. Auto-detect from Metro script URL (zero-config, always up-to-date) ──
+    try {
+      const scriptURL: string | undefined = NativeModules.SourceCode?.scriptURL;
+      if (scriptURL && scriptURL.startsWith('http')) {
+        const match = scriptURL.match(/^https?:\/\/([^/:]+)/);
+        const host = match?.[1];
+        // Exclude simulator-only addresses — a physical device will never have these
+        if (host && host !== 'localhost' && host !== '127.0.0.1' && host !== '10.0.2.2') {
+          cachedLocalURL = `http://${host}:3000`;
+          console.log(`📡 Local API URL (auto from Metro): ${cachedLocalURL}`);
+          return cachedLocalURL;
+        }
+      }
+    } catch (_) { /* SourceCode module unavailable — fall through */ }
+
+    // ── 2. Explicit override in .env / .env.staging ───────────────────────────
     const envURL = getConfigValue('LOCAL_API_URL', '');
     if (envURL) {
-      // Handle both full URLs and IP addresses
       cachedLocalURL = envURL.startsWith('http') ? envURL : `http://${envURL}:3000`;
-    } else {
-      // Auto-detect based on platform:
-      // - iOS Simulator: use localhost (shares host network)
-      // - Android Emulator: use 10.0.2.2 (special alias for host)
-      // - Physical devices: need actual machine IP (set LOCAL_API_URL in .env)
-      if (Platform.OS === 'ios') {
-        // iOS Simulator can use localhost directly
-        cachedLocalURL = 'http://localhost:3000';
-      } else if (Platform.OS === 'android') {
-        // Android emulator needs special IP to reach host
-        cachedLocalURL = 'http://10.0.2.2:3000';
-      } else {
-        cachedLocalURL = 'http://localhost:3000';
-      }
+      console.log(`📡 Local API URL (from .env): ${cachedLocalURL}`);
+      return cachedLocalURL;
     }
-    console.log(`📡 Local API URL: ${cachedLocalURL} (${Platform.OS})`);
+
+    // ── 3. Platform defaults (simulator / emulator) ───────────────────────────
+    if (Platform.OS === 'android') {
+      cachedLocalURL = 'http://10.0.2.2:3000';  // Android emulator → host loopback
+    } else {
+      cachedLocalURL = 'http://localhost:3000';  // iOS simulator shares host network
+    }
+    console.log(`📡 Local API URL (platform default): ${cachedLocalURL}`);
   }
   return cachedLocalURL;
 };
@@ -108,8 +131,9 @@ function getBundleId(): string {
 }
 
 function getEnvironment(): Environment {
-  // Priority 1: Force local (for local development only)
-  if (FORCE_LOCAL && __DEV__) {
+  // Priority 1: Force local — works for ALL build types (simulator, physical device, staging scheme)
+  // Set FORCE_LOCAL = false before making a production/TestFlight release
+  if (FORCE_LOCAL) {
     return 'local';
   }
 

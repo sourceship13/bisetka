@@ -14,8 +14,8 @@ import {
 import {SafeAreaView} from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import messaging from '@react-native-firebase/messaging';
 import pushNotificationService from '../services/pushNotification.service';
+import apiService from '../services/api.service';
 import {colors} from '../theme/colors';
 
 const BisetkaLogo = require('../../assets/imgs/bisetka-logo.png');
@@ -71,7 +71,7 @@ const ONBOARDING_COMPLETE_KEY = '@bisetka_onboarding_complete';
 
 const OnboardingScreen: React.FC<{navigation: any}> = ({navigation}) => {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [notificationStatus, setNotificationStatus] = useState<'pending' | 'granted' | 'denied'>('pending');
+  const [notificationStatus, setNotificationStatus] = useState<'pending' | 'granted' | 'denied' | 'blocked'>('pending');
   const flatListRef = useRef<FlatList>(null);
   const scrollX = useRef(new Animated.Value(0)).current;
 
@@ -90,22 +90,22 @@ const OnboardingScreen: React.FC<{navigation: any}> = ({navigation}) => {
 
   const handleEnableNotifications = async () => {
     try {
-      const authStatus = await messaging().requestPermission();
-      const enabled =
-        authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
-        authStatus === messaging.AuthorizationStatus.PROVISIONAL;
-
-      if (enabled) {
+      const result = await pushNotificationService.initialize();
+      if (result === 'granted') {
         setNotificationStatus('granted');
-        // Initialize push notifications
-        await pushNotificationService.initialize();
+      } else if (result === 'blocked') {
+        setNotificationStatus('blocked');
       } else {
         setNotificationStatus('denied');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Notification permission error:', error);
       setNotificationStatus('denied');
     }
+  };
+
+  const handleOpenSettings = () => {
+    pushNotificationService.openNotificationSettings();
   };
 
   const handleGetStarted = async () => {
@@ -117,6 +117,12 @@ const OnboardingScreen: React.FC<{navigation: any}> = ({navigation}) => {
       await AsyncStorage.setItem(ONBOARDING_COMPLETE_KEY, 'true');
     } catch (error) {
       console.error('Failed to save onboarding state:', error);
+    }
+    // Persist to server so onboarding stays dismissed across reinstalls / devices
+    try {
+      await apiService.markOnboardingComplete();
+    } catch (error) {
+      console.warn('Failed to mark onboarding complete on server:', error);
     }
     navigation.replace('Home');
   };
@@ -173,6 +179,28 @@ const OnboardingScreen: React.FC<{navigation: any}> = ({navigation}) => {
             <Text style={[slideStyles.notifStatusText, {color: colors.text.tertiary}]}>
               You can enable notifications later in Settings
             </Text>
+          </View>
+        )}
+        {item.isNotificationSlide && notificationStatus === 'blocked' && (
+          <View style={{alignItems: 'center', marginTop: 16}}>
+            <View style={[slideStyles.notifStatus, {backgroundColor: 'rgba(245,87,108,0.12)', marginBottom: 12}]}>
+              <Text style={[slideStyles.notifStatusText, {color: '#f5576c'}]}>
+                🚫 Notifications are blocked
+              </Text>
+              <Text style={{color: colors.text.tertiary, fontSize: 12, textAlign: 'center', marginTop: 4}}>
+                Tap below to open Settings and enable them.
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={slideStyles.notifButton}
+              onPress={handleOpenSettings}
+              activeOpacity={0.8}>
+              <LinearGradient
+                colors={['#ee0979', '#ff6a00']}
+                style={slideStyles.notifButtonGradient}>
+                <Text style={slideStyles.notifButtonText}>⚙️ Open Settings</Text>
+              </LinearGradient>
+            </TouchableOpacity>
           </View>
         )}
       </View>
@@ -256,7 +284,7 @@ const OnboardingScreen: React.FC<{navigation: any}> = ({navigation}) => {
               </LinearGradient>
             </TouchableOpacity>
           ) : (
-            <TouchableOpacity onPress={handleNext} activeOpacity={0.8}>
+            <TouchableOpacity onPress={handleNext} activeOpacity={0.8} style={{flex:1}}>
               <LinearGradient
                 colors={[colors.primary, colors.primaryDark]}
                 style={slideStyles.button}>
@@ -345,15 +373,15 @@ const slideStyles = StyleSheet.create({
     elevation: 6,
   },
   notifButtonGradient: {
-    paddingVertical: 14,
-    paddingHorizontal: 32,
     borderRadius: 14,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   notifButtonText: {
     fontSize: 16,
     fontWeight: '700',
     color: '#fff',
+    margin:20
   },
   notifStatus: {
     marginTop: 24,
@@ -380,14 +408,13 @@ const slideStyles = StyleSheet.create({
   },
   buttonContainer: {
     paddingHorizontal: 20,
-    paddingBottom: 24,
+    paddingBottom: 36,
   },
   button: {
+    height:44,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 24,
     borderRadius: 14,
     gap: 8,
   },

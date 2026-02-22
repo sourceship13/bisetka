@@ -96,7 +96,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     borderTopLeftRadius:12,
     borderTopRightRadius:12,
-    // marginVertical: 20,
     flex: 1,
   },
   backButton: {

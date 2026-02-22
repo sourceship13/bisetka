@@ -208,6 +208,18 @@ class ApiService {
     );
   }
 
+  /**
+   * Mark onboarding as completed for the authenticated user
+   * POST /api/auth/onboarding-complete
+   */
+  async markOnboardingComplete(): Promise<{ message: string }> {
+    return this.request<{ message: string }>(
+      '/auth/onboarding-complete',
+      { method: 'POST' },
+      true
+    );
+  }
+
   // ========== GAME ENDPOINTS ==========
 
   /**
