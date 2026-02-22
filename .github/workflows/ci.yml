@@ -59,3 +59,11 @@ jobs:
         run: |
           cd ios
           bundle exec fastlane production
+      - name: Upload gym log on failure
+        if: failure()
+        run: |
+          LOG=$(find ~/Library/Logs/gym -name "*.log" | head -1)
+          if [ -f "$LOG" ]; then
+            echo "=== FULL GYM LOG ==="
+            cat "$LOG"
+          fi
