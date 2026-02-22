@@ -316,7 +316,9 @@ export const registerDevice = async (
     });
 
     if (!response.ok) {
-      console.warn('Device registration failed:', response.status);
+      let body = '';
+      try { body = await response.text(); } catch { /* ignore */ }
+      console.warn('⚠️ Device registration failed:', response.status, body);
     } else {
       console.log('✅ Device registered successfully');
     }
