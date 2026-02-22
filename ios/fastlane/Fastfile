@@ -58,6 +58,16 @@ platform :ios do
       app_identifier: "org.sera.dev.bisetka"
     )
     
+    # Auto-increment build number from latest TestFlight build
+    build_num = latest_testflight_build_number(
+      api_key_path: "./fastlane/api_key.json",
+      app_identifier: "org.sera.dev.bisetka"
+    )
+    increment_build_number(
+      build_number: build_num + 1,
+      xcodeproj: "bisetka.xcodeproj"
+    )
+
     # Build the app
     gym(
       workspace: "bisetka.xcworkspace",
