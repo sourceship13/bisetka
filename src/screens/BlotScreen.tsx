@@ -8,6 +8,7 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import GameToolbar from '../components/GameToolbar';
 import Card, {CardType, Suit} from '../components/Card';
 import {
   GameState,
@@ -166,15 +167,16 @@ const BlotScreen = ({navigation}: any) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-          <Text style={styles.backButton}>← Back</Text>
-        </TouchableOpacity>
-        <Text style={styles.title}>Blot</Text>
-        <TouchableOpacity onPress={startNewGame} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-          <Text style={styles.newGameText}>New Game</Text>
-        </TouchableOpacity>
-      </View>
+      <GameToolbar
+        title="Blot"
+        onBack={() => navigation.goBack()}
+        backgroundColor="#0A3622"
+        rightElement={
+          <TouchableOpacity onPress={startNewGame} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+            <Text style={styles.newGameText}>New Game</Text>
+          </TouchableOpacity>
+        }
+      />
 
       <View style={styles.scoreBoard}>
         <View style={styles.teamScore}>

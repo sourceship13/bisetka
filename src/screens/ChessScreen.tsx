@@ -1,6 +1,7 @@
 import React, {useState, useEffect, useRef} from 'react';
 import {View, Text, StyleSheet, TouchableOpacity, Alert} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import GameToolbar from '../components/GameToolbar';
 import {
   Difficulty,
   ChessGameState,
@@ -191,13 +192,7 @@ const ChessScreen = ({navigation}: any) => {
   if (!difficulty || !gameState) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-            <Text style={styles.backButton}>← Back</Text>
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Chess</Text>
-          <View style={{ width: 60 }} />
-        </View>
+        <GameToolbar title="Chess" onBack={() => navigation.goBack()} />
 
         <View style={styles.difficultySelection}>
           <Text style={styles.difficultyTitle}>Select Difficulty</Text>
@@ -239,15 +234,15 @@ const ChessScreen = ({navigation}: any) => {
   // Game screen
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={resetGame} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-          <Text style={styles.backButton}>← Back</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Chess - {difficulty}</Text>
-        <TouchableOpacity onPress={resetGame} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-          <Text style={styles.newGameText}>New</Text>
-        </TouchableOpacity>
-      </View>
+      <GameToolbar
+        title={`Chess - ${difficulty}`}
+        onBack={resetGame}
+        rightElement={
+          <TouchableOpacity onPress={resetGame} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+            <Text style={styles.newGameText}>New</Text>
+          </TouchableOpacity>
+        }
+      />
 
       <View style={styles.statusBar}>
         <Text style={styles.turnText}>
