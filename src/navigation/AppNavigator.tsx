@@ -8,6 +8,7 @@ import HomeScreen from '../screens/HomeScreen';
 import OnboardingScreen from '../screens/OnboardingScreen';
 import {ONBOARDING_COMPLETE_KEY} from '../screens/OnboardingScreen';
 import UsernameSelectionScreen from '../screens/UsernameSelectionScreen';
+import BlotScreen from '../screens/BlotScreen';
 import MultiplayerBlotScreen from '../screens/MultiplayerBlotScreen';
 import BaazarBlotScreen from '../screens/BaazarBlotScreen';
 import NardiScreen from '../screens/NardiScreen';
@@ -36,7 +37,8 @@ export type RootStackParamList = {
   UsernameSelection: undefined;
   Onboarding: undefined;
   Home: undefined;
-  Blot: { userId: string; mode?: 'ai' | 'menu' | 'private-create' | 'private-join' | 'random'; difficulty?: 'easy' | 'medium' | 'hard'; joinCode?: string };
+  Blot: undefined;
+  MultiplayerBlot: { userId: string; mode?: 'ai' | 'menu' | 'private-create' | 'private-join' | 'random'; difficulty?: 'easy' | 'medium' | 'hard'; joinCode?: string };
   BaazarBlot: undefined;
   Nardi: undefined;
   Chess: undefined;
@@ -139,7 +141,8 @@ const AppNavigator = () => {
                 <Stack.Screen name="Onboarding" component={OnboardingScreen} />
               )}
               <Stack.Screen name="Home" component={HomeScreen} />
-              <Stack.Screen name="Blot" component={MultiplayerBlotScreen} />
+              <Stack.Screen name="Blot" component={BlotScreen} />
+              <Stack.Screen name="MultiplayerBlot" component={MultiplayerBlotScreen} />
               <Stack.Screen name="BaazarBlot" component={BaazarBlotScreen} />
               <Stack.Screen name="Chess" component={ChessScreen} />
               <Stack.Screen name="MultiplayerChess" component={MultiplayerChessScreen} />
