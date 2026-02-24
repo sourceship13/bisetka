@@ -14,6 +14,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import GameToolbar from '../components/GameToolbar';
 import Card, {CardType, Suit} from '../components/Card';
+import CardCustomizationModal from '../components/CardCustomizationModal';
+import type { CardTheme } from '../components/CardCustomizationModal';
 import {
   GameState,
   initializeGame,
@@ -25,7 +27,15 @@ import {
 
 const BlotScreen = ({navigation}: any) => {
   const [gameState, setGameState] = useState<GameState>(initializeGame());
+  const [showCustomization, setShowCustomization] = useState(false);
+  const [customTheme, setCustomTheme] = useState<CardTheme | undefined>(undefined);
   useGameEndRefresh(gameState.phase === 'gameEnd', 'blot');
+
+  const handleSaveTheme = (theme: CardTheme) => {
+    setCustomTheme(theme);
+    // TODO: Save to AsyncStorage for persistence
+    console.log('Saved custom theme:', theme);
+  };
 
   const selectTrump = (suit: Suit) => {
     setGameState(prev => ({
@@ -187,9 +197,18 @@ const BlotScreen = ({navigation}: any) => {
             onBack={() => navigation.goBack()}
             backgroundColor="transparent"
             rightElement={
-              <TouchableOpacity onPress={startNewGame} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                <Text style={styles.newGameText}>New Game</Text>
-              </TouchableOpacity>
+              <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
+                <TouchableOpacity 
+                  onPress={() => setShowCustomization(true)} 
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                  <Text style={styles.customizeText}>🎨</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  onPress={startNewGame} 
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                  <Text style={styles.newGameText}>New Game</Text>
+                </TouchableOpacity>
+              </View>
             }
           />
 
@@ -266,6 +285,13 @@ const BlotScreen = ({navigation}: any) => {
       )}
         </SafeAreaView>
       </LinearGradient>
+
+      <CardCustomizationModal
+        visible={showCustomization}
+        onClose={() => setShowCustomization(false)}
+        onSave={handleSaveTheme}
+        currentTheme={customTheme}
+      />
     </ImageBackground>
   );
 };
@@ -304,6 +330,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#FFD700',
     fontWeight: '600',
+  },
+  customizeText: {
+    fontSize: 22,
+    color: '#FFD700',
   },
   scoreBoard: {
     flexDirection: 'row',
