@@ -17,6 +17,7 @@ import {
 import ChessPiece from '../components/ChessPiece';
 import { aiMoveLogService } from '../services/aiMoveLog.service';
 import { v4 as uuidv4 } from 'uuid';
+import { useGameEndRefresh } from '../libs/hooks/useGameEndRefresh';
 
 const ChessScreen = ({navigation}: any) => {
   const [difficulty, setDifficulty] = useState<Difficulty | null>(null);
@@ -24,6 +25,7 @@ const ChessScreen = ({navigation}: any) => {
   const gameIdRef = useRef<string | null>(null);
   const moveCountRef = useRef(0);
   const lastPlayerMoveRef = useRef<{ from: Position; to: Position; piece: string; captured?: string } | null>(null);
+  useGameEndRefresh(!!(gameState?.isCheckmate || gameState?.isStalemate), 'chess');
 
   useEffect(() => {
     // Computer's turn

@@ -34,11 +34,11 @@ const SessionStatusScreen: React.FC<Props> = ({route, navigation}) => {
         navigation.navigate('MultiplayerChess', {userId: session?.userId || 'temp-user'});
         break;
       case 'blot':
-      case 'baazar-blot':
-        navigation.navigate('Blot', {userId: session?.userId || 'temp-user'});
-        break;
       case 'cards':
-        navigation.navigate('Blot', {userId: session?.userId || 'temp-user'});
+        navigation.navigate('MultiplayerBlot' as any, {userId: session?.userId || 'temp-user'});
+        break;
+      case 'baazar-blot':
+        navigation.navigate('BaazarBlot' as any);
         break;
       default:
         navigation.goBack();

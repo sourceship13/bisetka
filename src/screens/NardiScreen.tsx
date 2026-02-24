@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import GameToolbar from '../components/GameToolbar';
+import { useGameEndRefresh } from '../libs/hooks/useGameEndRefresh';
 import LinearGradient from 'react-native-linear-gradient';
 import {
   GameMode,
@@ -82,6 +83,7 @@ const NardiScreen = ({ navigation, route }: any) => {
   const [gameState, setGameState] = useState<NardiGameState | null>(null);
   const [selectedPoint, setSelectedPoint] = useState<number | null>(null);
   const aiTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  useGameEndRefresh(gameState?.winner != null, 'nardi');
 
   // Clear selection whenever state changes
   useEffect(() => {

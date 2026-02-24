@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { useAuth } from '../libs/hooks/useAuth';
+import { useGameEndRefresh } from '../libs/hooks/useGameEndRefresh';
 import Svg, { Polyline } from 'react-native-svg';
 import apiConfig from '../libs/utils/api.utils';
 import GameToolbar from '../components/GameToolbar';
@@ -39,6 +40,7 @@ interface SpinResult {
 
 const SlotsScreen = ({ navigation }: any) => {
   const { user } = useAuth();
+  const { refreshOnGameEnd } = useGameEndRefresh(undefined, 'slots');
   const [balance, setBalance] = useState((user as any)?.balance || 1000);
   const [betAmount, setBetAmount] = useState(10);
   const [spinning, setSpinning] = useState(false);
@@ -93,6 +95,7 @@ const SlotsScreen = ({ navigation }: any) => {
 
       setResult(data.result);
       setWinnings(data);
+      refreshOnGameEnd().catch(console.error);
 
       if (data.totalPayout > 0) {
         setBalance((prev: number) => prev + data.totalPayout);

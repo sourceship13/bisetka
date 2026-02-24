@@ -9,13 +9,16 @@ import {
   ActivityIndicator,
   ScrollView,
   Modal,
+  ImageBackground,
 } from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { socketService } from '../services/SocketService';
 import { blotAIService, LocalGameState, Card } from '../services/blotAI.service';
 import { gameResultService } from '../services/gameResult.service';
 import { aiMoveLogService } from '../services/aiMoveLog.service';
 import { v4 as uuidv4 } from 'uuid';
+import { useGameEndRefresh } from '../libs/hooks/useGameEndRefresh';
 
 interface GameState {
   deck: Card[];
@@ -30,6 +33,7 @@ interface GameState {
 
 const MultiplayerBlotScreen = ({ navigation, route }: any) => {
   const userId = route.params?.userId || 'test-user-' + Math.random().toString(36).substr(2, 9);
+  const { refreshOnGameEnd } = useGameEndRefresh(undefined, 'blot');
   const initialMode = route.params?.mode; // 'ai', 'private-create', 'private-join', 'random'
   const initialDifficulty = route.params?.difficulty || 'medium';
   const initialJoinCode = route.params?.joinCode;
@@ -486,6 +490,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
       durationSeconds,
       startedAt: gameStartTime.current || undefined,
     });
+    refreshOnGameEnd().catch(console.error);
 
     const pointsMessage = gameResultResponse?.pointsEarned 
       ? `\n+${gameResultResponse.pointsEarned} points earned!`
@@ -547,7 +552,8 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
                 durationSeconds,
                 startedAt: gameStartTime.current || undefined,
               });
-              
+              refreshOnGameEnd().catch(console.error);
+
               setIsLocalGame(false);
               setLocalGameState(null);
               navigation.replace('GameMode', {gameType: 'blot'});
@@ -818,7 +824,14 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+    <ImageBackground
+      source={require('../../assets/blot/park-background.png')}
+      style={styles.container}
+      blurRadius={3}>
+      <LinearGradient
+        colors={['rgba(15,15,35,0.7)', 'rgba(26,23,66,0.6)']}
+        style={styles.overlay}>
+        <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right']}>
       {gameMode === 'menu' && renderMenu()}
       {gameMode === 'matchmaking' && renderMatchmaking()}
       {gameMode === 'private' && renderPrivateRoom()}
@@ -893,14 +906,18 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+        </SafeAreaView>
+      </LinearGradient>
+    </ImageBackground>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+  },
+  overlay: {
+    flex: 1,
   },
   menuContainer: {
     flex: 1,
@@ -1026,20 +1043,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 15,
     padding: 10,
-    backgroundColor: '#fff',
+    backgroundColor: 'rgba(10, 54, 34, 0.75)',
     borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255,215,0,0.3)',
   },
   scoreContainer: {
     alignItems: 'center',
   },
   scoreLabel: {
     fontSize: 12,
-    color: '#666',
+    color: 'rgba(255,255,255,0.7)',
   },
   scoreValue: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#007AFF',
+    color: '#FFD700',
   },
   turnIndicator: {
     flexDirection: 'row',
@@ -1048,7 +1067,7 @@ const styles = StyleSheet.create({
   turnText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: '#fff',
   },
   turnDot: {
     width: 10,
@@ -1070,16 +1089,18 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   currentTrickContainer: {
-    backgroundColor: '#fff',
+    backgroundColor: 'rgba(10, 54, 34, 0.75)',
     borderRadius: 10,
     padding: 15,
     marginBottom: 15,
+    borderWidth: 1,
+    borderColor: 'rgba(255,215,0,0.2)',
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
     marginBottom: 10,
-    color: '#333',
+    color: '#fff',
   },
   trickCards: {
     flexDirection: 'row',
@@ -1089,14 +1110,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   emptyText: {
-    color: '#999',
+    color: 'rgba(255,255,255,0.6)',
     fontStyle: 'italic',
   },
   handContainer: {
-    backgroundColor: '#fff',
+    backgroundColor: 'rgba(10, 54, 34, 0.75)',
     borderRadius: 10,
     padding: 15,
     flex: 1,
+    borderWidth: 1,
+    borderColor: 'rgba(255,215,0,0.2)',
   },
   handCards: {
     flexDirection: 'row',

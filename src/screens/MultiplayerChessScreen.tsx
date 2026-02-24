@@ -22,9 +22,11 @@ import {
 } from '../game/chessLogic';
 import ChessPiece from '../components/ChessPiece';
 import {socketService, GameMove} from '../services/SocketService';
+import { useGameEndRefresh } from '../libs/hooks/useGameEndRefresh';
 
 const MultiplayerChessScreen = ({navigation, route}: any) => {
   const {userId, mode: routeMode, joinCode} = route.params; // Get from auth context
+  const { refreshOnGameEnd } = useGameEndRefresh(undefined, 'chess');
   const [mode, setMode] = useState<'menu' | 'matchmaking' | 'private' | 'game'>('menu');
   const [gameState, setGameState] = useState<ChessGameState | null>(null);
   const [roomId, setRoomId] = useState<string>('');
@@ -96,6 +98,7 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
 
     socketService.onGameEnded((data) => {
       console.log('🏁 game_ended received:', data);
+      refreshOnGameEnd().catch(console.error);
       if (data.result === 'resignation') {
         const didIWin = data.winnerId === userId;
         Alert.alert(
@@ -108,6 +111,7 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
 
     socketService.onOpponentDisconnected(() => {
       console.log('👋 opponent_disconnected received');
+      refreshOnGameEnd().catch(console.error);
       Alert.alert(
         'Opponent Disconnected',
         'Your opponent has disconnected from the game.',
