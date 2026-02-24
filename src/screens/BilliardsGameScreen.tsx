@@ -15,6 +15,7 @@ import {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {RootStackParamList} from '../navigation/AppNavigator';
 import {aiMoveLogService} from '../services/aiMoveLog.service';
 import {v4 as uuidv4} from 'uuid';
+import { useGameEndRefresh } from '../libs/hooks/useGameEndRefresh';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'BilliardsGame'>;
 
@@ -329,6 +330,7 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
 
   // AI move logging refs
   const billiardsGameIdRef = useRef<string>(uuidv4());
+  useGameEndRefresh(gameOver, variant);
   const shotCountRef = useRef(0);
   const lastPlayerShotRef = useRef<{
     cueBallVelocity: Vec2;

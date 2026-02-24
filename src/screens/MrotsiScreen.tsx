@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import GameToolbar from '../components/GameToolbar';
 import { aiMoveLogService } from '../services/aiMoveLog.service';
 import { v4 as uuidv4 } from 'uuid';
+import { useGameEndRefresh } from '../libs/hooks/useGameEndRefresh';
 
 interface GameState {
   playerDice: number[];
@@ -27,6 +28,7 @@ const MrotsiScreen = ({navigation, route}: any) => {
   );
   const gameIdRef = useRef<string>(uuidv4());
   const lastPlayerDiceRef = useRef<{ dice: number[]; score: number } | null>(null);
+  useGameEndRefresh(gameState.isGameOver, 'mrotsi');
 
   useEffect(() => {
     // AI opponent's turn - use full gameState to avoid stale closures in production builds

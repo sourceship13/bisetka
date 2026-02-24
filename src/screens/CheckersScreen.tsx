@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import GameToolbar from '../components/GameToolbar';
 import { aiMoveLogService } from '../services/aiMoveLog.service';
 import { v4 as uuidv4 } from 'uuid';
+import { useGameEndRefresh } from '../libs/hooks/useGameEndRefresh';
 
 type PieceType = 'regular' | 'king';
 type PieceColor = 'red' | 'black';
@@ -34,6 +35,7 @@ const CheckersScreen = ({navigation, route}: any) => {
   const gameIdRef = useRef<string>(uuidv4());
   const moveCountRef = useRef(0);
   const lastPlayerMoveRef = useRef<{ from: Position; to: Position; isJump?: boolean } | null>(null);
+  useGameEndRefresh(gameState.isGameOver, 'checkers');
 
   useEffect(() => {
     // AI's turn
