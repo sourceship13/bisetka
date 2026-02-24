@@ -276,7 +276,7 @@ const BlotScreen = ({navigation}: any) => {
                   card={card}
                   onPress={() => playCard(card)}
                   isPlayable={canPlayCard(card, currentPlayer.hand, gameState.currentTrick, gameState.trump)}
-                  size="medium"
+                  size="large"
                 />
               ))}
             </View>
@@ -454,7 +454,7 @@ const styles = StyleSheet.create({
   },
   hand: {
     flexDirection: 'row',
-    marginTop: 32,
+    marginTop: 75,
   },
   trumpSelection: {
     flex: 1,
