@@ -1,0 +1,201 @@
+🔍 Monitoring card generation...
+Will auto-standardize when all 52 cards are generated
+
+01:44:52 - 33/52 cards generated
+01:45:22 - 34/52 cards generated
+01:45:52 - 34/52 cards generated
+01:46:22 - 35/52 cards generated
+01:46:52 - 36/52 cards generated
+01:47:23 - 36/52 cards generated
+01:47:53 - 37/52 cards generated
+01:48:23 - 38/52 cards generated
+01:48:53 - 38/52 cards generated
+01:49:23 - 39/52 cards generated
+01:49:53 - 39/52 cards generated
+01:50:23 - 40/52 cards generated
+01:50:53 - 41/52 cards generated
+01:51:23 - 41/52 cards generated
+01:51:54 - 42/52 cards generated
+01:52:24 - 42/52 cards generated
+01:52:54 - 43/52 cards generated
+01:53:24 - 44/52 cards generated
+01:53:54 - 44/52 cards generated
+01:54:24 - 45/52 cards generated
+01:54:54 - 46/52 cards generated
+01:55:24 - 47/52 cards generated
+01:55:57 - 47/52 cards generated
+01:56:28 - 48/52 cards generated
+01:56:58 - 49/52 cards generated
+01:57:29 - 49/52 cards generated
+01:57:59 - 50/52 cards generated
+01:58:29 - 51/52 cards generated
+01:58:59 - 51/52 cards generated
+01:59:29 - 52/52 cards generated
+
+✅ All 52 cards generated!
+🎴 Running standardization...
+
+🎴 Standardizing cards to 700x1000...
+
+Processing 10-clubs.png...
+✅ Standardized 10-clubs.png
+
+Processing 10-diamonds.png...
+✅ Standardized 10-diamonds.png
+
+Processing 10-hearts.png...
+✅ Standardized 10-hearts.png
+
+Processing 10-spades.png...
+✅ Standardized 10-spades.png
+
+Processing 2-clubs.png...
+✅ Standardized 2-clubs.png
+
+Processing 2-diamonds.png...
+✅ Standardized 2-diamonds.png
+
+Processing 2-hearts.png...
+✅ Standardized 2-hearts.png
+
+Processing 2-spades.png...
+✅ Standardized 2-spades.png
+
+Processing 3-clubs.png...
+✅ Standardized 3-clubs.png
+
+Processing 3-diamonds.png...
+✅ Standardized 3-diamonds.png
+
+Processing 3-hearts.png...
+✅ Standardized 3-hearts.png
+
+Processing 3-spades.png...
+✅ Standardized 3-spades.png
+
+Processing 4-clubs.png...
+✅ Standardized 4-clubs.png
+
+Processing 4-diamonds.png...
+✅ Standardized 4-diamonds.png
+
+Processing 4-hearts.png...
+✅ Standardized 4-hearts.png
+
+Processing 4-spades.png...
+✅ Standardized 4-spades.png
+
+Processing 5-clubs.png...
+✅ Standardized 5-clubs.png
+
+Processing 5-diamonds.png...
+✅ Standardized 5-diamonds.png
+
+Processing 5-hearts.png...
+✅ Standardized 5-hearts.png
+
+Processing 5-spades.png...
+✅ Standardized 5-spades.png
+
+Processing 6-clubs.png...
+✅ Standardized 6-clubs.png
+
+Processing 6-diamonds.png...
+✅ Standardized 6-diamonds.png
+
+Processing 6-hearts.png...
+✅ Standardized 6-hearts.png
+
+Processing 6-spades.png...
+✅ Standardized 6-spades.png
+
+Processing 7-clubs.png...
+✅ Standardized 7-clubs.png
+
+Processing 7-diamonds.png...
+✅ Standardized 7-diamonds.png
+
+Processing 7-hearts.png...
+✅ Standardized 7-hearts.png
+
+Processing 7-spades.png...
+✅ Standardized 7-spades.png
+
+Processing 8-clubs.png...
+✅ Standardized 8-clubs.png
+
+Processing 8-diamonds.png...
+✅ Standardized 8-diamonds.png
+
+Processing 8-hearts.png...
+✅ Standardized 8-hearts.png
+
+Processing 8-spades.png...
+✅ Standardized 8-spades.png
+
+Processing 9-clubs.png...
+✅ Standardized 9-clubs.png
+
+Processing 9-diamonds.png...
+✅ Standardized 9-diamonds.png
+
+Processing 9-hearts.png...
+✅ Standardized 9-hearts.png
+
+Processing 9-spades.png...
+✅ Standardized 9-spades.png
+
+Processing A-clubs.png...
+✅ Standardized A-clubs.png
+
+Processing A-diamonds.png...
+✅ Standardized A-diamonds.png
+
+Processing A-hearts.png...
+✅ Standardized A-hearts.png
+
+Processing A-spades.png...
+✅ Standardized A-spades.png
+
+Processing J-clubs.png...
+✅ Standardized J-clubs.png
+
+Processing J-diamonds.png...
+✅ Standardized J-diamonds.png
+
+Processing J-hearts.png...
+✅ Standardized J-hearts.png
+
+Processing J-spades.png...
+✅ Standardized J-spades.png
+
+Processing K-clubs.png...
+✅ Standardized K-clubs.png
+
+Processing K-diamonds.png...
+✅ Standardized K-diamonds.png
+
+Processing K-hearts.png...
+✅ Standardized K-hearts.png
+
+Processing K-spades.png...
+✅ Standardized K-spades.png
+
+Processing Q-clubs.png...
+✅ Standardized Q-clubs.png
+
+Processing Q-diamonds.png...
+✅ Standardized Q-diamonds.png
+
+Processing Q-hearts.png...
+✅ Standardized Q-hearts.png
+
+Processing Q-spades.png...
+✅ Standardized Q-spades.png
+
+==================================================
+🎉 Standardized 52 cards!
+📐 Uniform size: 700x1000
+==================================================
+
+🎉 Done! All cards are now uniform 700x1000
