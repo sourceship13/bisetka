@@ -1,6 +1,7 @@
 import React, {useState, useEffect, useRef} from 'react';
 import {View, Text, StyleSheet, TouchableOpacity, Alert} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import GameToolbar from '../components/GameToolbar';
 import { aiMoveLogService } from '../services/aiMoveLog.service';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -329,15 +330,15 @@ const CheckersScreen = ({navigation, route}: any) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-          <Text style={styles.backButton}>← Back</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Checkers {gameState.gameMode === 'ai' ? '(vs AI)' : ''}</Text>
-        <TouchableOpacity onPress={resetGame} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-          <Text style={styles.newGameText}>New</Text>
-        </TouchableOpacity>
-      </View>
+      <GameToolbar
+        title={`Checkers${gameState.gameMode === 'ai' ? ' (vs AI)' : ''}`}
+        onBack={() => navigation.goBack()}
+        rightElement={
+          <TouchableOpacity onPress={resetGame} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+            <Text style={styles.newGameText}>New</Text>
+          </TouchableOpacity>
+        }
+      />
 
       <View style={styles.statusBar}>
         <Text style={styles.turnText}>

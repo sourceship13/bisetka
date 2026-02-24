@@ -12,6 +12,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import { useAuth } from '../libs/hooks/useAuth';
 import Svg, { Polyline } from 'react-native-svg';
 import apiConfig from '../libs/utils/api.utils';
+import GameToolbar from '../components/GameToolbar';
 
 const { width } = Dimensions.get('window');
 const REEL_WIDTH = (width - 80) / 5;
@@ -43,7 +44,7 @@ const SlotsScreen = ({ navigation }: any) => {
   const [spinning, setSpinning] = useState(false);
   const [result, setResult] = useState<string[][] | null>(null);
   const [winnings, setWinnings] = useState<SpinResult | null>(null);
-  
+
   const reelAnims = useRef([
     new Animated.Value(0),
     new Animated.Value(0),
@@ -61,7 +62,7 @@ const SlotsScreen = ({ navigation }: any) => {
 
   const spin = async () => {
     if (spinning || balance < betAmount) return;
-    
+
     setSpinning(true);
     setWinnings(null);
     setBalance((prev: number) => prev - betAmount);
@@ -71,7 +72,7 @@ const SlotsScreen = ({ navigation }: any) => {
         toValue: 1,
         duration: 1500 + i * 200,
         useNativeDriver: true,
-      })
+      }),
     );
 
     Animated.parallel(spinAnims).start();
@@ -81,18 +82,18 @@ const SlotsScreen = ({ navigation }: any) => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${(user as any)?.token}`,
+          Authorization: `Bearer ${(user as any)?.token}`,
         },
         body: JSON.stringify({ betAmount }),
       });
 
       const data: SpinResult = await response.json();
-      
+
       reelAnims.forEach(anim => anim.setValue(0));
-      
+
       setResult(data.result);
       setWinnings(data);
-      
+
       if (data.totalPayout > 0) {
         setBalance((prev: number) => prev + data.totalPayout);
       }
@@ -107,17 +108,23 @@ const SlotsScreen = ({ navigation }: any) => {
   const renderPaylineOverlay = () => {
     const activeCount = getActivePaylines();
     const activePaylines = PAYLINES.slice(0, activeCount);
-    const winningLineNums = winnings?.winningLines.map(w => w.line) || [];
+    const winningLineNums = winnings?.winningLines?.map(w => w.line) || [];
 
     return (
-      <Svg height={SYMBOL_HEIGHT * 3} width={REEL_WIDTH * 5} style={styles.paylinesOverlay}>
-        {activePaylines.map((payline) => {
+      <Svg
+        height={SYMBOL_HEIGHT * 3}
+        width={REEL_WIDTH * 5}
+        style={styles.paylinesOverlay}
+      >
+        {activePaylines.map(payline => {
           const isWinning = winningLineNums.includes(payline.id);
-          const points = payline.path.map((row, col) => {
-            const x = col * REEL_WIDTH + REEL_WIDTH / 2;
-            const y = row * SYMBOL_HEIGHT + SYMBOL_HEIGHT / 2;
-            return `${x},${y}`;
-          }).join(' ');
+          const points = payline.path
+            .map((row, col) => {
+              const x = col * REEL_WIDTH + REEL_WIDTH / 2;
+              const y = row * SYMBOL_HEIGHT + SYMBOL_HEIGHT / 2;
+              return `${x},${y}`;
+            })
+            .join(' ');
 
           return (
             <Polyline
@@ -144,13 +151,16 @@ const SlotsScreen = ({ navigation }: any) => {
       <View key={colIndex} style={styles.reel}>
         <Animated.View
           style={{
-            transform: [{
-              translateY: spinAnim.interpolate({
-                inputRange: [0, 1],
-                outputRange: [0, -SYMBOL_HEIGHT * 10],
-              }),
-            }],
-          }}>
+            transform: [
+              {
+                translateY: spinAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0, -SYMBOL_HEIGHT * 10],
+                }),
+              },
+            ],
+          }}
+        >
           {[...SYMBOLS, ...SYMBOLS, ...symbols].map((sym, i) => (
             <View key={i} style={styles.symbolCell}>
               <Text style={styles.symbol}>{sym}</Text>
@@ -165,9 +175,11 @@ const SlotsScreen = ({ navigation }: any) => {
     const activeCount = getActivePaylines();
     return (
       <View style={styles.paylinesList}>
-        {PAYLINES.slice(0, activeCount).map((payline) => (
+        {PAYLINES.slice(0, activeCount).map(payline => (
           <View key={payline.id} style={styles.paylineItem}>
-            <View style={[styles.paylineDot, { backgroundColor: payline.color }]} />
+            <View
+              style={[styles.paylineDot, { backgroundColor: payline.color }]}
+            />
             <Text style={styles.paylineLabel}>{payline.label}</Text>
           </View>
         ))}
@@ -179,21 +191,20 @@ const SlotsScreen = ({ navigation }: any) => {
     <SafeAreaView style={styles.container}>
       <LinearGradient
         colors={['#0f0f23', '#1a1742', '#0f0f23']}
-        style={styles.gradient}>
-        
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Text style={styles.backBtn}>← Back</Text>
-          </TouchableOpacity>
-          <Text style={styles.title}>🎰 SLOTS</Text>
-          <View style={{ width: 60 }} />
-        </View>
+        style={styles.gradient}
+      >
+        <GameToolbar
+          title="🎰 SLOTS"
+          onBack={() => navigation.goBack()}
+          backgroundColor="transparent"
+        />
 
         <LinearGradient
           colors={['#10b981', '#34d399']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
-          style={styles.balanceCard}>
+          style={styles.balanceCard}
+        >
           <Text style={styles.balanceLabel}>Balance</Text>
           <Text style={styles.balanceText}>💰 {balance.toLocaleString()}</Text>
         </LinearGradient>
@@ -203,8 +214,8 @@ const SlotsScreen = ({ navigation }: any) => {
             colors={['#6366f1', '#8b5cf6', '#ec4899']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-            style={styles.machineFrame}>
-            
+            style={styles.machineFrame}
+          >
             <View style={styles.reelsWrapper}>
               <View style={styles.reelsContainer}>
                 {[0, 1, 2, 3, 4].map(renderReel)}
@@ -219,10 +230,13 @@ const SlotsScreen = ({ navigation }: any) => {
         {winnings && winnings.totalPayout > 0 && (
           <LinearGradient
             colors={['#fbbf24', '#f59e0b']}
-            style={styles.winCard}>
+            style={styles.winCard}
+          >
             <Text style={styles.winTitle}>🎉 WIN!</Text>
-            <Text style={styles.winAmount}>+{winnings.totalPayout.toLocaleString()}</Text>
-            {winnings.winningLines.map((line, i) => (
+            <Text style={styles.winAmount}>
+              +{winnings.totalPayout.toLocaleString()}
+            </Text>
+            {(winnings.winningLines ?? []).map((line, i) => (
               <Text key={i} style={styles.winLine}>
                 Line {line.line}: {line.symbols} → {line.payout}
               </Text>
@@ -236,20 +250,23 @@ const SlotsScreen = ({ navigation }: any) => {
             <TouchableOpacity
               style={styles.betBtn}
               onPress={() => setBetAmount(prev => Math.max(1, prev - 5))}
-              disabled={spinning}>
+              disabled={spinning}
+            >
               <Text style={styles.betBtnText}>-</Text>
             </TouchableOpacity>
-            
+
             <LinearGradient
               colors={['#6366f1', '#8b5cf6']}
-              style={styles.betDisplay}>
+              style={styles.betDisplay}
+            >
               <Text style={styles.betAmount}>{betAmount}</Text>
             </LinearGradient>
-            
+
             <TouchableOpacity
               style={styles.betBtn}
               onPress={() => setBetAmount(prev => Math.min(100, prev + 5))}
-              disabled={spinning}>
+              disabled={spinning}
+            >
               <Text style={styles.betBtnText}>+</Text>
             </TouchableOpacity>
           </View>
@@ -258,10 +275,19 @@ const SlotsScreen = ({ navigation }: any) => {
             {[10, 25, 50].map(amt => (
               <TouchableOpacity
                 key={amt}
-                style={[styles.quickBet, betAmount === amt && styles.quickBetActive]}
+                style={[
+                  styles.quickBet,
+                  betAmount === amt && styles.quickBetActive,
+                ]}
                 onPress={() => setBetAmount(amt)}
-                disabled={spinning}>
-                <Text style={[styles.quickBetText, betAmount === amt && styles.quickBetTextActive]}>
+                disabled={spinning}
+              >
+                <Text
+                  style={[
+                    styles.quickBetText,
+                    betAmount === amt && styles.quickBetTextActive,
+                  ]}
+                >
                   {amt}
                 </Text>
               </TouchableOpacity>
@@ -270,13 +296,18 @@ const SlotsScreen = ({ navigation }: any) => {
         </View>
 
         <TouchableOpacity
-          style={[styles.spinBtn, (spinning || balance < betAmount) && styles.spinBtnDisabled]}
+          style={[
+            styles.spinBtn,
+            (spinning || balance < betAmount) && styles.spinBtnDisabled,
+          ]}
           onPress={spin}
           disabled={spinning || balance < betAmount}
-          activeOpacity={0.8}>
+          activeOpacity={0.8}
+        >
           <LinearGradient
             colors={spinning ? ['#666', '#444'] : ['#ec4899', '#f472b6']}
-            style={styles.spinGradient}>
+            style={styles.spinGradient}
+          >
             <Text style={styles.spinText}>
               {spinning ? '🎰 SPINNING...' : '🎰 SPIN'}
             </Text>
@@ -317,10 +348,8 @@ const styles = StyleSheet.create({
     textShadowRadius: 8,
   },
   balanceCard: {
-    marginHorizontal: 20,
-    marginTop: 12,
     borderRadius: 16,
-    padding: 16,
+    paddingHorizontal: 16,
     alignItems: 'center',
   },
   balanceLabel: {
@@ -334,8 +363,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   machine: {
-    marginHorizontal: 20,
-    marginTop: 20,
+    flex: 1,
     borderRadius: 20,
     overflow: 'hidden',
     shadowColor: '#6366f1',
@@ -346,6 +374,7 @@ const styles = StyleSheet.create({
   },
   machineFrame: {
     padding: 16,
+    flex: 1,
   },
   reelsWrapper: {
     position: 'relative',

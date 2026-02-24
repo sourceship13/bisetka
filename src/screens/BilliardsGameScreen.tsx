@@ -10,6 +10,7 @@ import {
   Easing,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import GameToolbar from '../components/GameToolbar';
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {RootStackParamList} from '../navigation/AppNavigator';
 import {aiMoveLogService} from '../services/aiMoveLog.service';
@@ -1281,21 +1282,18 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
-          <Text style={styles.backButton}>← Back</Text>
-        </TouchableOpacity>
-        <Text style={styles.title}>
-          {variant === '9-ball' ? '9-Ball' : '8-Ball'}
-        </Text>
-        <Text style={styles.turnText}>
-          {gameOver
-            ? winner === 'player' ? '🏆 You Win!' : '💀 AI Wins'
-            : ballInHand ? '👆 Place cue ball'
-            : isMoving ? '⏳' : playerTurn ? '🎯 Your Shot' : '🤖 AI'}
-        </Text>
-      </View>
+      <GameToolbar
+        title={variant === '9-ball' ? '9-Ball' : '8-Ball'}
+        onBack={() => navigation.goBack()}
+        rightElement={
+          <Text style={styles.turnText}>
+            {gameOver
+              ? winner === 'player' ? '🏆 You Win!' : '💀 AI Wins'
+              : ballInHand ? '👆 Place cue ball'
+              : isMoving ? '⏳' : playerTurn ? '🎯 Your Shot' : '🤖 AI'}
+          </Text>
+        }
+      />
 
       {/* Power bar */}
       <View style={styles.powerRow}>

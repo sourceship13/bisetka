@@ -1,6 +1,7 @@
 import React, {useState, useEffect, useRef} from 'react';
 import {View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import GameToolbar from '../components/GameToolbar';
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {RootStackParamList} from '../navigation/AppNavigator';
 import { aiMoveLogService } from '../services/aiMoveLog.service';
@@ -668,20 +669,21 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Text style={styles.backButtonText}>← Back</Text>
-        </TouchableOpacity>
-        <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>Texas Hold'em - {gamePhase.toUpperCase()}</Text>
-          {timerActive && (
-            <View style={[styles.timerContainer, timeRemaining <= 10 && styles.timerWarning]}>
-              <Text style={styles.timerText}>⏱️ {timeRemaining}s</Text>
-            </View>
-          )}
-        </View>
-        <Text style={styles.potAmount}>Pot: ${pot}</Text>
-      </View>
+      <GameToolbar
+        title={`Texas Hold'em - ${gamePhase.toUpperCase()}`}
+        onBack={() => navigation.goBack()}
+        backgroundColor="#094029"
+        rightElement={
+          <View style={{ alignItems: 'flex-end' }}>
+            {timerActive && (
+              <View style={[styles.timerContainer, timeRemaining <= 10 && styles.timerWarning]}>
+                <Text style={styles.timerText}>⏱️ {timeRemaining}s</Text>
+              </View>
+            )}
+            <Text style={styles.potAmount}>Pot: ${pot}</Text>
+          </View>
+        }
+      />
 
       <View style={styles.tableContainer}>
         {/* Render players in positions around the table */}
