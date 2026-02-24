@@ -28,7 +28,7 @@ const Card: React.FC<CardProps> = ({
   const sizes = {
     small: { width: 50, height: 70 },
     medium: { width: 70, height: 98 },
-    large: { width: 90, height: 126 },
+    large: { width: 120, height: 166 },
   };
 
   const cardSize = sizes[size];
