@@ -133,12 +133,16 @@ const GameModeScreen: React.FC<Props> = ({route, navigation}) => {
         });
         break;
       case 'Blot':
-        navigation.replace('Blot' as any, {
-          userId: user?.id || 'guest',
-          mode: mode, // Pass the actual mode: 'ai', 'private-create', 'private-join', 'random'
-          difficulty: sessionData.difficulty || 'medium',
-          joinCode: sessionData.code, // For private-join, pass the room code
-        });
+        if (mode === 'ai') {
+          navigation.replace('Blot' as any);
+        } else {
+          navigation.replace('MultiplayerBlot' as any, {
+            userId: user?.id || 'guest',
+            mode: mode,
+            difficulty: sessionData.difficulty || 'medium',
+            joinCode: sessionData.code,
+          });
+        }
         break;
       case 'BaazarBlot':
         navigation.replace('BaazarBlot' as any, {
