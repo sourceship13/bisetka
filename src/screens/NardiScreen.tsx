@@ -9,6 +9,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import GameToolbar from '../components/GameToolbar';
 import LinearGradient from 'react-native-linear-gradient';
 import {
   GameMode,
@@ -471,13 +472,11 @@ const NardiScreen = ({ navigation, route }: any) => {
         style={styles.overlay}>
         
         <SafeAreaView style={styles.safeArea}>
-          <View style={styles.header}>
-            <TouchableOpacity onPress={() => navigation.goBack()}>
-              <Text style={styles.backBtn}>← Back</Text>
-            </TouchableOpacity>
-            <Text style={styles.title}>🎲 Nardi</Text>
-            <View style={{ width: 60 }} />
-          </View>
+          <GameToolbar
+            title="🎲 Nardi"
+            onBack={() => navigation.goBack()}
+            backgroundColor="transparent"
+          />
 
           {/* Borne-off / Home counts */}
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 24, marginBottom: 4 }}>
