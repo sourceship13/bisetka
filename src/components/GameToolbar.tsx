@@ -15,6 +15,7 @@ interface GameToolbarProps {
   rightElement?: React.ReactNode;
   /** Override the toolbar background colour. Defaults to '#1C1917'. */
   backgroundColor?: string;
+  style?: object;
 }
 
 const GameToolbar: React.FC<GameToolbarProps> = ({
@@ -22,9 +23,10 @@ const GameToolbar: React.FC<GameToolbarProps> = ({
   onBack,
   rightElement,
   backgroundColor = '#1C1917',
+  style,
 }) => {
   return (
-    <View style={[styles.toolbar, { backgroundColor }]}>
+    <View style={[styles.toolbar, { backgroundColor }, style]}>
       <TouchableOpacity
         onPress={onBack}
         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}

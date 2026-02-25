@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useGameEndRefresh } from '../libs/hooks/useGameEndRefresh';
 import { gameResultService } from '../services/gameResult.service';
 import {
@@ -7,7 +7,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  Alert,
   ImageBackground,
   Dimensions,
 } from 'react-native';
@@ -19,655 +18,675 @@ import DynamicCard from '../components/DynamicCard';
 import CardCustomizationModal from '../components/CardCustomizationModal';
 import type { CardTheme } from '../components/CardCustomizationModal';
 import {
-  GameState,
-  initializeGame,
+  BaazarGameState,
+  BidLevel,
+  GameTarget,
+  initializeBaazarGame,
+  startNewRound,
   canPlayCard,
   determineTrickWinner,
-  calculateRoundScore,
+  calculateBaazarRound,
   calculateRunningScore,
   detectBeloteTeam,
   chooseAICard,
-  dealCards,
-} from '../game/blotLogic';
+  chooseAIBid,
+  findSequences,
+} from '../game/baazarBlotLogic';
 
 const SUIT_ICON: Record<string, string> = {
-  hearts: '♥',
-  diamonds: '♦',
-  clubs: '♣',
-  spades: '♠',
+  hearts: '♥', diamonds: '♦', clubs: '♣', spades: '♠',
 };
 const SUIT_NAME: Record<string, string> = {
-  hearts: 'Hearts',
-  diamonds: 'Diamonds',
-  clubs: 'Clubs',
-  spades: 'Spades',
+  hearts: 'Hearts', diamonds: 'Diamonds', clubs: 'Clubs', spades: 'Spades',
 };
 const SUIT_COLOR: Record<string, string> = {
-  hearts: '#e74c3c',
-  diamonds: '#e74c3c',
-  clubs: '#ecf0f1',
-  spades: '#ecf0f1',
+  hearts: '#e74c3c', diamonds: '#e74c3c', clubs: '#ecf0f1', spades: '#ecf0f1',
 };
 
-const BaazarBlotScreen  = ({ navigation }: any) => {
-  const [gameState, setGameState] = useState<GameState>(initializeGame());
+const TOTAL_PLAYERS = 4;
+const { width: SW } = Dimensions.get('window');
+
+const BaazarBlotScreen = ({ navigation }: any) => {
+  const [gameState, setGameState] = useState<BaazarGameState | null>(null);
   const [showCustomization, setShowCustomization] = useState(false);
-  const [customTheme, setCustomTheme] = useState<CardTheme | undefined>(
-    undefined,
-  );
-  const { refreshOnGameEnd } = useGameEndRefresh(undefined, 'blot');
+  const [customTheme, setCustomTheme] = useState<CardTheme | undefined>(undefined);
+  const [pendingBidLevel, setPendingBidLevel] = useState<BidLevel>(9);
+  const [pendingBidSuit, setPendingBidSuit] = useState<Suit | null>(null);
+  const dealtHandsRef = useRef<{ team: 1 | 2; hand: CardType[] }[]>([]);
 
-  const handleSaveTheme = (theme: CardTheme) => {
-    setCustomTheme(theme);
-    console.log('Saved custom theme:', theme);
-  };
+  const { refreshOnGameEnd } = useGameEndRefresh(undefined, 'baazar_blot');
 
-  // ------------------------------------------------------------------
-  // Bidding logic
-  // ------------------------------------------------------------------
-  // Player 0 (human) is Team 1; AI: players 1 (T2), 2 (T1), 3 (T2).
-  // Non-dealer (player 1) bids first (clockwise).
-  // Round 1: take proposed suit or pass.
-  // Round 2: declare any suit or pass → redeal if all pass again.
-  const TOTAL_PLAYERS = 4;
+  const handleSaveTheme = (theme: CardTheme) => setCustomTheme(theme);
 
-  const acceptTrump = useCallback((suit: Suit) => {
-    setGameState(prev => {
-      const takingPlayer = prev.players[prev.currentPlayer];
-      const beloteTeam = detectBeloteTeam(prev.players, suit);
+  const startGame = useCallback((target: GameTarget) => {
+    const gs = initializeBaazarGame(target);
+    dealtHandsRef.current = gs.players.map(p => ({ team: p.team, hand: [...p.hand] }));
+    setGameState(gs);
+    setPendingBidLevel(9);
+    setPendingBidSuit(null);
+  }, []);
+
+  // AI bidding
+  useEffect(() => {
+    if (!gameState || gameState.phase !== 'bidding') return;
+    if (gameState.currentPlayer === 0) return;
+
+    const timer = setTimeout(() => {
+      setGameState(prev => {
+        if (!prev || prev.phase !== 'bidding' || prev.currentPlayer === 0) return prev;
+        const player = prev.players[prev.currentPlayer];
+        const result = chooseAIBid(player, prev.currentBid, prev.passedPlayers);
+
+        if (result) {
+          const nextPlayer = (prev.currentPlayer + 1) % TOTAL_PLAYERS;
+          return {
+            ...prev,
+            currentBid: result.bid,
+            bidderPlayer: prev.currentPlayer,
+            bidderTeam: player.team,
+            trump: result.suit,
+            passedPlayers: [],
+            currentPlayer: nextPlayer,
+          };
+        } else {
+          const newPassed = [...prev.passedPlayers, prev.currentPlayer];
+          const nextPlayer = (prev.currentPlayer + 1) % TOTAL_PLAYERS;
+
+          if (prev.bidderPlayer === null && newPassed.length >= TOTAL_PLAYERS) {
+            const gs = startNewRound(prev);
+            dealtHandsRef.current = gs.players.map(p => ({ team: p.team, hand: [...p.hand] }));
+            return gs;
+          }
+
+          if (prev.bidderPlayer !== null) {
+            const nonBidderPassed = newPassed.filter(id => id !== prev.bidderPlayer);
+            if (nonBidderPassed.length >= 3) {
+              const beloteTeam = detectBeloteTeam(prev.players, prev.trump);
+              return {
+                ...prev,
+                passedPlayers: newPassed,
+                phase: 'playing',
+                takerTeam: prev.bidderTeam,
+                beloteTeam,
+                currentPlayer: (prev.dealer + 1) % TOTAL_PLAYERS,
+              };
+            }
+          }
+
+          return { ...prev, passedPlayers: newPassed, currentPlayer: nextPlayer };
+        }
+      });
+    }, 800);
+
+    return () => clearTimeout(timer);
+  }, [gameState?.phase, gameState?.currentPlayer]);
+
+  // AI playing
+  useEffect(() => {
+    if (!gameState || gameState.phase !== 'playing') return;
+    if (gameState.currentPlayer === 0) return;
+
+    const timer = setTimeout(() => {
+      setGameState(prev => {
+        if (!prev || prev.phase !== 'playing' || prev.currentPlayer === 0) return prev;
+        const player = prev.players[prev.currentPlayer];
+        const card = chooseAICard(player, prev.currentTrick, prev.trump, prev.players);
+        return applyCardPlay(prev, prev.currentPlayer, card, dealtHandsRef.current);
+      });
+    }, 700);
+
+    return () => clearTimeout(timer);
+  }, [gameState?.phase, gameState?.currentPlayer, gameState?.currentTrick]);
+
+  const applyCardPlay = (
+    prev: BaazarGameState,
+    playerId: number,
+    card: CardType,
+    originalHands: { team: 1 | 2; hand: CardType[] }[],
+  ): BaazarGameState => {
+    const newPlayers = prev.players.map(p =>
+      p.id === playerId
+        ? { ...p, hand: p.hand.filter(c => !(c.suit === card.suit && c.rank === card.rank)) }
+        : p,
+    );
+    const newTrick = {
+      cards: [...prev.currentTrick.cards, { playerId, card }],
+      winner: null as number | null,
+    };
+
+    if (newTrick.cards.length < TOTAL_PLAYERS) {
       return {
         ...prev,
-        trump: suit,
-        takerTeam: takingPlayer.team,
-        beloteTeam,
+        players: newPlayers,
+        currentTrick: newTrick,
+        currentPlayer: (playerId + 1) % TOTAL_PLAYERS,
+      };
+    }
+
+    const leadSuit = newTrick.cards[0].card.suit;
+    const winnerId = determineTrickWinner(newTrick, prev.trump, leadSuit);
+    const completedTrick = { ...newTrick, winner: winnerId };
+    const newCompleted = [...prev.completedTricks, completedTrick];
+    const runningScore = calculateRunningScore(newCompleted, newPlayers, prev.trump);
+
+    if (newCompleted.length < 8) {
+      return {
+        ...prev,
+        players: newPlayers,
+        currentTrick: { cards: [], winner: null },
+        completedTricks: newCompleted,
+        lastTrickWinner: winnerId,
+        currentPlayer: winnerId,
+        scores: runningScore,
+      };
+    }
+
+    const result = calculateBaazarRound(
+      newCompleted, newPlayers, prev.trump,
+      prev.takerTeam, prev.currentBid,
+      prev.contracted, prev.recontracted, prev.kapuyt,
+      prev.beloteTeam, originalHands,
+    );
+
+    const newGameScore = {
+      team1: prev.gameScore.team1 + result.team1,
+      team2: prev.gameScore.team2 + result.team2,
+    };
+
+    const gameOver =
+      newGameScore.team1 >= prev.targetScore ||
+      newGameScore.team2 >= prev.targetScore;
+
+    if (gameOver) {
+      const winner = newGameScore.team1 >= prev.targetScore ? 1 : 2;
+      gameResultService.recordGameResult({
+        gameType: 'baazar_blot',
+        result: winner === 1 ? 'win' : 'loss',
+        score: newGameScore.team1,
+        opponentScore: newGameScore.team2,
+      } as any).catch(() => {});
+      refreshOnGameEnd?.();
+    }
+
+    return {
+      ...prev,
+      players: newPlayers,
+      currentTrick: { cards: [], winner: null },
+      completedTricks: newCompleted,
+      lastTrickWinner: winnerId,
+      currentPlayer: winnerId,
+      scores: runningScore,
+      gameScore: newGameScore,
+      phase: gameOver ? 'gameEnd' : 'roundEnd',
+      roundMessage: result.message,
+    };
+  };
+
+  const handleBid = useCallback(() => {
+    if (!pendingBidSuit) return;
+    setGameState(prev => {
+      if (!prev || prev.phase !== 'bidding' || prev.currentPlayer !== 0) return prev;
+      if (pendingBidLevel <= prev.currentBid) return prev;
+      return {
+        ...prev,
+        currentBid: pendingBidLevel,
+        bidderPlayer: 0,
+        bidderTeam: prev.players[0].team,
+        trump: pendingBidSuit,
+        passedPlayers: [],
+        currentPlayer: 1,
+      };
+    });
+    setPendingBidSuit(null);
+  }, [pendingBidLevel, pendingBidSuit]);
+
+  const handlePass = useCallback(() => {
+    setGameState(prev => {
+      if (!prev || prev.phase !== 'bidding' || prev.currentPlayer !== 0) return prev;
+      const newPassed = [...prev.passedPlayers, 0];
+      const nextPlayer = 1;
+
+      if (prev.bidderPlayer === null && newPassed.length >= TOTAL_PLAYERS) {
+        const gs = startNewRound(prev);
+        dealtHandsRef.current = gs.players.map(p => ({ team: p.team, hand: [...p.hand] }));
+        return gs;
+      }
+
+      if (prev.bidderPlayer !== null) {
+        const nonBidderPassed = newPassed.filter(id => id !== prev.bidderPlayer);
+        if (nonBidderPassed.length >= 3) {
+          const beloteTeam = detectBeloteTeam(prev.players, prev.trump);
+          return {
+            ...prev,
+            passedPlayers: newPassed,
+            phase: 'playing',
+            takerTeam: prev.bidderTeam,
+            beloteTeam,
+            currentPlayer: (prev.dealer + 1) % TOTAL_PLAYERS,
+          };
+        }
+      }
+
+      return { ...prev, passedPlayers: newPassed, currentPlayer: nextPlayer };
+    });
+  }, []);
+
+  const handleContra = useCallback(() => {
+    setGameState(prev => {
+      if (!prev || prev.phase !== 'bidding') return prev;
+      if (prev.bidderTeam === prev.players[0].team || prev.contracted) return prev;
+      const beloteTeam = detectBeloteTeam(prev.players, prev.trump);
+      return {
+        ...prev,
+        contracted: true,
         phase: 'playing',
-        // Non-dealer (player 1) leads the first trick after trump is set
+        takerTeam: prev.bidderTeam,
+        beloteTeam,
         currentPlayer: (prev.dealer + 1) % TOTAL_PLAYERS,
       };
     });
   }, []);
 
-  const passBid = useCallback(() => {
+  const handleRecontra = useCallback(() => {
     setGameState(prev => {
-      const newPassCount = prev.bidPassCount + 1;
-      // After all 4 players passed in round 1 → go to round 2
-      if (prev.bidRound === 1 && newPassCount >= TOTAL_PLAYERS) {
-        return {
-          ...prev,
-          bidPassCount: 0,
-          bidRound: 2,
-          currentPlayer: (prev.dealer + 1) % TOTAL_PLAYERS,
-        };
-      }
-      // After all 4 players passed in round 2 → redeal
-      if (prev.bidRound === 2 && newPassCount >= TOTAL_PLAYERS) {
-        const { players: dealt, proposalCard } = dealCards(prev.players);
-        const newDealer = (prev.dealer + 1) % TOTAL_PLAYERS;
-        return {
-          ...prev,
-          players: dealt,
-          proposalCard,
-          trump: null,
-          takerTeam: null,
-          bidRound: 1,
-          bidPassCount: 0,
-          currentTrick: { cards: [], winner: null },
-          completedTricks: [],
-          scores: { team1: 0, team2: 0 },
-          phase: 'bidding',
-          dealer: newDealer,
-          currentPlayer: (newDealer + 1) % TOTAL_PLAYERS,
-        };
-      }
-      // Move to next player
+      if (!prev || prev.phase !== 'bidding' || !prev.contracted) return prev;
+      if (prev.bidderTeam !== prev.players[0].team) return prev;
+      const beloteTeam = detectBeloteTeam(prev.players, prev.trump);
       return {
         ...prev,
-        bidPassCount: newPassCount,
-        currentPlayer: (prev.currentPlayer + 1) % TOTAL_PLAYERS,
+        recontracted: true,
+        phase: 'playing',
+        takerTeam: prev.bidderTeam,
+        beloteTeam,
+        currentPlayer: (prev.dealer + 1) % TOTAL_PLAYERS,
       };
     });
   }, []);
 
-  // ------------------------------------------------------------------
-  // AI bidding: auto-run when phase is bidding and currentPlayer != 0
-  // ------------------------------------------------------------------
-  useEffect(() => {
-    if (gameState.phase !== 'bidding' || gameState.currentPlayer === 0) return;
-    const timer = setTimeout(() => {
-      // AI strategy: take if they hold J or 9 of proposed suit, else pass in round 1
-      //              in round 2 AI always passes (could be improved)
-      const aiPlayer = gameState.players[gameState.currentPlayer];
-      const proposed = gameState.proposalCard?.suit;
-      if (gameState.bidRound === 1 && proposed) {
-        const hasStrong = aiPlayer.hand.some(
-          c =>
-            c.suit === proposed &&
-            (c.rank === 'J' || c.rank === '9' || c.rank === 'A'),
-        );
-        if (hasStrong) {
-          acceptTrump(proposed);
-          return;
-        }
-      }
-      passBid();
-    }, 600);
-    return () => clearTimeout(timer);
-  }, [
-    gameState.phase,
-    gameState.currentPlayer,
-    gameState.bidRound,
-    acceptTrump,
-    passBid,
-  ]);
-
-  // ------------------------------------------------------------------
-  // AI card play: auto-run when phase is playing and currentPlayer != 0
-  // ------------------------------------------------------------------
-  useEffect(() => {
-    if (gameState.phase !== 'playing' || gameState.currentPlayer === 0) return;
-    const timer = setTimeout(() => {
-      const aiPlayer = gameState.players[gameState.currentPlayer];
-      if (aiPlayer.hand.length === 0) return;
-      const card = chooseAICard(
-        aiPlayer,
-        gameState.currentTrick,
-        gameState.trump,
-        gameState.players,
-      );
-      playCard(card);
-    }, 700);
-    return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gameState.phase, gameState.currentPlayer, gameState.currentTrick]);
-
-  const playCard = (card: CardType) => {
-    const currentPlayer = gameState.players[gameState.currentPlayer];
-
-    if (
-      !canPlayCard(
-        card,
-        currentPlayer.hand,
-        gameState.currentTrick,
-        gameState.trump,
-      )
-    ) {
-      Alert.alert(
-        'Invalid Move',
-        'You must follow suit or play trump if possible.',
-      );
-      return;
-    }
-
-    // Remove card from hand
-    const updatedHand = currentPlayer.hand.filter(c => c.id !== card.id);
-    const updatedPlayers = gameState.players.map(p =>
-      p.id === currentPlayer.id ? { ...p, hand: updatedHand } : p,
-    );
-
-    // Add card to current trick
-    const updatedTrick = {
-      ...gameState.currentTrick,
-      cards: [
-        ...gameState.currentTrick.cards,
-        { playerId: currentPlayer.id, card },
-      ],
-    };
-
-    // Check if trick is complete (all 4 players played)
-    if (updatedTrick.cards.length === 4) {
-      const leadSuit = updatedTrick.cards[0].card.suit;
-      const winner = determineTrickWinner(
-        updatedTrick,
-        gameState.trump,
-        leadSuit,
-      );
-      updatedTrick.winner = winner;
-
-      const completedTricks = [...gameState.completedTricks, updatedTrick];
-
-      // Show the completed trick (all 4 cards) before processing the result
-      setGameState(prev => ({
+  const handleKapuyt = useCallback(() => {
+    setGameState(prev => {
+      if (!prev || prev.phase !== 'bidding') return prev;
+      const beloteTeam = detectBeloteTeam(prev.players, prev.trump);
+      return {
         ...prev,
-        players: updatedPlayers,
-        currentTrick: updatedTrick,
-        completedTricks,
-      }));
+        kapuyt: true,
+        bidderPlayer: 0,
+        bidderTeam: prev.players[0].team,
+        takerTeam: prev.players[0].team,
+        beloteTeam,
+        phase: 'playing',
+        currentPlayer: (prev.dealer + 1) % TOTAL_PLAYERS,
+      };
+    });
+  }, []);
 
-      // Check if round is over (hands empty)
-      if (updatedPlayers[0].hand.length === 0) {
-        const roundResult = calculateRoundScore(
-          completedTricks,
-          updatedPlayers,
-          gameState.trump,
-          gameState.takerTeam,
-          gameState.beloteTeam,
-        );
-        const roundScore = {
-          team1: roundResult.team1,
-          team2: roundResult.team2,
-        };
-        const newGameScore = {
-          team1: (gameState.gameScore.team1 || 0) + roundResult.team1,
-          team2: (gameState.gameScore.team2 || 0) + roundResult.team2,
-        };
+  const handlePlayCard = useCallback((card: CardType) => {
+    setGameState(prev => {
+      if (!prev || prev.phase !== 'playing' || prev.currentPlayer !== 0) return prev;
+      const player = prev.players[0];
+      if (!canPlayCard(card, player.hand, prev.currentTrick, prev.trump)) return prev;
+      return applyCardPlay(prev, 0, card, dealtHandsRef.current);
+    });
+  }, []);
 
-        // Build round summary message
-        let msg = '';
-        if (roundResult.capot) {
-          const capotTeam = roundResult.team1 === 250 ? 'Team 1' : 'Team 2';
-          msg = `CAPOT! ${capotTeam} wins all tricks — 250 pts!`;
-        } else if (roundResult.takerFell) {
-          const takerName = gameState.takerTeam === 1 ? 'Team 1' : 'Team 2';
-          msg = `${takerName} fell! Scored less than 82 — opponent gets 162 pts.`;
-        } else {
-          if (roundResult.beloteBonus > 0) msg = 'Belote! +20 bonus. ';
-          msg += `Round: Team 1 +${roundResult.team1} | Team 2 +${roundResult.team2}`;
-        }
+  const handleNewRound = useCallback(() => {
+    setGameState(prev => {
+      if (!prev) return prev;
+      const gs = startNewRound(prev);
+      dealtHandsRef.current = gs.players.map(p => ({ team: p.team, hand: [...p.hand] }));
+      return gs;
+    });
+    setPendingBidLevel(9);
+    setPendingBidSuit(null);
+  }, []);
 
-        // Game ends at 101 points
-        if (newGameScore.team1 >= 101 || newGameScore.team2 >= 101) {
-          const playerWon = newGameScore.team1 >= newGameScore.team2;
-          // Delay transition to game-end so the 4th card remains visible
-          setTimeout(() => {
-            setGameState(prev => ({
-              ...prev,
-              players: updatedPlayers,
-              completedTricks,
-              scores: roundScore,
-              gameScore: newGameScore,
-              phase: 'gameEnd',
-              roundMessage: msg,
-            }));
-            // Record result to backend so DB trigger awards points
-            gameResultService
-              .recordGameResult({
-                gameType: 'blot',
-                gameMode: 'ai',
-                result: playerWon ? 'win' : 'loss',
-                playerScore: newGameScore.team1,
-                opponentScore: newGameScore.team2,
-              })
-              .then(() => refreshOnGameEnd())
-              .catch(() => refreshOnGameEnd());
-          }, 1500);
-          return;
-        }
+  const handleNewGame = useCallback(() => setGameState(null), []);
 
-        // Start new round — delay so the 4th card remains visible first
-        setTimeout(() => {
-          const newDealer = (gameState.dealer + 1) % 4;
-          const { players: dealtPlayers, proposalCard } =
-            dealCards(updatedPlayers);
-          setGameState(prev => ({
-            ...prev,
-            players: dealtPlayers,
-            dealer: newDealer,
-            currentPlayer: (newDealer + 1) % 4,
-            trump: null,
-            proposalCard,
-            takerTeam: null,
-            beloteTeam: null,
-            bidRound: 1,
-            bidPassCount: 0,
-            currentTrick: { cards: [], winner: null },
-            completedTricks: [],
-            scores: { team1: 0, team2: 0 },
-            gameScore: newGameScore,
-            phase: 'bidding',
-            lastTrickWinner: winner,
-            roundMessage: msg,
-          }));
-        }, 1500);
-        return;
-      }
+  const suitColor = (s: Suit | null) => (s ? SUIT_COLOR[s] : '#fff');
+  const playerName = (id: number) => gameState?.players[id]?.name ?? `P${id}`;
+  const trickCardForPlayer = (pid: number) =>
+    gameState?.currentTrick.cards.find(c => c.playerId === pid)?.card ?? null;
 
-      // Next trick — winner leads
-      const runningScore = calculateRunningScore(completedTricks, updatedPlayers, gameState.trump);
-      setTimeout(() => {
-        setGameState(prev => ({
-          ...prev,
-          players: updatedPlayers,
-          currentPlayer: winner,
-          currentTrick: { cards: [], winner: null },
-          completedTricks,
-          scores: runningScore,
-          lastTrickWinner: winner,
-        }));
-      }, 1200);
-    } else {
-      // Next player's turn
-      const nextPlayer = (gameState.currentPlayer + 1) % 4;
-      setGameState(prev => ({
-        ...prev,
-        players: updatedPlayers,
-        currentPlayer: nextPlayer,
-        currentTrick: updatedTrick,
-      }));
-    }
-  };
+  // ── Setup ────────────────────────────────────────────────────────────────
+  const renderSetup = () => (
+    <View style={styles.centeredSection}>
+      <Text style={styles.bigTitle}>🃏 Bazaar Blot</Text>
+      <Text style={styles.subtitle}>Choose target score</Text>
+      <View style={styles.targetButtons}>
+        {([101, 201, 301] as GameTarget[]).map(t => (
+          <TouchableOpacity key={t} style={styles.targetBtn} onPress={() => startGame(t)}>
+            <Text style={styles.targetBtnText}>{t}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    </View>
+  );
 
-  const startNewGame = () => {
-    setGameState(initializeGame());
-  };
+  // ── Bidding ──────────────────────────────────────────────────────────────
+  const renderBidding = () => {
+    if (!gameState) return null;
+    const isMyTurn = gameState.currentPlayer === 0;
+    const hasBid = gameState.bidderPlayer !== null;
+    const minBid: BidLevel = hasBid
+      ? (Math.min(gameState.currentBid + 1, 16) as BidLevel)
+      : 8;
+    const isBidderSameTeam = gameState.bidderTeam === gameState.players[0].team;
+    const canContra = hasBid && !gameState.contracted && !isBidderSameTeam;
+    const canRecontra = gameState.contracted && isBidderSameTeam;
 
-  const SUIT_SYM: Record<Suit, string> = {
-    hearts: '♥',
-    diamonds: '♦',
-    clubs: '♣',
-    spades: '♠',
-  };
-  const SUIT_COLOR: Record<Suit, string> = {
-    hearts: '#DC143C',
-    diamonds: '#DC143C',
-    clubs: '#1a1a1a',
-    spades: '#1a1a1a',
-  };
-  const isHumanBidTurn =
-    gameState.phase === 'bidding' && gameState.currentPlayer === 0;
-
-  const renderTrumpSelection = () => {
-    const proposed = gameState.proposalCard;
-    const proposedSuit = proposed?.suit as Suit | undefined;
     return (
-      <View style={styles.trumpSelection}>
-        {/* Proposal card */}
-        {proposed && (
-          <View style={styles.proposalRow}>
-            <Text style={styles.proposalLabel}>Proposed trump:</Text>
-            <Text
-              style={[
-                styles.proposalSuit,
-                { color: SUIT_COLOR[proposedSuit!] },
-              ]}
-            >
-              {SUIT_SYM[proposedSuit!]} {proposedSuit?.toUpperCase()}
+      <View style={styles.centeredSection}>
+        <Text style={styles.sectionTitle}>🃏 Bazaar Blot</Text>
+
+        {hasBid ? (
+          <View style={styles.bidStatusRow}>
+            <Text style={styles.bidStatusText}>{playerName(gameState.bidderPlayer!)} bid </Text>
+            <Text style={[styles.bidStatusValue, { color: suitColor(gameState.trump) }]}>
+              {gameState.currentBid} {gameState.trump ? SUIT_ICON[gameState.trump] : ''}
             </Text>
+            {gameState.contracted && <Text style={styles.contraBadge}> CONTRA</Text>}
           </View>
+        ) : (
+          <Text style={styles.bidStatusText}>No bids yet</Text>
         )}
-        <Text style={styles.bidRoundLabel}>
-          {gameState.bidRound === 1
-            ? 'Round 1: Accept proposed suit or pass'
-            : 'Round 2: Declare any suit or pass'}
-        </Text>
-        {isHumanBidTurn ? (
+
+        {isMyTurn ? (
           <>
-            {gameState.bidRound === 1 && proposedSuit ? (
-              // Round 1: Take or Pass
-              <View style={styles.bidButtons}>
+            <Text style={styles.yourTurnLabel}>Your turn to bid</Text>
+
+            <View style={styles.bidLevelRow}>
+              <TouchableOpacity
+                style={styles.stepBtn}
+                onPress={() => setPendingBidLevel(l => Math.max(minBid, l - 1) as BidLevel)}>
+                <Text style={styles.stepBtnText}>−</Text>
+              </TouchableOpacity>
+              <Text style={styles.bidLevelValue}>{pendingBidLevel}</Text>
+              <TouchableOpacity
+                style={styles.stepBtn}
+                onPress={() => setPendingBidLevel(l => Math.min(16, l + 1) as BidLevel)}>
+                <Text style={styles.stepBtnText}>+</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.suitRow}>
+              {(['hearts', 'diamonds', 'clubs', 'spades'] as Suit[]).map(s => (
                 <TouchableOpacity
-                  style={[styles.bidBtn, styles.bidBtnTake]}
-                  onPress={() => acceptTrump(proposedSuit!)}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                >
-                  <Text style={styles.bidBtnText}>
-                    ✓ Take {SUIT_SYM[proposedSuit!]}
+                  key={s}
+                  style={[styles.suitChip, pendingBidSuit === s && styles.suitChipSelected]}
+                  onPress={() => setPendingBidSuit(s)}>
+                  <Text style={[styles.suitChipIcon, { color: SUIT_COLOR[s] }]}>
+                    {SUIT_ICON[s]}
                   </Text>
+                  <Text style={styles.suitChipLabel}>{SUIT_NAME[s]}</Text>
                 </TouchableOpacity>
+              ))}
+            </View>
+
+            <View style={styles.bidActionRow}>
+              <TouchableOpacity
+                style={[
+                  styles.bidActionBtn,
+                  styles.bidBtnGreen,
+                  (!pendingBidSuit || pendingBidLevel <= gameState.currentBid) &&
+                    styles.bidBtnDisabled,
+                ]}
+                onPress={handleBid}
+                disabled={!pendingBidSuit || pendingBidLevel <= gameState.currentBid}>
+                <Text style={styles.bidActionBtnText}>Bid {pendingBidLevel}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.bidActionBtn, styles.bidBtnRed]}
+                onPress={handlePass}>
+                <Text style={styles.bidActionBtnText}>Pass</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.specialBidRow}>
+              {canContra && (
                 <TouchableOpacity
-                  style={[styles.bidBtn, styles.bidBtnPass]}
-                  onPress={passBid}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                >
-                  <Text style={styles.bidBtnText}>✗ Pass</Text>
+                  style={[styles.specialBtn, styles.specialContra]}
+                  onPress={handleContra}>
+                  <Text style={styles.specialBtnText}>Contra</Text>
                 </TouchableOpacity>
-              </View>
-            ) : (
-              // Round 2: pick any suit or pass
-              <>
-                <Text style={styles.trumpTitle}>Choose any trump suit:</Text>
-                <View style={styles.suitButtons}>
-                  {(['hearts', 'diamonds', 'clubs', 'spades'] as Suit[]).map(
-                    suit => (
-                      <TouchableOpacity
-                        key={suit}
-                        style={styles.suitButton}
-                        onPress={() => acceptTrump(suit)}
-                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                      >
-                        <Text
-                          style={[
-                            styles.suitButtonText,
-                            { color: SUIT_COLOR[suit] },
-                          ]}
-                        >
-                          {SUIT_SYM[suit]}
-                        </Text>
-                        <Text style={styles.suitButtonLabel}>{suit}</Text>
-                      </TouchableOpacity>
-                    ),
-                  )}
-                </View>
+              )}
+              {canRecontra && (
                 <TouchableOpacity
-                  style={[styles.bidBtn, styles.bidBtnPass, { marginTop: 16 }]}
-                  onPress={passBid}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                >
-                  <Text style={styles.bidBtnText}>✗ Pass (force redeal)</Text>
+                  style={[styles.specialBtn, styles.specialRecontra]}
+                  onPress={handleRecontra}>
+                  <Text style={styles.specialBtnText}>Rekurenti</Text>
                 </TouchableOpacity>
-              </>
-            )}
+              )}
+              <TouchableOpacity
+                style={[styles.specialBtn, styles.specialKapuyt]}
+                onPress={handleKapuyt}>
+                <Text style={styles.specialBtnText}>Kapuyt</Text>
+              </TouchableOpacity>
+            </View>
           </>
         ) : (
           <Text style={styles.waitingText}>
-            Waiting for {gameState.players[gameState.currentPlayer]?.name} to
-            bid…
+            Waiting for {playerName(gameState.currentPlayer)}…
           </Text>
         )}
+
+        <View style={styles.scoreReminder}>
+          <Text style={styles.scoreReminderText}>
+            T1: {gameState.gameScore.team1}{'  |  '}T2: {gameState.gameScore.team2}
+            {'  |  '}Target: {gameState.targetScore}
+          </Text>
+        </View>
       </View>
     );
   };
 
-  const renderGameEnd = () => {
-    const winner =
-      (gameState.gameScore.team1 || 0) >= 101 ? 'Team 1' : 'Team 2';
+  // ── Playing ──────────────────────────────────────────────────────────────
+  const renderPlaying = () => {
+    if (!gameState) return null;
+    const myPlayer = gameState.players[0];
+    const { trump } = gameState;
+
     return (
-      <View style={styles.gameEndContainer}>
-        <Text style={styles.gameEndTitle}>Game Over!</Text>
-        <Text style={styles.gameEndWinner}>{winner} Wins!</Text>
-        <Text style={styles.gameEndScore}>
-          Final Score: {gameState.gameScore.team1 || 0} -{' '}
-          {gameState.gameScore.team2 || 0}
-        </Text>
-        <TouchableOpacity
-          style={styles.newGameButton}
-          onPress={startNewGame}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Text style={styles.newGameButtonText}>New Game</Text>
+      <View style={styles.playingLayout}>
+        <View style={styles.scoreBar}>
+          <Text style={styles.scoreBarText}>
+            {'🔵 T1: '}
+            {gameState.gameScore.team1 + gameState.scores.team1}
+            {'   🔴 T2: '}
+            {gameState.gameScore.team2 + gameState.scores.team2}
+            {'   🎯 '}
+            {gameState.targetScore}
+          </Text>
+          {trump && (
+            <View style={styles.trumpBadge}>
+              <Text style={styles.trumpBadgeText}>
+                {'Trump: '}
+                <Text style={{ color: suitColor(trump) }}>{SUIT_ICON[trump]}</Text>
+                {'  Bid: '}
+                {gameState.currentBid}
+                {gameState.contracted ? '×2' : ''}
+                {gameState.recontracted ? '×2' : ''}
+              </Text>
+            </View>
+          )}
+        </View>
+
+        <View style={styles.tableWrapper}>
+          <ImageBackground
+            source={require('../../assets/blot/card-table.png')}
+            style={styles.tableImage}
+            imageStyle={styles.tableImageStyle}>
+            <View style={styles.trickArea}>
+              <View style={[styles.trickSlot, styles.trickSlotTop]}>
+                <Text style={styles.trickPlayerName}>{playerName(2)}</Text>
+                {trickCardForPlayer(2) && (
+                  <DynamicCard card={trickCardForPlayer(2)!} theme={customTheme} size="small" />
+                )}
+              </View>
+              <View style={[styles.trickSlot, styles.trickSlotLeft]}>
+                <Text style={styles.trickPlayerName}>{playerName(3)}</Text>
+                {trickCardForPlayer(3) && (
+                  <DynamicCard card={trickCardForPlayer(3)!} theme={customTheme} size="small" />
+                )}
+              </View>
+              <View style={[styles.trickSlot, styles.trickSlotRight]}>
+                <Text style={styles.trickPlayerName}>{playerName(1)}</Text>
+                {trickCardForPlayer(1) && (
+                  <DynamicCard card={trickCardForPlayer(1)!} theme={customTheme} size="small" />
+                )}
+              </View>
+              <View style={[styles.trickSlot, styles.trickSlotBottom]}>
+                {trickCardForPlayer(0) && (
+                  <DynamicCard card={trickCardForPlayer(0)!} theme={customTheme} size="small" />
+                )}
+                <Text style={styles.trickPlayerName}>{playerName(0)}</Text>
+              </View>
+            </View>
+          </ImageBackground>
+        </View>
+
+        <View style={styles.handSection}>
+          {gameState.currentPlayer === 0 ? (
+            <Text style={styles.handLabel}>Your turn ↓</Text>
+          ) : (
+            <Text style={styles.handLabelWait}>Waiting…</Text>
+          )}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.handContent}>
+            {myPlayer.hand.map((card, idx) => {
+              const legal = canPlayCard(
+                card, myPlayer.hand, gameState.currentTrick, trump,
+              );
+              const isMyTurn = gameState.currentPlayer === 0;
+              return (
+                <TouchableOpacity
+                  key={`${card.suit}-${card.rank}-${idx}`}
+                  onPress={() => isMyTurn && handlePlayCard(card)}
+                  style={[
+                    styles.cardWrapper,
+                    !legal || !isMyTurn ? styles.cardDimmed : styles.cardLegal,
+                  ]}>
+                  <DynamicCard card={card} theme={customTheme} size="medium" />
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </View>
+      </View>
+    );
+  };
+
+  // ── Round End ────────────────────────────────────────────────────────────
+  const renderRoundEnd = () => {
+    if (!gameState) return null;
+    const t1Seqs = findSequences(
+      dealtHandsRef.current.filter(h => h.team === 1).flatMap(h => h.hand),
+      1,
+    );
+    const t2Seqs = findSequences(
+      dealtHandsRef.current.filter(h => h.team === 2).flatMap(h => h.hand),
+      2,
+    );
+    const seqLabel = (seqs: ReturnType<typeof findSequences>) =>
+      seqs.length === 0
+        ? 'none'
+        : seqs
+            .map(s => {
+              const name =
+                s.length >= 5 ? 'Quint' : s.length === 4 ? 'Quart' : 'Terz';
+              return `${name}(${s.highRank}${SUIT_ICON[s.suit]}) +${s.points}`;
+            })
+            .join(', ');
+
+    return (
+      <View style={styles.centeredSection}>
+        <Text style={styles.bigTitle}>Round Over</Text>
+        <Text style={styles.roundMsg}>{gameState.roundMessage}</Text>
+
+        <View style={styles.scoreTable}>
+          <View style={styles.scoreRow}>
+            <Text style={styles.scoreLabel}>Team 1 (round):</Text>
+            <Text style={styles.scoreValue}>{gameState.scores.team1}</Text>
+          </View>
+          <View style={styles.scoreRow}>
+            <Text style={styles.scoreLabel}>Team 2 (round):</Text>
+            <Text style={styles.scoreValue}>{gameState.scores.team2}</Text>
+          </View>
+          <View style={[styles.scoreRow, styles.scoreRowTotal]}>
+            <Text style={styles.scoreLabel}>Game total:</Text>
+            <Text style={styles.scoreValue}>
+              T1 {gameState.gameScore.team1} — T2 {gameState.gameScore.team2}
+            </Text>
+          </View>
+        </View>
+
+        {(t1Seqs.length > 0 || t2Seqs.length > 0) && (
+          <View style={styles.seqBox}>
+            <Text style={styles.seqTitle}>Sequences</Text>
+            <Text style={styles.seqText}>Team 1: {seqLabel(t1Seqs)}</Text>
+            <Text style={styles.seqText}>Team 2: {seqLabel(t2Seqs)}</Text>
+          </View>
+        )}
+
+        <TouchableOpacity style={styles.primaryBtn} onPress={handleNewRound}>
+          <Text style={styles.primaryBtnText}>Next Round</Text>
         </TouchableOpacity>
       </View>
     );
   };
 
-  const currentPlayer = gameState.players[gameState.currentPlayer];
-  const { width, height } = Dimensions.get('window');
-  const TABLE_SIZE = Math.min(width - 32, height * 0.5);
+  // ── Game End ─────────────────────────────────────────────────────────────
+  const renderGameEnd = () => {
+    if (!gameState) return null;
+    const winner = gameState.gameScore.team1 > gameState.gameScore.team2 ? 1 : 2;
+    const isWin = winner === 1;
+    return (
+      <View style={styles.centeredSection}>
+        <Text style={styles.bigTitle}>{isWin ? '🏆 You Win!' : '😔 You Lose'}</Text>
+        <Text style={styles.gameEndWinner}>{isWin ? 'Team 1 wins!' : 'Team 2 wins!'}</Text>
+        <Text style={styles.gameEndScore}>
+          {gameState.gameScore.team1} — {gameState.gameScore.team2}
+        </Text>
+        <TouchableOpacity style={styles.primaryBtn} onPress={handleNewGame}>
+          <Text style={styles.primaryBtnText}>New Game</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
+  const renderContent = () => {
+    if (!gameState) return renderSetup();
+    switch (gameState.phase) {
+      case 'bidding':  return renderBidding();
+      case 'playing':  return renderPlaying();
+      case 'roundEnd': return renderRoundEnd();
+      case 'gameEnd':  return renderGameEnd();
+      default:         return renderSetup();
+    }
+  };
 
   return (
     <ImageBackground
       source={require('../../assets/blot/park-background.png')}
-      style={styles.container}
-      blurRadius={3}
-    >
+      style={styles.bg}
+      resizeMode="cover">
       <LinearGradient
-        colors={['rgba(15,15,35,0.7)', 'rgba(26,23,66,0.6)']}
-        style={styles.overlay}
-      >
-        <SafeAreaView style={[styles.safeArea,]}>
-          <GameToolbar
-            title="🃏 Blot"
-            onBack={() => navigation.goBack()}
-            backgroundColor="transparent"
-            rightElement={
-              <View
-                style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}
-              >
-                <TouchableOpacity
-                  onPress={() => setShowCustomization(true)}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                >
-                  <Text style={styles.customizeText}>🎨</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={startNewGame}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                >
-                  <Text style={styles.newGameText}>New Game</Text>
-                </TouchableOpacity>
-              </View>
-            }
-          />
-
-          <View style={styles.scoreBoard}>
-            <View style={styles.teamScore}>
-              <Text style={styles.teamLabel}>Team 1</Text>
-              <Text style={styles.score}>{gameState.gameScore.team1 || 0}</Text>
-              {gameState.phase === 'playing' && (
-                <Text style={styles.roundScore}>
-                  {gameState.scores?.team1 || 0} this round
-                </Text>
-              )}
-            </View>
-            {gameState.trump && (
-              <View style={styles.trumpDisplay}>
-                <Text style={styles.trumpLabel}>Trump</Text>
-                <Text style={styles.trumpSuit}>
-                  {gameState.trump === 'hearts'
-                    ? '♥'
-                    : gameState.trump === 'diamonds'
-                    ? '♦'
-                    : gameState.trump === 'clubs'
-                    ? '♣'
-                    : '♠'}
-                </Text>
-              </View>
-            )}
-            <View style={styles.teamScore}>
-              <Text style={styles.teamLabel}>Team 2</Text>
-              <Text style={styles.score}>{gameState.gameScore.team2 || 0}</Text>
-              {gameState.phase === 'playing' && (
-                <Text style={styles.roundScore}>
-                  {gameState.scores?.team2 || 0} this round
-                </Text>
-              )}
-            </View>
-          </View>
-
-          {gameState.phase === 'bidding' && renderTrumpSelection()}
-          {gameState.phase === 'gameEnd' && renderGameEnd()}
-
-          {/* Round message shown between rounds */}
-          {gameState.roundMessage && gameState.phase === 'bidding' && (
-            <View style={styles.roundMsgBox}>
-              <Text style={styles.roundMsgText}>{gameState.roundMessage}</Text>
-            </View>
-          )}
-
-          {gameState.phase === 'playing' && (
-            <>
-              <View style={styles.playArea}>
-                <Text style={styles.currentPlayerText}>
-                  {gameState.currentPlayer === 0
-                    ? '★ Your Turn (Team 1)'
-                    : `${
-                        gameState.players[gameState.currentPlayer].name
-                      }'s Turn (Team ${
-                        gameState.players[gameState.currentPlayer].team
-                      })`}
-                </Text>
-
-                <View
-                  style={[
-                    styles.tableContainer,
-                    { width: TABLE_SIZE, height: TABLE_SIZE },
-                  ]}
-                >
-                  <ImageBackground
-                    source={require('../../assets/blot/card-table.png')}
-                    style={styles.cardTable}
-                    imageStyle={{ borderRadius: 16 }}
-                  >
-                    {gameState.currentTrick.cards.length > 0 && (() => {
-                        const ledSuit = gameState.currentTrick.cards[0].card.suit;
-                        // Map player IDs to visual table positions
-                        // Player 0 = bottom, 1 = right, 2 = top, 3 = left
-                        const positionStyle: Record<number, object> = {
-                          0: styles.trickSlotBottom,
-                          1: styles.trickSlotRight,
-                          2: styles.trickSlotTop,
-                          3: styles.trickSlotLeft,
-                        };
-                        return (
-                          <View style={styles.trickArea}>
-                            {/* Led suit indicator in the center */}
-                            <View style={styles.ledSuitBadge}>
-                              <Text style={[styles.ledSuitIcon, { color: SUIT_COLOR[ledSuit] }]}>
-                                {SUIT_ICON[ledSuit]}
-                              </Text>
-                              <Text style={styles.ledSuitLabel}>
-                                Led: {SUIT_NAME[ledSuit]}
-                              </Text>
-                            </View>
-                            {/* Cards positioned at table edges */}
-                            {gameState.currentTrick.cards.map((cardPlay, idx) => (
-                              <View
-                                key={idx}
-                                style={[
-                                  styles.trickSlot,
-                                  positionStyle[cardPlay.playerId] ?? styles.trickSlotTop,
-                                ]}
-                              >
-                                <Text style={styles.trickPlayerName}>
-                                  {gameState.players[cardPlay.playerId].name}
-                                </Text>
-                                <DynamicCard
-                                  card={cardPlay.card}
-                                  size="medium"
-                                  theme={customTheme}
-                                />
-                              </View>
-                            ))}
-                          </View>
-                        );
-                      })()}
-                  </ImageBackground>
-                </View>
-              </View>
-
-              <ScrollView
-                horizontal
-                style={styles.handContainer}
-                contentContainerStyle={[styles.handContent,]}
-              >
-                <Text style={styles.handLabel}>Your Hand:</Text>
-                <View style={styles.hand}>
-                  {gameState.players[0].hand.map(card => {
-                    const isMyTurn = gameState.currentPlayer === 0;
-                    const playable =
-                      isMyTurn &&
-                      canPlayCard(
-                        card,
-                        gameState.players[0].hand,
-                        gameState.currentTrick,
-                        gameState.trump,
-                      );
-                    return (
-                      <DynamicCard
-                        key={card.id}
-                        card={card}
-                        onPress={isMyTurn ? () => playCard(card) : undefined}
-                        isPlayable={playable}
-                        size="large"
-                        theme={customTheme}
-                      />
-                    );
-                  })}
-                </View>
-              </ScrollView>
-            </>
-          )}
-        </SafeAreaView>
-      </LinearGradient>
+        colors={['rgba(0,0,0,0.55)', 'rgba(0,40,0,0.72)']}
+        style={StyleSheet.absoluteFill}
+      />
+      <SafeAreaView style={styles.safe}>
+        <GameToolbar
+          title="Bazaar Blot"
+          onBack={() => navigation.goBack()}
+          rightElement={
+            <TouchableOpacity onPress={() => setShowCustomization(true)}>
+              <Text style={{ color: '#FFD700', fontSize: 13, fontWeight: '700' }}>🎨 Cards</Text>
+            </TouchableOpacity>
+          }
+        />
+        <View style={styles.body}>{renderContent()}</View>
+      </SafeAreaView>
 
       <CardCustomizationModal
         visible={showCustomization}
@@ -680,370 +699,242 @@ const BaazarBlotScreen  = ({ navigation }: any) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
+  bg: { flex: 1 },
+  safe: { flex: 1 },
+  body: { flex: 1 },
+  centeredSection: {
     flex: 1,
-  },
-  overlay: {
-    flex: 1,
-  },
-  safeArea: {
-    flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: 'transparent',
-  },
-  backButton: {
-    fontSize: 16,
-    color: '#fff',
-    fontWeight: '600',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#fff',
-    textShadowColor: 'rgba(0,0,0,0.5)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
-  },
-  newGameText: {
-    fontSize: 16,
-    color: '#FFD700',
-    fontWeight: '600',
-  },
-  customizeText: {
-    fontSize: 22,
-    color: '#FFD700',
-  },
-  scoreBoard: {
-    flex: 1,
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    backgroundColor: 'transparent',
-  },
-  teamScore: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  teamLabel: {
-    fontSize: 14,
-    color: '#fff',
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  score: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#FFD700',
-  },
-  roundScore: {
-    fontSize: 12,
-    color: '#90EE90',
-  },
-  trumpDisplay: {
-    flex:1,
-    maxWidth:70,
-    maxHeight:98,
-    alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(26, 92, 63, 0.9)',
-    padding: 12,
-    borderRadius: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 4,
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
   },
-  trumpLabel: {
-    fontSize: 12,
-    color: '#fff',
-    marginBottom: 4,
-  },
-  trumpSuit: {
+  bigTitle: {
     fontSize: 32,
-  },
-  playArea: {
-    flex: 2,
-    padding: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  tableContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.5,
-    shadowRadius: 16,
-    elevation: 12,
-  },
-  cardTable: {
-    width: '100%',
-    height: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  currentPlayerText: {
-    fontSize: 18,
     fontWeight: 'bold',
     color: '#FFD700',
-    textAlign: 'center',
-    marginBottom: 16,
-    textShadowColor: 'rgba(0,0,0,0.8)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
-  },
-  trickArea: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  trickLabel: {
-    fontSize: 16,
-    color: '#fff',
     marginBottom: 12,
-    fontWeight: '600',
+    textAlign: 'center',
   },
-  trickCards: {
-    flexDirection: 'row',
-    flexWrap: 'nowrap',
-    justifyContent: 'center',
-    alignItems: 'center',
+  subtitle: {
+    fontSize: 18,
+    color: 'rgba(255,255,255,0.85)',
+    marginBottom: 28,
   },
-  trickCard: {
-    alignItems: 'center',
-    margin: 4,
-  },
-  // Led suit indicator
-  ledSuitBadge: {
-    position: 'absolute',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(0,0,0,0.55)',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.25)',
-  },
-  ledSuitIcon: {
+  sectionTitle: {
     fontSize: 22,
-    lineHeight: 26,
-  },
-  ledSuitLabel: {
-    fontSize: 11,
-    color: '#ccc',
-    fontWeight: '600',
-    marginTop: 1,
-    letterSpacing: 0.5,
-  },
-  // Absolute card slots for each player position on the table
-  trickSlot: {
-    position: 'absolute',
-    alignItems: 'center',
-  },
-  trickSlotTop: {
-    top: 14,
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-  },
-  trickSlotBottom: {
-    bottom: 14,
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-  },
-  trickSlotLeft: {
-    left: 14,
-    top: '50%',
-    marginTop: -75,
-  },
-  trickSlotRight: {
-    right: 14,
-    top: '50%',
-    marginTop: -75,
-  },
-  trickPlayerName: {
-    fontSize: 12,
-    color: '#fff',
-    marginBottom: 6,
-  },
-  handContainer: {
-    flex: 1,
-    backgroundColor: 'transparent',
-  },
-  handContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  handLabel: {
-    fontSize: 16,
-    color: '#fff',
-    fontWeight: '600',
-  },
-  hand: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  trumpSelection: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  trumpTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#FFD700',
-    marginBottom: 32,
-  },
-  suitButtons: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-  },
-  suitButton: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 24,
-    margin: 12,
-    alignItems: 'center',
-    minWidth: 120,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  suitButtonText: {
-    fontSize: 48,
-    marginBottom: 8,
-  },
-  suitButtonLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    textTransform: 'capitalize',
-  },
-  gameEndContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  gameEndTitle: {
-    fontSize: 36,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: '#FFD700',
     marginBottom: 16,
   },
-  gameEndWinner: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#90EE90',
-    marginBottom: 24,
-  },
-  gameEndScore: {
-    fontSize: 20,
-    color: '#fff',
-    marginBottom: 48,
-  },
-  newGameButton: {
-    backgroundColor: '#FFD700',
-    borderRadius: 12,
-    padding: 16,
-    paddingHorizontal: 48,
-  },
-  newGameButtonText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#0A3622',
-  },
-  // Bidding UI
-  proposalRow: {
+  targetButtons: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 12,
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    borderRadius: 10,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
+    gap: 20,
+    marginTop: 8,
   },
-  proposalLabel: {
-    fontSize: 16,
-    color: '#fff',
-    fontWeight: '600',
-  },
-  proposalSuit: {
-    fontSize: 28,
-    fontWeight: 'bold',
-  },
-  bidRoundLabel: {
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.7)',
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  bidButtons: {
-    flexDirection: 'row',
-    gap: 16,
-  },
-  bidBtn: {
-    borderRadius: 12,
-    paddingVertical: 14,
-    paddingHorizontal: 32,
-    alignItems: 'center',
-    minWidth: 130,
-  },
-  bidBtnTake: {
+  targetBtn: {
     backgroundColor: '#2e7d32',
+    borderRadius: 14,
+    paddingVertical: 18,
+    paddingHorizontal: 28,
     borderWidth: 2,
     borderColor: '#4caf50',
   },
-  bidBtnPass: {
-    backgroundColor: '#7f1d1d',
-    borderWidth: 2,
-    borderColor: '#ef4444',
-  },
-  bidBtnText: {
+  targetBtnText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 22,
     fontWeight: '700',
   },
-  waitingText: {
-    color: 'rgba(255,255,255,0.6)',
-    fontSize: 16,
-    marginTop: 16,
-    fontStyle: 'italic',
-  },
-  // Round result message
-  roundMsgBox: {
-    marginHorizontal: 16,
-    marginBottom: 8,
-    backgroundColor: 'rgba(0,0,0,0.55)',
+  bidStatusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.1)',
     borderRadius: 10,
-    padding: 10,
-    borderWidth: 1,
-    borderColor: '#FFD700',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    marginBottom: 16,
   },
-  roundMsgText: {
+  bidStatusText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  bidStatusValue: { fontSize: 20, fontWeight: 'bold' },
+  contraBadge: { color: '#FF6B35', fontSize: 14, fontWeight: 'bold', marginLeft: 6 },
+  yourTurnLabel: { color: '#FFD700', fontSize: 16, fontWeight: '700', marginBottom: 14 },
+  bidLevelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 20,
+    marginBottom: 16,
+  },
+  stepBtn: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 10,
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepBtnText: { color: '#fff', fontSize: 26, fontWeight: '700', lineHeight: 30 },
+  bidLevelValue: {
+    color: '#FFD700',
+    fontSize: 36,
+    fontWeight: 'bold',
+    minWidth: 48,
+    textAlign: 'center',
+  },
+  suitRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 10,
+    marginBottom: 16,
+  },
+  suitChip: {
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'transparent',
+    minWidth: 70,
+  },
+  suitChipSelected: {
+    borderColor: '#FFD700',
+    backgroundColor: 'rgba(255,215,0,0.18)',
+  },
+  suitChipIcon: { fontSize: 26 },
+  suitChipLabel: { color: '#fff', fontSize: 11, fontWeight: '600', marginTop: 2 },
+  bidActionRow: { flexDirection: 'row', gap: 16, marginBottom: 12 },
+  bidActionBtn: {
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 28,
+    minWidth: 120,
+    alignItems: 'center',
+    borderWidth: 2,
+  },
+  bidBtnGreen: { backgroundColor: '#2e7d32', borderColor: '#4caf50' },
+  bidBtnRed: { backgroundColor: '#7f1d1d', borderColor: '#ef4444' },
+  bidBtnDisabled: { opacity: 0.4 },
+  bidActionBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  specialBidRow: {
+    flexDirection: 'row',
+    gap: 10,
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  specialBtn: { borderRadius: 10, paddingVertical: 10, paddingHorizontal: 18, borderWidth: 2 },
+  specialContra: { backgroundColor: 'rgba(180,40,40,0.5)', borderColor: '#FF6B35' },
+  specialRecontra: { backgroundColor: 'rgba(40,40,180,0.5)', borderColor: '#64B5F6' },
+  specialKapuyt: { backgroundColor: 'rgba(100,0,100,0.5)', borderColor: '#CE93D8' },
+  specialBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
+  waitingText: {
+    color: 'rgba(255,255,255,0.55)',
+    fontSize: 16,
+    fontStyle: 'italic',
+    marginTop: 20,
+  },
+  scoreReminder: { position: 'absolute', bottom: 16, alignItems: 'center' },
+  scoreReminderText: { color: 'rgba(255,255,255,0.6)', fontSize: 13 },
+  playingLayout: { flex: 1 },
+  scoreBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+  },
+  scoreBarText: { color: '#fff', fontSize: 13, fontWeight: '600' },
+  trumpBadge: {
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  trumpBadgeText: { color: '#fff', fontSize: 12, fontWeight: '600' },
+  tableWrapper: { flex: 1, marginHorizontal: 8, marginVertical: 4 },
+  tableImage: { flex: 1, borderRadius: 16, overflow: 'hidden' },
+  tableImageStyle: { borderRadius: 16 },
+  trickArea: { flex: 1, position: 'relative' },
+  trickSlot: { position: 'absolute', alignItems: 'center' },
+  trickSlotTop: { top: 10, left: 0, right: 0, alignItems: 'center' },
+  trickSlotBottom: { bottom: 10, left: 0, right: 0, alignItems: 'center' },
+  trickSlotLeft: { left: 10, top: '35%' },
+  trickSlotRight: { right: 10, top: '35%' },
+  trickPlayerName: { color: '#fff', fontSize: 11, fontWeight: '600', marginBottom: 3 },
+  handSection: {
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    paddingVertical: 8,
+    minHeight: 120,
+  },
+  handLabel: {
     color: '#FFD700',
     fontSize: 13,
+    fontWeight: '700',
     textAlign: 'center',
-    fontWeight: '600',
+    marginBottom: 4,
   },
+  handLabelWait: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 13,
+    textAlign: 'center',
+    marginBottom: 4,
+    fontStyle: 'italic',
+  },
+  handContent: {
+    flexDirection: 'row',
+    paddingHorizontal: 10,
+    gap: 6,
+    alignItems: 'center',
+  },
+  cardWrapper: { borderRadius: 6 },
+  cardLegal: { opacity: 1, transform: [{ translateY: -4 }] },
+  cardDimmed: { opacity: 0.45 },
+  roundMsg: {
+    color: '#fff',
+    fontSize: 15,
+    textAlign: 'center',
+    marginBottom: 20,
+    maxWidth: SW - 48,
+  },
+  scoreTable: {
+    width: '100%',
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
+  },
+  scoreRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
+  scoreRowTotal: {
+    marginTop: 6,
+    paddingTop: 6,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.2)',
+  },
+  scoreLabel: { color: 'rgba(255,255,255,0.8)', fontSize: 15 },
+  scoreValue: { color: '#FFD700', fontSize: 15, fontWeight: '700' },
+  seqBox: {
+    backgroundColor: 'rgba(0,50,100,0.4)',
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 16,
+    width: '100%',
+    borderWidth: 1,
+    borderColor: 'rgba(100,180,255,0.3)',
+  },
+  seqTitle: { color: '#64B5F6', fontSize: 14, fontWeight: '700', marginBottom: 4 },
+  seqText: { color: '#fff', fontSize: 13, marginBottom: 2 },
+  gameEndWinner: { fontSize: 26, fontWeight: 'bold', color: '#90EE90', marginBottom: 10 },
+  gameEndScore: { fontSize: 20, color: '#fff', marginBottom: 32 },
+  primaryBtn: {
+    backgroundColor: '#FFD700',
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 48,
+    marginTop: 8,
+  },
+  primaryBtnText: { fontSize: 17, fontWeight: 'bold', color: '#0A3622' },
 });
 
 export default BaazarBlotScreen;
