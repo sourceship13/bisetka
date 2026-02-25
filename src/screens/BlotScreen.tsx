@@ -30,6 +30,25 @@ import {
   dealCards,
 } from '../game/blotLogic';
 
+const SUIT_ICON: Record<string, string> = {
+  hearts: '♥',
+  diamonds: '♦',
+  clubs: '♣',
+  spades: '♠',
+};
+const SUIT_NAME: Record<string, string> = {
+  hearts: 'Hearts',
+  diamonds: 'Diamonds',
+  clubs: 'Clubs',
+  spades: 'Spades',
+};
+const SUIT_COLOR: Record<string, string> = {
+  hearts: '#e74c3c',
+  diamonds: '#e74c3c',
+  clubs: '#ecf0f1',
+  spades: '#ecf0f1',
+};
+
 const BlotScreen = ({ navigation }: any) => {
   const [gameState, setGameState] = useState<GameState>(initializeGame());
   const [showCustomization, setShowCustomization] = useState(false);
@@ -206,6 +225,14 @@ const BlotScreen = ({ navigation }: any) => {
 
       const completedTricks = [...gameState.completedTricks, updatedTrick];
 
+      // Show the completed trick (all 4 cards) before processing the result
+      setGameState(prev => ({
+        ...prev,
+        players: updatedPlayers,
+        currentTrick: updatedTrick,
+        completedTricks,
+      }));
+
       // Check if round is over (hands empty)
       if (updatedPlayers[0].hand.length === 0) {
         const roundResult = calculateRoundScore(
@@ -240,30 +267,33 @@ const BlotScreen = ({ navigation }: any) => {
         // Game ends at 101 points
         if (newGameScore.team1 >= 101 || newGameScore.team2 >= 101) {
           const playerWon = newGameScore.team1 >= newGameScore.team2;
-          setGameState(prev => ({
-            ...prev,
-            players: updatedPlayers,
-            completedTricks,
-            scores: roundScore,
-            gameScore: newGameScore,
-            phase: 'gameEnd',
-            roundMessage: msg,
-          }));
-          // Record result to backend so DB trigger awards points
-          gameResultService
-            .recordGameResult({
-              gameType: 'blot',
-              gameMode: 'ai',
-              result: playerWon ? 'win' : 'loss',
-              playerScore: newGameScore.team1,
-              opponentScore: newGameScore.team2,
-            })
-            .then(() => refreshOnGameEnd())
-            .catch(() => refreshOnGameEnd());
+          // Delay transition to game-end so the 4th card remains visible
+          setTimeout(() => {
+            setGameState(prev => ({
+              ...prev,
+              players: updatedPlayers,
+              completedTricks,
+              scores: roundScore,
+              gameScore: newGameScore,
+              phase: 'gameEnd',
+              roundMessage: msg,
+            }));
+            // Record result to backend so DB trigger awards points
+            gameResultService
+              .recordGameResult({
+                gameType: 'blot',
+                gameMode: 'ai',
+                result: playerWon ? 'win' : 'loss',
+                playerScore: newGameScore.team1,
+                opponentScore: newGameScore.team2,
+              })
+              .then(() => refreshOnGameEnd())
+              .catch(() => refreshOnGameEnd());
+          }, 1500);
           return;
         }
 
-        // Start new round
+        // Start new round — delay so the 4th card remains visible first
         setTimeout(() => {
           const newDealer = (gameState.dealer + 1) % 4;
           const { players: dealtPlayers, proposalCard } =
@@ -287,7 +317,7 @@ const BlotScreen = ({ navigation }: any) => {
             lastTrickWinner: winner,
             roundMessage: msg,
           }));
-        }, 2500);
+        }, 1500);
         return;
       }
 
@@ -557,24 +587,49 @@ const BlotScreen = ({ navigation }: any) => {
                     style={styles.cardTable}
                     imageStyle={{ borderRadius: 16 }}
                   >
-                    {gameState.currentTrick.cards.length > 0 && (
-                      <View style={styles.trickArea}>
-                        <View style={styles.trickCards}>
-                          {gameState.currentTrick.cards.map((cardPlay, idx) => (
-                            <View key={idx} style={styles.trickCard}>
-                              <Text style={styles.trickPlayerName}>
-                                {gameState.players[cardPlay.playerId].name}
+                    {gameState.currentTrick.cards.length > 0 && (() => {
+                        const ledSuit = gameState.currentTrick.cards[0].card.suit;
+                        // Map player IDs to visual table positions
+                        // Player 0 = bottom, 1 = right, 2 = top, 3 = left
+                        const positionStyle: Record<number, object> = {
+                          0: styles.trickSlotBottom,
+                          1: styles.trickSlotRight,
+                          2: styles.trickSlotTop,
+                          3: styles.trickSlotLeft,
+                        };
+                        return (
+                          <View style={styles.trickArea}>
+                            {/* Led suit indicator in the center */}
+                            <View style={styles.ledSuitBadge}>
+                              <Text style={[styles.ledSuitIcon, { color: SUIT_COLOR[ledSuit] }]}>
+                                {SUIT_ICON[ledSuit]}
                               </Text>
-                              <DynamicCard
-                                card={cardPlay.card}
-                                size="medium"
-                                theme={customTheme}
-                              />
+                              <Text style={styles.ledSuitLabel}>
+                                Led: {SUIT_NAME[ledSuit]}
+                              </Text>
                             </View>
-                          ))}
-                        </View>
-                      </View>
-                    )}
+                            {/* Cards positioned at table edges */}
+                            {gameState.currentTrick.cards.map((cardPlay, idx) => (
+                              <View
+                                key={idx}
+                                style={[
+                                  styles.trickSlot,
+                                  positionStyle[cardPlay.playerId] ?? styles.trickSlotTop,
+                                ]}
+                              >
+                                <Text style={styles.trickPlayerName}>
+                                  {gameState.players[cardPlay.playerId].name}
+                                </Text>
+                                <DynamicCard
+                                  card={cardPlay.card}
+                                  size="small"
+                                  theme={customTheme}
+                                />
+                              </View>
+                            ))}
+                          </View>
+                        );
+                      })()}
                   </ImageBackground>
                 </View>
               </View>
@@ -582,7 +637,7 @@ const BlotScreen = ({ navigation }: any) => {
               <ScrollView
                 horizontal
                 style={styles.handContainer}
-                contentContainerStyle={styles.handContent}
+                contentContainerStyle={[styles.handContent, { backgroundColor: 'red' }]}
               >
                 <Text style={styles.handLabel}>Your Hand:</Text>
                 <View style={styles.hand}>
@@ -712,7 +767,7 @@ const styles = StyleSheet.create({
     fontSize: 32,
   },
   playArea: {
-    flex: 1,
+    flex: 2,
     padding: 16,
     alignItems: 'center',
     justifyContent: 'center',
@@ -745,8 +800,6 @@ const styles = StyleSheet.create({
   trickArea: {
     alignItems: 'center',
     justifyContent: 'center',
-    flex: 1,
-    width: '100%',
   },
   trickLabel: {
     fontSize: 16,
@@ -756,7 +809,7 @@ const styles = StyleSheet.create({
   },
   trickCards: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexWrap: 'nowrap',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -764,25 +817,70 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     margin: 4,
   },
+  // Led suit indicator
+  ledSuitBadge: {
+    position: 'absolute',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.25)',
+  },
+  ledSuitIcon: {
+    fontSize: 22,
+    lineHeight: 26,
+  },
+  ledSuitLabel: {
+    fontSize: 11,
+    color: '#ccc',
+    fontWeight: '600',
+    marginTop: 1,
+    letterSpacing: 0.5,
+  },
+  // Absolute card slots for each player position on the table
+  trickSlot: {
+    position: 'absolute',
+    alignItems: 'center',
+  },
+  trickSlotTop: {
+    top: 8,
+    alignSelf: 'center',
+  },
+  trickSlotBottom: {
+    bottom: 8,
+    alignSelf: 'center',
+  },
+  trickSlotLeft: {
+    left: 8,
+    top: '50%',
+    marginTop: -35,
+  },
+  trickSlotRight: {
+    right: 8,
+    top: '50%',
+    marginTop: -35,
+  },
   trickPlayerName: {
     fontSize: 12,
     color: '#fff',
     marginBottom: 4,
   },
   handContainer: {
+    flex: 1,
     backgroundColor: 'transparent',
   },
   handContent: {
+    flex:1,
     padding: 16,
+    alignItems: 'flex-start',
   },
   handLabel: {
     fontSize: 16,
     color: '#fff',
     fontWeight: '600',
-    marginBottom: 8,
-    position: 'absolute',
-    top: 16,
-    left: 16,
   },
   hand: {
     flexDirection: 'row',
