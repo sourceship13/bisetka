@@ -16,8 +16,12 @@ import apiConfig from '../libs/utils/api.utils';
 import GameToolbar from '../components/GameToolbar';
 
 const { width } = Dimensions.get('window');
+const CONTAINER_PADDING = 8;
+const REEL_GAP = 4;
 const REEL_WIDTH = (width - 80) / 5;
 const SYMBOL_HEIGHT = 70;
+const REELS_TOTAL_WIDTH = CONTAINER_PADDING * 2 + REEL_WIDTH * 5 + REEL_GAP * 4;
+const REELS_TOTAL_HEIGHT = CONTAINER_PADDING * 2 + SYMBOL_HEIGHT * 3;
 
 const SYMBOLS = ['7️⃣', '💎', '⭐', '🔔', '🍒', '🍋', 'BAR'];
 
@@ -115,16 +119,17 @@ const SlotsScreen = ({ navigation }: any) => {
 
     return (
       <Svg
-        height={SYMBOL_HEIGHT * 3}
-        width={REEL_WIDTH * 5}
+        height={REELS_TOTAL_HEIGHT}
+        width={REELS_TOTAL_WIDTH}
         style={styles.paylinesOverlay}
+        pointerEvents="none"
       >
         {activePaylines.map(payline => {
           const isWinning = winningLineNums.includes(payline.id);
           const points = payline.path
             .map((row, col) => {
-              const x = col * REEL_WIDTH + REEL_WIDTH / 2;
-              const y = row * SYMBOL_HEIGHT + SYMBOL_HEIGHT / 2;
+              const x = CONTAINER_PADDING + col * (REEL_WIDTH + REEL_GAP) + REEL_WIDTH / 2;
+              const y = CONTAINER_PADDING + row * SYMBOL_HEIGHT + SYMBOL_HEIGHT / 2;
               return `${x},${y}`;
             })
             .join(' ');
@@ -220,10 +225,12 @@ const SlotsScreen = ({ navigation }: any) => {
             style={styles.machineFrame}
           >
             <View style={styles.reelsWrapper}>
-              <View style={styles.reelsContainer}>
-                {[0, 1, 2, 3, 4].map(renderReel)}
+              <View style={styles.reelsInner}>
+                <View style={styles.reelsContainer}>
+                  {[0, 1, 2, 3, 4].map(renderReel)}
+                </View>
+                {renderPaylineOverlay()}
               </View>
-              {renderPaylineOverlay()}
             </View>
 
             {renderPaylineIndicators()}
@@ -366,7 +373,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   machine: {
-    flex: 1,
+    flex: 3,
     borderRadius: 20,
     overflow: 'hidden',
     shadowColor: '#6366f1',
@@ -376,11 +383,16 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   machineFrame: {
-    padding: 16,
     flex: 1,
   },
   reelsWrapper: {
-    position: 'relative',
+    justifyContent: 'center',
+    alignItems: 'center',
+    flex: 1,
+  },
+  reelsInner: {
+    width: REELS_TOTAL_WIDTH,
+    height: REELS_TOTAL_HEIGHT,
   },
   reelsContainer: {
     flexDirection: 'row',
@@ -390,11 +402,13 @@ const styles = StyleSheet.create({
     gap: 4,
     height: SYMBOL_HEIGHT * 3 + 16,
     overflow: 'hidden',
+    justifyContent:'center',
+    alignItems:'center',
   },
   paylinesOverlay: {
     position: 'absolute',
-    top: 8,
-    left: 8,
+    top: 0,
+    left: 0,
   },
   reel: {
     width: REEL_WIDTH,
@@ -462,6 +476,7 @@ const styles = StyleSheet.create({
   controls: {
     marginHorizontal: 20,
     marginTop: 24,
+    flex:1
   },
   betLabel: {
     fontSize: 12,
@@ -505,6 +520,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 12,
     marginTop: 16,
+
   },
   quickBet: {
     paddingHorizontal: 20,
@@ -513,6 +529,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.1)',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.2)',
+    flex:1,
+    alignItems: 'center',
+
   },
   quickBetActive: {
     backgroundColor: '#6366f1',
@@ -529,21 +548,23 @@ const styles = StyleSheet.create({
   spinBtn: {
     marginHorizontal: 20,
     marginTop: 24,
-    marginBottom: 20,
     borderRadius: 20,
-    overflow: 'hidden',
     shadowColor: '#ec4899',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.5,
     shadowRadius: 16,
     elevation: 8,
+    minHeight:60
+
   },
   spinBtnDisabled: {
     opacity: 0.5,
   },
   spinGradient: {
-    paddingVertical: 20,
+    flex: 1,
     alignItems: 'center',
+    justifyContent: 'center',
+      borderRadius: 20,
   },
   spinText: {
     fontSize: 20,
