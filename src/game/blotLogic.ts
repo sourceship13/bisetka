@@ -16,6 +16,14 @@ export interface GameState {
   players: Player[];
   currentPlayer: number;
   trump: Suit | null;
+  /** Face-up card whose suit is proposed as trump during bidding */
+  proposalCard: CardType | null;
+  /** Team that accepted/declared trump — must score ≥82 raw points */
+  takerTeam: 1 | 2 | null;
+  /** 1 = accept proposed suit or pass; 2 = declare any suit or redeal */
+  bidRound: 1 | 2;
+  /** Players who have passed in the current bid round */
+  bidPassCount: number;
   currentTrick: Trick;
   completedTricks: Trick[];
   scores: { team1: number; team2: number };
@@ -23,7 +31,14 @@ export interface GameState {
   phase: 'bidding' | 'playing' | 'roundEnd' | 'gameEnd';
   dealer: number;
   lastTrickWinner: number | null;
+  /** Team that holds K+Q of trump (Belote) — earns +20 bonus */
+  beloteTeam: 1 | 2 | null;
+  roundMessage?: string;
 }
+
+// ---------------------------------------------------------------------------
+// Deck — 24 cards, 9 through Ace (Armenian Classic Blot)
+// ---------------------------------------------------------------------------
 
 // Card point values
 export const getCardPoints = (card: CardType, trump: Suit | null): number => {
@@ -49,28 +64,29 @@ export const getCardPoints = (card: CardType, trump: Suit | null): number => {
   }
 };
 
-// Trump card ranking
-const trumpRanking: Rank[] = ['J', '9', 'A', '10', 'K', 'Q', '8', '7'];
-const normalRanking: Rank[] = ['A', '10', 'K', 'Q', 'J', '9', '8', '7'];
+// Trump: J(0) > 9(1) > A(2) > 10(3) > K(4) > Q(5)   — lower index = stronger
+// Normal: A(0) > 10(1) > K(2) > Q(3) > J(4) > 9(5)
+const TRUMP_RANKING: Rank[]  = ['J', '9', 'A', '10', 'K', 'Q'];
+const NORMAL_RANKING: Rank[] = ['A', '10', 'K', 'Q', 'J', '9'];
 
-export const getCardRank = (card: CardType, trump: Suit | null): number => {
-  const ranking = card.suit === trump ? trumpRanking : normalRanking;
-  return ranking.indexOf(card.rank);
+export const getCardStrength = (card: CardType, trump: Suit | null): number => {
+  const ranking = card.suit === trump ? TRUMP_RANKING : NORMAL_RANKING;
+  const idx = ranking.indexOf(card.rank as Rank);
+  return idx === -1 ? 999 : idx;
 };
 
-// Create and shuffle deck
+// Legacy alias
+export const getCardRank = getCardStrength;
+
+// Create and shuffle the 24-card Armenian Blot deck (9–Ace only)
 export const createDeck = (): CardType[] => {
   const suits: Suit[] = ['hearts', 'diamonds', 'clubs', 'spades'];
-  const ranks: Rank[] = ['7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
+  const ranks: Rank[] = ['9', '10', 'J', 'Q', 'K', 'A'];
   const deck: CardType[] = [];
 
   suits.forEach(suit => {
     ranks.forEach(rank => {
-      deck.push({
-        suit,
-        rank,
-        id: `${suit}-${rank}`,
-      });
+      deck.push({ suit, rank, id: `${suit}-${rank}` });
     });
   });
 
@@ -86,125 +102,282 @@ export const shuffleDeck = (deck: CardType[]): CardType[] => {
   return shuffled;
 };
 
-// Deal cards to players
-export const dealCards = (players: Player[]): Player[] => {
+// Deal 6 cards each from a 24-card deck. First card is the "proposal" suit hint.
+export const dealCards = (
+  players: Player[],
+): { players: Player[]; proposalCard: CardType } => {
   const deck = createDeck();
-  const dealtPlayers = players.map((player, index) => ({
+  const dealtPlayers = players.map((player, i) => ({
     ...player,
-    hand: deck.slice(index * 8, (index + 1) * 8),
+    hand: deck.slice(i * 6, (i + 1) * 6),
   }));
-  return dealtPlayers;
+  return { players: dealtPlayers, proposalCard: deck[0] };
 };
 
 // Determine trick winner
-export const determineTrickWinner = (trick: Trick, trump: Suit | null, leadSuit: Suit): number => {
-  let winningCard = trick.cards[0];
-  
-  trick.cards.forEach(cardPlay => {
-    const currentWinner = winningCard.card;
-    const challenger = cardPlay.card;
-    
-    // Trump beats everything
-    if (challenger.suit === trump && currentWinner.suit !== trump) {
-      winningCard = cardPlay;
-    } else if (challenger.suit === trump && currentWinner.suit === trump) {
-      // Both trump - compare rank
-      if (getCardRank(challenger, trump) < getCardRank(currentWinner, trump)) {
-        winningCard = cardPlay;
-      }
-    } else if (currentWinner.suit !== trump && challenger.suit === leadSuit && currentWinner.suit !== leadSuit) {
-      // Following lead suit beats non-lead
-      winningCard = cardPlay;
-    } else if (challenger.suit === leadSuit && currentWinner.suit === leadSuit) {
-      // Both following lead - compare rank
-      if (getCardRank(challenger, trump) < getCardRank(currentWinner, trump)) {
-        winningCard = cardPlay;
-      }
+export const determineTrickWinner = (
+  trick: Trick,
+  trump: Suit | null,
+  leadSuit: Suit,
+): number => {
+  let best = trick.cards[0];
+
+  trick.cards.slice(1).forEach(play => {
+    const b = best.card;
+    const c = play.card;
+    const bT = b.suit === trump;
+    const cT = c.suit === trump;
+
+    if (cT && !bT) {
+      best = play; // trump beats non-trump
+    } else if (cT && bT) {
+      if (getCardStrength(c, trump) < getCardStrength(b, trump)) best = play;
+    } else if (!bT && c.suit === leadSuit && b.suit !== leadSuit) {
+      best = play; // lead-suit beats off-suit non-trump
+    } else if (c.suit === leadSuit && b.suit === leadSuit) {
+      if (getCardStrength(c, trump) < getCardStrength(b, trump)) best = play;
     }
   });
-  
-  return winningCard.playerId;
+
+  return best.playerId;
 };
 
-// Check if a card can be played
+// Validate a card play against all Armenian Blot following rules
 export const canPlayCard = (
   card: CardType,
   hand: CardType[],
   currentTrick: Trick,
-  trump: Suit | null
+  trump: Suit | null,
 ): boolean => {
-  // First card of trick - can play anything
-  if (currentTrick.cards.length === 0) {
-    return true;
+  if (currentTrick.cards.length === 0) return true; // leading — anything legal
+
+  const leadSuit = currentTrick.cards[0].card.suit;
+  const trumpIsLed = leadSuit === trump;
+  const hasSuit = hand.some(c => c.suit === leadSuit);
+
+  if (hasSuit) {
+    if (!trumpIsLed) return card.suit === leadSuit; // simple follow-suit
+
+    // Trump was led: must follow trump AND must over-trump if you can
+    const suits = currentTrick.cards
+      .filter(p => p.card.suit === trump)
+      .map(p => getCardStrength(p.card, trump));
+    const currentBest = suits.length > 0 ? Math.min(...suits) : 999;
+    const canBeat = hand.some(
+      c => c.suit === trump && getCardStrength(c, trump) < currentBest,
+    );
+    if (canBeat) {
+      return card.suit === trump && getCardStrength(card, trump) < currentBest;
+    }
+    return card.suit === trump; // can't beat but must still play trump
   }
 
-  const leadCard = currentTrick.cards[0].card;
-  const leadSuit = leadCard.suit;
-  
-  // Must follow suit if possible
-  const hasSuit = hand.some(c => c.suit === leadSuit);
-  if (hasSuit) {
-    return card.suit === leadSuit;
-  }
-  
-  // If no lead suit, must play trump if available
+  // No lead suit — must trump if possible
   const hasTrump = hand.some(c => c.suit === trump);
-  if (hasTrump) {
-    return card.suit === trump;
-  }
-  
-  // Can play any card if no lead suit or trump
-  return true;
+  if (hasTrump) return card.suit === trump;
+
+  return true; // no lead suit and no trump — free choice
 };
 
-// Calculate round score
+// Belote: team holding K+Q of trump earns +20
+export const detectBeloteTeam = (
+  players: Player[],
+  trump: Suit | null,
+): 1 | 2 | null => {
+  if (!trump) return null;
+  for (const p of players) {
+    const hasK = p.hand.some(c => c.suit === trump && c.rank === 'K');
+    const hasQ = p.hand.some(c => c.suit === trump && c.rank === 'Q');
+    if (hasK && hasQ) return p.team;
+  }
+  return null;
+};
+
+export interface RoundResult {
+  team1: number;
+  team2: number;
+  takerFell: boolean;   // taker scored <82 raw pts
+  capot: boolean;       // one team won all tricks → 250 pts
+  beloteBonus: 0 | 20;
+}
+
+// Running score for the current round (no fall/capot — mid-round tally).
+// Call after each completed trick to update the live scoreboard.
+export const calculateRunningScore = (
+  tricks: Trick[],
+  players: Player[],
+  trump: Suit | null,
+): { team1: number; team2: number } => {
+  let team1 = 0;
+  let team2 = 0;
+  tricks.forEach((trick, idx) => {
+    const winner = players.find(p => p.id === trick.winner);
+    if (!winner) return;
+    let pts = trick.cards.reduce((s, cp) => s + getCardPoints(cp.card, trump), 0);
+    // Include last-trick bonus when we're showing all completed tricks
+    if (idx === tricks.length - 1 && players.every(p => p.hand.length === 0)) pts += 10;
+    if (winner.team === 1) team1 += pts;
+    else team2 += pts;
+  });
+  return { team1, team2 };
+};
+
+// Full Armenian Blot scoring:
+//   • Taker must score ≥82 raw card pts; if they fall: taker=0, opponent=162.
+//   • Last trick = +10 ("der").
+//   • Capot (all tricks) = 250 flat for winning team.
+//   • Belote = +20 to declaring team (applied after fall/capot).
 export const calculateRoundScore = (
   tricks: Trick[],
   players: Player[],
-  trump: Suit | null
-): { team1: number; team2: number } => {
-  let team1Score = 0;
-  let team2Score = 0;
+  trump: Suit | null,
+  takerTeam: 1 | 2 | null,
+  beloteTeam: 1 | 2 | null,
+): RoundResult => {
+  let team1 = 0;
+  let team2 = 0;
 
-  tricks.forEach((trick, index) => {
+  tricks.forEach((trick, idx) => {
     const winner = players.find(p => p.id === trick.winner);
     if (!winner) return;
-
-    let trickPoints = 0;
-    trick.cards.forEach(cardPlay => {
-      trickPoints += getCardPoints(cardPlay.card, trump);
-    });
-
-    // Last trick bonus
-    if (index === tricks.length - 1) {
-      trickPoints += 10;
-    }
-
-    if (winner.team === 1) {
-      team1Score += trickPoints;
-    } else {
-      team2Score += trickPoints;
-    }
+    let pts = trick.cards.reduce((s, cp) => s + getCardPoints(cp.card, trump), 0);
+    if (idx === tricks.length - 1) pts += 10; // last trick (+10)
+    if (winner.team === 1) team1 += pts; else team2 += pts;
   });
 
-  return { team1: team1Score, team2: team2Score };
+  // Capot check
+  const t1Wins = tricks.filter(
+    t => players.find(p => p.id === t.winner)?.team === 1,
+  ).length;
+  const capot = t1Wins === tricks.length || t1Wins === 0;
+  if (capot) {
+    team1 = t1Wins === tricks.length ? 250 : 0;
+    team2 = t1Wins === 0 ? 250 : 0;
+  }
+
+  const beloteBonus: 0 | 20 = beloteTeam ? 20 : 0;
+
+  // Taker-fall check (uses raw card points, not including last-trick bonus)
+  let takerFell = false;
+  if (takerTeam && !capot) {
+    let raw1 = 0; let raw2 = 0;
+    tricks.forEach(trick => {
+      const winner = players.find(p => p.id === trick.winner);
+      if (!winner) return;
+      const pts = trick.cards.reduce((s, cp) => s + getCardPoints(cp.card, trump), 0);
+      if (winner.team === 1) raw1 += pts; else raw2 += pts;
+    });
+    if ((takerTeam === 1 ? raw1 : raw2) < 82) {
+      takerFell = true;
+      team1 = takerTeam === 1 ? 0 : 162;
+      team2 = takerTeam === 2 ? 0 : 162;
+    }
+  }
+
+  // Belote bonus applied last (declarer gets it even when they fell)
+  if (beloteTeam === 1) team1 += beloteBonus;
+  if (beloteTeam === 2) team2 += beloteBonus;
+
+  return { team1, team2, takerFell, capot, beloteBonus };
 };
 
+// ---------------------------------------------------------------------------
+// AI helpers
+// ---------------------------------------------------------------------------
+
+export const isTeammateWinning = (
+  currentTrick: Trick,
+  playerId: number,
+  players: Player[],
+  trump: Suit | null,
+): boolean => {
+  if (currentTrick.cards.length === 0) return false;
+  const leadSuit = currentTrick.cards[0].card.suit;
+  const winnerId = determineTrickWinner({ ...currentTrick }, trump, leadSuit);
+  const winner = players.find(p => p.id === winnerId);
+  const me = players.find(p => p.id === playerId);
+  return !!winner && !!me && winner.team === me.team && winnerId !== playerId;
+};
+
+export const chooseAICard = (
+  player: Player,
+  currentTrick: Trick,
+  trump: Suit | null,
+  players: Player[],
+): CardType => {
+  const hand = player.hand;
+  const legal = hand.filter(c => canPlayCard(c, hand, currentTrick, trump));
+  if (legal.length === 1) return legal[0];
+
+  const teammate = isTeammateWinning(currentTrick, player.id, players, trump);
+
+  // Teammate is winning — shed the least valuable card
+  if (teammate) {
+    return legal.sort((a, b) => getCardPoints(a, trump) - getCardPoints(b, trump))[0];
+  }
+
+  // Leading — play strongest non-trump; only lead trump as last resort
+  if (currentTrick.cards.length === 0) {
+    const nonTrump = legal.filter(c => c.suit !== trump);
+    const pool = nonTrump.length > 0 ? nonTrump : legal;
+    return pool.sort((a, b) => getCardStrength(a, trump) - getCardStrength(b, trump))[0];
+  }
+
+  const leadSuit = currentTrick.cards[0].card.suit;
+
+  // Find current best play in the trick
+  const bestPlay = currentTrick.cards.reduce((best, play) => {
+    const b = best.card; const c = play.card;
+    if (c.suit === trump && b.suit !== trump) return play;
+    if (c.suit === trump && b.suit === trump)
+      return getCardStrength(c, trump) < getCardStrength(b, trump) ? play : best;
+    if (c.suit === leadSuit && b.suit === leadSuit)
+      return getCardStrength(c, trump) < getCardStrength(b, trump) ? play : best;
+    return best;
+  }, currentTrick.cards[0]);
+
+  // Cards that can beat current best
+  const winning = legal.filter(c => {
+    const b = bestPlay.card;
+    if (c.suit === trump && b.suit !== trump) return true;
+    if (c.suit === trump && b.suit === trump)
+      return getCardStrength(c, trump) < getCardStrength(b, trump);
+    if (c.suit === leadSuit && b.suit === leadSuit)
+      return getCardStrength(c, trump) < getCardStrength(b, trump);
+    return false;
+  });
+
+  if (winning.length > 0) {
+    // Win with cheapest winning card — save high-value cards
+    return winning.sort((a, b) => getCardPoints(a, trump) - getCardPoints(b, trump))[0];
+  }
+
+  // Cannot win — shed cheapest card
+  return legal.sort((a, b) => getCardPoints(a, trump) - getCardPoints(b, trump))[0];
+};
+
+// ---------------------------------------------------------------------------
 // Initialize game
+// ---------------------------------------------------------------------------
+
 export const initializeGame = (): GameState => {
-  const players: Player[] = [
-    { id: 0, name: 'Player 1', hand: [], team: 1 },
-    { id: 1, name: 'Player 2', hand: [], team: 2 },
-    { id: 2, name: 'Player 3', hand: [], team: 1 },
-    { id: 3, name: 'Player 4', hand: [], team: 2 },
+  const rawPlayers: Player[] = [
+    { id: 0, name: 'You',     hand: [], team: 1 },
+    { id: 1, name: 'CPU 2',   hand: [], team: 2 },
+    { id: 2, name: 'Partner', hand: [], team: 1 },
+    { id: 3, name: 'CPU 4',   hand: [], team: 2 },
   ];
 
-  const dealtPlayers = dealCards(players);
+  const { players: dealtPlayers, proposalCard } = dealCards(rawPlayers);
 
   return {
     players: dealtPlayers,
-    currentPlayer: 0,
+    currentPlayer: 1, // non-dealer (player 1) bids first
     trump: null,
+    proposalCard,
+    takerTeam: null,
+    bidRound: 1,
+    bidPassCount: 0,
     currentTrick: { cards: [], winner: null },
     completedTricks: [],
     scores: { team1: 0, team2: 0 },
@@ -212,5 +385,6 @@ export const initializeGame = (): GameState => {
     phase: 'bidding',
     dealer: 0,
     lastTrickWinner: null,
+    beloteTeam: null,
   };
 };
