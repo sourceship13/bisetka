@@ -493,7 +493,7 @@ const BlotScreen = ({ navigation }: any) => {
         colors={['rgba(15,15,35,0.7)', 'rgba(26,23,66,0.6)']}
         style={styles.overlay}
       >
-        <SafeAreaView style={styles.safeArea}>
+        <SafeAreaView style={[styles.safeArea,]}>
           <GameToolbar
             title="🃏 Blot"
             onBack={() => navigation.goBack()}
@@ -622,7 +622,7 @@ const BlotScreen = ({ navigation }: any) => {
                                 </Text>
                                 <DynamicCard
                                   card={cardPlay.card}
-                                  size="small"
+                                  size="medium"
                                   theme={customTheme}
                                 />
                               </View>
@@ -637,7 +637,7 @@ const BlotScreen = ({ navigation }: any) => {
               <ScrollView
                 horizontal
                 style={styles.handContainer}
-                contentContainerStyle={[styles.handContent, { backgroundColor: 'red' }]}
+                contentContainerStyle={[styles.handContent,]}
               >
                 <Text style={styles.handLabel}>Your Hand:</Text>
                 <View style={styles.hand}>
@@ -798,6 +798,11 @@ const styles = StyleSheet.create({
     textShadowRadius: 4,
   },
   trickArea: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -846,36 +851,41 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   trickSlotTop: {
-    top: 8,
-    alignSelf: 'center',
+    top: 14,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
   },
   trickSlotBottom: {
-    bottom: 8,
-    alignSelf: 'center',
+    bottom: 14,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
   },
   trickSlotLeft: {
-    left: 8,
+    left: 14,
     top: '50%',
-    marginTop: -35,
+    marginTop: -75,
   },
   trickSlotRight: {
-    right: 8,
+    right: 14,
     top: '50%',
-    marginTop: -35,
+    marginTop: -75,
   },
   trickPlayerName: {
     fontSize: 12,
     color: '#fff',
-    marginBottom: 4,
+    marginBottom: 6,
   },
   handContainer: {
     flex: 1,
     backgroundColor: 'transparent',
   },
   handContent: {
-    flex:1,
-    padding: 16,
-    alignItems: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
   },
   handLabel: {
     fontSize: 16,
@@ -884,7 +894,8 @@ const styles = StyleSheet.create({
   },
   hand: {
     flexDirection: 'row',
-    marginTop: 75,
+    alignItems: 'center',
+    gap: 8,
   },
   trumpSelection: {
     flex: 1,
