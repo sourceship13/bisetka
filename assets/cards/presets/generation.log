@@ -1,0 +1,31 @@
+🎴 Generating preset card backs...
+
+🎨 Generating back-geometric...
+✅ Generated back-geometric
+Progress: 1/7
+
+🎨 Generating back-floral...
+❌ Failed back-floral
+Progress: 2/7
+
+🎨 Generating back-tech...
+❌ Failed back-tech
+Progress: 3/7
+
+🎨 Generating back-vintage...
+❌ Error back-vintage: Command '['python3', '/Users/alpha/.nvm/versions/node/v22.22.0/lib/node_modules/openclaw/skills/openai-image-gen/scripts/gen.py', '--prompt', 'Aged vintage ornate pattern, sepia tones, classic decorative borders, antique playing card back, portrait orientation', '--count', '1', '--size', '1024x1536', '--quality', 'high', '--model', 'gpt-image-1', '--output-format', 'png']' timed out after 60 seconds
+Progress: 4/7
+
+🎨 Generating back-minimalist...
+❌ Failed back-minimalist
+Progress: 5/7
+
+🎨 Generating modern-back...
+✅ Generated modern-back
+Progress: 6/7
+
+🎨 Generating retro-back...
+❌ Failed retro-back
+Progress: 7/7
+
+🎉 All presets generated!

@@ -13,18 +13,19 @@ import {
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import {
-  generateCardBackground,
-  generateCardBack,
+  generateCardBackground as apiGenerateBackground,
+  generateCardBack as apiGenerateCardBack,
 } from '../services/cardImageGeneration.service';
+import { PRESET_THEMES, PRESET_CARD_BACKS, FONT_PREVIEWS } from '../data/cardPresets';
 
-export type FaceStyle = 'modern' | 'vintage' | 'retro' | 'cyberpunk' | 'minimal';
+export type CardFont = 'classic' | 'modern' | 'bold' | 'elegant' | 'playful';
 
 export interface CardTheme {
   id: string;
   name: string;
   backgroundImage?: string; // URI to generated background
   cardBackImage?: string; // URI to generated card back
-  faceStyle: FaceStyle;
+  font: CardFont; // Selected font for rank numbers
   createdAt: number;
 }
 
@@ -35,12 +36,12 @@ interface CardCustomizationModalProps {
   currentTheme?: CardTheme;
 }
 
-const FACE_STYLES: { id: FaceStyle; name: string; description: string }[] = [
-  { id: 'modern', name: 'Modern', description: 'Clean, minimalist design with bold colors' },
-  { id: 'vintage', name: 'Vintage', description: 'Classic ornate patterns, aged look' },
-  { id: 'retro', name: 'Retro', description: '80s neon vibes, geometric shapes' },
-  { id: 'cyberpunk', name: 'Cyberpunk', description: 'Futuristic tech, neon accents' },
-  { id: 'minimal', name: 'Minimal', description: 'Ultra-clean, subtle elegance' },
+const FONTS: { id: CardFont; name: string; description: string }[] = [
+  { id: 'classic', name: 'Classic', description: 'Traditional bold serif, casino-style' },
+  { id: 'modern', name: 'Modern', description: 'Clean sans-serif, contemporary' },
+  { id: 'bold', name: 'Bold', description: 'Heavy weight, strong presence' },
+  { id: 'elegant', name: 'Elegant', description: 'Thin refined, sophisticated' },
+  { id: 'playful', name: 'Playful', description: 'Fun rounded, casual vibe' },
 ];
 
 const CardCustomizationModal: React.FC<CardCustomizationModalProps> = ({
@@ -52,8 +53,8 @@ const CardCustomizationModal: React.FC<CardCustomizationModalProps> = ({
   const [themeName, setThemeName] = useState(currentTheme?.name || '');
   const [backgroundPrompt, setBackgroundPrompt] = useState('');
   const [cardBackPrompt, setCardBackPrompt] = useState('');
-  const [selectedFaceStyle, setSelectedFaceStyle] = useState<FaceStyle>(
-    currentTheme?.faceStyle || 'modern'
+  const [selectedFont, setSelectedFont] = useState<CardFont>(
+    currentTheme?.font || 'classic'
   );
   const [generatedBackground, setGeneratedBackground] = useState<string | null>(
     currentTheme?.backgroundImage || null
@@ -72,7 +73,7 @@ const CardCustomizationModal: React.FC<CardCustomizationModalProps> = ({
 
     setIsGeneratingBg(true);
     try {
-      const result = await generateCardBackground(backgroundPrompt);
+      const result = await apiGenerateBackground(backgroundPrompt);
       setGeneratedBackground(result.url);
       Alert.alert('Success', 'Background generated!');
     } catch (error) {
@@ -91,7 +92,7 @@ const CardCustomizationModal: React.FC<CardCustomizationModalProps> = ({
 
     setIsGeneratingBack(true);
     try {
-      const result = await generateCardBack(cardBackPrompt);
+      const result = await apiGenerateCardBack(cardBackPrompt);
       setGeneratedCardBack(result.url);
       Alert.alert('Success', 'Card back generated!');
     } catch (error) {
@@ -113,7 +114,7 @@ const CardCustomizationModal: React.FC<CardCustomizationModalProps> = ({
       name: themeName,
       backgroundImage: generatedBackground || undefined,
       cardBackImage: generatedCardBack || undefined,
-      faceStyle: selectedFaceStyle,
+      font: selectedFont,
       createdAt: Date.now(),
     };
 
@@ -134,6 +135,47 @@ const CardCustomizationModal: React.FC<CardCustomizationModalProps> = ({
             </View>
 
             <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+              {/* Preset Themes */}
+              <View style={styles.section}>
+                <Text style={styles.label}>🎨 Preset Themes</Text>
+                <Text style={styles.sublabel}>Quick start with pre-designed themes</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.presetsScroll}>
+                  {PRESET_THEMES.map((preset) => (
+                    <TouchableOpacity
+                      key={preset.presetId}
+                      style={styles.presetCard}
+                      onPress={() => {
+                        setThemeName(preset.name);
+                        setSelectedFont(preset.font);
+                        if (preset.backgroundImage != null) {
+                          setGeneratedBackground(
+                            typeof preset.backgroundImage === 'string'
+                              ? preset.backgroundImage
+                              : Image.resolveAssetSource(preset.backgroundImage).uri
+                          );
+                        }
+                        if (preset.cardBackImage != null) {
+                          setGeneratedCardBack(
+                            typeof preset.cardBackImage === 'string'
+                              ? preset.cardBackImage
+                              : Image.resolveAssetSource(preset.cardBackImage).uri
+                          );
+                        }
+                      }}>
+                      {preset.backgroundImage != null && (
+                        <Image
+                          source={typeof preset.backgroundImage === 'string' ? { uri: preset.backgroundImage } : preset.backgroundImage as any}
+                          style={styles.presetThumbnail}
+                          resizeMode="cover"
+                        />
+                      )}
+                      <Text style={styles.presetName}>{preset.name}</Text>
+                      <Text style={styles.presetDesc}>{preset.description}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+
               {/* Theme Name */}
               <View style={styles.section}>
                 <Text style={styles.label}>Theme Name</Text>
@@ -148,7 +190,8 @@ const CardCustomizationModal: React.FC<CardCustomizationModalProps> = ({
 
               {/* Background Texture */}
               <View style={styles.section}>
-                <Text style={styles.label}>Card Background Texture</Text>
+                <Text style={styles.label}>Card Face Background</Text>
+                <Text style={styles.sublabel}>This texture will appear on all 52 card faces</Text>
                 <TextInput
                   style={[styles.input, styles.textArea]}
                   placeholder="e.g. Neon city lights at night, cyberpunk aesthetic"
@@ -171,13 +214,15 @@ const CardCustomizationModal: React.FC<CardCustomizationModalProps> = ({
                 {generatedBackground && (
                   <View style={styles.preview}>
                     <Image source={{ uri: generatedBackground }} style={styles.previewImage} />
+                    <Text style={styles.previewLabel}>Card Face Background</Text>
                   </View>
                 )}
               </View>
 
               {/* Card Back */}
               <View style={styles.section}>
-                <Text style={styles.label}>Card Back Design</Text>
+                <Text style={styles.label}>Card Back Design (Face-Down)</Text>
+                <Text style={styles.sublabel}>This appears when cards are face-down</Text>
                 <TextInput
                   style={[styles.input, styles.textArea]}
                   placeholder="e.g. Geometric patterns with glowing edges"
@@ -200,37 +245,73 @@ const CardCustomizationModal: React.FC<CardCustomizationModalProps> = ({
                 {generatedCardBack && (
                   <View style={styles.preview}>
                     <Image source={{ uri: generatedCardBack }} style={styles.previewImageBack} />
+                    <Text style={styles.previewLabel}>Face-Down Card</Text>
                   </View>
                 )}
+                
+                {/* Preset Card Backs */}
+                <Text style={[styles.label, { marginTop: 16 }]}>Or choose a preset:</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.presetsScroll}>
+                  {PRESET_CARD_BACKS.map((back) => (
+                    <TouchableOpacity
+                      key={back.id}
+                      style={styles.cardBackPreset}
+                      onPress={() => {
+                        setGeneratedCardBack(Image.resolveAssetSource(back.image).uri);
+                      }}>
+                      <Image 
+                        source={back.image} 
+                        style={styles.cardBackThumbnail} 
+                        resizeMode="cover"
+                      />
+                      <Text style={styles.presetName}>{back.name}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
               </View>
 
-              {/* Face Style Selection */}
+              {/* Font Selection */}
               <View style={styles.section}>
-                <Text style={styles.label}>Face Card Style</Text>
-                <Text style={styles.sublabel}>Choose a design style for J, Q, K cards</Text>
-                {FACE_STYLES.map((style) => (
-                  <TouchableOpacity
-                    key={style.id}
-                    style={[
-                      styles.styleOption,
-                      selectedFaceStyle === style.id && styles.styleOptionSelected,
-                    ]}
-                    onPress={() => setSelectedFaceStyle(style.id)}>
-                    <View style={styles.styleOptionContent}>
-                      <Text
+                <Text style={styles.label}>Rank Number Font</Text>
+                <Text style={styles.sublabel}>Choose the font style for card numbers</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.presetsScroll}>
+                  {FONTS.map((font) => {
+                    const preview = FONT_PREVIEWS[font.id];
+                    return (
+                      <TouchableOpacity
+                        key={font.id}
                         style={[
-                          styles.styleOptionTitle,
-                          selectedFaceStyle === style.id && styles.styleOptionTitleSelected,
-                        ]}>
-                        {style.name}
-                      </Text>
-                      <Text style={styles.styleOptionDescription}>{style.description}</Text>
-                    </View>
-                    {selectedFaceStyle === style.id && (
-                      <Text style={styles.checkmark}>✓</Text>
-                    )}
-                  </TouchableOpacity>
-                ))}
+                          styles.fontCard,
+                          selectedFont === font.id && styles.fontCardSelected,
+                        ]}
+                        onPress={() => setSelectedFont(font.id)}>
+                        <View style={styles.fontPreview}>
+                          <Text style={[styles.fontSample, preview.style]}>{preview.sample}</Text>
+                        </View>
+                        <Text style={styles.presetName}>{font.name}</Text>
+                        <Text style={styles.presetDesc}>{font.description}</Text>
+                        {selectedFont === font.id && (
+                          <View style={styles.selectedBadge}>
+                            <Text style={styles.selectedBadgeText}>✓</Text>
+                          </View>
+                        )}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              </View>
+
+              {/* Info */}
+              <View style={styles.section}>
+                <View style={styles.infoBox}>
+                  <Text style={styles.infoTitle}>💡 How It Works</Text>
+                  <Text style={styles.infoText}>
+                    • Your background texture appears on all 52 cards{'\n'}
+                    • Rank numbers and suit symbols overlay on top{'\n'}
+                    • Card back shows when cards are face-down{'\n'}
+                    • Only 2 AI generations needed per theme!
+                  </Text>
+                </View>
               </View>
 
               {/* Save Button */}
@@ -390,6 +471,145 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '800',
     color: '#fff',
+  },
+  previewLabel: {
+    fontSize: 13,
+    color: '#aaa',
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  infoBox: {
+    backgroundColor: 'rgba(99, 102, 241, 0.15)',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(99, 102, 241, 0.3)',
+  },
+  infoTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#a5b4fc',
+    marginBottom: 8,
+  },
+  infoText: {
+    fontSize: 14,
+    color: '#ddd',
+    lineHeight: 22,
+  },
+  fontOption: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 2,
+    borderColor: 'transparent',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  fontOptionSelected: {
+    backgroundColor: 'rgba(99, 102, 241, 0.2)',
+    borderColor: '#6366f1',
+  },
+  fontOptionContent: {
+    flex: 1,
+  },
+  fontOptionTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#fff',
+    marginBottom: 4,
+  },
+  fontOptionTitleSelected: {
+    color: '#a5b4fc',
+  },
+  fontOptionDescription: {
+    fontSize: 13,
+    color: '#aaa',
+  },
+  presetsScroll: {
+    marginTop: 12,
+  },
+  presetCard: {
+    width: 120,
+    marginRight: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  presetThumbnail: {
+    width: '100%',
+    height: 80,
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  presetName: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#fff',
+    marginBottom: 2,
+  },
+  presetDesc: {
+    fontSize: 11,
+    color: '#aaa',
+  },
+  cardBackPreset: {
+    width: 90,
+    marginRight: 12,
+    alignItems: 'center',
+  },
+  cardBackThumbnail: {
+    width: 70,
+    height: 100,
+    borderRadius: 8,
+    marginBottom: 6,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  fontCard: {
+    width: 110,
+    marginRight: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 2,
+    borderColor: 'transparent',
+    alignItems: 'center',
+  },
+  fontCardSelected: {
+    backgroundColor: 'rgba(99, 102, 241, 0.2)',
+    borderColor: '#6366f1',
+  },
+  fontPreview: {
+    width: 80,
+    height: 80,
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  fontSample: {
+    fontSize: 32,
+    color: '#000',
+  },
+  selectedBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: '#6366f1',
+    borderRadius: 12,
+    width: 24,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  selectedBadgeText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '700',
   },
 });
 
