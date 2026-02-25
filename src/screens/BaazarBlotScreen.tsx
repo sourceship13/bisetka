@@ -659,7 +659,7 @@ const BaazarBlotScreen = ({ navigation }: any) => {
     if (!gameState) return renderSetup();
     switch (gameState.phase) {
       case 'bidding':  return renderBidding();
-      case 'playing':  return renderPlaying();
+      case 'playing':  return <View style={{justifyContent: 'center', flex:1}}>{renderPlaying()}</View>;
       case 'roundEnd': return renderRoundEnd();
       case 'gameEnd':  return renderGameEnd();
       default:         return renderSetup();
@@ -836,7 +836,7 @@ const styles = StyleSheet.create({
   },
   scoreReminder: { position: 'absolute', bottom: 16, alignItems: 'center' },
   scoreReminderText: { color: 'rgba(255,255,255,0.6)', fontSize: 13 },
-  playingLayout: { flex: 1 },
+  playingLayout: { flex: 1, maxHeight:600},
   scoreBar: {
     flexDirection: 'row',
     alignItems: 'center',
