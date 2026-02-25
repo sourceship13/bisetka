@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,7 @@ import { useAuth } from '../libs/hooks/useAuth';
 import { useGameEndRefresh } from '../libs/hooks/useGameEndRefresh';
 import Svg, { Polyline } from 'react-native-svg';
 import apiConfig from '../libs/utils/api.utils';
+import tokenService from '../services/token.service';
 import GameToolbar from '../components/GameToolbar';
 
 const { width } = Dimensions.get('window');
@@ -24,6 +25,25 @@ const REELS_TOTAL_WIDTH = CONTAINER_PADDING * 2 + REEL_WIDTH * 5 + REEL_GAP * 4;
 const REELS_TOTAL_HEIGHT = CONTAINER_PADDING * 2 + SYMBOL_HEIGHT * 3;
 
 const SYMBOLS = ['7️⃣', '💎', '⭐', '🔔', '🍒', '🍋', 'BAR'];
+
+// Number of full symbol-set repetitions in the spin strip before the result
+const SPIN_REPS = 12;
+// Total scroll distance = SPIN_REPS × SYMBOLS.length × SYMBOL_HEIGHT
+const SPIN_DISTANCE = -(SPIN_REPS * SYMBOLS.length * SYMBOL_HEIGHT);
+
+// Build the repeating part of each reel strip once
+const SPIN_STRIP_SYMBOLS = Array.from(
+  { length: SPIN_REPS * SYMBOLS.length },
+  (_, i) => SYMBOLS[i % SYMBOLS.length],
+);
+
+// Stable module-level animation values — created once, never recreated
+const reelAnim0 = new Animated.Value(0);
+const reelAnim1 = new Animated.Value(0);
+const reelAnim2 = new Animated.Value(0);
+const reelAnim3 = new Animated.Value(0);
+const reelAnim4 = new Animated.Value(0);
+const REEL_ANIMS = [reelAnim0, reelAnim1, reelAnim2, reelAnim3, reelAnim4];
 
 // Paylines (row indices for each reel)
 const PAYLINES = [
@@ -48,16 +68,50 @@ const SlotsScreen = ({ navigation }: any) => {
   const [balance, setBalance] = useState((user as any)?.balance || 1000);
   const [betAmount, setBetAmount] = useState(10);
   const [spinning, setSpinning] = useState(false);
-  const [result, setResult] = useState<string[][] | null>(null);
+  // 5 reels × 3 rows — what shows at the bottom of each reel strip (the result)
+  const [reelSymbols, setReelSymbols] = useState<string[][]>([
+    ['🍒', '⭐', '🔔'],
+    ['💎', '7️⃣', '🍋'],
+    ['⭐', '⭐', '⭐'],
+    ['🔔', '💎', '🍒'],
+    ['🍋', '🔔', '7️⃣'],
+  ]);
   const [winnings, setWinnings] = useState<SpinResult | null>(null);
+  
+  // Neon flicker animation
+  const neonFlicker = useRef(new Animated.Value(1)).current;
 
-  const reelAnims = useRef([
-    new Animated.Value(0),
-    new Animated.Value(0),
-    new Animated.Value(0),
-    new Animated.Value(0),
-    new Animated.Value(0),
-  ]).current;
+  // Reset animation positions each time this screen mounts
+  useEffect(() => {
+    REEL_ANIMS.forEach(anim => anim.setValue(0));
+  }, []);
+
+  // Neon flickering effect
+  useEffect(() => {
+    const flicker = () => {
+      Animated.sequence([
+        Animated.timing(neonFlicker, {
+          toValue: 0.6,
+          duration: 100,
+          useNativeDriver: true,
+        }),
+        Animated.timing(neonFlicker, {
+          toValue: 1,
+          duration: 100,
+          useNativeDriver: true,
+        }),
+        Animated.delay(Math.random() * 3000 + 1000), // Random delay 1-4s
+      ]).start(() => flicker());
+    };
+    flicker();
+  }, []);
+
+  // Auto-dismiss win banner after 3 seconds
+  useEffect(() => {
+    if (!winnings || winnings.totalPayout <= 0) return;
+    const timer = setTimeout(() => setWinnings(null), 3000);
+    return () => clearTimeout(timer);
+  }, [winnings]);
 
   const getActivePaylines = () => {
     if (betAmount >= 50) return 5;
@@ -73,31 +127,41 @@ const SlotsScreen = ({ navigation }: any) => {
     setWinnings(null);
     setBalance((prev: number) => prev - betAmount);
 
-    const spinAnims = reelAnims.map((anim, i) =>
+    // Reset each reel to the top of its strip
+    REEL_ANIMS.forEach(anim => anim.setValue(0));
+
+    // Each reel scrolls at a slightly different speed for a natural feel.
+    const spinAnims = REEL_ANIMS.map((anim, i) =>
       Animated.timing(anim, {
-        toValue: 1,
-        duration: 1500 + i * 200,
-        useNativeDriver: true,
+        toValue: SPIN_DISTANCE,
+        duration: 2000 + i * 300,
+        useNativeDriver: false,
       }),
     );
 
     Animated.parallel(spinAnims).start();
 
     try {
+      const token = await tokenService.getAccessToken();
       const response = await fetch(`${apiConfig.baseURL}/api/slots/spin`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${(user as any)?.token}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ betAmount }),
       });
 
+      if (!response.ok) {
+        throw new Error(`Spin API error: ${response.status}`);
+      }
+
       const data: SpinResult = await response.json();
 
-      reelAnims.forEach(anim => anim.setValue(0));
-
-      setResult(data.result);
+      // Guard: only update symbols if result is a valid 5-column array
+      if (Array.isArray(data.result) && data.result.length === 5) {
+        setReelSymbols(data.result);
+      }
       setWinnings(data);
       refreshOnGameEnd().catch(console.error);
 
@@ -128,8 +192,12 @@ const SlotsScreen = ({ navigation }: any) => {
           const isWinning = winningLineNums.includes(payline.id);
           const points = payline.path
             .map((row, col) => {
-              const x = CONTAINER_PADDING + col * (REEL_WIDTH + REEL_GAP) + REEL_WIDTH / 2;
-              const y = CONTAINER_PADDING + row * SYMBOL_HEIGHT + SYMBOL_HEIGHT / 2;
+              const x =
+                CONTAINER_PADDING +
+                col * (REEL_WIDTH + REEL_GAP) +
+                REEL_WIDTH / 2;
+              const y =
+                CONTAINER_PADDING + row * SYMBOL_HEIGHT + SYMBOL_HEIGHT / 2;
               return `${x},${y}`;
             })
             .join(' ');
@@ -152,24 +220,21 @@ const SlotsScreen = ({ navigation }: any) => {
   };
 
   const renderReel = (colIndex: number) => {
-    const symbols = result ? result[colIndex] : ['?', '?', '?'];
-    const spinAnim = reelAnims[colIndex]!;
+    const finalSymbols: string[] =
+      reelSymbols && reelSymbols[colIndex]
+        ? reelSymbols[colIndex]
+        : ['?', '?', '?'];
+    const spinAnim = REEL_ANIMS[colIndex] as Animated.Value;
+
+    // Strip = repeated symbols for the spin + the result 3 symbols at the end.
+    // At translateY=0 the top of the strip is visible.
+    // At translateY=SPIN_DISTANCE the result symbols are visible.
+    const strip = [...SPIN_STRIP_SYMBOLS, ...finalSymbols];
 
     return (
       <View key={colIndex} style={styles.reel}>
-        <Animated.View
-          style={{
-            transform: [
-              {
-                translateY: spinAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0, -SYMBOL_HEIGHT * 10],
-                }),
-              },
-            ],
-          }}
-        >
-          {[...SYMBOLS, ...SYMBOLS, ...symbols].map((sym, i) => (
+        <Animated.View style={{ transform: [{ translateY: spinAnim }] }}>
+          {strip.map((sym, i) => (
             <View key={i} style={styles.symbolCell}>
               <Text style={styles.symbol}>{sym}</Text>
             </View>
@@ -207,15 +272,21 @@ const SlotsScreen = ({ navigation }: any) => {
           backgroundColor="transparent"
         />
 
-        <LinearGradient
-          colors={['#10b981', '#34d399']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.balanceCard}
-        >
+        <View style={styles.balanceCard}>
+          <LinearGradient
+            colors={['#10b981', '#34d399']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={StyleSheet.absoluteFill}
+          />
           <Text style={styles.balanceLabel}>Balance</Text>
           <Text style={styles.balanceText}>💰 {balance.toLocaleString()}</Text>
-        </LinearGradient>
+        </View>
+
+        {/* Neon Title */}
+        <Animated.View style={[styles.neonTitle, { opacity: neonFlicker }]}>
+          <Text style={styles.neonText}>ARMO SLOTS</Text>
+        </Animated.View>
 
         <View style={styles.machine}>
           <LinearGradient
@@ -238,10 +309,11 @@ const SlotsScreen = ({ navigation }: any) => {
         </View>
 
         {winnings && winnings.totalPayout > 0 && (
-          <LinearGradient
-            colors={['#fbbf24', '#f59e0b']}
-            style={styles.winCard}
-          >
+          <View style={styles.winCard}>
+            <LinearGradient
+              colors={['#fbbf24', '#f59e0b']}
+              style={StyleSheet.absoluteFill}
+            />
             <Text style={styles.winTitle}>🎉 WIN!</Text>
             <Text style={styles.winAmount}>
               +{winnings.totalPayout.toLocaleString()}
@@ -251,7 +323,7 @@ const SlotsScreen = ({ navigation }: any) => {
                 Line {line.line}: {line.symbols} → {line.payout}
               </Text>
             ))}
-          </LinearGradient>
+          </View>
         )}
 
         <View style={styles.controls}>
@@ -264,13 +336,6 @@ const SlotsScreen = ({ navigation }: any) => {
             >
               <Text style={styles.betBtnText}>-</Text>
             </TouchableOpacity>
-
-            <LinearGradient
-              colors={['#6366f1', '#8b5cf6']}
-              style={styles.betDisplay}
-            >
-              <Text style={styles.betAmount}>{betAmount}</Text>
-            </LinearGradient>
 
             <TouchableOpacity
               style={styles.betBtn}
@@ -360,7 +425,11 @@ const styles = StyleSheet.create({
   balanceCard: {
     borderRadius: 16,
     paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginHorizontal: 16,
+    marginBottom: 8,
     alignItems: 'center',
+    overflow: 'hidden',
   },
   balanceLabel: {
     fontSize: 12,
@@ -402,8 +471,8 @@ const styles = StyleSheet.create({
     gap: 4,
     height: SYMBOL_HEIGHT * 3 + 16,
     overflow: 'hidden',
-    justifyContent:'center',
-    alignItems:'center',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   paylinesOverlay: {
     position: 'absolute',
@@ -412,6 +481,7 @@ const styles = StyleSheet.create({
   },
   reel: {
     width: REEL_WIDTH,
+    height: SYMBOL_HEIGHT * 3,
     backgroundColor: '#1a1742',
     borderRadius: 8,
     overflow: 'hidden',
@@ -456,6 +526,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     alignItems: 'center',
+    overflow: 'hidden',
   },
   winTitle: {
     fontSize: 20,
@@ -476,7 +547,7 @@ const styles = StyleSheet.create({
   controls: {
     marginHorizontal: 20,
     marginTop: 24,
-    flex:1
+    flex: 1,
   },
   betLabel: {
     fontSize: 12,
@@ -506,9 +577,12 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
   betDisplay: {
-    paddingHorizontal: 32,
-    paddingVertical: 12,
     borderRadius: 16,
+    paddingHorizontal: 32,
+    paddingVertical: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 120,
   },
   betAmount: {
     fontSize: 32,
@@ -520,7 +594,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 12,
     marginTop: 16,
-
   },
   quickBet: {
     paddingHorizontal: 20,
@@ -529,9 +602,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.1)',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.2)',
-    flex:1,
+    flex: 1,
     alignItems: 'center',
-
   },
   quickBetActive: {
     backgroundColor: '#6366f1',
@@ -554,8 +626,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.5,
     shadowRadius: 16,
     elevation: 8,
-    minHeight:60
-
+    minHeight: 60,
   },
   spinBtnDisabled: {
     opacity: 0.5,
@@ -564,13 +635,35 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-      borderRadius: 20,
+    borderRadius: 20,
   },
   spinText: {
     fontSize: 20,
     fontWeight: '800',
     color: '#fff',
     letterSpacing: 2,
+  },
+  neonTitle: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: 12,
+    marginHorizontal: 16,
+  },
+  neonText: {
+    fontSize: 42,
+    fontWeight: '900',
+    color: '#fff',
+    letterSpacing: 4,
+    textTransform: 'uppercase',
+    textShadowColor: '#ec4899',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 20,
+    // Additional neon glow layers
+    shadowColor: '#8b5cf6',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 1,
+    shadowRadius: 15,
+    elevation: 10,
   },
 });
 
