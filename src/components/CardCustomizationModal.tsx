@@ -9,7 +9,6 @@ import {
   ScrollView,
   ActivityIndicator,
   Image,
-  Alert,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import {
@@ -17,6 +16,7 @@ import {
   generateCardBack as apiGenerateCardBack,
 } from '../services/cardImageGeneration.service';
 import { PRESET_THEMES, PRESET_CARD_BACKS, FONT_PREVIEWS } from '../data/cardPresets';
+import { BisetkaAlert } from '../utils/BisetkaAlert';
 
 export type CardFont = 'classic' | 'modern' | 'bold' | 'elegant' | 'playful';
 
@@ -67,7 +67,7 @@ const CardCustomizationModal: React.FC<CardCustomizationModalProps> = ({
 
   const generateBackground = async () => {
     if (!backgroundPrompt.trim()) {
-      Alert.alert('Error', 'Please enter a background theme prompt');
+      BisetkaAlert.error('Error', 'Please enter a background theme prompt');
       return;
     }
 
@@ -75,10 +75,10 @@ const CardCustomizationModal: React.FC<CardCustomizationModalProps> = ({
     try {
       const result = await apiGenerateBackground(backgroundPrompt);
       setGeneratedBackground(result.url);
-      Alert.alert('Success', 'Background generated!');
+      BisetkaAlert.success('Success', 'Background generated!');
     } catch (error) {
       console.error('Background generation error:', error);
-      Alert.alert('Error', 'Failed to generate background. Please try again.');
+      BisetkaAlert.error('Error', 'Failed to generate background. Please try again.');
     } finally {
       setIsGeneratingBg(false);
     }
@@ -86,7 +86,7 @@ const CardCustomizationModal: React.FC<CardCustomizationModalProps> = ({
 
   const generateCardBack = async () => {
     if (!cardBackPrompt.trim()) {
-      Alert.alert('Error', 'Please enter a card back design prompt');
+      BisetkaAlert.error('Error', 'Please enter a card back design prompt');
       return;
     }
 
@@ -94,10 +94,10 @@ const CardCustomizationModal: React.FC<CardCustomizationModalProps> = ({
     try {
       const result = await apiGenerateCardBack(cardBackPrompt);
       setGeneratedCardBack(result.url);
-      Alert.alert('Success', 'Card back generated!');
+      BisetkaAlert.success('Success', 'Card back generated!');
     } catch (error) {
       console.error('Card back generation error:', error);
-      Alert.alert('Error', 'Failed to generate card back. Please try again.');
+      BisetkaAlert.error('Error', 'Failed to generate card back. Please try again.');
     } finally {
       setIsGeneratingBack(false);
     }
@@ -105,7 +105,7 @@ const CardCustomizationModal: React.FC<CardCustomizationModalProps> = ({
 
   const handleSave = () => {
     if (!themeName.trim()) {
-      Alert.alert('Error', 'Please enter a theme name');
+      BisetkaAlert.error('Error', 'Please enter a theme name');
       return;
     }
 

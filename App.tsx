@@ -1,6 +1,8 @@
 import React from 'react';
+import { View } from 'react-native';
 import AppNavigator from './src/navigation/AppNavigator';
 import { AuthProvider } from './src/libs/hooks/useAuth';
+import { BisetkaAlertContainer } from './src/utils/BisetkaAlert';
 import 'react-native-gesture-handler';
 import * as Sentry from '@sentry/react-native';
 
@@ -19,7 +21,10 @@ Sentry.init({
 function App(): React.JSX.Element {
   return (
     <AuthProvider>
-      <AppNavigator />
+      <View style={{ flex: 1 }}>
+        <AppNavigator />
+        <BisetkaAlertContainer />
+      </View>
     </AuthProvider>
   );
 }
