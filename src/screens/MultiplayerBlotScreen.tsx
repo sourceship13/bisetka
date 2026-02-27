@@ -17,6 +17,7 @@ import { socketService } from '../services/SocketService';
 import { blotAIService, LocalGameState, Card } from '../services/blotAI.service';
 import { gameResultService } from '../services/gameResult.service';
 import { aiMoveLogService } from '../services/aiMoveLog.service';
+import tokenService from '../services/token.service';
 import { v4 as uuidv4 } from 'uuid';
 import { useGameEndRefresh } from '../libs/hooks/useGameEndRefresh';
 
@@ -109,17 +110,28 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
       return;
     }
     
-    connectSocket();
+    // Connect socket and then perform initial actions
+    const initializeMultiplayer = async () => {
+      try {
+        await connectSocket();
+        
+        // Auto-create private room if coming from GameModeScreen with private-create mode
+        if (initialMode === 'private-create') {
+          await createPrivateRoomOnMount();
+        }
+        
+        // Auto-find match if coming with random mode
+        if (initialMode === 'random') {
+          await findMatchOnMount();
+        }
+      } catch (error) {
+        console.error('Failed to initialize multiplayer:', error);
+        // Connection error alert is already shown in connectSocket
+        setGameMode('menu');
+      }
+    };
     
-    // Auto-create private room if coming from GameModeScreen with private-create mode
-    if (initialMode === 'private-create') {
-      createPrivateRoomOnMount();
-    }
-    
-    // Auto-find match if coming with random mode
-    if (initialMode === 'random') {
-      findMatchOnMount();
-    }
+    initializeMultiplayer();
 
     return () => {
       socketService.removeAllListeners();
@@ -129,13 +141,26 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
   const connectSocket = async () => {
     try {
       setIsConnecting(true);
-      await socketService.connect(userId, 'temp-token');
+      const token = await tokenService.getAccessToken();
+      if (!token) {
+        Alert.alert('Authentication Error', 'Please log in to play multiplayer games');
+        navigation.goBack();
+        return;
+      }
+      await socketService.connect(userId, token);
       setupSocketListeners();
     } catch (error) {
       console.error('Socket connection error:', error);
       Alert.alert('Connection Error', 'Failed to connect to server');
+      throw error; // Re-throw to handle in calling function
     } finally {
       setIsConnecting(false);
+    }
+  };
+
+  const ensureSocketConnected = async () => {
+    if (!socketService.isConnected()) {
+      await connectSocket();
     }
   };
 
@@ -248,6 +273,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
     setOpponent(null);
     
     try {
+      await ensureSocketConnected();
       const matchData = await socketService.findMatch('blot', userId);
       console.log('Match found data:', matchData);
       setCurrentRoom({ roomId: matchData.roomId });
@@ -278,6 +304,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
     setOpponent(null);
     
     try {
+      await ensureSocketConnected();
       const roomData = await socketService.createPrivateRoom('blot', userId);
       setCurrentRoom({ roomId: roomData.roomId, roomCode: roomData.roomCode });
       setRoomCode(roomData.roomCode);
@@ -299,6 +326,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
     setOpponent(null);
     
     try {
+      await ensureSocketConnected();
       const matchData = await socketService.findMatch('blot', userId);
       setCurrentRoom({ roomId: matchData.roomId });
       setPlayerColor(matchData.color);
@@ -322,6 +350,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
     setOpponent(null);
     
     try {
+      await ensureSocketConnected();
       const roomData = await socketService.createPrivateRoom('blot', userId);
       setCurrentRoom({ roomId: roomData.roomId, roomCode: roomData.roomCode });
       setRoomCode(roomData.roomCode);
@@ -346,6 +375,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
     setSelectedCard(null);
     
     try {
+      await ensureSocketConnected();
       const roomData = await socketService.joinPrivateRoom(joinRoomCode.toUpperCase(), userId);
       setCurrentRoom({ roomId: roomData.roomId });
       setPlayerColor(roomData.color);
