@@ -1,7 +1,7 @@
 import React, {useState, useEffect, useRef} from 'react';
 import {View, Text, StyleSheet, TouchableOpacity, Alert} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import GameToolbar from '../components/GameToolbar';
+import GameToolbar from '../../../components/GameToolbar';
 import {
   Difficulty,
   ChessGameState,
@@ -13,11 +13,11 @@ import {
   isStalemate,
   getComputerMove,
   Position,
-} from '../game/chessLogic';
-import ChessPiece from '../components/ChessPiece';
-import { aiMoveLogService } from '../services/aiMoveLog.service';
+} from '../../../game/chessLogic';
+import ChessPiece from '../../../components/ChessPiece';
+import { aiMoveLogService } from '../../../services/aiMoveLog.service';
 import { v4 as uuidv4 } from 'uuid';
-import { useGameEndRefresh } from '../libs/hooks/useGameEndRefresh';
+import { useGameEndRefresh } from '../../../libs/hooks/useGameEndRefresh';
 
 const ChessScreen = ({navigation}: any) => {
   const [difficulty, setDifficulty] = useState<Difficulty | null>(null);

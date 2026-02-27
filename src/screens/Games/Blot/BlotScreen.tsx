@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useGameEndRefresh } from '../../libs/hooks/useGameEndRefresh';
-import { gameResultService } from '../../services/gameResult.service';
+import { useGameEndRefresh } from '../../../libs/hooks/useGameEndRefresh';
+import { gameResultService } from '../../../services/gameResult.service';
 import {
   View,
   Text,
@@ -13,11 +13,11 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
-import GameToolbar from '../../components/GameToolbar';
-import { CardType, Suit } from '../../components/Card';
-import DynamicCard from '../../components/DynamicCard';
-import CardCustomizationModal from '../../components/CardCustomizationModal';
-import type { CardTheme } from '../../components/CardCustomizationModal';
+import GameToolbar from '../../../components/GameToolbar';
+import { CardType, Suit } from '../../../components/Card';
+import DynamicCard from '../../../components/DynamicCard';
+import CardCustomizationModal from '../../../components/CardCustomizationModal';
+import type { CardTheme } from '../../../components/CardCustomizationModal';
 import {
   GameState,
   initializeGame,
@@ -28,7 +28,7 @@ import {
   detectBeloteTeam,
   chooseAICard,
   dealCards,
-} from '../../game/blotLogic';
+} from '../../../game/blotLogic';
 
 const SUIT_ICON: Record<string, string> = {
   hearts: '♥',
@@ -485,7 +485,7 @@ const BlotScreen = ({ navigation }: any) => {
 
   return (
     <ImageBackground
-      source={require('../../assets/blot/park-background.png')}
+      source={require('../../../../assets/blot/park-background.png')}
       style={styles.container}
       blurRadius={3}
     >
@@ -583,7 +583,7 @@ const BlotScreen = ({ navigation }: any) => {
                   ]}
                 >
                   <ImageBackground
-                    source={require('../../assets/blot/card-table.png')}
+                    source={require('../../../../assets/blot/card-table.png')}
                     style={styles.cardTable}
                     imageStyle={{ borderRadius: 16 }}
                   >

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useGameEndRefresh } from '../libs/hooks/useGameEndRefresh';
-import { gameResultService } from '../services/gameResult.service';
+import { useGameEndRefresh } from '../../../libs/hooks/useGameEndRefresh';
+import { gameResultService } from '../../../services/gameResult.service';
 import {
   View,
   Text,
@@ -12,11 +12,11 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
-import GameToolbar from '../components/GameToolbar';
-import { CardType, Suit } from '../components/Card';
-import DynamicCard from '../components/DynamicCard';
-import CardCustomizationModal from '../components/CardCustomizationModal';
-import type { CardTheme } from '../components/CardCustomizationModal';
+import GameToolbar from '../../../components/GameToolbar';
+import { CardType, Suit } from '../../../components/Card';
+import DynamicCard from '../../../components/DynamicCard';
+import CardCustomizationModal from '../../../components/CardCustomizationModal';
+import type { CardTheme } from '../../../components/CardCustomizationModal';
 import {
   BaazarGameState,
   BidLevel,
@@ -31,7 +31,7 @@ import {
   chooseAICard,
   chooseAIBid,
   findSequences,
-} from '../game/baazarBlotLogic';
+} from '../../../game/baazarBlotLogic';
 
 const SUIT_ICON: Record<string, string> = {
   hearts: '♥', diamonds: '♦', clubs: '♣', spades: '♠',
@@ -512,7 +512,7 @@ const BaazarBlotScreen = ({ navigation }: any) => {
 
         <View style={styles.tableWrapper}>
           <ImageBackground
-            source={require('../../assets/blot/card-table.png')}
+            source={require('../../../../assets/blot/card-table.png')}
             style={styles.tableImage}
             imageStyle={styles.tableImageStyle}>
             <View style={styles.trickArea}>
@@ -668,7 +668,7 @@ const BaazarBlotScreen = ({ navigation }: any) => {
 
   return (
     <ImageBackground
-      source={require('../../assets/blot/park-background.png')}
+      source={require('../../../../assets/blot/park-background.png')}
       style={styles.bg}
       resizeMode="cover">
       <LinearGradient
