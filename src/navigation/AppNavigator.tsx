@@ -5,24 +5,25 @@ import {SafeAreaProvider} from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import LoginScreen from '../screens/Meta/LoginScreen';
 import HomeScreen from '../screens/Meta/HomeScreen';
-import OnboardingScreen from '../screens/OnboardingScreen';
-import {ONBOARDING_COMPLETE_KEY} from '../screens/OnboardingScreen';
+import OnboardingScreen from '../screens/Meta/OnboardingScreen';
+import {ONBOARDING_COMPLETE_KEY} from '../screens/Meta/OnboardingScreen';
 import UsernameSelectionScreen from '../screens/Meta/UsernameSelectionScreen';
-import BlotScreen from '../screens/Blot/BlotScreen';
-import MultiplayerBlotScreen from '../screens/Blot/MultiplayerBlotScreen';
-import BaazarBlotScreen from '../screens/BaazarBlotScreen';
-import NardiScreen from '../screens/NardiScreen';
-import ChessScreen from '../screens/ChessScreen';
-import MultiplayerChessScreen from '../screens/MultiplayerChessScreen';
-import MrotsiScreen from '../screens/MrotsiScreen';
-import CheckersScreen from '../screens/CheckersScreen';
-import PokerRoomScreen from '../screens/PokerRoomScreen';
-import BilliardsGameScreen from '../screens/Billards/BilliardsGameScreen';
-import SlotsScreen from '../screens/SlotsScreen';
-import GameModeScreen from '../screens/GameModeScreen';
+import BlotScreen from '../screens/Games/Blot/BlotScreen';
+import MultiplayerBlotScreen from '../screens/Games/Blot/MultiplayerBlotScreen';
+import BaazarBlotScreen from '../screens/Games/Baazar Blot/BaazarBlotScreen';
+import MultiplayerBaazarBlotScreen from '../screens/MultiplayerBaazarBlotScreen';
+import NardiScreen from '../screens/Games/Nardi/NardiScreen';
+import ChessScreen from '../screens/Games/Chess/ChessScreen';
+import MultiplayerChessScreen from '../screens/Games/Chess/MultiplayerChessScreen';
+import MrotsiScreen from '../screens/Games/Mrotsi/MrotsiScreen';
+import CheckersScreen from '../screens/Games/Checkers/CheckersScreen';
+import PokerRoomScreen from '../screens/Games/Poker/PokerRoomScreen';
+import BilliardsGameScreen from '../screens/Games/Billards/BilliardsGameScreen';
+import SlotsScreen from '../screens/Games/Slots/SlotsScreen';
+import GameModeScreen from '../screens/Meta/GameModeScreen';
 import GameInfoScreen from '../screens/Meta/GameInfoScreen';
-import SessionStatusScreen from '../screens/SessionStatusScreen';
-import GlobalChatScreen from '../screens/GlobalChatScreen';
+import SessionStatusScreen from '../screens/Meta/SessionStatusScreen';
+import GlobalChatScreen from '../screens/Games/Blot/GlobalChatScreen';
 import DMListScreen from '../screens/Private Chat/DMListScreen';
 import DMChatScreen from '../screens/Private Chat/DMChatScreen';
 import LeaderboardScreen from '../screens/Meta/LeaderboardScreen';
@@ -40,6 +41,7 @@ export type RootStackParamList = {
   Blot: undefined;
   MultiplayerBlot: { userId: string; mode?: 'ai' | 'menu' | 'private-create' | 'private-join' | 'random'; difficulty?: 'easy' | 'medium' | 'hard'; joinCode?: string };
   BaazarBlot: undefined;
+  MultiplayerBaazarBlot: { userId: string };
   Nardi: undefined;
   Chess: undefined;
   MultiplayerChess: { userId: string };
@@ -144,6 +146,7 @@ const AppNavigator = () => {
               <Stack.Screen name="Blot" component={BlotScreen} />
               <Stack.Screen name="MultiplayerBlot" component={MultiplayerBlotScreen} />
               <Stack.Screen name="BaazarBlot" component={BaazarBlotScreen} />
+              <Stack.Screen name="MultiplayerBaazarBlot" component={MultiplayerBaazarBlotScreen} />
               <Stack.Screen name="Chess" component={ChessScreen} />
               <Stack.Screen name="MultiplayerChess" component={MultiplayerChessScreen} />
               <Stack.Screen name="Checkers" component={CheckersScreen} />
