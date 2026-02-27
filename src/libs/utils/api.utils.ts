@@ -20,7 +20,7 @@ import { Platform, NativeModules } from 'react-native';
  */
 
 // ========== CONFIGURATION FLAGS ==========
-const FORCE_LOCAL = false; // true = use LOCAL_API_URL for all __DEV__ builds (simulator + physical device)
+const FORCE_LOCAL = true; // true = use LOCAL_API_URL for all __DEV__ builds (simulator + physical device)
 
 // Safely load Config value with fallback - handles Android null Config
 // Cache values to avoid repeated Config access
