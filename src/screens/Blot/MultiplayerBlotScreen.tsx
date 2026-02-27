@@ -13,13 +13,13 @@ import {
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { socketService } from '../services/SocketService';
-import { blotAIService, LocalGameState, Card } from '../services/blotAI.service';
-import { gameResultService } from '../services/gameResult.service';
-import { aiMoveLogService } from '../services/aiMoveLog.service';
-import tokenService from '../services/token.service';
+import { socketService } from '../../services/SocketService';
+import { blotAIService, LocalGameState, Card } from '../../services/blotAI.service';
+import { gameResultService } from '../../services/gameResult.service';
+import { aiMoveLogService } from '../../services/aiMoveLog.service';
+import tokenService from '../../services/token.service';
 import { v4 as uuidv4 } from 'uuid';
-import { useGameEndRefresh } from '../libs/hooks/useGameEndRefresh';
+import { useGameEndRefresh } from '../../libs/hooks/useGameEndRefresh';
 
 interface GameState {
   deck: Card[];
