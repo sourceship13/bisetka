@@ -86,7 +86,11 @@ function deserializeBoard(raw: any[][]): (Piece | null)[][] {
 
 const CheckersScreen = ({ navigation, route }: any) => {
   const { session, mode } = route.params;
-  const userId = session?.user?.id || 'guest-' + Math.random().toString(36).substr(2, 6);
+  // Stabilise userId for the lifetime of this component — never let it change between renders
+  const userIdRef = useRef<string>(
+    session?.user?.id || session?.id || ('guest-' + Math.random().toString(36).substr(2, 6))
+  );
+  const userId = userIdRef.current;
   const isMultiplayer = mode === 'random' || mode === 'private';
 
   const [gameState, setGameState] = useState<GameState>(freshGame());
@@ -292,7 +296,7 @@ const CheckersScreen = ({ navigation, route }: any) => {
     } else {
       setGameState(prev => ({ ...prev, selectedSquare:null, possibleMoves:[] }));
     }
-  }, [gameState, isMyTurn, myPieceColor, mpStatus, roomId, isMultiplayer, mode]);
+  }, [gameState, isMyTurn, myPieceColor, mpStatus, roomId, isMultiplayer, mode, userId]);
 
   // ── matchmaking screen ────────────────────────────────────────────────────
   if (isMultiplayer && (mpStatus==='connecting'||mpStatus==='searching'||mpStatus==='waiting')) {
