@@ -63,17 +63,20 @@ class SocketService {
 
       this.socket.on('connect', () => {
         console.log('✅ Connected to server, sending authentication...');
+        console.log('📤 Emitting authenticate event with userId:', userId, 'token length:', token?.length);
         this.socket?.emit('authenticate', { userId, token });
+        console.log('📤 Authenticate event emitted');
       });
 
-      this.socket.on('authenticated', (data: { success: boolean }) => {
+      this.socket.on('authenticated', (data: { success: boolean; error?: string }) => {
+        console.log('📥 Received authenticated event:', JSON.stringify(data));
         clearTimeout(authTimeout);
         if (data.success) {
           console.log('✅ Authenticated successfully');
           resolve(true);
         } else {
-          console.error('❌ Authentication failed - server rejected');
-          reject(new Error('Authentication failed'));
+          console.error('❌ Authentication failed - server rejected:', data.error);
+          reject(new Error(data.error || 'Authentication failed'));
         }
       });
 
@@ -104,6 +107,10 @@ class SocketService {
       this.socket.disconnect();
       this.socket = null;
     }
+  }
+
+  isConnected(): boolean {
+    return this.socket?.connected || false;
   }
 
   // Find a random opponent
