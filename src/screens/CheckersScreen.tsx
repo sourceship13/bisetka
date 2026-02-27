@@ -335,11 +335,11 @@ const CheckersScreen = ({navigation, route}: any) => {
       <GameToolbar
         title={`Checkers${gameState.gameMode === 'ai' ? ' (vs AI)' : ''}`}
         onBack={() => navigation.goBack()}
-        rightElement={
-          <TouchableOpacity onPress={resetGame} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-            <Text style={styles.newGameText}>New</Text>
-          </TouchableOpacity>
-        }
+        // rightElement={
+        //   <TouchableOpacity onPress={resetGame} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+        //     <Text style={styles.newGameText}>New</Text>
+        //   </TouchableOpacity>
+        // }
       />
 
       <View style={styles.statusBar}>
