@@ -47,6 +47,11 @@ interface BaazarGameState {
   scores: { team1: number; team2: number };
   gameScore: { team1: number; team2: number };
   targetScore: number;
+  lastRoundResult?: {
+    team1Raw: number; team2Raw: number;
+    team1Final: number; team2Final: number;
+    bid: number; biddingTeam: number; madeBid: boolean;
+  } | null;
 }
 
 const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
@@ -55,13 +60,13 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
   const [gameMode, setGameMode] = useState<'menu' | 'matchmaking' | 'game'>('menu');
   const [roomId, setRoomId] = useState<string | null>(null);
   const [players, setPlayers] = useState<GamePlayer[]>([]);
-  const [myPosition, setMyPosition] = useState<number>(0);
+  const [myPosition, setMyPosition] = useState<number>(-1);
   const [myTeam, setMyTeam] = useState<1 | 2>(1);
   const [gameState, setGameState] = useState<BaazarGameState | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
   const [selectedCard, setSelectedCard] = useState<CardType | null>(null);
   const [pendingBidLevel, setPendingBidLevel] = useState<number>(9);
-  const [pendingBidSuit, setPendingBidSuit] = useState<string | null>(null);
+  const [pendingBidSuit, setPendingBidSuit] = useState<string>('hearts'); // pre-select hearts so Make Bid is always ready
 
   // Ensure socket is connected before operations
   const ensureSocketConnected = async (): Promise<boolean> => {
@@ -133,12 +138,32 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
       });
 
       socket.on('baazar_game_started', (data: { 
+        roomId?: string;
         players: GamePlayer[]; 
         gameState: BaazarGameState 
       }) => {
         console.log('🚀 Baazar game started:', data);
         setGameState(data.gameState);
         setPlayers(data.players);
+        setGameMode('game');
+        setIsConnecting(false);
+
+        // Set roomId if we missed baazar_match_found
+        if (data.roomId) {
+          setRoomId(prev => prev || data.roomId!);
+        }
+
+        // If myPosition wasn't set (missed baazar_match_found), derive it from userId
+        setMyPosition(prev => {
+          if (prev >= 0) return prev; // already set
+          const me = data.players.find(p => p.id === userId);
+          return me ? me.position : 0;
+        });
+        setMyTeam(prev => {
+          if (prev) return prev;
+          const me = data.players.find(p => p.id === userId);
+          return me ? me.team : 1;
+        });
       });
 
       socket.on('baazar_bid_made', (data: { 
@@ -149,7 +174,11 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
         currentPlayer: number;
       }) => {
         console.log('💰 Bid made:', data);
-        setGameState(data.gameState);
+        // Merge data.currentPlayer into gameState — gameState.currentPlayer is
+        // initialized to 0 and only room.currentPlayer is updated server-side.
+        setGameState(prev => ({ ...data.gameState, currentPlayer: data.currentPlayer }));
+        // Clamp bid level to at least currentBid+1 for the next turn
+        setPendingBidLevel(prev => Math.max(prev, (data.gameState.currentBid || 8) + 1));
       });
 
       socket.on('baazar_card_played', (data: { 
@@ -159,7 +188,7 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
         currentPlayer: number;
       }) => {
         console.log('🃏 Card played:', data);
-        setGameState(data.gameState);
+        setGameState({ ...data.gameState, currentPlayer: data.currentPlayer });
         setSelectedCard(null);
       });
 
@@ -208,7 +237,7 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
 
     const socket = socketService.getSocket();
     if (socket) {
-      socket.emit('join_matchmaking', {
+      socket.emit('find_match', {
         userId,
         gameType: 'baazar-blot'
       });
@@ -227,16 +256,19 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
   };
 
   const handleMakeBid = () => {
-    if (!roomId || !gameState || !pendingBidSuit) return;
+    if (!roomId || !gameState) return;
+    const suit = pendingBidSuit || 'hearts';
+    const minLevel = (gameState.currentBid || 8) + 1;
+    const level = Math.max(pendingBidLevel, minLevel);
 
     const socket = socketService.getSocket();
     if (socket) {
+      console.log(`💰 Sending bid: level=${level} suit=${suit} roomId=${roomId} userId=${userId}`);
       socket.emit('baazar_make_bid', {
         roomId,
         userId,
-        bid: { level: pendingBidLevel, suit: pendingBidSuit }
+        bid: { level, suit }
       });
-      setPendingBidSuit(null);
     }
   };
 
@@ -326,7 +358,12 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
 
   const renderBiddingPhase = () => {
     const isMyTurn = gameState?.currentPlayer === myPosition;
+    const iHavePassed = gameState?.passedPlayers?.includes(myPosition) ?? false;
     const myHand = gameState?.playerHands[myPosition] || [];
+    const currentPlayerInfo = players.find(p => p.position === gameState?.currentPlayer);
+    const currentPlayerLabel = currentPlayerInfo
+      ? (currentPlayerInfo.isAI ? `CPU (T${currentPlayerInfo.team})` : `P${currentPlayerInfo.position} (T${currentPlayerInfo.team})`)
+      : `Player ${gameState?.currentPlayer}`;
 
     return (
       <View style={styles.biddingContainer}>
@@ -339,9 +376,26 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
               Trump: {SUIT_ICON[gameState.trump]} {gameState.trump}
             </Text>
           )}
+          {gameState?.lastRoundResult && (
+            <View style={[styles.lastRoundRow, { marginTop: 6 }]}>
+              <Text style={styles.lastRoundLabel}>Last round</Text>
+              <Text style={styles.lastRoundDetail}>
+                T1: {gameState.lastRoundResult.team1Raw}→{gameState.lastRoundResult.team1Final}{'  '}
+                T2: {gameState.lastRoundResult.team2Raw}→{gameState.lastRoundResult.team2Final}{'  '}
+                (Bid {gameState.lastRoundResult.bid} T{gameState.lastRoundResult.biddingTeam}{' '}
+                {gameState.lastRoundResult.madeBid ? '✅' : '❌'})
+              </Text>
+            </View>
+          )}
         </View>
 
-        {isMyTurn ? (
+        {iHavePassed ? (
+          <View style={styles.waitingBox}>
+            <Text style={[styles.waitingText, { color: '#ff6b6b' }]}>You passed ✗</Text>
+            <ActivityIndicator size="small" color="#555" style={{ marginTop: 6 }} />
+            <Text style={styles.waitingText}>Waiting for {currentPlayerLabel}...</Text>
+          </View>
+        ) : isMyTurn ? (
           <View style={styles.biddingControls}>
             <Text style={styles.yourTurnText}>Your Turn!</Text>
             
@@ -363,14 +417,14 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
             <View style={styles.bidLevelSelector}>
               <TouchableOpacity
                 style={styles.bidButton}
-                onPress={() => setPendingBidLevel(Math.max(9, pendingBidLevel - 1))}
+                onPress={() => setPendingBidLevel(l => Math.max((gameState?.currentBid || 8) + 1, l - 1))}
               >
                 <Text style={styles.bidButtonText}>-</Text>
               </TouchableOpacity>
-              <Text style={styles.bidLevelText}>{pendingBidLevel}</Text>
+              <Text style={styles.bidLevelText}>{Math.max(pendingBidLevel, (gameState?.currentBid || 8) + 1)}</Text>
               <TouchableOpacity
                 style={styles.bidButton}
-                onPress={() => setPendingBidLevel(Math.min(16, pendingBidLevel + 1))}
+                onPress={() => setPendingBidLevel(l => Math.min(16, l + 1))}
               >
                 <Text style={styles.bidButtonText}>+</Text>
               </TouchableOpacity>
@@ -378,11 +432,10 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
 
             <View style={styles.bidActions}>
               <TouchableOpacity
-                style={[styles.actionButton, !pendingBidSuit && styles.buttonDisabled]}
+                style={styles.actionButton}
                 onPress={handleMakeBid}
-                disabled={!pendingBidSuit}
               >
-                <Text style={styles.actionButtonText}>Make Bid</Text>
+                <Text style={styles.actionButtonText}>Bid {Math.max(pendingBidLevel, (gameState?.currentBid || 8) + 1)} {SUIT_ICON[pendingBidSuit || 'hearts']}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.passButton}
@@ -396,7 +449,7 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
           <View style={styles.waitingBox}>
             <ActivityIndicator size="small" color="#00d4ff" />
             <Text style={styles.waitingText}>
-              Waiting for Player {gameState?.currentPlayer}...
+              Waiting for {currentPlayerLabel}...
             </Text>
           </View>
         )}
@@ -421,64 +474,126 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
     );
   };
 
+  const computeCurrentRoundPoints = () => {
+    if (!gameState) return { team1: 0, team2: 0 };
+    const rankPts: Record<string, number> = { '7':0,'8':0,'9':0,'J':2,'Q':3,'K':4,'10':10,'A':11 };
+    const trumpPts: Record<string, number> = { '7':0,'8':0,'9':14,'J':20,'Q':3,'K':4,'10':10,'A':11 };
+    let t1 = 0, t2 = 0;
+    for (const trick of (gameState.completedTricks || [])) {
+      for (const play of trick) {
+        const pts = play.card.suit === gameState.trump
+          ? trumpPts[play.card.rank] ?? 0
+          : rankPts[play.card.rank] ?? 0;
+        const pl = players.find(p => p.position === play.playerPosition);
+        if (pl?.team === 1) t1 += pts; else t2 += pts;
+      }
+    }
+    return { team1: t1, team2: t2 };
+  };
+
   const renderPlayingPhase = () => {
     const isMyTurn = gameState?.currentPlayer === myPosition;
     const myHand = gameState?.playerHands[myPosition] || [];
+    const currentPlayerInfo = players.find(p => p.position === gameState?.currentPlayer);
+    const currentPlayerLabel = currentPlayerInfo
+      ? (currentPlayerInfo.isAI ? `CPU (T${currentPlayerInfo.team})` : `P${currentPlayerInfo.position} (T${currentPlayerInfo.team})`)
+      : `Player ${gameState?.currentPlayer}`;
 
     return (
       <View style={styles.playingContainer}>
         <View style={styles.gameInfo}>
           <Text style={styles.trumpInfo}>
-            Trump: {gameState?.trump ? SUIT_ICON[gameState.trump] : 'None'}
+            Trump: {gameState?.trump ? `${SUIT_ICON[gameState.trump]} ${gameState.trump}` : 'None'}
+            {'  '}│{'  '}Bid: {gameState?.currentBid} by T{gameState?.bidderTeam}
           </Text>
-          <Text style={styles.scoreInfo}>
-            Team 1: {gameState?.gameScore.team1} | Team 2: {gameState?.gameScore.team2}
-          </Text>
+          {/* Main game score */}
+          <View style={styles.scoreRow}>
+            <Text style={styles.scoreLabel}>Game</Text>
+            <Text style={styles.scoreTeam1}>T1: {gameState?.gameScore.team1}</Text>
+            <Text style={styles.scoreTeam2}>T2: {gameState?.gameScore.team2}</Text>
+            <Text style={styles.scoreTarget}>/{gameState?.targetScore}</Text>
+          </View>
+          {/* Live round card points */}
+          {(() => {
+            const rp = computeCurrentRoundPoints();
+            const biddingTeam = gameState?.bidderTeam;
+            const bid = gameState?.currentBid ?? 0;
+            const biddingTeamPoints = biddingTeam === 1 ? rp.team1 : rp.team2;
+            const onTrack = biddingTeamPoints >= bid;
+            return (
+              <View style={styles.roundScoreRow}>
+                <Text style={styles.roundScoreLabel}>This round</Text>
+                <Text style={[styles.roundScoreT1, biddingTeam === 1 && (onTrack ? styles.onTrack : styles.offTrack)]}>
+                  T1: {rp.team1}
+                </Text>
+                <Text style={[styles.roundScoreT2, biddingTeam === 2 && (onTrack ? styles.onTrack : styles.offTrack)]}>
+                  T2: {rp.team2}
+                </Text>
+              </View>
+            );
+          })()}
+          {/* Last round result */}
+          {gameState?.lastRoundResult && (
+            <View style={styles.lastRoundRow}>
+              <Text style={styles.lastRoundLabel}>Last round</Text>
+              <Text style={styles.lastRoundDetail}>
+                T1: {gameState.lastRoundResult.team1Raw}→{gameState.lastRoundResult.team1Final}{'  '}
+                T2: {gameState.lastRoundResult.team2Raw}→{gameState.lastRoundResult.team2Final}{'  '}
+                (Bid {gameState.lastRoundResult.bid} T{gameState.lastRoundResult.biddingTeam}{' '}
+                {gameState.lastRoundResult.madeBid ? '✅' : '❌'})
+              </Text>
+            </View>
+          )}
+        </View>
+
+        {/* Whose turn indicator */}
+        <View style={[styles.waitingBox, { marginBottom: 4, paddingVertical: 6, backgroundColor: isMyTurn ? '#1a4a1a' : '#1a1a3a' }]}>
+          {isMyTurn
+            ? <Text style={[styles.yourTurnText, { fontSize: 14 }]}>⭐ Your Turn! Tap a card to play</Text>
+            : <Text style={styles.waitingText}>⏳ Waiting for {currentPlayerLabel}...</Text>
+          }
         </View>
 
         <View style={styles.trickArea}>
           <Text style={styles.trickTitle}>Current Trick:</Text>
           <View style={styles.trickCards}>
-            {gameState?.currentTrick.map((play, idx) => (
-              <View key={idx} style={styles.trickCard}>
-                <Text style={styles.playerLabel}>P{play.playerPosition}</Text>
-                <DynamicCard
-                  card={play.card}
-                  size="small"
-                  onPress={() => {}}
-                />
-              </View>
-            ))}
+            {gameState?.currentTrick.map((play, idx) => {
+              const info = players.find(p => p.position === play.playerPosition);
+              const label = info ? (info.isAI ? `CPU` : `P${play.playerPosition}`) : `P${play.playerPosition}`;
+              return (
+                <View key={idx} style={styles.trickCard}>
+                  <Text style={[styles.playerLabel, { color: info?.isAI ? '#ff9500' : '#fff' }]}>{label}</Text>
+                  <DynamicCard card={play.card} size="small" onPress={() => {}} />
+                </View>
+              );
+            })}
           </View>
         </View>
 
         <View style={styles.handArea}>
-          <Text style={styles.handTitle}>
-            Your Hand {isMyTurn && '(Your Turn!)'}:
-          </Text>
+          <Text style={styles.handTitle}>Your Hand:</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <View style={styles.cardsRow}>
               {myHand.map((card, idx) => (
-                <TouchableOpacity
+                <View
                   key={idx}
                   style={[
                     styles.playCard,
-                    selectedCard === card && styles.selectedCard
+                    selectedCard === card && styles.selectedCard,
+                    !isMyTurn && { opacity: 0.5 }
                   ]}
-                  onPress={() => {
-                    if (isMyTurn) {
-                      setSelectedCard(card);
-                      handlePlayCard(card);
-                    }
-                  }}
-                  disabled={!isMyTurn}
                 >
                   <DynamicCard
                     card={card}
                     size="medium"
-                    onPress={() => {}}
+                    onPress={() => {
+                      if (isMyTurn) {
+                        setSelectedCard(card);
+                        handlePlayCard(card);
+                      }
+                    }}
                   />
-                </TouchableOpacity>
+                </View>
               ))}
             </View>
           </ScrollView>
@@ -509,20 +624,27 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
           </View>
 
           <View style={styles.playersInfo}>
-            {players.map((player, idx) => (
-              <View
-                key={idx}
-                style={[
-                  styles.playerBadge,
-                  player.position === myPosition && styles.playerBadgeMe,
-                  gameState.currentPlayer === player.position && styles.playerBadgeActive
-                ]}
-              >
-                <Text style={styles.playerText}>
-                  {player.isAI ? '🤖' : '👤'} P{player.position} (T{player.team})
-                </Text>
-              </View>
-            ))}
+            {players.filter(p => p != null).map((player, idx) => {
+              const hasPassed = gameState.passedPlayers?.includes(player.position);
+              return (
+                <View
+                  key={idx}
+                  style={[
+                    styles.playerBadge,
+                    player.position === myPosition && styles.playerBadgeMe,
+                    gameState.currentPlayer === player.position && styles.playerBadgeActive,
+                    hasPassed && { opacity: 0.4 }
+                  ]}
+                >
+                  <Text style={[
+                    styles.playerText,
+                    { color: player.isAI ? '#ff9500' : '#ffffff' }
+                  ]}>
+                    {player.isAI ? '🤖' : '👤'} {player.isAI ? 'CPU' : 'P' + player.position} (T{player.team}){hasPassed ? ' ✗' : ''}
+                  </Text>
+                </View>
+              );
+            })}
           </View>
 
           {gameState.phase === 'bidding' && renderBiddingPhase()}
@@ -822,6 +944,79 @@ const styles = StyleSheet.create({
   scoreInfo: {
     color: '#00d4ff',
     fontSize: 16,
+    textAlign: 'center',
+  },
+  scoreRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 4,
+    gap: 8,
+  },
+  scoreLabel: {
+    color: '#aaa',
+    fontSize: 12,
+    fontWeight: 'bold',
+    textTransform: 'uppercase',
+  },
+  scoreTeam1: {
+    color: '#00d4ff',
+    fontSize: 15,
+    fontWeight: 'bold',
+  },
+  scoreTeam2: {
+    color: '#ff9500',
+    fontSize: 15,
+    fontWeight: 'bold',
+  },
+  scoreTarget: {
+    color: '#aaa',
+    fontSize: 12,
+  },
+  roundScoreRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 3,
+    gap: 8,
+  },
+  roundScoreLabel: {
+    color: '#aaa',
+    fontSize: 11,
+    textTransform: 'uppercase',
+  },
+  roundScoreT1: {
+    color: '#00d4ff',
+    fontSize: 13,
+  },
+  roundScoreT2: {
+    color: '#ff9500',
+    fontSize: 13,
+  },
+  onTrack: {
+    color: '#2ecc71',
+    fontWeight: 'bold',
+  },
+  offTrack: {
+    color: '#e74c3c',
+    fontWeight: 'bold',
+  },
+  lastRoundRow: {
+    marginTop: 4,
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.1)',
+    paddingTop: 4,
+  },
+  lastRoundLabel: {
+    color: '#888',
+    fontSize: 10,
+    textTransform: 'uppercase',
+    marginBottom: 1,
+  },
+  lastRoundDetail: {
+    color: '#ccc',
+    fontSize: 11,
     textAlign: 'center',
   },
   trickArea: {
