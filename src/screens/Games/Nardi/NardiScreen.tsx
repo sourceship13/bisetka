@@ -9,8 +9,8 @@ import {
   Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import GameToolbar from '../components/GameToolbar';
-import { useGameEndRefresh } from '../libs/hooks/useGameEndRefresh';
+import GameToolbar from '../../../components/GameToolbar';
+import { useGameEndRefresh } from '../../../libs/hooks/useGameEndRefresh';
 import LinearGradient from 'react-native-linear-gradient';
 import {
   GameMode,
@@ -23,7 +23,7 @@ import {
   executeMove,
   switchPlayer,
   Move,
-} from '../game/nardiLogic';
+} from '../../../game/nardiLogic';
 
 const { width, height } = Dimensions.get('window');
 const BOARD_SIZE = Math.min(width - 32, height * 0.65);
@@ -368,8 +368,8 @@ const NardiScreen = ({ navigation, route }: any) => {
     <Image
       key={index}
       source={color === 'white' 
-        ? require('../../assets/nardi/checker-white.png')
-        : require('../../assets/nardi/checker-black.png')}
+        ? require('../../../../assets/nardi/checker-white.png')
+        : require('../../../../assets/nardi/checker-black.png')}
       style={styles.checker}
     />
   );
@@ -466,7 +466,7 @@ const NardiScreen = ({ navigation, route }: any) => {
 
   return (
     <ImageBackground
-      source={require('../../assets/nardi/park-background.png')}
+      source={require('../../../../assets/nardi/park-background.png')}
       style={styles.container}
       blurRadius={3}>
       <LinearGradient
@@ -498,7 +498,7 @@ const NardiScreen = ({ navigation, route }: any) => {
 
           <View style={styles.boardContainer}>
             <ImageBackground
-              source={require('../../assets/nardi/board.png')}
+              source={require('../../../../assets/nardi/board.png')}
               style={[styles.board, { width: BOARD_SIZE, height: BOARD_SIZE }]}
               imageStyle={{ borderRadius: 16 }}>
               
@@ -532,7 +532,7 @@ const NardiScreen = ({ navigation, route }: any) => {
                       borderColor: 'rgba(251, 191, 36, 1)',
                     }}>
                       <Image
-                        source={require('../../assets/nardi/checker-white.png')}
+                        source={require('../../../../assets/nardi/checker-white.png')}
                         style={{ width: CHECKER_SIZE * 0.8, height: CHECKER_SIZE * 0.8, resizeMode: 'contain' }}
                       />
                       {gameState.bar.white > 1 && (
@@ -546,7 +546,7 @@ const NardiScreen = ({ navigation, route }: any) => {
                   {gameState.bar.black > 0 && (
                     <View style={{ alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: CHECKER_SIZE / 2, padding: 4 }}>
                       <Image
-                        source={require('../../assets/nardi/checker-black.png')}
+                        source={require('../../../../assets/nardi/checker-black.png')}
                         style={{ width: CHECKER_SIZE * 0.8, height: CHECKER_SIZE * 0.8, resizeMode: 'contain' }}
                       />
                       {gameState.bar.black > 1 && (

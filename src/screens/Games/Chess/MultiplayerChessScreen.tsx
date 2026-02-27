@@ -19,10 +19,10 @@ import {
   isCheckmate,
   isStalemate,
   Position,
-} from '../game/chessLogic';
-import ChessPiece from '../components/ChessPiece';
-import {socketService, GameMove} from '../services/SocketService';
-import { useGameEndRefresh } from '../libs/hooks/useGameEndRefresh';
+} from '../../../game/chessLogic';
+import ChessPiece from '../../../components/ChessPiece';
+import {socketService, GameMove} from '../../../services/SocketService';
+import { useGameEndRefresh } from '../../../libs/hooks/useGameEndRefresh';
 
 const MultiplayerChessScreen = ({navigation, route}: any) => {
   const {userId, mode: routeMode, joinCode} = route.params; // Get from auth context

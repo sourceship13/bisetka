@@ -1,10 +1,10 @@
 import React, {useState, useEffect, useRef} from 'react';
 import {View, Text, StyleSheet, TouchableOpacity, Alert, Animated} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import GameToolbar from '../components/GameToolbar';
-import { aiMoveLogService } from '../services/aiMoveLog.service';
+import GameToolbar from '../../../components/GameToolbar';
+import { aiMoveLogService } from '../../../services/aiMoveLog.service';
 import { v4 as uuidv4 } from 'uuid';
-import { useGameEndRefresh } from '../libs/hooks/useGameEndRefresh';
+import { useGameEndRefresh } from '../../../libs/hooks/useGameEndRefresh';
 
 interface GameState {
   playerDice: number[];
