@@ -1,12 +1,12 @@
 import React, {useState} from 'react';
 import {Alert, StyleSheet, StatusBar} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import GameModeSelector from '../components/GameModeSelector';
-import {GAME_LABELS, gameSessionsService} from '../services/gameSessions.service';
+import GameModeSelector from '../../components/GameModeSelector';
+import {GAME_LABELS, gameSessionsService} from '../../services/gameSessions.service';
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
-import {RootStackParamList} from '../navigation/AppNavigator';
-import {colors} from '../theme';
-import {useAuth} from '../libs/hooks/useAuth';
+import {RootStackParamList} from '../../navigation/AppNavigator';
+import {colors} from '../../theme';
+import {useAuth} from '../../libs/hooks/useAuth';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'GameMode'>;
 
@@ -145,12 +145,17 @@ const GameModeScreen: React.FC<Props> = ({route, navigation}) => {
         }
         break;
       case 'BaazarBlot':
-        navigation.replace('BaazarBlot' as any, {
-          userId: user?.id || 'guest',
-          mode: mode, // Pass the actual mode: 'ai', 'private-create', 'private-join', 'random'
-          difficulty: sessionData.difficulty || 'medium',
-          joinCode: sessionData.code, // For private-join, pass the room code
-        });
+        if (mode === 'ai') {
+          navigation.replace('BaazarBlot' as any, {
+            userId: user?.id || 'guest',
+            mode: mode,
+            difficulty: sessionData.difficulty || 'medium',
+          });
+        } else {
+          navigation.replace('MultiplayerBaazarBlot' as any, {
+            userId: user?.id || 'guest',
+          });
+        }
         break;
       default:
         // Fallback to SessionStatus for games that need matchmaking UI
