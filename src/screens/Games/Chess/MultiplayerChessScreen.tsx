@@ -30,12 +30,15 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
   const [mode, setMode] = useState<'menu' | 'matchmaking' | 'private' | 'game'>('menu');
   const [gameState, setGameState] = useState<ChessGameState | null>(null);
   const [roomId, setRoomId] = useState<string>('');
+  const roomIdRef = React.useRef<string>('');
   const [roomCode, setRoomCode] = useState<string>('');
   const [joinRoomCode, setJoinRoomCode] = useState<string>('');
   const [myColor, setMyColor] = useState<'white' | 'black'>('white');
+  // Ref so stale closures (socket listeners) always read the current value
+  const myColorRef = React.useRef<'white' | 'black'>('white');
   const [opponentId, setOpponentId] = useState<string>('');
   const [currentTurn, setCurrentTurn] = useState<'white' | 'black'>('white');
-  const [isMyTurn, setIsMyTurn] = useState<boolean>(true);
+  const [isMyTurn, setIsMyTurn] = useState<boolean>(false);
   const [gameStatus, setGameStatus] = useState<string>('Waiting for opponent...');
   const [showJoinModal, setShowJoinModal] = useState(false);
 
@@ -65,10 +68,13 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
     socketService.onMoveMade((data) => {
       // Use the current turn from the server (not nextTurn)
       const nextPlayer = data.currentTurn;
+      // Always read from ref — the closure is stale, state is not
+      const liveColor = myColorRef.current;
       console.log('♟️  move_made received:', {
         move: data.move,
         currentTurn: data.currentTurn,
-        willBeMyTurn: nextPlayer === myColor
+        myColor: liveColor,
+        willBeMyTurn: nextPlayer === liveColor
       });
 
       // Update game state - use functional update to avoid stale closure
@@ -93,7 +99,7 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
       });
 
       setCurrentTurn(nextPlayer);
-      setIsMyTurn(nextPlayer === myColor);
+      setIsMyTurn(nextPlayer === liveColor);
     });
 
     socketService.onGameEnded((data) => {
@@ -164,6 +170,8 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
     
     try {
       const matchData = await socketService.findMatch('chess', userId);
+      roomIdRef.current = matchData.roomId;
+      myColorRef.current = matchData.color;
       setRoomId(matchData.roomId);
       setMyColor(matchData.color);
       setOpponentId(matchData.opponent.id);
@@ -180,6 +188,8 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
   const handleCreatePrivateRoom = async () => {
     try {
       const roomData = await socketService.createPrivateRoom('chess', userId);
+      roomIdRef.current = roomData.roomId;
+      myColorRef.current = 'white';
       setRoomId(roomData.roomId);
       setRoomCode(roomData.roomCode);
       setMyColor('white');
@@ -199,6 +209,8 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
 
     try {
       const roomData = await socketService.joinPrivateRoom(joinRoomCode, userId);
+      roomIdRef.current = roomData.roomId;
+      myColorRef.current = roomData.color;
       setRoomId(roomData.roomId);
       setMyColor(roomData.color);
       setOpponentId(roomData.opponent.id);
@@ -282,10 +294,11 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
       isStalemate: isStaleMate,
     });
 
-    // Send move to server
+    // Send move to server — use ref to avoid stale roomId
     const move: GameMove = {from, to};
-    console.log('📤 Sending move to server:', {roomId, userId, move});
-    socketService.makeMove(roomId, userId, move);
+    const liveRoomId = roomIdRef.current || roomId;
+    console.log('📤 Sending move to server:', {roomId: liveRoomId, userId, move});
+    socketService.makeMove(liveRoomId, userId, move);
     
     setCurrentTurn(nextPlayer);
     setIsMyTurn(false);
