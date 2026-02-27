@@ -14,11 +14,11 @@ import {
 import {SafeAreaView} from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import pushNotificationService from '../services/pushNotification.service';
-import apiService from '../services/api.service';
-import {colors} from '../theme/colors';
+import pushNotificationService from '../../services/pushNotification.service';
+import apiService from '../../services/api.service';
+import {colors} from '../../theme/colors';
 
-const BisetkaLogo = require('../../assets/imgs/bisetka-logo.png');
+const BisetkaLogo = require('../../../assets/imgs/bisetka-logo.png');
 
 const {width: screenWidth} = Dimensions.get('window');
 
