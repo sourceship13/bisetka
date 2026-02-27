@@ -9,12 +9,12 @@ import {
   Dimensions,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import { useAuth } from '../libs/hooks/useAuth';
-import { useGameEndRefresh } from '../libs/hooks/useGameEndRefresh';
+import { useAuth } from '../../../libs/hooks/useAuth';
+import { useGameEndRefresh } from '../../../libs/hooks/useGameEndRefresh';
 import Svg, { Polyline } from 'react-native-svg';
-import apiConfig from '../libs/utils/api.utils';
-import tokenService from '../services/token.service';
-import GameToolbar from '../components/GameToolbar';
+import apiConfig from '../../../libs/utils/api.utils';
+import tokenService from '../../../services/token.service';
+import GameToolbar from '../../../components/GameToolbar';
 
 const { width } = Dimensions.get('window');
 const CONTAINER_PADDING = 8;

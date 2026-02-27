@@ -2,8 +2,8 @@ import React from 'react';
 import {View, Text, StyleSheet, TouchableOpacity, ScrollView} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
-import {RootStackParamList} from '../navigation/AppNavigator';
-import {GAME_LABELS, GameType} from '../services/gameSessions.service';
+import {RootStackParamList} from '../../navigation/AppNavigator';
+import {GAME_LABELS, GameType} from '../../services/gameSessions.service';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'SessionStatus'>;
 
