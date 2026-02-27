@@ -12,11 +12,11 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
-import {useAuth} from '../libs/hooks/useAuth';
-import pushNotificationService from '../services/pushNotification.service';
+import {useAuth} from '../../libs/hooks/useAuth';
+import pushNotificationService from '../../services/pushNotification.service';
 import {iOSUIKit} from 'react-native-typography';
-import {colors} from '../theme';
-import packageJson from '../../package.json';
+import {colors} from '../../theme';
+import packageJson from '../../../package.json';
 
 const {width} = Dimensions.get('window');
 const CARD_WIDTH = (width - 42) / 2; // 2 columns with gap
