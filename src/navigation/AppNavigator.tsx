@@ -45,7 +45,7 @@ export type RootStackParamList = {
   Nardi: undefined;
   Chess: undefined;
   MultiplayerChess: { userId: string };
-  Checkers: { session: any; gameType: GameType };
+  Checkers: { session: any; gameType: GameType; mode: string };
   Mrotsi: { session: any; gameType: GameType; mode: string };
   PokerRoom: { session: any; gameType: GameType; mode: string };
   BilliardsGame: { session: any };
