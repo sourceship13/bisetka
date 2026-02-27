@@ -13,9 +13,9 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
-import { colors, spacing } from '../theme';
-import chatRoomService, { ChatRoom } from '../services/chatRoom.service';
-import { useAuth } from '../libs/hooks/useAuth';
+import { colors, spacing } from '../../theme';
+import chatRoomService, { ChatRoom } from '../../services/chatRoom.service';
+import { useAuth } from '../../libs/hooks/useAuth';
 
 const ChatRoomsListScreen = ({ navigation }: any) => {
   const { user } = useAuth();

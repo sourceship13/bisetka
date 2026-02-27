@@ -9,11 +9,11 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
-import chatService, { Chat } from '../services/chat.service';
-import { useAuth } from '../libs/hooks/useAuth';
+import chatService, { Chat } from '../../services/chat.service';
+import { useAuth } from '../../libs/hooks/useAuth';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../navigation/AppNavigator';
-import {colors, spacing, typography} from '../theme';
+import { RootStackParamList } from '../../navigation/AppNavigator';
+import {colors, spacing, typography} from '../../theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'DMList'>;
 
