@@ -13,10 +13,10 @@ import {
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
-import {colors, spacing} from '../theme';
-import chatRoomService, {ChatRoom, ChatRoomMessage, ChatRoomMember} from '../services/chatRoom.service';
-import {useAuth} from '../libs/hooks/useAuth';
-import {socketService} from '../services/SocketService';
+import {colors, spacing} from '../../theme';
+import chatRoomService, {ChatRoom, ChatRoomMessage, ChatRoomMember} from '../../services/chatRoom.service';
+import {useAuth} from '../../libs/hooks/useAuth';
+import {socketService} from '../../services/SocketService';
 
 const ChatRoomScreen = ({route, navigation}: any) => {
   const {roomId} = route.params;

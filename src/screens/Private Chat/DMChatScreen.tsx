@@ -1,11 +1,11 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import ChatPanel from '../components/ChatPanel';
-import { useAuth } from '../libs/hooks/useAuth';
+import ChatPanel from '../../components/ChatPanel';
+import { useAuth } from '../../libs/hooks/useAuth';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../navigation/AppNavigator';
-import chatService from '../services/chat.service';
+import { RootStackParamList } from '../../navigation/AppNavigator';
+import chatService from '../../services/chat.service';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'DMChat'>;
 
