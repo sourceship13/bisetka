@@ -4,11 +4,11 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
   TextInput,
   Modal,
 } from 'react-native';
+import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   ChessGameState,
@@ -108,18 +108,26 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
       refreshOnGameEnd().catch(console.error);
       if (data.result === 'resignation') {
         const didIWin = data.winnerId === userId;
-        Alert.alert(
-          'Game Over',
-          didIWin ? 'Opponent resigned. You win!' : 'You resigned.',
-          [{text: 'OK', onPress: () => navigation.replace('GameMode', {gameType: 'chess-multiplayer'})}]
-        );
+        if (didIWin) {
+          BisetkaAlert.success(
+            'Game Over',
+            'Opponent resigned. You win!',
+            [{text: 'OK', onPress: () => navigation.replace('GameMode', {gameType: 'chess-multiplayer'})}]
+          );
+        } else {
+          BisetkaAlert.alert(
+            'Game Over',
+            'You resigned.',
+            [{text: 'OK', onPress: () => navigation.replace('GameMode', {gameType: 'chess-multiplayer'})}]
+          );
+        }
       }
     });
 
     socketService.onOpponentDisconnected(() => {
       console.log('👋 opponent_disconnected received');
       refreshOnGameEnd().catch(console.error);
-      Alert.alert(
+      BisetkaAlert.warning(
         'Opponent Disconnected',
         'Your opponent has disconnected from the game.',
         [{text: 'OK', onPress: () => navigation.replace('GameMode', {gameType: 'chess-multiplayer'})}]
@@ -128,7 +136,7 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
 
     socketService.onError((error) => {
       console.error('❌ Socket error:', error);
-      Alert.alert('Error', error.message);
+      BisetkaAlert.error('Error', error.message);
     });
 
     // Auto-start based on route mode
@@ -160,7 +168,7 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
       await socketService.connect(userId, 'temp-token'); // Use real token from auth
       console.log('Connected to multiplayer server');
     } catch (error) {
-      Alert.alert('Connection Error', 'Failed to connect to server');
+      BisetkaAlert.error('Connection Error', 'Failed to connect to server');
       console.error(error);
     }
   };
@@ -181,7 +189,7 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
       // Send ready signal
       socketService.playerReady(matchData.roomId, userId);
     } catch (error: any) {
-      Alert.alert('Matchmaking Error', error.message);
+      BisetkaAlert.error('Matchmaking Error', error.message);
       setMode('menu');
     }
   };
@@ -197,14 +205,14 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
       setMode('private');
       setGameStatus(`Share code: ${roomData.roomCode}`);
     } catch (error: any) {
-      Alert.alert('Error', 'Failed to create room');
+      BisetkaAlert.error('Error', 'Failed to create room');
       console.error(error);
     }
   };
 
   const handleJoinPrivateRoom = async () => {
     if (!joinRoomCode) {
-      Alert.alert('Error', 'Please enter a room code');
+      BisetkaAlert.error('Error', 'Please enter a room code');
       return;
     }
 
@@ -225,7 +233,7 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
       const initialGame = initializeChessGame('medium');
       setGameState(initialGame);
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to join room');
+      BisetkaAlert.error('Error', error.message || 'Failed to join room');
       console.error(error);
     }
   };
@@ -306,18 +314,18 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
     console.log('✅ Move executed locally, turn switched to:', nextPlayer);
 
     if (isCheckMate) {
-      Alert.alert('Checkmate!', 'You win!', [
+      BisetkaAlert.success('Checkmate!', 'You win!', [
         {text: 'OK', onPress: () => navigation.replace('GameMode', {gameType: 'chess-multiplayer'})},
       ]);
     } else if (isStaleMate) {
-      Alert.alert('Stalemate!', 'The game is a draw.', [
+      BisetkaAlert.alert('Stalemate!', 'The game is a draw.', [
         {text: 'OK', onPress: () => navigation.replace('GameMode', {gameType: 'chess-multiplayer'})},
       ]);
     }
   };
 
   const handleResign = () => {
-    Alert.alert('Resign', 'Are you sure you want to resign?', [
+    BisetkaAlert.warning('Resign', 'Are you sure you want to resign?', [
       {text: 'Cancel', style: 'cancel'},
       {
         text: 'Resign',

@@ -6,10 +6,10 @@ import {
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
   Dimensions,
   Platform,
 } from 'react-native';
+import { BisetkaAlert } from '../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -85,7 +85,7 @@ const GameInfoScreen: React.FC<Props> = ({ route, navigation }) => {
     } catch (err) {
       console.error('Error fetching game info:', err);
       setError(err instanceof Error ? err.message : 'Failed to load game info');
-      Alert.alert('Error', 'Failed to load game information. Please try again.');
+      BisetkaAlert.error('Error', 'Failed to load game information. Please try again.');
     } finally {
       setLoading(false);
     }

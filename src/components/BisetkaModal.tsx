@@ -104,7 +104,7 @@ const BisetkaModal: React.FC<BisetkaModalProps> = ({
                 key={index}
                 onPress={() => {
                   button.onPress();
-                  if (onClose && buttons.length === 0) onClose();
+                  onClose?.();
                 }}
                 style={[
                   styles.buttonWrapper,
@@ -149,9 +149,8 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   header: {
-    padding: 24,
-    paddingTop: 32,
     alignItems: 'center',
+    minHeight:60
   },
   iconCircle: {
     width: 60,
@@ -174,9 +173,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   content: {
-    padding: 24,
-    paddingTop: 16,
-    paddingBottom: 16,
+    flex:1,
   },
   message: {
     fontSize: 16,
@@ -186,9 +183,8 @@ const styles = StyleSheet.create({
   },
   buttonContainer: {
     flexDirection: 'row',
-    padding: 16,
-    paddingTop: 8,
     gap: 12,
+    minHeight:100
   },
   buttonWrapper: {
     flex: 1,
@@ -197,11 +193,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   button: {
-    paddingVertical: 14,
-    paddingHorizontal: 20,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
+    minHeight:60
   },
   buttonText: {
     fontSize: 16,

@@ -7,11 +7,11 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
-  Alert,
   ActivityIndicator,
   ScrollView,
   Button,
 } from 'react-native';
+import { BisetkaAlert } from '../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import {useAuth} from '../../libs/hooks/useAuth';
@@ -52,7 +52,7 @@ const LoginScreen = ({navigation}: any) => {
 
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert('Error', 'Please enter email and password');
+      BisetkaAlert.error('Error', 'Please enter email and password');
       return;
     }
 
@@ -61,7 +61,7 @@ const LoginScreen = ({navigation}: any) => {
       await signInWithEmail(email, password);
       // Navigation happens automatically when user state changes
     } catch (error: any) {
-      Alert.alert('Login Failed', error.message || 'Please check your credentials');
+      BisetkaAlert.error('Login Failed', error.message || 'Please check your credentials');
     } finally {
       setLoading(false);
     }
@@ -73,7 +73,7 @@ const LoginScreen = ({navigation}: any) => {
       await signInWithApple();
       // Navigation happens automatically when user state changes
     } catch (error: any) {
-      Alert.alert('Sign In Failed', error.message);
+      BisetkaAlert.error('Sign In Failed', error.message);
     } finally {
       setLoading(false);
     }

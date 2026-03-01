@@ -4,12 +4,12 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
   ScrollView,
   ImageBackground,
   Dimensions,
 } from 'react-native';
+import { BisetkaAlert } from '../utils/BisetkaAlert';
 import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { socketService } from '../services/SocketService';
@@ -103,7 +103,7 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
     const setupSocketListeners = async () => {
       const connected = await ensureSocketConnected();
       if (!connected) {
-        Alert.alert('Connection Error', 'Failed to connect to multiplayer server');
+        BisetkaAlert.error('Connection Error', 'Failed to connect to multiplayer server');
         return;
       }
 
@@ -192,7 +192,7 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
         finalScore: { team1: number; team2: number };
       }) => {
         console.log('🎮 Game ended:', data);
-        Alert.alert(
+        BisetkaAlert.alert(
           'Game Over!',
           `Team ${data.winningTeam} wins!\nFinal Score:\nTeam 1: ${data.finalScore.team1}\nTeam 2: ${data.finalScore.team2}`,
           [{ text: 'OK', onPress: () => navigation.goBack() }]
@@ -201,7 +201,7 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
 
       socket.on('error', (error: { message: string }) => {
         console.error('❌ Socket error:', error);
-        Alert.alert('Error', error.message);
+        BisetkaAlert.error('Error', error.message);
       });
     };
 
@@ -223,7 +223,7 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
   const handleFindMatch = async () => {
     const connected = await ensureSocketConnected();
     if (!connected) {
-      Alert.alert('Connection Error', 'Failed to connect to server');
+      BisetkaAlert.error('Connection Error', 'Failed to connect to server');
       return;
     }
 
