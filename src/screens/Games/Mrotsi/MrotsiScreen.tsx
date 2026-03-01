@@ -1,5 +1,6 @@
 import React, {useState, useEffect, useRef} from 'react';
-import {View, Text, StyleSheet, TouchableOpacity, Alert, Animated} from 'react-native';
+import {View, Text, StyleSheet, TouchableOpacity, Animated} from 'react-native';
+import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import GameToolbar from '../../../components/GameToolbar';
 import { aiMoveLogService } from '../../../services/aiMoveLog.service';
@@ -117,14 +118,22 @@ const MrotsiScreen = ({navigation, route}: any) => {
         }));
         
         setTimeout(() => {
-          Alert.alert(
-            'Game Over!',
-            winner === 'player' 
-              ? `You Win! ${gameState.playerScore} - ${gameState.opponentScore}` 
-              : winner === 'opponent'
-                ? `You Lose! ${gameState.playerScore} - ${gameState.opponentScore}`
-                : `It's a Tie! ${gameState.playerScore} - ${gameState.opponentScore}`
-          );
+          if (winner === 'player') {
+            BisetkaAlert.success(
+              'Game Over!',
+              `You Win! ${gameState.playerScore} - ${gameState.opponentScore}`
+            );
+          } else if (winner === 'opponent') {
+            BisetkaAlert.error(
+              'Game Over!',
+              `You Lose! ${gameState.playerScore} - ${gameState.opponentScore}`
+            );
+          } else {
+            BisetkaAlert.alert(
+              'Game Over!',
+              `It's a Tie! ${gameState.playerScore} - ${gameState.opponentScore}`
+            );
+          }
         }, 500);
       } else {
         // Next round

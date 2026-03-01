@@ -1,5 +1,6 @@
 import React, {useState} from 'react';
-import {Alert, StyleSheet, StatusBar} from 'react-native';
+import {StyleSheet, StatusBar} from 'react-native';
+import { BisetkaAlert } from '../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import GameModeSelector from '../../components/GameModeSelector';
 import TeamModeSelector, { TeamMode } from '../../components/TeamModeSelector';
@@ -95,7 +96,7 @@ const GameModeScreen: React.FC<Props> = ({route, navigation}) => {
     }
     
     if (!screenName || screenName === 'Home') {
-      Alert.alert('Coming Soon', `${label.title} is not available yet!`);
+      BisetkaAlert.alert('Coming Soon', `${label.title} is not available yet!`);
       return;
     }
 
@@ -186,7 +187,7 @@ const GameModeScreen: React.FC<Props> = ({route, navigation}) => {
     }
     
     // For other modes, show brief alert then navigate
-    Alert.alert(title, message, [
+    BisetkaAlert.alert(title, message, [
       {text: 'Let\'s Go!', onPress: () => navigateToGame(mode, result)},
     ]);
   };
@@ -201,7 +202,7 @@ const GameModeScreen: React.FC<Props> = ({route, navigation}) => {
       const result = await action();
       handleSuccess(mode, result);
     } catch (error: any) {
-      Alert.alert('Unable to start game', error?.message || 'Unexpected error');
+      BisetkaAlert.error('Unable to start game', error?.message || 'Unexpected error');
     } finally {
       setLoading(prev => ({...prev, [key]: false}));
     }

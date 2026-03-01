@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import GameToolbar from '../../../components/GameToolbar';
 import { aiMoveLogService } from '../../../services/aiMoveLog.service';
@@ -196,7 +197,7 @@ const CheckersScreen = ({ navigation, route }: any) => {
 
         socket.on('opponent_disconnected', () => {
           if (cancelled) return;
-          Alert.alert('Opponent disconnected', 'You win by forfeit!');
+          BisetkaAlert.success('Opponent disconnected', 'You win by forfeit!');
           setGameState(prev => ({ ...prev, isGameOver: true, winner: mySocketColor === 'black' ? 'black' : 'red' }));
           setMpStatus('ended');
         });
@@ -247,7 +248,7 @@ const CheckersScreen = ({ navigation, route }: any) => {
           });
           lastPlayerMoveRef.current = null;
         }
-        if (!hasLeft) setTimeout(()=>Alert.alert('Game Over!','Black wins!'),100);
+        if (!hasLeft) setTimeout(()=>BisetkaAlert.success('Game Over!','Black wins!'),100);
         return { ...prev, board:nb, currentPlayer:'red', selectedSquare:null, possibleMoves:[], isGameOver:!hasLeft, winner:!hasLeft?'black':null };
       });
     }, 500);
@@ -288,7 +289,7 @@ const CheckersScreen = ({ navigation, route }: any) => {
         const next: PieceColor = gameState.currentPlayer==='red'?'black':'red';
         const hasLeft = hasAnyMoves(nb, next);
         const winner: PieceColor|null = !hasLeft ? gameState.currentPlayer : null;
-        if (!hasLeft) Alert.alert('Game Over!', `${gameState.currentPlayer==='red'?'Red':'Black'} wins!`);
+        if (!hasLeft) BisetkaAlert.success('Game Over!', `${gameState.currentPlayer==='red'?'Red':'Black'} wins!`);
         setGameState(prev => ({ ...prev, board:nb, currentPlayer:next, selectedSquare:null, possibleMoves:[], isGameOver:!hasLeft, winner }));
       }
     } else if (piece && piece.color === activeColor) {
