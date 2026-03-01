@@ -7,9 +7,9 @@ import {
   TextInput,
   Alert,
   ActivityIndicator,
-  ScrollView,
   Modal,
   ImageBackground,
+  Dimensions,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -20,6 +20,7 @@ import { aiMoveLogService } from '../../../services/aiMoveLog.service';
 import tokenService from '../../../services/token.service';
 import { v4 as uuidv4 } from 'uuid';
 import { useGameEndRefresh } from '../../../libs/hooks/useGameEndRefresh';
+import CardHandFan from '../../../components/CardHandFan';
 
 interface GameState {
   deck: Card[];
@@ -62,6 +63,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
   const [isConnecting, setIsConnecting] = useState(false);
   const [isGameStarted, setIsGameStarted] = useState(false);
   const [isLocalGame, setIsLocalGame] = useState(false);
+  const [isReadySent, setIsReadySent] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [showDifficultyModal, setShowDifficultyModal] = useState(false);
   const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
@@ -69,6 +71,26 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
   const blotGameIdRef = useRef<string>(uuidv4());
   const trickCountRef = useRef(0);
   const lastPlayerCardRef = useRef<Card | null>(null);
+
+  // SUIT constants for table UI
+  const SUIT_ICON: Record<string, string> = {
+    hearts: '♥',
+    diamonds: '♦',
+    clubs: '♣',
+    spades: '♠',
+  };
+  const SUIT_NAME: Record<string, string> = {
+    hearts: 'Hearts',
+    diamonds: 'Diamonds',
+    clubs: 'Clubs',
+    spades: 'Spades',
+  };
+  const SUIT_COLOR: Record<string, string> = {
+    hearts: '#e74c3c',
+    diamonds: '#e74c3c',
+    clubs: '#ecf0f1',
+    spades: '#ecf0f1',
+  };
 
   // Handle computer's turn when it needs to lead a trick (e.g., after winning a trick)
   useEffect(() => {
@@ -267,6 +289,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
     // Reset all game state before starting new match
     setGameState(null);
     setIsGameStarted(false);
+    setIsReadySent(false);
     setIsMyTurn(false);
     setSelectedCard(null);
     setCurrentRoom(null);
@@ -299,6 +322,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
     // Reset all game state
     setGameState(null);
     setIsGameStarted(false);
+    setIsReadySent(false);
     setIsMyTurn(false);
     setSelectedCard(null);
     setOpponent(null);
@@ -320,6 +344,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
   const findMatchOnMount = async () => {
     setGameState(null);
     setIsGameStarted(false);
+    setIsReadySent(false);
     setIsMyTurn(false);
     setSelectedCard(null);
     setCurrentRoom(null);
@@ -345,6 +370,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
     // Reset all game state before creating new room
     setGameState(null);
     setIsGameStarted(false);
+    setIsReadySent(false);
     setIsMyTurn(false);
     setSelectedCard(null);
     setOpponent(null);
@@ -371,6 +397,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
     // Reset all game state before joining room
     setGameState(null);
     setIsGameStarted(false);
+    setIsReadySent(false);
     setIsMyTurn(false);
     setSelectedCard(null);
     
@@ -395,13 +422,20 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
     console.log('currentRoom:', currentRoom);
     console.log('userId:', userId);
     
-    if (currentRoom?.roomId) {
-      console.log('Sending player_ready to backend:', currentRoom.roomId, userId);
-      socketService.playerReady(currentRoom.roomId, userId);
-    } else {
+    if (!currentRoom?.roomId) {
       console.error('Cannot send player_ready: roomId is missing');
       Alert.alert('Error', 'Room ID is missing. Please try rejoining.');
+      return;
     }
+
+    if (isReadySent) {
+      console.log('player_ready already sent, ignoring duplicate tap');
+      return;
+    }
+
+    console.log('Sending player_ready to backend:', currentRoom.roomId, userId);
+    setIsReadySent(true);
+    socketService.playerReady(currentRoom.roomId, userId);
   };
 
   const handlePlayCard = (card: Card) => {
@@ -705,51 +739,80 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
   const renderLocalGame = () => {
     if (!localGameState) return null;
 
+    const { width, height } = Dimensions.get('window');
+    const TABLE_SIZE = Math.min(width - 32, height * 0.4);
+
     return (
       <View style={styles.gameContainer}>
-        <View style={styles.header}>
-          <View style={styles.scoreContainer}>
-            <Text style={styles.scoreLabel}>Your Score:</Text>
-            <Text style={styles.scoreValue}>{localGameState.playerScore}</Text>
+        <View style={styles.scoreBoard}>
+          <View style={styles.teamScore}>
+            <Text style={styles.teamLabel}>You</Text>
+            <Text style={styles.score}>{localGameState.playerScore}</Text>
           </View>
-          
-          <View style={styles.turnIndicator}>
-            <Text style={styles.turnText}>
-              {localGameState.currentTurn === 'player' ? "Your Turn" : "Computer's Turn"}
-            </Text>
-            {localGameState.currentTurn === 'player' && <View style={styles.turnDot} />}
-          </View>
-
-          <View style={styles.scoreContainer}>
-            <Text style={styles.scoreLabel}>Computer Score:</Text>
-            <Text style={styles.scoreValue}>{localGameState.computerScore}</Text>
+          {localGameState.trumpSuit && (
+            <View style={styles.trumpDisplay}>
+              <Text style={styles.trumpLabel}>Trump</Text>
+              <Text style={styles.trumpSuit}>
+                {localGameState.trumpSuit === 'hearts' ? '♥' :
+                 localGameState.trumpSuit === 'diamonds' ? '♦' :
+                 localGameState.trumpSuit === 'clubs' ? '♣' : '♠'}
+              </Text>
+            </View>
+          )}
+          <View style={styles.teamScore}>
+            <Text style={styles.teamLabel}>Computer</Text>
+            <Text style={styles.score}>{localGameState.computerScore}</Text>
           </View>
         </View>
 
-        {localGameState.trumpSuit && (
-          <View style={styles.trumpContainer}>
-            <Text style={styles.trumpText}>Trump: {localGameState.trumpSuit}</Text>
-          </View>
-        )}
+        <View style={styles.playArea}>
+          <Text style={styles.currentPlayerText}>
+            {localGameState.currentTurn === 'player' ? "★ Your Turn" : "Computer's Turn"}
+          </Text>
 
-        <View style={styles.currentTrickContainer}>
-          <Text style={styles.sectionTitle}>Current Trick</Text>
-          <View style={styles.trickCards}>
-            {localGameState.currentTrick.length > 0 ? (
-              localGameState.currentTrick.map((card, index) => renderCard(card, index))
-            ) : (
-              <Text style={styles.emptyText}>No cards played yet</Text>
-            )}
+          <View
+            style={[
+              styles.tableContainer,
+              { width: TABLE_SIZE, height: TABLE_SIZE },
+            ]}
+          >
+            <ImageBackground
+              source={require('../../../../assets/blot/card-table.png')}
+              style={styles.cardTable}
+              imageStyle={{ borderRadius: 16 }}
+            >
+              {localGameState.currentTrick.length > 0 && (
+                <View style={styles.trickArea}>
+                  {localGameState.currentTrick.map((card, idx) => {
+                    const isBottom = idx === localGameState.currentTrick.length - 1;
+                    return (
+                      <View
+                        key={idx}
+                        style={[
+                          styles.trickSlot,
+                          isBottom ? styles.trickSlotBottom : styles.trickSlotTop,
+                        ]}
+                      >
+                        <Text style={styles.trickPlayerName}>
+                          {isBottom ? 'You' : 'Computer'}
+                        </Text>
+                        {renderCard(card, idx)}
+                      </View>
+                    );
+                  })}
+                </View>
+              )}
+            </ImageBackground>
           </View>
         </View>
 
         <View style={styles.handContainer}>
-          <Text style={styles.sectionTitle}>Your Hand</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <View style={styles.handCards}>
-              {localGameState.playerHand.map((card, index) => renderCard(card, index))}
-            </View>
-          </ScrollView>
+          <Text style={styles.handLabel}>Your Hand:</Text>
+          <CardHandFan
+            cards={localGameState.playerHand}
+            maxWidth={width - 32}
+            renderCard={(card, index) => renderCard(card, index)}
+          />
         </View>
 
         <TouchableOpacity style={styles.resignButton} onPress={handleResign}>
@@ -764,12 +827,11 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
       ? gameState?.player1Hand || [] 
       : gameState?.player2Hand || [];
 
+    const { width, height } = Dimensions.get('window');
+    const TABLE_SIZE = Math.min(width - 32, height * 0.4);
+
     return (
-      <ScrollView 
-        style={styles.gameContainer}
-        contentContainerStyle={styles.gameScrollContent}
-        showsVerticalScrollIndicator={true}
-      >
+      <View style={styles.gameContainer}>
         {!isGameStarted ? (
           // Show waiting/ready screen
           <View style={styles.waitingContainer}>
@@ -780,8 +842,14 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
             <Text style={styles.waitingSubtext}>
               {opponent ? 'Opponent found!' : 'Waiting for opponent...'}
             </Text>
-            <TouchableOpacity style={styles.readyButton} onPress={handlePlayerReady}>
-              <Text style={styles.readyButtonText}>Ready to Play</Text>
+            <TouchableOpacity
+              style={[styles.readyButton, isReadySent && { opacity: 0.6 }]}
+              onPress={handlePlayerReady}
+              disabled={isReadySent}
+            >
+              <Text style={styles.readyButtonText}>
+                {isReadySent ? 'Waiting for opponent...' : 'Ready to Play'}
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity style={[styles.cancelButton, { marginTop: 20 }]} onPress={() => {
               if (currentRoom?.roomId) {
@@ -795,53 +863,75 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
         ) : (
           // Show actual game
           <>
-            <View style={styles.header}>
-              <View style={styles.scoreContainer}>
-                <Text style={styles.scoreLabel}>Your Score:</Text>
-                <Text style={styles.scoreValue}>
+            <View style={styles.scoreBoard}>
+              <View style={styles.teamScore}>
+                <Text style={styles.teamLabel}>You</Text>
+                <Text style={styles.score}>
                   {playerColor === 'white' ? gameState?.player1Score || 0 : gameState?.player2Score || 0}
                 </Text>
               </View>
               
-              <View style={styles.turnIndicator}>
-                <Text style={styles.turnText}>
-                  {isMyTurn ? "Your Turn" : "Opponent's Turn"}
-                </Text>
-                {isMyTurn && <View style={styles.turnDot} />}
-              </View>
+              {gameState?.trumpSuit && (
+                <View style={styles.trumpDisplay}>
+                  <Text style={styles.trumpLabel}>Trump</Text>
+                  <Text style={styles.trumpSuit}>
+                    {gameState.trumpSuit === 'hearts' ? '♥' :
+                     gameState.trumpSuit === 'diamonds' ? '♦' :
+                     gameState.trumpSuit === 'clubs' ? '♣' : '♠'}
+                  </Text>
+                </View>
+              )}
 
-              <View style={styles.scoreContainer}>
-                <Text style={styles.scoreLabel}>Opponent Score:</Text>
-                <Text style={styles.scoreValue}>
+              <View style={styles.teamScore}>
+                <Text style={styles.teamLabel}>Opponent</Text>
+                <Text style={styles.score}>
                   {playerColor === 'white' ? gameState?.player2Score || 0 : gameState?.player1Score || 0}
                 </Text>
               </View>
             </View>
 
-            {gameState?.trumpSuit && (
-              <View style={styles.trumpContainer}>
-                <Text style={styles.trumpText}>Trump: {gameState.trumpSuit}</Text>
-              </View>
-            )}
+            <View style={styles.playArea}>
+              <Text style={styles.currentPlayerText}>
+                {isMyTurn ? "★ Your Turn" : "Opponent's Turn"}
+              </Text>
 
-            <View style={styles.currentTrickContainer}>
-              <Text style={styles.sectionTitle}>Current Trick</Text>
-              <View style={styles.trickCards}>
-                {gameState?.currentTrick && gameState.currentTrick.length > 0 ? (
-                  gameState.currentTrick.map((card, index) => renderCard(card, index))
-                ) : (
-                  <Text style={styles.emptyText}>No cards played yet</Text>
-                )}
+              <View
+                style={[
+                  styles.tableContainer,
+                  { width: TABLE_SIZE, height: TABLE_SIZE },
+                ]}
+              >
+                <ImageBackground
+                  source={require('../../../../assets/blot/card-table.png')}
+                  style={styles.cardTable}
+                  imageStyle={{ borderRadius: 16 }}
+                >
+                  {gameState?.currentTrick && gameState.currentTrick.length > 0 && (
+                    <View style={styles.trickArea}>
+                      {gameState.currentTrick.map((card, index) => (
+                        <View
+                          key={index}
+                          style={[
+                            styles.trickSlot,
+                            index % 2 === 0 ? styles.trickSlotBottom : styles.trickSlotTop,
+                          ]}
+                        >
+                          {renderCard(card, index)}
+                        </View>
+                      ))}
+                    </View>
+                  )}
+                </ImageBackground>
               </View>
             </View>
 
             <View style={styles.handContainer}>
-              <Text style={styles.sectionTitle}>Your Hand</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                <View style={styles.handCards}>
-                  {playerHand.map((card, index) => renderCard(card, index))}
-                </View>
-              </ScrollView>
+              <Text style={styles.handLabel}>Your Hand:</Text>
+              <CardHandFan
+                cards={playerHand}
+                maxWidth={width - 32}
+                renderCard={(card, index) => renderCard(card, index)}
+              />
             </View>
 
             <TouchableOpacity style={styles.resignButton} onPress={handleResign}>
@@ -849,9 +939,11 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
             </TouchableOpacity>
           </>
         )}
-      </ScrollView>
+      </View>
     );
   };
+
+
 
   return (
     <ImageBackground
@@ -1063,10 +1155,6 @@ const styles = StyleSheet.create({
   gameContainer: {
     flex: 1,
   },
-  gameScrollContent: {
-    padding: 15,
-    paddingBottom: 40,
-  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -1118,41 +1206,17 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#333',
   },
-  currentTrickContainer: {
-    backgroundColor: 'rgba(10, 54, 34, 0.75)',
-    borderRadius: 10,
-    padding: 15,
-    marginBottom: 15,
-    borderWidth: 1,
-    borderColor: 'rgba(255,215,0,0.2)',
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 10,
-    color: '#fff',
-  },
-  trickCards: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    flexWrap: 'wrap',
-    minHeight: 100,
-    alignItems: 'center',
-  },
   emptyText: {
     color: 'rgba(255,255,255,0.6)',
     fontStyle: 'italic',
   },
   handContainer: {
-    backgroundColor: 'rgba(10, 54, 34, 0.75)',
-    borderRadius: 10,
-    padding: 15,
     flex: 1,
-    borderWidth: 1,
-    borderColor: 'rgba(255,215,0,0.2)',
-  },
-  handCards: {
-    flexDirection: 'row',
+    backgroundColor: 'transparent',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+    paddingBottom: 16,
   },
   card: {
     width: 80,
@@ -1277,6 +1341,128 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#fff',
     opacity: 0.9,
+  },
+  handLabel: {
+    fontSize: 16,
+    color: '#fff',
+    fontWeight: '600',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  playArea: {
+    flex: 2,
+    padding: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tableContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.5,
+    shadowRadius: 16,
+    elevation: 12,
+  },
+  cardTable: {
+    width: '100%',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  currentPlayerText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#FFD700',
+    textAlign: 'center',
+    marginBottom: 16,
+    textShadowColor: 'rgba(0,0,0,0.8)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
+  },
+  trickArea: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  trickSlot: {
+    position: 'absolute',
+    alignItems: 'center',
+  },
+  trickSlotTop: {
+    top: 14,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+  },
+  trickSlotBottom: {
+    bottom: 14,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+  },
+  trickSlotLeft: {
+    left: 14,
+    top: '50%',
+    marginTop: -75,
+  },
+  trickSlotRight: {
+    right: 14,
+    top: '50%',
+    marginTop: -75,
+  },
+  trickPlayerName: {
+    fontSize: 12,
+    color: '#fff',
+    marginBottom: 6,
+    fontWeight: '600',
+  },
+  teamScore: {
+    alignItems: 'center',
+  },
+  teamLabel: {
+    fontSize: 14,
+    color: '#fff',
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  score: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#FFD700',
+  },
+  scoreBoard: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    paddingVertical: 10,
+    backgroundColor: 'transparent',
+  },
+  trumpDisplay: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(26, 92, 63, 0.9)',
+    padding: 12,
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
+    maxWidth: 70,
+    maxHeight: 98,
+  },
+  trumpLabel: {
+    fontSize: 12,
+    color: '#fff',
+    marginBottom: 4,
+  },
+  trumpSuit: {
+    fontSize: 32,
   },
 });
 
