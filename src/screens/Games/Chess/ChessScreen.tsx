@@ -1,5 +1,6 @@
 import React, {useState, useEffect, useRef} from 'react';
-import {View, Text, StyleSheet, TouchableOpacity, Alert} from 'react-native';
+import {View, Text, StyleSheet, TouchableOpacity} from 'react-native';
+import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import GameToolbar from '../../../components/GameToolbar';
 import {
@@ -174,11 +175,11 @@ const ChessScreen = ({navigation}: any) => {
     });
 
     if (isCheckMate) {
-      Alert.alert('Checkmate!', `${gameState.currentPlayer === 'white' ? 'White' : 'Black'} wins!`);
+      BisetkaAlert.success('Checkmate!', `${gameState.currentPlayer === 'white' ? 'White' : 'Black'} wins!`);
     } else if (isStaleMate) {
-      Alert.alert('Stalemate!', 'Game is a draw.');
+      BisetkaAlert.alert('Stalemate!', 'Game is a draw.');
     } else if (isCheck) {
-      Alert.alert('Check!', `${nextPlayer === 'white' ? 'White' : 'Black'} is in check.`);
+      BisetkaAlert.warning('Check!', `${nextPlayer === 'white' ? 'White' : 'Black'} is in check.`);
     }
   };
 

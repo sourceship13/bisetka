@@ -9,8 +9,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   Share,
-  Alert,
 } from 'react-native';
+import { BisetkaAlert } from '../../utils/BisetkaAlert';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import {colors, spacing} from '../../theme';
@@ -52,7 +52,7 @@ const ChatRoomScreen = ({route, navigation}: any) => {
       setMembers(membersData.members);
     } catch (error) {
       console.error('Failed to load room data:', error);
-      Alert.alert('Error', 'Failed to load chat room');
+      BisetkaAlert.error('Error', 'Failed to load chat room');
       navigation.goBack();
     }
   };
@@ -146,7 +146,7 @@ const ChatRoomScreen = ({route, navigation}: any) => {
     } catch (error) {
       console.error('Failed to send message:', error);
       setMessages(prev => prev.filter(msg => msg.id !== tempMessage.id));
-      Alert.alert('Error', 'Failed to send message');
+      BisetkaAlert.error('Error', 'Failed to send message');
     }
   };
 

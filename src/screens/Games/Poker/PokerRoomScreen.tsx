@@ -1,5 +1,6 @@
 import React, {useState, useEffect, useRef} from 'react';
-import {View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert} from 'react-native';
+import {View, Text, StyleSheet, TouchableOpacity, ScrollView} from 'react-native';
+import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import GameToolbar from '../../../components/GameToolbar';
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
@@ -254,7 +255,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
     const callAmount = currentBet - player.currentBet;
     
     if (player.chips < callAmount) {
-      Alert.alert('Not enough chips');
+      BisetkaAlert.warning('Not enough chips', 'You don\'t have enough chips for this action.');
       return;
     }
 
@@ -277,7 +278,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
     const totalAmount = raiseAmount - player.currentBet;
     
     if (player.chips < totalAmount) {
-      Alert.alert('Not enough chips');
+      BisetkaAlert.warning('Not enough chips', 'You don\'t have enough chips for this action.');
       return;
     }
 
@@ -304,7 +305,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
   const handleCheck = () => {
     setTimerActive(false);
     if (players[playerIndex].currentBet < currentBet) {
-      Alert.alert('Cannot check', 'You must call or raise');
+      BisetkaAlert.warning('Cannot check', 'You must call or raise');
       return;
     }
 
@@ -373,7 +374,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
         }).catch(err => console.warn('Failed to log poker hand:', err));
       }
       
-      Alert.alert('Winner!', `${winner.name} wins $${pot}!`, [
+      BisetkaAlert.success('Winner!', `${winner.name} wins $${pot}!`, [
         {
           text: 'Next Hand',
           onPress: () => {
@@ -563,7 +564,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
         }).catch(err => console.warn('Failed to log poker hand:', err));
       }
       
-      Alert.alert('Winner!', `${winner.name} wins ${pot} chips!`);
+      BisetkaAlert.success('Winner!', `${winner.name} wins ${pot} chips!`);
       const updatedPlayers = [...currentPlayers];
       const winnerIndex = updatedPlayers.findIndex(p => p.id === winner.id);
       updatedPlayers[winnerIndex].chips += pot;
@@ -592,7 +593,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
         }).catch(err => console.warn('Failed to log poker hand:', err));
       }
       
-      Alert.alert('Winner!', `${randomWinner.name} wins ${pot} chips at showdown!`);
+      BisetkaAlert.success('Winner!', `${randomWinner.name} wins ${pot} chips at showdown!`);
       const updatedPlayers = [...currentPlayers];
       const winnerIndex = updatedPlayers.findIndex(p => p.id === randomWinner.id);
       updatedPlayers[winnerIndex].chips += pot;

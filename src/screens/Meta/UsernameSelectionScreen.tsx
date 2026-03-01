@@ -7,9 +7,9 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
+import { BisetkaAlert } from '../../utils/BisetkaAlert';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import apiService from '../../services/api.service';
@@ -59,7 +59,7 @@ const UsernameSelectionScreen: React.FC<UsernameSelectionScreenProps> = ({
 
   const handleSubmit = async () => {
     if (!available) {
-      Alert.alert('Invalid Username', message || 'Please choose an available username');
+      BisetkaAlert.error('Invalid Username', message || 'Please choose an available username');
       return;
     }
 
@@ -73,12 +73,12 @@ const UsernameSelectionScreen: React.FC<UsernameSelectionScreenProps> = ({
       const updatedUser = {...response.user, needsUsernameSelection: false};
       setUser(updatedUser);
       
-      Alert.alert('Success', 'Username updated successfully!', [
+      BisetkaAlert.success('Success', 'Username updated successfully!', [
         {text: 'OK', onPress: () => navigation.replace('Home')},
       ]);
     } catch (error: any) {
       console.error('❌ Username update error:', error);
-      Alert.alert('Error', error.message || 'Failed to update username');
+      BisetkaAlert.error('Error', error.message || 'Failed to update username');
     } finally {
       setSubmitting(false);
     }

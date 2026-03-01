@@ -5,12 +5,12 @@ import {
   StyleSheet,
   TouchableOpacity,
   TextInput,
-  Alert,
   ActivityIndicator,
   Modal,
   ImageBackground,
   Dimensions,
 } from 'react-native';
+import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { socketService } from '../../../services/SocketService';
@@ -192,7 +192,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
       setIsConnecting(true);
       const token = await tokenService.getAccessToken();
       if (!token) {
-        Alert.alert('Authentication Error', 'Please log in to play multiplayer games');
+        BisetkaAlert.error('Authentication Error', 'Please log in to play multiplayer games');
         navigation.goBack();
         return;
       }
@@ -200,7 +200,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
       setupSocketListeners();
     } catch (error) {
       console.error('Socket connection error:', error);
-      Alert.alert('Connection Error', 'Failed to connect to server');
+      BisetkaAlert.error('Connection Error', 'Failed to connect to server');
       throw error; // Re-throw to handle in calling function
     } finally {
       setIsConnecting(false);
@@ -281,16 +281,24 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
     socketService.onGameEnded((data: any) => {
       console.log('Game ended:', data);
       const isWinner = data.winnerId === userId;
-      Alert.alert(
-        'Game Over!',
-        isWinner ? 'You won! 🎉' : 'You lost. Better luck next time!',
-        [{ text: 'OK', onPress: () => navigation.replace('GameMode', {gameType: 'blot'}) }]
-      );
+      if (isWinner) {
+        BisetkaAlert.success(
+          'Game Over!',
+          'You won! 🎉',
+          [{ text: 'OK', onPress: () => navigation.replace('GameMode', {gameType: 'blot'}) }]
+        );
+      } else {
+        BisetkaAlert.error(
+          'Game Over!',
+          'You lost. Better luck next time!',
+          [{ text: 'OK', onPress: () => navigation.replace('GameMode', {gameType: 'blot'}) }]
+        );
+      }
     });
 
     // Opponent disconnected
     socketService.onOpponentDisconnected(() => {
-      Alert.alert('Opponent Disconnected', 'Your opponent has disconnected from the game.');
+      BisetkaAlert.warning('Opponent Disconnected', 'Your opponent has disconnected from the game.');
     });
 
     // Matchmaking status
@@ -302,7 +310,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
 
     // Errors
     socketService.onError((error: any) => {
-      Alert.alert('Error', error.message || 'An error occurred');
+      BisetkaAlert.error('Error', error.message || 'An error occurred');
     });
   };
 
@@ -323,7 +331,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
     setIsGameStarted(true);
     setShowDifficultyModal(false);
     gameStartTime.current = new Date();
-    Alert.alert('Local Game', `Playing against Computer (${selectedDifficulty})!`);
+    BisetkaAlert.alert('Local Game', `Playing against Computer (${selectedDifficulty})!`);
   };
 
   const handleFindMatch = async () => {
@@ -358,7 +366,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
       // Don't auto-ready, let user click the button
       setGameMode('game');
     } catch (error: any) {
-      Alert.alert('Matchmaking Error', error.message || 'Failed to find match');
+      BisetkaAlert.error('Matchmaking Error', error.message || 'Failed to find match');
       setGameMode('menu');
     }
   };
@@ -386,7 +394,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
       setRoomCode(roomData.roomCode);
       setPlayerColor('white');
     } catch (error: any) {
-      Alert.alert('Error', 'Failed to create room');
+      BisetkaAlert.error('Error', 'Failed to create room');
       setGameMode('menu');
       console.error(error);
     }
@@ -420,7 +428,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
       setCurrentRoom({ roomId: matchData.roomId });
       setGameMode('game');
     } catch (error: any) {
-      Alert.alert('Matchmaking Error', error.message || 'Failed to find match');
+      BisetkaAlert.error('Matchmaking Error', error.message || 'Failed to find match');
       setGameMode('menu');
     }
   };
@@ -444,7 +452,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
       setRoomCode(roomData.roomCode);
       setPlayerColor('white');
     } catch (error: any) {
-      Alert.alert('Error', 'Failed to create room');
+      BisetkaAlert.error('Error', 'Failed to create room');
       setGameMode('menu');
       console.error(error);
     }
@@ -452,7 +460,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
 
   const handleJoinPrivateRoom = async () => {
     if (!joinRoomCode.trim()) {
-      Alert.alert('Error', 'Please enter a room code');
+      BisetkaAlert.error('Error', 'Please enter a room code');
       return;
     }
     
@@ -476,7 +484,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
       setGameMode('game');
       setShowJoinModal(false);
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to join room');
+      BisetkaAlert.error('Error', error.message || 'Failed to join room');
     }
   };
 
@@ -487,7 +495,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
     
     if (!currentRoom?.roomId) {
       console.error('Cannot send player_ready: roomId is missing');
-      Alert.alert('Error', 'Room ID is missing. Please try rejoining.');
+      BisetkaAlert.error('Error', 'Room ID is missing. Please try rejoining.');
       return;
     }
 
@@ -620,38 +628,42 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
       ? `\n+${gameResultResponse.pointsEarned} points earned!`
       : '';
     
-    Alert.alert(
-      'Game Over!',
-      (isDraw 
-        ? "It's a draw!" 
-        : isWinner 
-          ? 'You won! 🎉' 
-          : 'Computer won. Better luck next time!') + pointsMessage,
-      [{ 
-        text: 'Play Again', 
-        onPress: () => {
-          // Reset logging refs for new game
-          blotGameIdRef.current = uuidv4();
-          trickCountRef.current = 0;
-          lastPlayerCardRef.current = null;
-          const newGame = blotAIService.initializeGame();
-          setLocalGameState(newGame);
-          gameStartTime.current = new Date();
-        }
-      },
-      { 
-        text: 'Main Menu', 
-        onPress: () => {
-          setIsLocalGame(false);
-          setLocalGameState(null);
-          navigation.replace('GameMode', {gameType: 'blot'});
-        }
-      }]
-    );
+    const gameOverMessage = (isDraw 
+      ? "It's a draw!" 
+      : isWinner 
+        ? 'You won! 🎉' 
+        : 'Computer won. Better luck next time!') + pointsMessage;
+    const gameOverButtons = [{ 
+      text: 'Play Again', 
+      onPress: () => {
+        // Reset logging refs for new game
+        blotGameIdRef.current = uuidv4();
+        trickCountRef.current = 0;
+        lastPlayerCardRef.current = null;
+        const newGame = blotAIService.initializeGame();
+        setLocalGameState(newGame);
+        gameStartTime.current = new Date();
+      }
+    },
+    { 
+      text: 'Main Menu', 
+      onPress: () => {
+        setIsLocalGame(false);
+        setLocalGameState(null);
+        navigation.replace('GameMode', {gameType: 'blot'});
+      }
+    }];
+    if (isDraw) {
+      BisetkaAlert.alert('Game Over!', gameOverMessage, gameOverButtons);
+    } else if (isWinner) {
+      BisetkaAlert.success('Game Over!', gameOverMessage, gameOverButtons);
+    } else {
+      BisetkaAlert.error('Game Over!', gameOverMessage, gameOverButtons);
+    }
   };
 
   const handleResign = () => {
-    Alert.alert(
+    BisetkaAlert.warning(
       'Resign',
       'Are you sure you want to resign?',
       [

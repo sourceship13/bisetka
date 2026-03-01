@@ -6,10 +6,10 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Alert,
   ImageBackground,
   Dimensions,
 } from 'react-native';
+import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import GameToolbar from '../../../components/GameToolbar';
@@ -191,7 +191,7 @@ const BlotScreen = ({ navigation }: any) => {
         gameState.trump,
       )
     ) {
-      Alert.alert(
+      BisetkaAlert.error(
         'Invalid Move',
         'You must follow suit or play trump if possible.',
       );

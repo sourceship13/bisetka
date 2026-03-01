@@ -8,8 +8,8 @@ import {
   StatusBar,
   Dimensions,
   Platform,
-  Alert,
 } from 'react-native';
+import { BisetkaAlert } from '../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import {useAuth} from '../../libs/hooks/useAuth';
@@ -129,7 +129,7 @@ const HomeScreen = ({navigation}: any) => {
         await pushNotificationService.initialize();
       } else if (status === 'blocked') {
         // Previously denied — prompt user to enable manually in Settings
-        Alert.alert(
+        BisetkaAlert.alert(
           'Enable Notifications',
           'Turn on notifications in Settings to be notified when someone sends a message.',
           [
