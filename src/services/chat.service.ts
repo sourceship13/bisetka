@@ -131,6 +131,16 @@ class ChatService {
     if (!response.ok) throw new Error('Failed to mark as read');
   }
 
+  // Get or create a chat room tied to a game session (idempotent — safe to call by both players)
+  async getOrCreateGameChat(gameSessionId: string, gameType: string): Promise<{ chatId: string }> {
+    const response = await this.authenticatedFetch(`${this.baseUrl}/chat/game-session`, {
+      method: 'POST',
+      body: JSON.stringify({ gameSessionId, gameType }),
+    });
+    if (!response.ok) throw new Error('Failed to get or create game chat');
+    return response.json();
+  }
+
   // Join a chat room
   async joinChat(chatId: string): Promise<void> {
     const response = await this.authenticatedFetch(`${this.baseUrl}/chat/${chatId}/join`, {

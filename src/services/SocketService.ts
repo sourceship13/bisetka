@@ -121,6 +121,10 @@ class SocketService {
         return;
       }
 
+      // Clear any stale listeners that could intercept our events
+      this.socket.off('match_found');
+      this.socket.off('room_joined');
+
       this.socket.emit('find_match', { gameType, userId });
 
       this.socket.once('match_found', (data) => {
@@ -170,6 +174,10 @@ class SocketService {
         reject(new Error('Not connected'));
         return;
       }
+
+      // Clear any stale listeners that could intercept our events
+      this.socket.off('room_joined');
+      this.socket.off('match_found');
 
       this.socket.emit('join_private_room', { roomCode, userId });
 
@@ -239,10 +247,6 @@ class SocketService {
   // Remove all listeners
   removeAllListeners() {
     this.socket?.removeAllListeners();
-  }
-
-  isConnected(): boolean {
-    return this.socket?.connected || false;
   }
 
   // Get socket instance for custom events (e.g., chat rooms)
