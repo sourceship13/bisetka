@@ -9,8 +9,8 @@ import {
   Modal,
   ActivityIndicator,
   Share,
-  Alert,
 } from 'react-native';
+import { BisetkaAlert } from '../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import { colors, spacing } from '../../theme';
@@ -44,7 +44,7 @@ const ChatRoomsListScreen = ({ navigation }: any) => {
       setRooms(Array.from(roomMap.values()));
     } catch (error) {
       console.error('Failed to load rooms:', error);
-      Alert.alert('Error', 'Failed to load chat rooms');
+      BisetkaAlert.error('Error', 'Failed to load chat rooms');
     } finally {
       setLoading(false);
     }
@@ -52,7 +52,7 @@ const ChatRoomsListScreen = ({ navigation }: any) => {
 
   const handleCreateRoom = async () => {
     if (!roomName.trim()) {
-      Alert.alert('Error', 'Please enter a room name');
+      BisetkaAlert.error('Error', 'Please enter a room name');
       return;
     }
 
@@ -62,14 +62,14 @@ const ChatRoomsListScreen = ({ navigation }: any) => {
         roomName.trim(),
         roomDescription.trim() || undefined,
       );
-      Alert.alert('Success', `Room created! Share code: ${room.share_code}`);
+      BisetkaAlert.success('Success', `Room created! Share code: ${room.share_code}`);
       setShowCreateModal(false);
       setRoomName('');
       setRoomDescription('');
       loadRooms();
       navigation.navigate('ChatRoom', { roomId: room.id });
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to create room');
+      BisetkaAlert.error('Error', error.message || 'Failed to create room');
     } finally {
       setCreating(false);
     }
@@ -77,7 +77,7 @@ const ChatRoomsListScreen = ({ navigation }: any) => {
 
   const handleJoinByCode = async () => {
     if (!shareCode.trim()) {
-      Alert.alert('Error', 'Please enter a share code');
+      BisetkaAlert.error('Error', 'Please enter a share code');
       return;
     }
 
@@ -85,13 +85,13 @@ const ChatRoomsListScreen = ({ navigation }: any) => {
       const { room } = await chatRoomService.joinRoomByCode(
         shareCode.trim().toUpperCase(),
       );
-      Alert.alert('Success', `Joined ${room.name}!`);
+      BisetkaAlert.success('Success', `Joined ${room.name}!`);
       setShowJoinModal(false);
       setShareCode('');
       loadRooms();
       navigation.navigate('ChatRoom', { roomId: room.id });
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to join room');
+      BisetkaAlert.error('Error', error.message || 'Failed to join room');
     }
   };
 
@@ -100,7 +100,7 @@ const ChatRoomsListScreen = ({ navigation }: any) => {
       await chatRoomService.joinRoom(room.id);
       navigation.navigate('ChatRoom', { roomId: room.id });
     } catch (error) {
-      Alert.alert('Error', 'Failed to join room');
+      BisetkaAlert.error('Error', 'Failed to join room');
     }
   };
 
