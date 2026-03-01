@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
-  ScrollView,
   ImageBackground,
   Dimensions,
 } from 'react-native';
@@ -16,11 +15,22 @@ import { socketService } from '../services/SocketService';
 import tokenService from '../services/token.service';
 import DynamicCard from '../components/DynamicCard';
 import { CardType } from '../components/Card';
+import InGameChat from '../components/InGameChat';
+import GameToolbar from '../components/GameToolbar';
+import CardCustomizationModal from '../components/CardCustomizationModal';
+import CardHandFan from '../components/CardHandFan';
+import type { CardTheme } from '../components/CardCustomizationModal';
 
 const { width: SW } = Dimensions.get('window');
 
 const SUIT_ICON: Record<string, string> = {
   hearts: '♥', diamonds: '♦', clubs: '♣', spades: '♠',
+};
+const SUIT_NAME: Record<string, string> = {
+  hearts: 'Hearts', diamonds: 'Diamonds', clubs: 'Clubs', spades: 'Spades',
+};
+const SUIT_COLOR: Record<string, string> = {
+  hearts: '#e74c3c', diamonds: '#e74c3c', clubs: '#ecf0f1', spades: '#ecf0f1',
 };
 
 interface GamePlayer {
@@ -56,6 +66,7 @@ interface BaazarGameState {
 
 const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
   const userId = route.params?.userId || 'test-user-' + Math.random().toString(36).substr(2, 9);
+  const teamMode: 'hybrid' | 'full-multiplayer' = route.params?.teamMode ?? 'hybrid';
   
   const [gameMode, setGameMode] = useState<'menu' | 'matchmaking' | 'game'>('menu');
   const [roomId, setRoomId] = useState<string | null>(null);
@@ -67,6 +78,8 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
   const [selectedCard, setSelectedCard] = useState<CardType | null>(null);
   const [pendingBidLevel, setPendingBidLevel] = useState<number>(9);
   const [pendingBidSuit, setPendingBidSuit] = useState<string>('hearts'); // pre-select hearts so Make Bid is always ready
+  const [showCustomization, setShowCustomization] = useState(false);
+  const [customTheme, setCustomTheme] = useState<CardTheme | undefined>(undefined);
 
   // Ensure socket is connected before operations
   const ensureSocketConnected = async (): Promise<boolean> => {
@@ -119,14 +132,14 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
       socket.on('baazar_match_found', (data: { 
         roomId: string; 
         players: GamePlayer[]; 
-        yourPosition: number;
-        yourTeam: 1 | 2;
+        myPosition: number;
+        myTeam: 1 | 2;
       }) => {
         console.log('🎲 Baazar match found:', data);
         setRoomId(data.roomId);
         setPlayers(data.players);
-        setMyPosition(data.yourPosition);
-        setMyTeam(data.yourTeam);
+        setMyPosition(data.myPosition);
+        setMyTeam(data.myTeam);
         setGameMode('game');
         setIsConnecting(false);
 
@@ -237,18 +250,25 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
 
     const socket = socketService.getSocket();
     if (socket) {
-      socket.emit('find_match', {
-        userId,
-        gameType: 'baazar-blot'
-      });
-      console.log('🔍 Joined Baazar Blot matchmaking queue');
+      if (teamMode === 'full-multiplayer') {
+        socket.emit('find_baazar_teams_match', { userId });
+        console.log('🔍 Joined Baazar Blot 2v2 (all-human) matchmaking queue');
+      } else {
+        // hybrid: 1 human + AI partners per side
+        socket.emit('find_baazar_match', { userId });
+        console.log('🔍 Joined Baazar Blot hybrid (1+AI vs 1+AI) matchmaking queue');
+      }
     }
   };
 
   const handleCancelMatchmaking = () => {
     const socket = socketService.getSocket();
     if (socket) {
-      socket.emit('cancel_matchmaking', { userId });
+      if (teamMode === 'full-multiplayer') {
+        socket.emit('cancel_baazar_teams_match', { userId });
+      } else {
+        socket.emit('cancel_baazar_match', { userId });
+      }
       console.log('❌ Cancelled matchmaking');
     }
     setIsConnecting(false);
@@ -299,61 +319,71 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
   };
 
   const renderMenu = () => (
-    <LinearGradient colors={['#1a1a2e', '#16213e', '#0f3460']} style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
-        <Text style={styles.title}>Baazar Blot Multiplayer</Text>
-        
-        <View style={styles.infoBox}>
-          <Text style={styles.infoText}>🎮 4-Player Team Game</Text>
-          <Text style={styles.infoText}>👥 You + Teammate vs 2 Opponents</Text>
-          <Text style={styles.infoText}>🤖 AI players fill empty spots</Text>
-          <Text style={styles.infoText}>🎯 First to 301 points wins!</Text>
+    <ImageBackground
+      source={require('../../assets/blot/park-background.png')}
+      style={styles.bg}
+      resizeMode="cover">
+      <LinearGradient
+        colors={['rgba(0,0,0,0.55)', 'rgba(0,40,0,0.72)']}
+        style={StyleSheet.absoluteFill}
+      />
+      <SafeAreaView style={styles.safe}>
+        <GameToolbar
+          title="Bazaar Blot"
+          onBack={() => navigation.goBack()}
+          backgroundColor="transparent"
+        />
+        <View style={styles.menuBody}>
+          <Text style={styles.bigTitle}>🃏 Bazaar Blot</Text>
+          <Text style={styles.subtitle}>Multiplayer – 4 Player Team Game</Text>
+
+          <View style={styles.infoBox}>
+            <Text style={styles.infoText}>👥 You + Teammate vs 2 Opponents</Text>
+            <Text style={styles.infoText}>🤖 AI players fill empty spots</Text>
+            <Text style={styles.infoText}>🎯 First to 301 points wins!</Text>
+          </View>
+
+          <TouchableOpacity style={styles.primaryBtn} onPress={handleFindMatch}>
+            <Text style={styles.primaryBtnText}>Find Match</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.secondaryBtn} onPress={() => navigation.goBack()}>
+            <Text style={styles.secondaryBtnText}>Back</Text>
+          </TouchableOpacity>
         </View>
-
-        <TouchableOpacity
-          style={styles.primaryButton}
-          onPress={handleFindMatch}
-        >
-          <LinearGradient
-            colors={['#00d4ff', '#0099cc']}
-            style={styles.buttonGradient}
-          >
-            <Text style={styles.buttonText}>Find Match</Text>
-          </LinearGradient>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.secondaryButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Text style={styles.secondaryButtonText}>Back</Text>
-        </TouchableOpacity>
       </SafeAreaView>
-    </LinearGradient>
+    </ImageBackground>
   );
 
   const renderMatchmaking = () => (
-    <LinearGradient colors={['#1a1a2e', '#16213e', '#0f3460']} style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
-        <Text style={styles.title}>Finding Match...</Text>
-        
-        <ActivityIndicator size="large" color="#00d4ff" style={styles.loader} />
-        
-        <Text style={styles.statusText}>
-          Looking for players...
-        </Text>
-        <Text style={styles.infoText}>
-          Minimum 2 real players required
-        </Text>
+    <ImageBackground
+      source={require('../../assets/blot/park-background.png')}
+      style={styles.bg}
+      resizeMode="cover">
+      <LinearGradient
+        colors={['rgba(0,0,0,0.55)', 'rgba(0,40,0,0.72)']}
+        style={StyleSheet.absoluteFill}
+      />
+      <SafeAreaView style={styles.safe}>
+        <GameToolbar
+          title="Bazaar Blot"
+          onBack={handleCancelMatchmaking}
+          backgroundColor="transparent"
+        />
+        <View style={styles.menuBody}>
+          <Text style={styles.bigTitle}>🔍 Finding Match…</Text>
 
-        <TouchableOpacity
-          style={styles.secondaryButton}
-          onPress={handleCancelMatchmaking}
-        >
-          <Text style={styles.secondaryButtonText}>Cancel</Text>
-        </TouchableOpacity>
+          <ActivityIndicator size="large" color="#FFD700" style={{ marginVertical: 40 }} />
+
+          <Text style={styles.statusText}>Looking for players…</Text>
+          <Text style={styles.infoText}>Minimum 2 real players required</Text>
+
+          <TouchableOpacity style={styles.cancelBtn} onPress={handleCancelMatchmaking}>
+            <Text style={styles.cancelBtnText}>Cancel</Text>
+          </TouchableOpacity>
+        </View>
       </SafeAreaView>
-    </LinearGradient>
+    </ImageBackground>
   );
 
   const renderBiddingPhase = () => {
@@ -364,111 +394,123 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
     const currentPlayerLabel = currentPlayerInfo
       ? (currentPlayerInfo.isAI ? `CPU (T${currentPlayerInfo.team})` : `P${currentPlayerInfo.position} (T${currentPlayerInfo.team})`)
       : `Player ${gameState?.currentPlayer}`;
+    const currentBid = gameState?.currentBid || 0;
+    const hasBid = gameState?.bidderPlayer !== null && gameState?.bidderPlayer !== undefined;
+    const minBid = hasBid ? Math.min(currentBid + 1, 16) : 8;
+    const displayLevel = Math.max(pendingBidLevel, minBid);
 
     return (
-      <View style={styles.biddingContainer}>
-        <Text style={styles.phaseTitle}>Bidding Phase</Text>
-        
-        <View style={styles.currentBidBox}>
-          <Text style={styles.bidText}>Current Bid: {gameState?.currentBid || 9}</Text>
-          {gameState?.trump && (
-            <Text style={styles.trumpText}>
-              Trump: {SUIT_ICON[gameState.trump]} {gameState.trump}
+      <View style={styles.centeredSection}>
+        <Text style={styles.sectionTitle}>🃏 Bazaar Blot</Text>
+
+        {hasBid ? (
+          <View style={styles.bidStatusRow}>
+            <Text style={styles.bidStatusText}>
+              T{gameState?.bidderTeam} bid{' '}
             </Text>
-          )}
-          {gameState?.lastRoundResult && (
-            <View style={[styles.lastRoundRow, { marginTop: 6 }]}>
-              <Text style={styles.lastRoundLabel}>Last round</Text>
-              <Text style={styles.lastRoundDetail}>
-                T1: {gameState.lastRoundResult.team1Raw}→{gameState.lastRoundResult.team1Final}{'  '}
-                T2: {gameState.lastRoundResult.team2Raw}→{gameState.lastRoundResult.team2Final}{'  '}
-                (Bid {gameState.lastRoundResult.bid} T{gameState.lastRoundResult.biddingTeam}{' '}
-                {gameState.lastRoundResult.madeBid ? '✅' : '❌'})
-              </Text>
-            </View>
-          )}
-        </View>
+            <Text style={[styles.bidStatusValue, { color: gameState?.trump ? SUIT_COLOR[gameState.trump] : '#fff' }]}>
+              {currentBid} {gameState?.trump ? SUIT_ICON[gameState.trump] : ''}
+            </Text>
+          </View>
+        ) : (
+          <Text style={styles.bidStatusText}>No bids yet</Text>
+        )}
+
+        {gameState?.lastRoundResult && (
+          <View style={styles.lastRoundRow}>
+            <Text style={styles.lastRoundLabel}>Last round</Text>
+            <Text style={styles.lastRoundDetail}>
+              T1: {gameState.lastRoundResult.team1Raw}→{gameState.lastRoundResult.team1Final}{'  '}
+              T2: {gameState.lastRoundResult.team2Raw}→{gameState.lastRoundResult.team2Final}{'  '}
+              (Bid {gameState.lastRoundResult.bid} T{gameState.lastRoundResult.biddingTeam}{' '}
+              {gameState.lastRoundResult.madeBid ? '✅' : '❌'})
+            </Text>
+          </View>
+        )}
 
         {iHavePassed ? (
           <View style={styles.waitingBox}>
             <Text style={[styles.waitingText, { color: '#ff6b6b' }]}>You passed ✗</Text>
             <ActivityIndicator size="small" color="#555" style={{ marginTop: 6 }} />
-            <Text style={styles.waitingText}>Waiting for {currentPlayerLabel}...</Text>
+            <Text style={styles.waitingText}>Waiting for {currentPlayerLabel}…</Text>
           </View>
         ) : isMyTurn ? (
-          <View style={styles.biddingControls}>
-            <Text style={styles.yourTurnText}>Your Turn!</Text>
-            
-            <View style={styles.suitSelector}>
-              {['hearts', 'diamonds', 'clubs', 'spades'].map(suit => (
+          <>
+            <Text style={styles.yourTurnLabel}>Your turn to bid</Text>
+
+            <View style={styles.bidLevelRow}>
+              <TouchableOpacity
+                style={styles.stepBtn}
+                onPress={() => setPendingBidLevel(l => Math.max(minBid, l - 1))}>
+                <Text style={styles.stepBtnText}>−</Text>
+              </TouchableOpacity>
+              <Text style={styles.bidLevelValue}>{displayLevel}</Text>
+              <TouchableOpacity
+                style={styles.stepBtn}
+                onPress={() => setPendingBidLevel(l => Math.min(16, l + 1))}>
+                <Text style={styles.stepBtnText}>+</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.suitRow}>
+              {(['hearts', 'diamonds', 'clubs', 'spades'] as const).map(s => (
                 <TouchableOpacity
-                  key={suit}
-                  style={[
-                    styles.suitButton,
-                    pendingBidSuit === suit && styles.suitButtonSelected
-                  ]}
-                  onPress={() => setPendingBidSuit(suit)}
-                >
-                  <Text style={styles.suitIcon}>{SUIT_ICON[suit]}</Text>
+                  key={s}
+                  style={[styles.suitChip, pendingBidSuit === s && styles.suitChipSelected]}
+                  onPress={() => setPendingBidSuit(s)}>
+                  <Text style={[styles.suitChipIcon, { color: SUIT_COLOR[s] }]}>
+                    {SUIT_ICON[s]}
+                  </Text>
+                  <Text style={styles.suitChipLabel}>{SUIT_NAME[s]}</Text>
                 </TouchableOpacity>
               ))}
             </View>
 
-            <View style={styles.bidLevelSelector}>
+            <View style={styles.bidActionRow}>
               <TouchableOpacity
-                style={styles.bidButton}
-                onPress={() => setPendingBidLevel(l => Math.max((gameState?.currentBid || 8) + 1, l - 1))}
-              >
-                <Text style={styles.bidButtonText}>-</Text>
-              </TouchableOpacity>
-              <Text style={styles.bidLevelText}>{Math.max(pendingBidLevel, (gameState?.currentBid || 8) + 1)}</Text>
-              <TouchableOpacity
-                style={styles.bidButton}
-                onPress={() => setPendingBidLevel(l => Math.min(16, l + 1))}
-              >
-                <Text style={styles.bidButtonText}>+</Text>
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.bidActions}>
-              <TouchableOpacity
-                style={styles.actionButton}
+                style={[styles.bidActionBtn, styles.bidBtnGreen, displayLevel <= currentBid && styles.bidBtnDisabled]}
                 onPress={handleMakeBid}
-              >
-                <Text style={styles.actionButtonText}>Bid {Math.max(pendingBidLevel, (gameState?.currentBid || 8) + 1)} {SUIT_ICON[pendingBidSuit || 'hearts']}</Text>
+                disabled={displayLevel <= currentBid}>
+                <Text style={styles.bidActionBtnText}>Bid {displayLevel} {SUIT_ICON[pendingBidSuit || 'hearts']}</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={styles.passButton}
-                onPress={handlePass}
-              >
-                <Text style={styles.passButtonText}>Pass</Text>
+                style={[styles.bidActionBtn, styles.bidBtnRed]}
+                onPress={handlePass}>
+                <Text style={styles.bidActionBtnText}>Pass</Text>
               </TouchableOpacity>
             </View>
-          </View>
+          </>
         ) : (
-          <View style={styles.waitingBox}>
-            <ActivityIndicator size="small" color="#00d4ff" />
-            <Text style={styles.waitingText}>
-              Waiting for {currentPlayerLabel}...
-            </Text>
-          </View>
+          <Text style={styles.waitingText}>
+            Waiting for {currentPlayerLabel}…
+          </Text>
         )}
 
-        <View style={styles.handPreview}>
-          <Text style={styles.handTitle}>Your Hand:</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <View style={styles.cardsRow}>
-              {myHand.map((card, idx) => (
-                <View key={idx} style={styles.smallCard}>
+        <View style={styles.handSection}>
+          {myHand.length > 0 && (
+            <>
+              <Text style={styles.handLabel}>Your Hand</Text>
+              <CardHandFan
+                cards={myHand}
+                maxWidth={SW - 32}
+                renderCard={(card, idx) => (
                   <DynamicCard
+                    key={`${card.suit}-${card.rank}-${idx}`}
                     card={card}
-                    size="small"
-                    onPress={() => {}}
+                    theme={customTheme}
+                    size="medium"
                   />
-                </View>
-              ))}
-            </View>
-          </ScrollView>
+                )}
+              />
+            </>
+          )}
+        </View>
+
+        <View style={styles.scoreReminder}>
+          <Text style={styles.scoreReminderText}>
+            T1: {gameState?.gameScore.team1}{'  |  '}T2: {gameState?.gameScore.team2}
+            {'  |  '}Target: {gameState?.targetScore}
+          </Text>
         </View>
       </View>
     );
@@ -491,6 +533,15 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
     return { team1: t1, team2: t2 };
   };
 
+  const trickCardForPlayer = (pos: number): CardType | null =>
+    (gameState?.currentTrick ?? []).find(c => c.playerPosition === pos)?.card ?? null;
+
+  const playerLabelForPos = (pos: number): string => {
+    const info = players.find(p => p.position === pos);
+    if (!info) return `P${pos}`;
+    return info.isAI ? `CPU (T${info.team})` : `P${pos} (T${info.team})`;
+  };
+
   const renderPlayingPhase = () => {
     const isMyTurn = gameState?.currentPlayer === myPosition;
     const myHand = gameState?.playerHands[myPosition] || [];
@@ -499,104 +550,115 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
       ? (currentPlayerInfo.isAI ? `CPU (T${currentPlayerInfo.team})` : `P${currentPlayerInfo.position} (T${currentPlayerInfo.team})`)
       : `Player ${gameState?.currentPlayer}`;
 
+    const topPos   = (myPosition + 2) % 4;
+    const rightPos = (myPosition + 1) % 4;
+    const leftPos  = (myPosition + 3) % 4;
+    const trump = gameState?.trump;
+
+    const rp = computeCurrentRoundPoints();
+    const biddingTeam = gameState?.bidderTeam;
+    const bid = gameState?.currentBid ?? 0;
+    const biddingTeamPoints = biddingTeam === 1 ? rp.team1 : rp.team2;
+    const onTrack = biddingTeamPoints >= bid;
+
     return (
-      <View style={styles.playingContainer}>
-        <View style={styles.gameInfo}>
-          <Text style={styles.trumpInfo}>
-            Trump: {gameState?.trump ? `${SUIT_ICON[gameState.trump]} ${gameState.trump}` : 'None'}
-            {'  '}│{'  '}Bid: {gameState?.currentBid} by T{gameState?.bidderTeam}
+      <View style={styles.playingLayout}>
+        {/* Score bar */}
+        <View style={styles.scoreBar}>
+          <Text style={styles.scoreBarText}>
+            {'🔵 T1: '}
+            {(gameState?.gameScore.team1 ?? 0) + rp.team1}
+            {'   🔴 T2: '}
+            {(gameState?.gameScore.team2 ?? 0) + rp.team2}
+            {'   🎯 '}
+            {gameState?.targetScore}
           </Text>
-          {/* Main game score */}
-          <View style={styles.scoreRow}>
-            <Text style={styles.scoreLabel}>Game</Text>
-            <Text style={styles.scoreTeam1}>T1: {gameState?.gameScore.team1}</Text>
-            <Text style={styles.scoreTeam2}>T2: {gameState?.gameScore.team2}</Text>
-            <Text style={styles.scoreTarget}>/{gameState?.targetScore}</Text>
-          </View>
-          {/* Live round card points */}
-          {(() => {
-            const rp = computeCurrentRoundPoints();
-            const biddingTeam = gameState?.bidderTeam;
-            const bid = gameState?.currentBid ?? 0;
-            const biddingTeamPoints = biddingTeam === 1 ? rp.team1 : rp.team2;
-            const onTrack = biddingTeamPoints >= bid;
-            return (
-              <View style={styles.roundScoreRow}>
-                <Text style={styles.roundScoreLabel}>This round</Text>
-                <Text style={[styles.roundScoreT1, biddingTeam === 1 && (onTrack ? styles.onTrack : styles.offTrack)]}>
-                  T1: {rp.team1}
-                </Text>
-                <Text style={[styles.roundScoreT2, biddingTeam === 2 && (onTrack ? styles.onTrack : styles.offTrack)]}>
-                  T2: {rp.team2}
-                </Text>
-              </View>
-            );
-          })()}
-          {/* Last round result */}
-          {gameState?.lastRoundResult && (
-            <View style={styles.lastRoundRow}>
-              <Text style={styles.lastRoundLabel}>Last round</Text>
-              <Text style={styles.lastRoundDetail}>
-                T1: {gameState.lastRoundResult.team1Raw}→{gameState.lastRoundResult.team1Final}{'  '}
-                T2: {gameState.lastRoundResult.team2Raw}→{gameState.lastRoundResult.team2Final}{'  '}
-                (Bid {gameState.lastRoundResult.bid} T{gameState.lastRoundResult.biddingTeam}{' '}
-                {gameState.lastRoundResult.madeBid ? '✅' : '❌'})
+          {trump && (
+            <View style={styles.trumpBadge}>
+              <Text style={styles.trumpBadgeText}>
+                {'Trump: '}
+                <Text style={{ color: SUIT_COLOR[trump] }}>{SUIT_ICON[trump]}</Text>
+                {'  Bid: '}
+                {gameState?.currentBid}
+                {gameState?.lastRoundResult && !gameState?.lastRoundResult.madeBid ? ' ❌' : ''}
               </Text>
             </View>
           )}
         </View>
 
-        {/* Whose turn indicator */}
-        <View style={[styles.waitingBox, { marginBottom: 4, paddingVertical: 6, backgroundColor: isMyTurn ? '#1a4a1a' : '#1a1a3a' }]}>
+        {/* Whose turn */}
+        <View style={[styles.turnIndicator, { backgroundColor: isMyTurn ? 'rgba(46,125,50,0.6)' : 'rgba(26,26,58,0.6)' }]}>
           {isMyTurn
-            ? <Text style={[styles.yourTurnText, { fontSize: 14 }]}>⭐ Your Turn! Tap a card to play</Text>
-            : <Text style={styles.waitingText}>⏳ Waiting for {currentPlayerLabel}...</Text>
+            ? <Text style={styles.yourTurnLabel}>⭐ Your turn – tap a card to play</Text>
+            : <Text style={styles.waitingText}>⏳ Waiting for {currentPlayerLabel}…</Text>
           }
         </View>
 
-        <View style={styles.trickArea}>
-          <Text style={styles.trickTitle}>Current Trick:</Text>
-          <View style={styles.trickCards}>
-            {gameState?.currentTrick.map((play, idx) => {
-              const info = players.find(p => p.position === play.playerPosition);
-              const label = info ? (info.isAI ? `CPU` : `P${play.playerPosition}`) : `P${play.playerPosition}`;
-              return (
-                <View key={idx} style={styles.trickCard}>
-                  <Text style={[styles.playerLabel, { color: info?.isAI ? '#ff9500' : '#fff' }]}>{label}</Text>
-                  <DynamicCard card={play.card} size="small" onPress={() => {}} />
-                </View>
-              );
-            })}
-          </View>
+        {/* Card table */}
+        <View style={styles.tableWrapper}>
+          <ImageBackground
+            source={require('../../assets/blot/card-table.png')}
+            style={styles.tableImage}
+            imageStyle={styles.tableImageStyle}>
+            <View style={styles.trickArea}>
+              <View style={[styles.trickSlot, styles.trickSlotTop]}>
+                <Text style={styles.trickPlayerName}>{playerLabelForPos(topPos)}</Text>
+                {trickCardForPlayer(topPos) && (
+                  <DynamicCard card={trickCardForPlayer(topPos)!} theme={customTheme} size="small" />
+                )}
+              </View>
+              <View style={[styles.trickSlot, styles.trickSlotLeft]}>
+                <Text style={styles.trickPlayerName}>{playerLabelForPos(leftPos)}</Text>
+                {trickCardForPlayer(leftPos) && (
+                  <DynamicCard card={trickCardForPlayer(leftPos)!} theme={customTheme} size="small" />
+                )}
+              </View>
+              <View style={[styles.trickSlot, styles.trickSlotRight]}>
+                <Text style={styles.trickPlayerName}>{playerLabelForPos(rightPos)}</Text>
+                {trickCardForPlayer(rightPos) && (
+                  <DynamicCard card={trickCardForPlayer(rightPos)!} theme={customTheme} size="small" />
+                )}
+              </View>
+              <View style={[styles.trickSlot, styles.trickSlotBottom]}>
+                {trickCardForPlayer(myPosition) && (
+                  <DynamicCard card={trickCardForPlayer(myPosition)!} theme={customTheme} size="small" />
+                )}
+                <Text style={styles.trickPlayerName}>You (T{myTeam})</Text>
+              </View>
+            </View>
+          </ImageBackground>
         </View>
 
-        <View style={styles.handArea}>
-          <Text style={styles.handTitle}>Your Hand:</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <View style={styles.cardsRow}>
-              {myHand.map((card, idx) => (
-                <View
-                  key={idx}
+        {/* Player's hand */}
+        <View style={styles.handSection}>
+          {isMyTurn ? (
+            <Text style={styles.handLabel}>Your turn ↓</Text>
+          ) : (
+            <Text style={styles.handLabelWait}>Waiting…</Text>
+          )}
+          <CardHandFan
+            cards={myHand}
+            maxWidth={SW - 32}
+            renderCard={(card, idx) => {
+              return (
+                <TouchableOpacity
+                  key={`${card.suit}-${card.rank}-${idx}`}
+                  onPress={() => {
+                    if (isMyTurn) {
+                      setSelectedCard(card);
+                      handlePlayCard(card);
+                    }
+                  }}
                   style={[
-                    styles.playCard,
+                    styles.cardWrapper,
+                    !isMyTurn ? styles.cardDimmed : styles.cardLegal,
                     selectedCard === card && styles.selectedCard,
-                    !isMyTurn && { opacity: 0.5 }
-                  ]}
-                >
-                  <DynamicCard
-                    card={card}
-                    size="medium"
-                    onPress={() => {
-                      if (isMyTurn) {
-                        setSelectedCard(card);
-                        handlePlayCard(card);
-                      }
-                    }}
-                  />
-                </View>
-              ))}
-            </View>
-          </ScrollView>
+                  ]}>
+                  <DynamicCard card={card} theme={customTheme} size="medium" />
+                </TouchableOpacity>
+              );
+            }}
+          />
         </View>
       </View>
     );
@@ -605,41 +667,69 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
   const renderGame = () => {
     if (!gameState) {
       return (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#00d4ff" />
-          <Text style={styles.loadingText}>Waiting for game to start...</Text>
-        </View>
+        <ImageBackground
+          source={require('../../assets/blot/park-background.png')}
+          style={styles.bg}
+          resizeMode="cover">
+          <LinearGradient
+            colors={['rgba(0,0,0,0.55)', 'rgba(0,40,0,0.72)']}
+            style={StyleSheet.absoluteFill}
+          />
+          <SafeAreaView style={styles.safe}>
+            <GameToolbar
+              title="Bazaar Blot"
+              onBack={() => navigation.goBack()}
+              backgroundColor="transparent"
+              rightElement={
+                <TouchableOpacity onPress={() => setShowCustomization(true)}>
+                  <Text style={{ color: '#FFD700', fontSize: 13, fontWeight: '700' }}>🎨 Cards</Text>
+                </TouchableOpacity>
+              }
+            />
+            <View style={styles.centeredSection}>
+              <ActivityIndicator size="large" color="#FFD700" />
+              <Text style={styles.waitingText}>Waiting for game to start…</Text>
+            </View>
+          </SafeAreaView>
+        </ImageBackground>
       );
     }
 
     return (
-      <LinearGradient colors={['#1a1a2e', '#16213e', '#0f3460']} style={styles.container}>
-        <SafeAreaView style={styles.safeArea}>
-          <View style={styles.header}>
-            <TouchableOpacity onPress={() => navigation.goBack()}>
-              <Text style={styles.backButton}>← Back</Text>
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>Baazar Blot</Text>
-            <Text style={styles.teamBadge}>Team {myTeam}</Text>
-          </View>
+      <ImageBackground
+        source={require('../../assets/blot/park-background.png')}
+        style={styles.bg}
+        resizeMode="cover">
+        <LinearGradient
+          colors={['rgba(0,0,0,0.55)', 'rgba(0,40,0,0.72)']}
+          style={StyleSheet.absoluteFill}
+        />
+        <SafeAreaView style={styles.safe}>
+          <GameToolbar
+            title="Bazaar Blot"
+            onBack={() => navigation.goBack()}
+            backgroundColor="transparent"
+            rightElement={
+              <TouchableOpacity onPress={() => setShowCustomization(true)}>
+                <Text style={{ color: '#FFD700', fontSize: 13, fontWeight: '700' }}>🎨 Cards</Text>
+              </TouchableOpacity>
+            }
+          />
 
-          <View style={styles.playersInfo}>
+          {/* Players strip */}
+          <View style={styles.playersStrip}>
             {players.filter(p => p != null).map((player, idx) => {
               const hasPassed = gameState.passedPlayers?.includes(player.position);
               return (
                 <View
                   key={idx}
                   style={[
-                    styles.playerBadge,
-                    player.position === myPosition && styles.playerBadgeMe,
-                    gameState.currentPlayer === player.position && styles.playerBadgeActive,
+                    styles.playerChip,
+                    player.position === myPosition && styles.playerChipMe,
+                    gameState.currentPlayer === player.position && styles.playerChipActive,
                     hasPassed && { opacity: 0.4 }
-                  ]}
-                >
-                  <Text style={[
-                    styles.playerText,
-                    { color: player.isAI ? '#ff9500' : '#ffffff' }
                   ]}>
+                  <Text style={[styles.playerChipText, { color: player.isAI ? '#ff9500' : '#fff' }]}>
                     {player.isAI ? '🤖' : '👤'} {player.isAI ? 'CPU' : 'P' + player.position} (T{player.team}){hasPassed ? ' ✗' : ''}
                   </Text>
                 </View>
@@ -647,413 +737,340 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
             })}
           </View>
 
-          {gameState.phase === 'bidding' && renderBiddingPhase()}
-          {gameState.phase === 'playing' && renderPlayingPhase()}
+          <View style={styles.body}>
+            {gameState.phase === 'bidding' && renderBiddingPhase()}
+            {gameState.phase === 'playing' && renderPlayingPhase()}
+          </View>
+
+          {/* In-game chat overlay */}
+          <InGameChat
+            roomId={roomId || ''}
+            currentUserId={userId}
+            gameType="baazar-blot"
+            visible={!!(roomId)}
+          />
         </SafeAreaView>
-      </LinearGradient>
+      </ImageBackground>
     );
   };
 
-  if (gameMode === 'menu') return renderMenu();
+  if (gameMode === 'menu') return (
+    <>
+      {renderMenu()}
+      <CardCustomizationModal
+        visible={showCustomization}
+        onClose={() => setShowCustomization(false)}
+        onSave={(theme: CardTheme) => setCustomTheme(theme)}
+        currentTheme={customTheme}
+      />
+    </>
+  );
   if (gameMode === 'matchmaking') return renderMatchmaking();
-  if (gameMode === 'game') return renderGame();
+  if (gameMode === 'game') return (
+    <>
+      {renderGame()}
+      <CardCustomizationModal
+        visible={showCustomization}
+        onClose={() => setShowCustomization(false)}
+        onSave={(theme: CardTheme) => setCustomTheme(theme)}
+        currentTheme={customTheme}
+      />
+    </>
+  );
 
   return null;
 };
 
 const styles = StyleSheet.create({
-  container: {
+  // ── Root layout ────────────────────────────────────────────────────────
+  bg: { flex: 1 },
+  safe: { flex: 1 },
+  body: { flex: 1 },
+
+  // ── Menu / matchmaking ─────────────────────────────────────────────────
+  menuBody: {
     flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
   },
-  safeArea: {
-    flex: 1,
-    padding: 20,
-  },
-  title: {
+  bigTitle: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#00d4ff',
+    color: '#FFD700',
+    marginBottom: 12,
     textAlign: 'center',
-    marginTop: 20,
-    marginBottom: 30,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: 'rgba(255,255,255,0.85)',
+    marginBottom: 24,
+    textAlign: 'center',
   },
   infoBox: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 15,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 14,
     padding: 20,
-    marginBottom: 30,
+    marginBottom: 32,
+    width: '100%',
   },
   infoText: {
-    fontSize: 16,
+    fontSize: 15,
     color: '#fff',
-    marginBottom: 10,
+    marginBottom: 8,
     textAlign: 'center',
   },
-  primaryButton: {
-    marginBottom: 15,
-    borderRadius: 10,
-    overflow: 'hidden',
-  },
-  buttonGradient: {
-    padding: 15,
+  primaryBtn: {
+    backgroundColor: '#FFD700',
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 48,
+    marginBottom: 14,
     alignItems: 'center',
+    minWidth: 200,
   },
-  buttonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  secondaryButton: {
-    padding: 15,
-    borderRadius: 10,
+  primaryBtnText: { fontSize: 17, fontWeight: 'bold', color: '#0A3622' },
+  secondaryBtn: {
+    borderRadius: 12,
+    paddingVertical: 13,
+    paddingHorizontal: 40,
     borderWidth: 2,
-    borderColor: '#00d4ff',
+    borderColor: '#FFD700',
+    alignItems: 'center',
+    minWidth: 200,
+  },
+  secondaryBtnText: { color: '#FFD700', fontSize: 16, fontWeight: '700' },
+  cancelBtn: {
+    backgroundColor: '#7f1d1d',
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 40,
+    marginTop: 20,
+    borderWidth: 2,
+    borderColor: '#ef4444',
     alignItems: 'center',
   },
-  secondaryButtonText: {
-    color: '#00d4ff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  loader: {
-    marginVertical: 40,
-  },
+  cancelBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
   statusText: {
     fontSize: 20,
     color: '#fff',
     textAlign: 'center',
     marginBottom: 10,
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#1a1a2e',
-  },
-  loadingText: {
-    color: '#fff',
-    fontSize: 16,
-    marginTop: 20,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  backButton: {
-    color: '#00d4ff',
-    fontSize: 16,
-  },
-  headerTitle: {
-    color: '#fff',
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  teamBadge: {
-    color: '#00d4ff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  playersInfo: {
+
+  // ── Players strip ──────────────────────────────────────────────────────
+  playersStrip: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-around',
-    marginBottom: 20,
-  },
-  playerBadge: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    padding: 10,
-    borderRadius: 8,
-    margin: 5,
-  },
-  playerBadgeMe: {
-    backgroundColor: 'rgba(0, 212, 255, 0.3)',
-    borderWidth: 2,
-    borderColor: '#00d4ff',
-  },
-  playerBadgeActive: {
-    borderWidth: 2,
-    borderColor: '#ffd700',
-  },
-  playerText: {
-    color: '#fff',
-    fontSize: 14,
-  },
-  biddingContainer: {
-    flex: 1,
-  },
-  phaseTitle: {
-    fontSize: 24,
-    color: '#00d4ff',
-    textAlign: 'center',
-    marginBottom: 20,
-    fontWeight: 'bold',
-  },
-  currentBidBox: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    padding: 15,
-    borderRadius: 10,
-    marginBottom: 20,
-  },
-  bidText: {
-    color: '#fff',
-    fontSize: 18,
-    textAlign: 'center',
-  },
-  trumpText: {
-    color: '#00d4ff',
-    fontSize: 20,
-    textAlign: 'center',
-    marginTop: 5,
-  },
-  biddingControls: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    padding: 20,
-    borderRadius: 15,
-    marginBottom: 20,
-  },
-  yourTurnText: {
-    color: '#ffd700',
-    fontSize: 20,
-    textAlign: 'center',
-    marginBottom: 15,
-    fontWeight: 'bold',
-  },
-  suitSelector: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: 20,
-  },
-  suitButton: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     justifyContent: 'center',
+    paddingHorizontal: 12,
+    paddingBottom: 6,
+    gap: 6,
+  },
+  playerChip: {
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  playerChipMe: {
+    backgroundColor: 'rgba(255,215,0,0.2)',
+    borderColor: '#FFD700',
+  },
+  playerChipActive: {
+    borderColor: '#4caf50',
+    borderWidth: 2,
+  },
+  playerChipText: { fontSize: 12, fontWeight: '600' },
+
+  // ── Bidding phase ──────────────────────────────────────────────────────
+  centeredSection: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+  },
+  sectionTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#FFD700',
+    marginBottom: 16,
+  },
+  bidStatusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    marginBottom: 16,
+  },
+  bidStatusText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  bidStatusValue: { fontSize: 20, fontWeight: 'bold' },
+  yourTurnLabel: {
+    color: '#FFD700',
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 14,
+    textAlign: 'center',
+  },
+  bidLevelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 20,
+    marginBottom: 16,
+  },
+  stepBtn: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 10,
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepBtnText: { color: '#fff', fontSize: 26, fontWeight: '700', lineHeight: 30 },
+  bidLevelValue: {
+    color: '#FFD700',
+    fontSize: 36,
+    fontWeight: 'bold',
+    minWidth: 48,
+    textAlign: 'center',
+  },
+  suitRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 10,
+    marginBottom: 16,
+  },
+  suitChip: {
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
     alignItems: 'center',
     borderWidth: 2,
     borderColor: 'transparent',
+    minWidth: 70,
   },
-  suitButtonSelected: {
-    borderColor: '#00d4ff',
-    backgroundColor: 'rgba(0, 212, 255, 0.3)',
+  suitChipSelected: {
+    borderColor: '#FFD700',
+    backgroundColor: 'rgba(255,215,0,0.18)',
   },
-  suitIcon: {
-    fontSize: 32,
-  },
-  bidLevelSelector: {
-    flexDirection: 'row',
-    justifyContent: 'center',
+  suitChipIcon: { fontSize: 26 },
+  suitChipLabel: { color: '#fff', fontSize: 11, fontWeight: '600', marginTop: 2 },
+  bidActionRow: { flexDirection: 'row', gap: 16, marginBottom: 12 },
+  bidActionBtn: {
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 28,
+    minWidth: 120,
     alignItems: 'center',
-    marginBottom: 20,
+    borderWidth: 2,
   },
-  bidButton: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: '#00d4ff',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginHorizontal: 20,
-  },
-  bidButtonText: {
-    color: '#fff',
-    fontSize: 24,
-    fontWeight: 'bold',
-  },
-  bidLevelText: {
-    color: '#fff',
-    fontSize: 32,
-    fontWeight: 'bold',
-  },
-  bidActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-  },
-  actionButton: {
-    flex: 1,
-    backgroundColor: '#00d4ff',
-    padding: 15,
-    borderRadius: 10,
-    alignItems: 'center',
-    marginHorizontal: 5,
-  },
-  actionButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  passButton: {
-    flex: 1,
-    backgroundColor: '#e74c3c',
-    padding: 15,
-    borderRadius: 10,
-    alignItems: 'center',
-    marginHorizontal: 5,
-  },
-  passButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  buttonDisabled: {
-    opacity: 0.5,
-  },
+  bidBtnGreen: { backgroundColor: '#2e7d32', borderColor: '#4caf50' },
+  bidBtnRed: { backgroundColor: '#7f1d1d', borderColor: '#ef4444' },
+  bidBtnDisabled: { opacity: 0.4 },
+  bidActionBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
   waitingBox: {
-    flexDirection: 'row',
+    flexDirection: 'column',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
+    gap: 8,
   },
   waitingText: {
-    color: '#fff',
-    fontSize: 16,
-    marginLeft: 10,
-  },
-  handPreview: {
-    marginTop: 20,
-  },
-  handTitle: {
-    color: '#fff',
-    fontSize: 18,
-    marginBottom: 10,
-  },
-  cardsRow: {
-    flexDirection: 'row',
-    paddingHorizontal: 5,
-  },
-  smallCard: {
-    marginRight: 8,
-  },
-  playingContainer: {
-    flex: 1,
-  },
-  gameInfo: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    padding: 15,
-    borderRadius: 10,
-    marginBottom: 20,
-  },
-  trumpInfo: {
-    color: '#fff',
-    fontSize: 18,
-    textAlign: 'center',
-    marginBottom: 5,
-  },
-  scoreInfo: {
-    color: '#00d4ff',
-    fontSize: 16,
-    textAlign: 'center',
-  },
-  scoreRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 4,
-    gap: 8,
-  },
-  scoreLabel: {
-    color: '#aaa',
-    fontSize: 12,
-    fontWeight: 'bold',
-    textTransform: 'uppercase',
-  },
-  scoreTeam1: {
-    color: '#00d4ff',
+    color: 'rgba(255,255,255,0.7)',
     fontSize: 15,
-    fontWeight: 'bold',
-  },
-  scoreTeam2: {
-    color: '#ff9500',
-    fontSize: 15,
-    fontWeight: 'bold',
-  },
-  scoreTarget: {
-    color: '#aaa',
-    fontSize: 12,
-  },
-  roundScoreRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 3,
-    gap: 8,
-  },
-  roundScoreLabel: {
-    color: '#aaa',
-    fontSize: 11,
-    textTransform: 'uppercase',
-  },
-  roundScoreT1: {
-    color: '#00d4ff',
-    fontSize: 13,
-  },
-  roundScoreT2: {
-    color: '#ff9500',
-    fontSize: 13,
-  },
-  onTrack: {
-    color: '#2ecc71',
-    fontWeight: 'bold',
-  },
-  offTrack: {
-    color: '#e74c3c',
-    fontWeight: 'bold',
+    fontStyle: 'italic',
+    textAlign: 'center',
   },
   lastRoundRow: {
-    marginTop: 4,
+    marginTop: 6,
     alignItems: 'center',
     borderTopWidth: 1,
     borderTopColor: 'rgba(255,255,255,0.1)',
-    paddingTop: 4,
+    paddingTop: 6,
+    width: '100%',
   },
   lastRoundLabel: {
     color: '#888',
     fontSize: 10,
     textTransform: 'uppercase',
-    marginBottom: 1,
+    marginBottom: 2,
   },
   lastRoundDetail: {
     color: '#ccc',
     fontSize: 11,
     textAlign: 'center',
   },
-  trickArea: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    padding: 15,
-    borderRadius: 10,
-    marginBottom: 20,
-    minHeight: 150,
-  },
-  trickTitle: {
-    color: '#fff',
-    fontSize: 16,
-    marginBottom: 10,
-  },
-  trickCards: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    flexWrap: 'wrap',
-  },
-  trickCard: {
-    margin: 5,
+  handSection: {
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    paddingVertical: 12,
+    minHeight: 110,
     alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 8,
   },
-  playerLabel: {
-    color: '#00d4ff',
-    fontSize: 12,
-    marginBottom: 5,
+  handLabel: {
+    color: '#FFD700',
+    fontSize: 13,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: 8,
   },
-  handArea: {
-    flex: 1,
+  handLabelWait: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 13,
+    textAlign: 'center',
+    marginBottom: 8,
+    fontStyle: 'italic',
   },
-  playCard: {
-    marginRight: 10,
+  scoreReminder: { alignItems: 'center', marginTop: 12 },
+  scoreReminderText: { color: 'rgba(255,255,255,0.6)', fontSize: 13 },
+
+  // ── Playing phase ──────────────────────────────────────────────────────
+  playingLayout: { flex: 1, maxHeight: 620 },
+  scoreBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    backgroundColor: 'rgba(0,0,0,0.45)',
   },
-  selectedCard: {
-    transform: [{ translateY: -10 }],
+  scoreBarText: { color: '#fff', fontSize: 13, fontWeight: '600' },
+  trumpBadge: {
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
   },
+  trumpBadgeText: { color: '#fff', fontSize: 12, fontWeight: '600' },
+  turnIndicator: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    marginBottom: 2,
+  },
+  tableWrapper: { flex: 1, marginHorizontal: 8, marginVertical: 4 },
+  tableImage: { flex: 1, borderRadius: 16, overflow: 'hidden' },
+  tableImageStyle: { borderRadius: 16 },
+  trickArea: { flex: 1, position: 'relative' },
+  trickSlot: { position: 'absolute', alignItems: 'center' },
+  trickSlotTop: { top: 10, left: 0, right: 0, alignItems: 'center' },
+  trickSlotBottom: { bottom: 10, left: 0, right: 0, alignItems: 'center' },
+  trickSlotLeft: { left: 10, top: '35%' },
+  trickSlotRight: { right: 10, top: '35%' },
+  trickPlayerName: { color: '#fff', fontSize: 11, fontWeight: '600', marginBottom: 3 },
+  cardWrapper: { borderRadius: 6 },
+  cardLegal: { opacity: 1, transform: [{ translateY: -4 }] },
+  cardDimmed: { opacity: 0.45 },
+  selectedCard: { transform: [{ translateY: -10 }] },
 });
 
 export default MultiplayerBaazarBlotScreen;
