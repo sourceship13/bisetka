@@ -6,7 +6,6 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  ScrollView,
   ImageBackground,
   Dimensions,
 } from 'react-native';
@@ -16,6 +15,7 @@ import GameToolbar from '../../../components/GameToolbar';
 import { CardType, Suit } from '../../../components/Card';
 import DynamicCard from '../../../components/DynamicCard';
 import CardCustomizationModal from '../../../components/CardCustomizationModal';
+import CardHandFan from '../../../components/CardHandFan';
 import type { CardTheme } from '../../../components/CardCustomizationModal';
 import {
   BaazarGameState,
@@ -550,11 +550,10 @@ const BaazarBlotScreen = ({ navigation }: any) => {
           ) : (
             <Text style={styles.handLabelWait}>Waiting…</Text>
           )}
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.handContent}>
-            {myPlayer.hand.map((card, idx) => {
+          <CardHandFan
+            cards={myPlayer.hand}
+            maxWidth={SW - 32}
+            renderCard={(card, idx) => {
               const legal = canPlayCard(
                 card, myPlayer.hand, gameState.currentTrick, trump,
               );
@@ -570,8 +569,8 @@ const BaazarBlotScreen = ({ navigation }: any) => {
                   <DynamicCard card={card} theme={customTheme} size="medium" />
                 </TouchableOpacity>
               );
-            })}
-          </ScrollView>
+            }}
+          />
         </View>
       </View>
     );
@@ -865,28 +864,24 @@ const styles = StyleSheet.create({
   trickPlayerName: { color: '#fff', fontSize: 11, fontWeight: '600', marginBottom: 3 },
   handSection: {
     backgroundColor: 'rgba(0,0,0,0.35)',
-    paddingVertical: 8,
+    paddingVertical: 12,
     minHeight: 120,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   handLabel: {
     color: '#FFD700',
     fontSize: 13,
     fontWeight: '700',
     textAlign: 'center',
-    marginBottom: 4,
+    marginBottom: 8,
   },
   handLabelWait: {
     color: 'rgba(255,255,255,0.5)',
     fontSize: 13,
     textAlign: 'center',
-    marginBottom: 4,
+    marginBottom: 8,
     fontStyle: 'italic',
-  },
-  handContent: {
-    flexDirection: 'row',
-    paddingHorizontal: 10,
-    gap: 6,
-    alignItems: 'center',
   },
   cardWrapper: { borderRadius: 6 },
   cardLegal: { opacity: 1, transform: [{ translateY: -4 }] },

@@ -1,0 +1,57 @@
+# Card Fan Layout - Remaining Work
+
+## ✅ Completed (3/6)
+1. src/screens/Games/Blot/BlotScreen.tsx - DONE
+2. src/screens/Games/Baazar Blot/BaazarBlotScreen.tsx - DONE  
+3. src/components/CardHandFan.tsx - CREATED
+
+## ⏳ Partially Complete (imports added, ScrollView still present)
+4. src/screens/Games/Blot/MultiplayerBlotScreen.tsx
+   - Import added ✅
+   - TWO ScrollView sections still need replacement:
+     - Line ~762: renderLocalGame() function
+     - Line ~860: renderGame() function
+
+## ⏳ Not Started
+5. src/screens/MultiplayerBaazarBlotScreen.tsx
+6. src/screens/Games/Poker/PokerRoomScreen.tsx (if applicable)
+
+## What Needs to be Done
+
+For MultiplayerBlotScreen.tsx, replace these two sections:
+
+### Section 1 (renderLocalGame):
+```tsx
+// OLD:
+<ScrollView horizontal showsHorizontalScrollIndicator={false}>
+  <View style={styles.handCards}>
+    {localGameState.playerHand.map((card, index) => renderCard(card, index))}
+  </View>
+</ScrollView>
+
+// NEW:
+<CardHandFan
+  cards={localGameState.playerHand}
+  maxWidth={Dimensions.get('window').width - 32}
+  renderCard={(card, index) => renderCard(card, index)}
+/>
+```
+
+### Section 2 (renderGame):
+```tsx
+// OLD:
+<ScrollView horizontal showsHorizontalScrollIndicator={false}>
+  <View style={styles.handCards}>
+    {playerHand.map((card, index) => renderCard(card, index))}
+  </View>
+</ScrollView>
+
+// NEW:
+<CardHandFan
+  cards={playerHand}
+  maxWidth={Dimensions.get('window').width - 32}
+  renderCard={(card, index) => renderCard(card, index)}
+/>
+```
+
+Also update styles (remove handCards, update handContainer to center content).
