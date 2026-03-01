@@ -2,6 +2,7 @@ import React, {useState} from 'react';
 import {Alert, StyleSheet, StatusBar} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import GameModeSelector from '../../components/GameModeSelector';
+import TeamModeSelector, { TeamMode } from '../../components/TeamModeSelector';
 import {GAME_LABELS, gameSessionsService} from '../../services/gameSessions.service';
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {RootStackParamList} from '../../navigation/AppNavigator';
@@ -73,6 +74,11 @@ const GameModeScreen: React.FC<Props> = ({route, navigation}) => {
   const {user} = useAuth();
   const label = GAME_LABELS[gameType] || {title: 'Game', description: ''};
   
+  // Team games need to select team mode first
+  const isTeamGame = gameType === 'blot' || gameType === 'baazar-blot';
+  const [teamMode, setTeamMode] = useState<TeamMode | null>(null);
+  const [showTeamSelector, setShowTeamSelector] = useState(isTeamGame);
+  
   const [loading, setLoading] = useState({
     ai: false,
     random: false,
@@ -93,12 +99,13 @@ const GameModeScreen: React.FC<Props> = ({route, navigation}) => {
       return;
     }
 
-    // Build session data
+    // Build session data with team mode for team games
     const sessionData = {
       ...result,
       gameType,
       mode,
       difficulty: result?.difficulty || 'medium',
+      teamMode: isTeamGame ? teamMode : undefined,
     };
 
     // Navigate to the appropriate screen
@@ -141,6 +148,7 @@ const GameModeScreen: React.FC<Props> = ({route, navigation}) => {
             mode: mode,
             difficulty: sessionData.difficulty || 'medium',
             joinCode: sessionData.code,
+            teamMode: teamMode, // Pass team mode
           });
         }
         break;
@@ -154,6 +162,7 @@ const GameModeScreen: React.FC<Props> = ({route, navigation}) => {
         } else {
           navigation.replace('MultiplayerBaazarBlot' as any, {
             userId: user?.id || 'guest',
+            teamMode: teamMode, // Pass team mode
           });
         }
         break;
@@ -198,35 +207,59 @@ const GameModeScreen: React.FC<Props> = ({route, navigation}) => {
     }
   };
 
+  const handleTeamModeSelect = (mode: TeamMode) => {
+    setTeamMode(mode);
+    setShowTeamSelector(false);
+  };
+
+  const handleBackFromModeSelector = () => {
+    if (isTeamGame && teamMode !== null) {
+      // Go back to team selector
+      setShowTeamSelector(true);
+      setTeamMode(null);
+    } else {
+      navigation.goBack();
+    }
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="light-content" backgroundColor={colors.background.primary} />
-      <GameModeSelector
-        title={label.title}
-        subtitle={label.description}
-        loadingStates={loading}
-        onBack={() => navigation.goBack()}
-        onRandomMatch={() =>
-          withLoading('random', 'random', async () => {
-            return gameSessionsService.createRandomMatch(gameType);
-          })
-        }
-        onPlayAi={() =>
-          withLoading('ai', 'ai', async () => {
-            return gameSessionsService.createAiMatch(gameType);
-          })
-        }
-        onCreatePrivate={() =>
-          withLoading('private', 'private-create', async () => {
-            return gameSessionsService.createPrivateMatch(gameType);
-          })
-        }
-        onJoinPrivate={code =>
-          withLoading('join', 'private-join', async () => {
-            return gameSessionsService.joinPrivateMatch(gameType, code);
-          })
-        }
-      />
+      
+      {showTeamSelector && isTeamGame ? (
+        <TeamModeSelector
+          title={label.title}
+          onSelectTeamMode={handleTeamModeSelect}
+          onBack={() => navigation.goBack()}
+        />
+      ) : (
+        <GameModeSelector
+          title={label.title}
+          subtitle={label.description}
+          loadingStates={loading}
+          onBack={handleBackFromModeSelector}
+          onRandomMatch={() =>
+            withLoading('random', 'random', async () => {
+              return gameSessionsService.createRandomMatch(gameType);
+            })
+          }
+          onPlayAi={() =>
+            withLoading('ai', 'ai', async () => {
+              return gameSessionsService.createAiMatch(gameType);
+            })
+          }
+          onCreatePrivate={() =>
+            withLoading('private', 'private-create', async () => {
+              return gameSessionsService.createPrivateMatch(gameType);
+            })
+          }
+          onJoinPrivate={code =>
+            withLoading('join', 'private-join', async () => {
+              return gameSessionsService.joinPrivateMatch(gameType, code);
+            })
+          }
+        />
+      )}
     </SafeAreaView>
   );
 };

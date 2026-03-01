@@ -6,7 +6,6 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  ScrollView,
   Alert,
   ImageBackground,
   Dimensions,
@@ -17,6 +16,7 @@ import GameToolbar from '../../../components/GameToolbar';
 import { CardType, Suit } from '../../../components/Card';
 import DynamicCard from '../../../components/DynamicCard';
 import CardCustomizationModal from '../../../components/CardCustomizationModal';
+import CardHandFan from '../../../components/CardHandFan';
 import type { CardTheme } from '../../../components/CardCustomizationModal';
 import {
   GameState,
@@ -634,14 +634,11 @@ const BlotScreen = ({ navigation }: any) => {
                 </View>
               </View>
 
-              <ScrollView
-                horizontal
-                style={styles.handContainer}
-                contentContainerStyle={[styles.handContent,]}
-              >
+              <View style={styles.handContainer}>
                 <Text style={styles.handLabel}>Your Hand:</Text>
-                <View style={styles.hand}>
-                  {gameState.players[0].hand.map(card => {
+                <CardHandFan
+                  cards={gameState.players[0].hand}
+                  renderCard={(card, index) => {
                     const isMyTurn = gameState.currentPlayer === 0;
                     const playable =
                       isMyTurn &&
@@ -661,9 +658,9 @@ const BlotScreen = ({ navigation }: any) => {
                         theme={customTheme}
                       />
                     );
-                  })}
-                </View>
-              </ScrollView>
+                  }}
+                />
+              </View>
             </>
           )}
         </SafeAreaView>
@@ -880,22 +877,17 @@ const styles = StyleSheet.create({
   handContainer: {
     flex: 1,
     backgroundColor: 'transparent',
-  },
-  handContent: {
-    flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+    paddingBottom: 16,
   },
   handLabel: {
     fontSize: 16,
     color: '#fff',
     fontWeight: '600',
-  },
-  hand: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+    marginBottom: 12,
+    textAlign: 'center',
   },
   trumpSelection: {
     flex: 1,
