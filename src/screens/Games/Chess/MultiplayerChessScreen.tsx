@@ -23,6 +23,7 @@ import {
 import ChessPiece from '../../../components/ChessPiece';
 import {socketService, GameMove} from '../../../services/SocketService';
 import { useGameEndRefresh } from '../../../libs/hooks/useGameEndRefresh';
+import InGameChat from '../../../components/InGameChat';
 
 const MultiplayerChessScreen = ({navigation, route}: any) => {
   const {userId, mode: routeMode, joinCode} = route.params; // Get from auth context
@@ -464,6 +465,14 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
           </View>
         </>
       )}
+
+      {/* In-game chat overlay (multiplayer only) */}
+      <InGameChat
+        roomId={roomId}
+        currentUserId={userId}
+        gameType="chess"
+        visible={mode === 'game' && !!gameState && !!roomId}
+      />
 
       {/* Join Room Modal */}
       <Modal
