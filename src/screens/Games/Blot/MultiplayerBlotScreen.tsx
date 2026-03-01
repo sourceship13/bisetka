@@ -21,6 +21,7 @@ import tokenService from '../../../services/token.service';
 import { v4 as uuidv4 } from 'uuid';
 import { useGameEndRefresh } from '../../../libs/hooks/useGameEndRefresh';
 import CardHandFan from '../../../components/CardHandFan';
+import InGameChat from '../../../components/InGameChat';
 
 interface GameState {
   deck: Card[];
@@ -31,6 +32,12 @@ interface GameState {
   player1Score: number;
   player2Score: number;
   round: number;
+  // 4-player team mode extensions
+  hands?: Card[][];          // indexed by position 0-3
+  myHand?: Card[];           // this player's hand (server-filtered)
+  whiteScore?: number;
+  blackScore?: number;
+  currentTurn?: number | string; // number in 4p mode, string in 2p mode
 }
 
 const MultiplayerBlotScreen = ({ navigation, route }: any) => {
@@ -39,6 +46,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
   const initialMode = route.params?.mode; // 'ai', 'private-create', 'private-join', 'random'
   const initialDifficulty = route.params?.difficulty || 'medium';
   const initialJoinCode = route.params?.joinCode;
+  const teamMode = route.params?.teamMode; // 'hybrid' | 'full-multiplayer'
   
   // Determine initial gameMode based on navigation params
   const getInitialGameMode = () => {
@@ -57,11 +65,19 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [localGameState, setLocalGameState] = useState<LocalGameState | null>(null);
   const [playerColor, setPlayerColor] = useState<'white' | 'black'>('white');
+  // Ref so socket callbacks can always read the latest playerColor without stale closures
+  const playerColorRef = useRef<'white' | 'black'>('white');
+  // 4-player team mode: position 0-3 (0,2=white; 1,3=black). null = 2-player mode.
+  const [playerPosition, setPlayerPosition] = useState<number | null>(null);
+  const playerPositionRef = useRef<number | null>(null);
+  // Blocks a second card tap until the server acknowledges the current move
+  const moveInFlightRef = useRef(false);
   const [isMyTurn, setIsMyTurn] = useState(false);
   const [selectedCard, setSelectedCard] = useState<Card | null>(null);
   const [opponent, setOpponent] = useState<any>(null);
   const [isConnecting, setIsConnecting] = useState(false);
   const [isGameStarted, setIsGameStarted] = useState(false);
+  const isGameStartedRef = useRef(false);
   const [isLocalGame, setIsLocalGame] = useState(false);
   const [isReadySent, setIsReadySent] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
@@ -71,6 +87,17 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
   const blotGameIdRef = useRef<string>(uuidv4());
   const trickCountRef = useRef(0);
   const lastPlayerCardRef = useRef<Card | null>(null);
+
+  // Helper: set playerColor and keep ref in sync
+  const updatePlayerColor = (color: 'white' | 'black') => {
+    playerColorRef.current = color;
+    setPlayerColor(color);
+  };
+  // Helper: set playerPosition and keep ref in sync
+  const updatePlayerPosition = (pos: number | null) => {
+    playerPositionRef.current = pos;
+    setPlayerPosition(pos);
+  };
 
   // SUIT constants for table UI
   const SUIT_ICON: Record<string, string> = {
@@ -198,40 +225,56 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
     socketService.onGameStarted((data: any) => {
       console.log('=== GAME STARTED ===');
       console.log('Game started data:', data);
-      
-      // Determine my color based on userId
-      const myColor = data.player1?.id === userId ? 'white' : 'black';
-      console.log('My userId:', userId);
-      console.log('Player1 id:', data.player1?.id);
-      console.log('Player2 id:', data.player2?.id);
-      console.log('Determined my color:', myColor);
-      console.log('Game currentTurn:', data.gameState?.currentTurn);
-      console.log('Setting isMyTurn to:', data.gameState?.currentTurn === myColor);
-      
-      setPlayerColor(myColor);
-      setIsGameStarted(true);
+
+      if (isGameStartedRef.current) {
+        console.log('⚠️ Duplicate game_started event ignored');
+        return;
+      }
+      isGameStartedRef.current = true;
+
+      // ── 4-player team blot ──────────────────────────────────────────────
+      if (data.gameType === 'blot-teams' && data.myPosition !== undefined) {
+        updatePlayerPosition(data.myPosition);
+        updatePlayerColor(data.myTeam ?? 'white');
+        setGameState(data.gameState);
+        setGameMode('game');
+        setIsGameStarted(true);
+        setIsMyTurn(data.gameState?.currentTurn === data.myPosition);
+        return;
+      }
+      // ────────────────────────────────────────────────────────────────────
+
+      const myColor: 'white' | 'black' = data.myColor
+        ? data.myColor
+        : (data.player1?.id === userId ? 'white' : 'black');
+      console.log('✅ My color (from server):', myColor, '| gameState.currentTurn:', data.gameState?.currentTurn);
+
+      updatePlayerColor(myColor);
       setGameState(data.gameState);
       setGameMode('game');
+      setIsGameStarted(true);
       setIsMyTurn(data.gameState?.currentTurn === myColor);
     });
 
     // Move made
     socketService.onMoveMade((data: any) => {
       console.log('=== MOVE MADE ===');
-      console.log('Move made data:', data);
-      console.log('New currentTurn:', data.currentTurn);
-      
-      // Re-determine my color to avoid closure issues
-      setPlayerColor(prevColor => {
-        console.log('My color:', prevColor);
-        const isMyTurn = data.currentTurn === prevColor;
-        console.log('Setting isMyTurn to:', isMyTurn);
-        setIsMyTurn(isMyTurn);
-        return prevColor;
-      });
-      
+      // Server has acknowledged the move — allow the next card to be played
+      moveInFlightRef.current = false;
+
+      // 4-player team blot: currentTurn is a position number
+      const pos = playerPositionRef.current;
+      const myTurn = pos !== null
+        ? data.gameState?.currentTurn === pos
+        : data.currentTurn === playerColorRef.current;
+
+      setIsMyTurn(myTurn);
       setGameState(data.gameState);
-      setSelectedCard(null); // Clear selected card after move
+      // In 4p mode the server sends myHand; merge it into gameState for rendering
+      if (pos !== null && data.myHand) {
+        setGameState((prev: any) => prev ? { ...prev, myHand: data.myHand } : prev);
+      }
+      setSelectedCard(null);
     });
 
     // Game ended
@@ -288,6 +331,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
     
     // Reset all game state before starting new match
     setGameState(null);
+    isGameStartedRef.current = false;
     setIsGameStarted(false);
     setIsReadySent(false);
     setIsMyTurn(false);
@@ -297,12 +341,19 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
     
     try {
       await ensureSocketConnected();
-      const matchData = await socketService.findMatch('blot', userId);
+      const isTeams = teamMode === 'full-multiplayer';
+      const matchData = await socketService.findMatch(isTeams ? 'blot-teams' : 'blot', userId);
       console.log('Match found data:', matchData);
       setCurrentRoom({ roomId: matchData.roomId });
-      setPlayerColor(matchData.color);
-      setOpponent(matchData.opponent);
-      setIsMyTurn(matchData.color === 'white');
+      if (isTeams) {
+        updatePlayerPosition(matchData.position ?? 0);
+        updatePlayerColor(matchData.team ?? 'white');
+        setIsMyTurn((matchData.position ?? 0) === 0);
+      } else {
+        setPlayerColor(matchData.color);
+        setOpponent(matchData.opponent);
+        setIsMyTurn(matchData.color === 'white');
+      }
       
       // Don't auto-ready, let user click the button
       setGameMode('game');
@@ -321,6 +372,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
   const createPrivateRoomOnMount = async () => {
     // Reset all game state
     setGameState(null);
+    isGameStartedRef.current = false;
     setIsGameStarted(false);
     setIsReadySent(false);
     setIsMyTurn(false);
@@ -343,6 +395,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
   // Auto-find match when navigating with random mode
   const findMatchOnMount = async () => {
     setGameState(null);
+    isGameStartedRef.current = false;
     setIsGameStarted(false);
     setIsReadySent(false);
     setIsMyTurn(false);
@@ -352,11 +405,19 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
     
     try {
       await ensureSocketConnected();
-      const matchData = await socketService.findMatch('blot', userId);
+      const isTeams = teamMode === 'full-multiplayer';
+      const matchData = await socketService.findMatch(isTeams ? 'blot-teams' : 'blot', userId);
+      if (isTeams) {
+        updatePlayerPosition(matchData.position ?? 0);
+        updatePlayerColor(matchData.team ?? 'white');
+        setIsMyTurn((matchData.position ?? 0) === 0);
+      } else {
+        setCurrentRoom({ roomId: matchData.roomId });
+        setPlayerColor(matchData.color);
+        setOpponent(matchData.opponent);
+        setIsMyTurn(matchData.color === 'white');
+      }
       setCurrentRoom({ roomId: matchData.roomId });
-      setPlayerColor(matchData.color);
-      setOpponent(matchData.opponent);
-      setIsMyTurn(matchData.color === 'white');
       setGameMode('game');
     } catch (error: any) {
       Alert.alert('Matchmaking Error', error.message || 'Failed to find match');
@@ -369,6 +430,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
     
     // Reset all game state before creating new room
     setGameState(null);
+    isGameStartedRef.current = false;
     setIsGameStarted(false);
     setIsReadySent(false);
     setIsMyTurn(false);
@@ -396,6 +458,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
     
     // Reset all game state before joining room
     setGameState(null);
+    isGameStartedRef.current = false;
     setIsGameStarted(false);
     setIsReadySent(false);
     setIsMyTurn(false);
@@ -511,24 +574,21 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
   };
 
   const handleMultiplayerPlayCard = (card: Card) => {
-    console.log('handleMultiplayerPlayCard called');
-    console.log('isMyTurn:', isMyTurn);
-    console.log('currentRoom:', currentRoom);
-    
     if (!isMyTurn || !currentRoom?.roomId) {
       console.log('Cannot play card - not my turn or no room');
       return;
     }
 
+    // Prevent double-play while waiting for server acknowledgement
+    if (moveInFlightRef.current) {
+      console.log('Cannot play card - move already in flight');
+      return;
+    }
+    moveInFlightRef.current = true;
+
     setSelectedCard(card);
     
-    // For Blot, we send the card data as the move
-    // Cast to any since the GameMove interface is for chess
-    const move = {
-      card,
-      playerId: userId,
-    } as any;
-
+    const move = { card, playerId: userId } as any;
     console.log('Sending move to backend:', move);
     socketService.makeMove(currentRoom.roomId, userId, move);
   };
@@ -643,7 +703,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
     
     const canPlay = isLocalGame 
       ? (localGameState?.currentTurn === 'player')
-      : isMyTurn;
+      : isMyTurn && !moveInFlightRef.current;
     
     // Log for first card only to avoid spam
     if (index === 0) {
@@ -823,9 +883,30 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
   };
 
   const renderGame = () => {
-    const playerHand = playerColor === 'white' 
-      ? gameState?.player1Hand || [] 
-      : gameState?.player2Hand || [];
+    const is4P = playerPosition !== null;
+    // 4-player: use the per-player hand from gameState.myHand or hands[position]
+    // 2-player: use player1Hand / player2Hand
+    const playerHand = is4P
+      ? (gameState?.myHand || gameState?.hands?.[playerPosition] || [])
+      : (playerColor === 'white' ? gameState?.player1Hand || [] : gameState?.player2Hand || []);
+
+    // Score helpers
+    const myScore = is4P
+      ? (playerColor === 'white' ? gameState?.whiteScore || 0 : gameState?.blackScore || 0)
+      : (playerColor === 'white' ? gameState?.player1Score || 0 : gameState?.player2Score || 0);
+    const oppScore = is4P
+      ? (playerColor === 'white' ? gameState?.blackScore || 0 : gameState?.whiteScore || 0)
+      : (playerColor === 'white' ? gameState?.player2Score || 0 : gameState?.player1Score || 0);
+
+    // Turn text for 4-player: distinguish partner vs opponent
+    const turnText = (() => {
+      if (isMyTurn) return '★ Your Turn';
+      if (is4P && gameState?.currentTurn !== undefined) {
+        const rel = ((gameState.currentTurn as number) - playerPosition! + 4) % 4;
+        if (rel === 2) return "Partner's Turn";
+      }
+      return "Opponent's Turn";
+    })();
 
     const { width, height } = Dimensions.get('window');
     const TABLE_SIZE = Math.min(width - 32, height * 0.4);
@@ -837,10 +918,12 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
           <View style={styles.waitingContainer}>
             <Text style={styles.waitingTitle}>Match Found!</Text>
             <Text style={styles.waitingText}>
-              Playing as: {playerColor === 'white' ? '⚪ White' : '⚫ Black'}
+              {is4P
+                ? `Team: ${playerColor === 'white' ? '⚪ White' : '⚫ Black'} • Position ${playerPosition}`
+                : `Playing as: ${playerColor === 'white' ? '⚪ White' : '⚫ Black'}`}
             </Text>
             <Text style={styles.waitingSubtext}>
-              {opponent ? 'Opponent found!' : 'Waiting for opponent...'}
+              {is4P ? 'Waiting for all 4 players...' : (opponent ? 'Opponent found!' : 'Waiting for opponent...')}
             </Text>
             <TouchableOpacity
               style={[styles.readyButton, isReadySent && { opacity: 0.6 }]}
@@ -865,10 +948,9 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
           <>
             <View style={styles.scoreBoard}>
               <View style={styles.teamScore}>
-                <Text style={styles.teamLabel}>You</Text>
-                <Text style={styles.score}>
-                  {playerColor === 'white' ? gameState?.player1Score || 0 : gameState?.player2Score || 0}
-                </Text>
+                <Text style={styles.teamLabel}>Your Team</Text>
+                <Text style={styles.score}>{myScore}</Text>
+                <Text style={styles.roundScore}>{myScore} this round</Text>
               </View>
               
               {gameState?.trumpSuit && (
@@ -883,16 +965,16 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
               )}
 
               <View style={styles.teamScore}>
-                <Text style={styles.teamLabel}>Opponent</Text>
-                <Text style={styles.score}>
-                  {playerColor === 'white' ? gameState?.player2Score || 0 : gameState?.player1Score || 0}
-                </Text>
+                <Text style={styles.teamLabel}>Opp. Team</Text>
+                <Text style={styles.score}>{oppScore}</Text>
+                <Text style={styles.roundScore}>{oppScore} this round</Text>
               </View>
             </View>
 
             <View style={styles.playArea}>
-              <Text style={styles.currentPlayerText}>
-                {isMyTurn ? "★ Your Turn" : "Opponent's Turn"}
+              <Text style={styles.currentPlayerText}>{turnText}</Text>
+              <Text style={styles.partnerLabel}>
+                {is4P ? '👥 2v2 • 🤖 CPU-free' : '🤖 CPU Partner (same team)'}
               </Text>
 
               <View
@@ -908,17 +990,30 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
                 >
                   {gameState?.currentTrick && gameState.currentTrick.length > 0 && (
                     <View style={styles.trickArea}>
-                      {gameState.currentTrick.map((card, index) => (
-                        <View
-                          key={index}
-                          style={[
-                            styles.trickSlot,
-                            index % 2 === 0 ? styles.trickSlotBottom : styles.trickSlotTop,
-                          ]}
-                        >
-                          {renderCard(card, index)}
-                        </View>
-                      ))}
+                      {gameState.currentTrick.map((card: any, index: number) => {
+                        let slotStyle;
+                        if (is4P) {
+                          // Position relative to this player: 0=me, 1=right opp, 2=partner top, 3=left opp
+                          const rel = ((card.position as number) - playerPosition! + 4) % 4;
+                          if (rel === 0) slotStyle = styles.trickSlotBottom;
+                          else if (rel === 2) slotStyle = styles.trickSlotTop;
+                          else if (rel === 1) slotStyle = styles.trickSlotRight;
+                          else slotStyle = styles.trickSlotLeft;
+                        } else {
+                          // 2+CPU mode: use isHuman + team
+                          const isMyCard   = card.color === playerColor;
+                          const isHumanCard = card.isHuman !== false;
+                          if (isMyCard && isHumanCard)        slotStyle = styles.trickSlotBottom;
+                          else if (!isMyCard && isHumanCard)  slotStyle = styles.trickSlotTop;
+                          else if (isMyCard && !isHumanCard)  slotStyle = styles.trickSlotLeft;
+                          else                                slotStyle = styles.trickSlotRight;
+                        }
+                        return (
+                          <View key={index} style={[styles.trickSlot, slotStyle]}>
+                            {renderCard(card, index)}
+                          </View>
+                        );
+                      })}
                     </View>
                   )}
                 </ImageBackground>
@@ -939,6 +1034,15 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
             </TouchableOpacity>
           </>
         )}
+
+        {/* In-game chat overlay — only visible once the game has started */}
+        <InGameChat
+          roomId={currentRoom?.roomId || ''}
+          currentUserId={userId}
+          gameType={is4P ? 'blot-teams' : 'blot'}
+          visible={isGameStarted && !!currentRoom?.roomId}
+          opponentUsername={is4P ? undefined : (opponent as any)?.username}
+        />
       </View>
     );
   };
@@ -1375,10 +1479,17 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#FFD700',
     textAlign: 'center',
-    marginBottom: 16,
+    marginBottom: 4,
     textShadowColor: 'rgba(0,0,0,0.8)',
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 4,
+  },
+  partnerLabel: {
+    fontSize: 12,
+    color: 'rgba(180,230,180,0.9)',
+    textAlign: 'center',
+    marginBottom: 10,
+    fontStyle: 'italic',
   },
   trickArea: {
     position: 'absolute',
@@ -1420,6 +1531,10 @@ const styles = StyleSheet.create({
     color: '#fff',
     marginBottom: 6,
     fontWeight: '600',
+  },
+  roundScore: {
+    fontSize: 12,
+    color: '#90EE90',
   },
   teamScore: {
     alignItems: 'center',
