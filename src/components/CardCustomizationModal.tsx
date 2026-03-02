@@ -14,9 +14,9 @@ import LinearGradient from 'react-native-linear-gradient';
 import {
   generateCardBackground as apiGenerateBackground,
   generateCardBack as apiGenerateCardBack,
-} from '../../services/cardImageGeneration.service';
-import { PRESET_THEMES, PRESET_CARD_BACKS, FONT_PREVIEWS } from '../../data/cardPresets';
-import { BisetkaAlert } from '../../utils/BisetkaAlert';
+} from '../services/cardImageGeneration.service';
+import { PRESET_THEMES, PRESET_CARD_BACKS, FONT_PREVIEWS } from '../data/cardPresets';
+import { BisetkaAlert } from '../utils/BisetkaAlert';
 
 export type CardFont = 'classic' | 'modern' | 'bold' | 'elegant' | 'playful';
 

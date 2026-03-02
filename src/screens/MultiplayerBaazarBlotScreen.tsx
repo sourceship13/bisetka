@@ -17,9 +17,9 @@ import DynamicCard from '../components/DynamicCard';
 import { CardType } from '../components/Card';
 import InGameChat from '../components/InGameChat';
 import GameToolbar from '../components/global/GameToolbar';
-import CardCustomizationModal from '../components/global/CardCustomizationModal';
+import CardCustomizationModal from '../components/global/GameCustomizationModal';
 import CardHandFan from '../components/CardHandFan';
-import type { CardTheme } from '../components/global/CardCustomizationModal';
+import type { CardTheme } from '../components/global/GameCustomizationModal';
 
 const { width: SW } = Dimensions.get('window');
 
