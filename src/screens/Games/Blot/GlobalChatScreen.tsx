@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
-import ChatPanel from '../../../components/ChatPanel';
+import ChatPanel from '../../../components/global/ChatPanel';
 import chatService from '../../../services/chat.service';
 import { useAuth } from '../../../libs/hooks/useAuth';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';

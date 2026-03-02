@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import ChatPanel from '../../components/ChatPanel';
+import ChatPanel from '../../components/global/ChatPanel';
 import { useAuth } from '../../libs/hooks/useAuth';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/AppNavigator';

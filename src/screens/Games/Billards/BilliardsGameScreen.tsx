@@ -10,7 +10,7 @@ import {
   Easing,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import GameToolbar from '../../../components/GameToolbar';
+import GameToolbar from '../../../components/global/GameToolbar';
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {RootStackParamList} from '../../../navigation/AppNavigator';
 import {aiMoveLogService} from '../../../services/aiMoveLog.service';
@@ -1287,6 +1287,7 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
       <GameToolbar
         title={variant === '9-ball' ? '9-Ball' : '8-Ball'}
         onBack={() => navigation.goBack()}
+        backgroundColor="transparent"
         rightElement={
           <Text style={styles.turnText}>
             {gameOver
