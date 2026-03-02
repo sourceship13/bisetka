@@ -115,9 +115,20 @@ const GameModeScreen: React.FC<Props> = ({route, navigation}) => {
       case 'BilliardsGame':
         navigation.replace('BilliardsGame', {session: sessionData});
         break;
-      case 'PokerRoom':
-        navigation.replace('PokerRoom', {session: sessionData} as any);
+      case 'PokerRoom': {
+        const fn: any = user?.fullName;
+        const resolvedName: string = typeof fn === 'string' && fn
+          ? fn
+          : (fn?.givenName || fn?.familyName)
+            ? [fn.givenName, fn.familyName].filter(Boolean).join(' ')
+            : (user as any)?.username || (user as any)?.email || 'Guest';
+        navigation.replace('PokerRoom', {
+          session: { ...sessionData, userId: user?.id || 'guest', displayName: resolvedName },
+          gameType: gameType as any,
+          mode: mode,
+        } as any);
         break;
+      }
       case 'Checkers':
         navigation.replace('Checkers', {session: sessionData, mode: mode} as any);
         break;

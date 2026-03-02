@@ -249,6 +249,57 @@ class SocketService {
     this.socket?.removeAllListeners();
   }
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // POKER MULTIPLAYER
+  // ─────────────────────────────────────────────────────────────────────────
+
+  joinPokerMatchmaking(userId: string, displayName: string): void {
+    this.socket?.emit('join_poker_matchmaking', { userId, displayName });
+  }
+
+  cancelPokerMatchmaking(userId: string): void {
+    this.socket?.emit('cancel_poker_matchmaking', { userId });
+  }
+
+  sendPokerAction(tableId: string, action: 'fold' | 'call' | 'raise' | 'check', amount?: number): void {
+    this.socket?.emit('poker_action', { tableId, action, amount });
+  }
+
+  onPokerJoined(cb: (data: { tableId: string; seatIndex: number }) => void) {
+    this.socket?.on('poker_joined', cb);
+  }
+
+  onPokerRoomUpdate(cb: (data: any) => void) {
+    this.socket?.on('poker_room_update', cb);
+  }
+
+  onPokerGameStarted(cb: (data: any) => void) {
+    this.socket?.on('poker_game_started', cb);
+  }
+
+  onPokerStateUpdate(cb: (data: any) => void) {
+    this.socket?.on('poker_state_update', cb);
+  }
+
+  onPokerHandResult(cb: (data: any) => void) {
+    this.socket?.on('poker_hand_result', cb);
+  }
+
+  onPokerMatchmakingCancelled(cb: () => void) {
+    this.socket?.on('poker_matchmaking_cancelled', cb);
+  }
+
+  offPokerEvents() {
+    this.socket?.off('poker_joined');
+    this.socket?.off('poker_room_update');
+    this.socket?.off('poker_game_started');
+    this.socket?.off('poker_state_update');
+    this.socket?.off('poker_hand_result');
+    this.socket?.off('poker_matchmaking_cancelled');
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+
   // Get socket instance for custom events (e.g., chat rooms)
   getSocket(): Socket | null {
     return this.socket;
