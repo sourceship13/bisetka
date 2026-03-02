@@ -1,14 +1,21 @@
-import React, {useState, useEffect, useRef} from 'react';
-import {View, Text, StyleSheet, TouchableOpacity, ScrollView, ImageBackground} from 'react-native';
+import React, {useState, useEffect, useRef, useCallback} from 'react';
+import {View, Text, StyleSheet, TouchableOpacity, ScrollView, ImageBackground, ActivityIndicator} from 'react-native';
+import { Snackbar } from 'react-native-paper';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import GameToolbar from '../../../components/global/GameToolbar';
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {RootStackParamList} from '../../../navigation/AppNavigator';
 import { aiMoveLogService } from '../../../services/aiMoveLog.service';
+import { socketService } from '../../../services/SocketService';
+import tokenService from '../../../services/token.service';
 import { v4 as uuidv4 } from 'uuid';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'PokerRoom'>;
+
+interface WinSnackbar { visible: boolean; message: string; }
+interface WaitingSeat { seatIndex: number; displayName: string; chips: number; isAI: boolean; } 
+interface WaitingRoom { seats: (WaitingSeat | null)[]; humanCount: number; waitSeconds: number; countdown: number; }
 
 interface Card {
   suit: 'hearts' | 'diamonds' | 'clubs' | 'spades';
@@ -30,10 +37,25 @@ interface Player {
 
 type GamePhase = 'waiting' | 'preflop' | 'flop' | 'turn' | 'river' | 'showdown';
 
-const TURN_TIME_LIMIT = 30; // 30 seconds per turn
-
 const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
   const {session, gameType, mode} = route.params;
+  const isMultiplayer = mode !== 'ai';
+  const userId = session?.userId || session?.user?.id || 'guest-' + Math.random().toString(36).substr(2, 6);
+  const rawName: any = session?.displayName || session?.user?.fullName;
+  const displayName: string = typeof rawName === 'string' && rawName
+    ? rawName
+    : (rawName?.givenName || rawName?.familyName)
+      ? [rawName.givenName, rawName.familyName].filter(Boolean).join(' ')
+      : (session?.user?.username || session?.user?.email || 'You');
+
+  // Multiplayer state
+  const [tableId, setTableId] = useState<string | null>(null);
+  const tableIdRef = useRef<string | null>(null);
+  const [mySeat, setMySeat] = useState<number>(0);
+  const mySeatRef = useRef<number>(0);
+  const [waitingRoom, setWaitingRoom] = useState<WaitingRoom | null>(null);
+  const waitingCountdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [isConnecting, setIsConnecting] = useState(isMultiplayer);
   
   const [players, setPlayers] = useState<Player[]>([]);
   const [communityCards, setCommunityCards] = useState<Card[]>([]);
@@ -41,9 +63,11 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
   const [currentBet, setCurrentBet] = useState(0);
   const [gamePhase, setGamePhase] = useState<GamePhase>('waiting');
   const [activePlayerIndex, setActivePlayerIndex] = useState(0);
-  const [playerIndex] = useState(0); // Current user is player 0
-  const [timeRemaining, setTimeRemaining] = useState(TURN_TIME_LIMIT);
-  const [timerActive, setTimerActive] = useState(false);
+  // In multiplayer, playerIndex is mySeat (assigned by server); in AI mode it's always 0
+  const [playerIndex] = useState(0); // used only in AI mode; overridden in multiplayer via computed value below
+  const [winSnackbar, setWinSnackbar] = useState<WinSnackbar>({visible: false, message: ''});
+  // Effective seat index for the human player
+  const myPlayerIndex = isMultiplayer ? mySeatRef.current : playerIndex;
   const lastResetTimeRef = useRef(0);
   const lastActivePlayerRef = useRef(-1);
   const aiMoveTriggeredRef = useRef(false);
@@ -64,30 +88,137 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
     currentBetRef.current = currentBet;
   }, [currentBet]);
 
-  useEffect(() => {
-    initializeGame();
+  // ─────────────────────────────────────────────────────────────────────────
+  // MULTIPLAYER SOCKET CONNECTION
+  // ─────────────────────────────────────────────────────────────────────────
+  const applyServerState = useCallback((data: any) => {
+    // Always keep mySeat in sync — the server tells us exactly which seat we own
+    if (data.mySeat !== undefined) {
+      mySeatRef.current = data.mySeat;
+      setMySeat(data.mySeat);
+    }
+    if (data.players) {
+      const toStr = (v: any): string => {
+        if (!v) return '';
+        if (typeof v === 'string') return v;
+        if (v.givenName || v.familyName) return [v.givenName, v.familyName].filter(Boolean).join(' ');
+        return String(v);
+      };
+      const mapped: Player[] = (data.players as (any | null)[]).map((p: any | null, idx: number) => ({
+        id: idx,
+        name: p ? (toStr(p.displayName) || `Seat ${idx + 1}`) : `Seat ${idx + 1}`,
+        chips: p ? p.chips : 0,
+        currentBet: p ? p.currentBet : 0,
+        cards: p ? (p.cards as any[]).map((c: any) => c.hidden ? {suit: 'spades', rank: '?', value: 0} : c as Card) : [],
+        folded: p ? p.folded : true,
+        isDealer: p ? p.isDealer : false,
+        isActive: p ? p.isActive : false,
+        hasActed: p ? p.hasActed : false,
+      }));
+      setPlayers(mapped);
+    }
+    if (data.communityCards !== undefined) setCommunityCards(data.communityCards);
+    if (data.pot !== undefined) setPot(data.pot);
+    if (data.currentBet !== undefined) setCurrentBet(data.currentBet);
+    if (data.phase !== undefined) setGamePhase(data.phase as GamePhase);
+    if (data.activeSeat !== undefined) setActivePlayerIndex(data.activeSeat);
   }, []);
 
-  // Timer effect
   useEffect(() => {
-    if (!timerActive) return;
+    if (!isMultiplayer) {
+      initializeGame();
+      return;
+    }
 
-    const timerId = setInterval(() => {
-      setTimeRemaining(prev => {
-        if (prev <= 1) {
-          // Time's up - auto fold
-          handleTimeExpired();
-          return 0;
+    let mounted = true;
+    const connect = async () => {
+      try {
+        setIsConnecting(true);
+        const token = await tokenService.getAccessToken() || 'temp-token';
+        await socketService.connect(userId, token);
+        if (!mounted) return;
+
+        // Remove any stale listeners from previous mounts before registering fresh ones
+        socketService.offPokerEvents();
+
+        socketService.onPokerJoined((data) => {
+          if (!mounted) return;
+          tableIdRef.current = data.tableId;
+          mySeatRef.current = data.seatIndex;
+          setTableId(data.tableId);
+          setMySeat(data.seatIndex);
+        });
+
+        socketService.onPokerRoomUpdate((data) => {
+          if (!mounted) return;
+          // Start visual countdown
+          if (waitingCountdownRef.current) clearInterval(waitingCountdownRef.current);
+          let remaining = data.waitSeconds;
+          setWaitingRoom({ seats: data.seats, humanCount: data.humanCount, waitSeconds: data.waitSeconds, countdown: remaining });
+          waitingCountdownRef.current = setInterval(() => {
+            remaining--;
+            if (remaining <= 0) {
+              if (waitingCountdownRef.current) clearInterval(waitingCountdownRef.current);
+              return;
+            }
+            setWaitingRoom(prev => prev ? { ...prev, countdown: remaining } : null);
+          }, 1000);
+        });
+
+        socketService.onPokerGameStarted((data) => {
+          if (!mounted) return;
+          if (waitingCountdownRef.current) clearInterval(waitingCountdownRef.current);
+          setWaitingRoom(null);
+          setIsConnecting(false);
+          applyServerState(data);
+        });
+
+        socketService.onPokerStateUpdate((data) => {
+          if (!mounted) return;
+          applyServerState(data);
+        });
+
+        socketService.onPokerHandResult((data) => {
+          if (!mounted) return;
+          applyServerState(data);
+          if (data.isYourWin) {
+            setWinSnackbar({ visible: true, message: `🎉 You won $${data.potAmount}!` });
+          }
+          BisetkaAlert.success(
+            data.isYourWin ? '🎉 You Won!' : `${data.winnerName} Won`,
+            `${data.winnerName} wins $${data.potAmount}!`
+          );
+        });
+
+        socketService.joinPokerMatchmaking(userId, displayName);
+        // Keep isConnecting=true until poker_game_started arrives
+      } catch (err) {
+        console.error('Poker socket connect error:', err);
+        if (mounted) {
+          setIsConnecting(false);
+          BisetkaAlert.error('Connection failed', 'Could not connect to server. Starting local game instead.');
+          initializeGame();
         }
-        return prev - 1;
-      });
-    }, 1000);
+      }
+    };
+    connect();
 
-    return () => clearInterval(timerId);
-  }, [timerActive]);
+    return () => {
+      mounted = false;
+      if (waitingCountdownRef.current) clearInterval(waitingCountdownRef.current);
+      if (tableIdRef.current) socketService.cancelPokerMatchmaking(userId);
+      socketService.offPokerEvents();
+    };
+  }, []);
+  // ─────────────────────────────────────────────────────────────────────────
 
-  // Reset timer when active player changes
   useEffect(() => {
+    if (!isMultiplayer) initializeGame();
+  }, []);
+
+  // Reset timer when active player changes (AI mode only — server drives turns in multiplayer)
+  useEffect(() => {
+    if (isMultiplayer) return;
     if (gamePhase === 'waiting' || gamePhase === 'showdown') return;
     if (players.length === 0) return;
     
@@ -103,13 +234,6 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
     lastActivePlayerRef.current = activePlayerIndex;
     aiMoveTriggeredRef.current = false;
     
-    // Reset timer
-    setTimerActive(false);
-    setTimeRemaining(TURN_TIME_LIMIT);
-    setTimeout(() => {
-      setTimerActive(true);
-    }, 50);
-    
     // Trigger AI move if not human player - simulateAIMove now uses refs to avoid stale closures
     if (activePlayerIndex !== playerIndex && !aiMoveTriggeredRef.current) {
       aiMoveTriggeredRef.current = true;
@@ -120,38 +244,6 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
       return () => clearTimeout(timer);
     }
   }, [activePlayerIndex, gamePhase, players.length]);
-
-  const handleTimeExpired = () => {
-    console.log('Time expired for player', activePlayerIndex);
-    setTimerActive(false);
-    
-    if (activePlayerIndex === playerIndex) {
-      // Auto-fold the human player
-      handleFold();
-    } else {
-      // Force AI to act
-      simulateAIMove(activePlayerIndex);
-    }
-  };
-
-  const resetTimer = () => {
-    const now = Date.now();
-    // Prevent resetting timer if it was reset less than 500ms ago
-    if (now - lastResetTimeRef.current < 500) {
-      console.log('Prevented rapid timer reset');
-      return;
-    }
-    lastResetTimeRef.current = now;
-    
-    // Stop timer first, then restart on next tick
-    setTimerActive(false);
-    setTimeRemaining(TURN_TIME_LIMIT);
-    
-    // Use setTimeout to ensure the timer stops before restarting
-    setTimeout(() => {
-      setTimerActive(true);
-    }, 50);
-  };
 
   const initializeGame = () => {
     // Initialize 6 players
@@ -238,7 +330,10 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
   };
 
   const handleFold = () => {
-    setTimerActive(false);
+    if (isMultiplayer) {
+      socketService.sendPokerAction(tableIdRef.current!, 'fold');
+      return;
+    }
     lastPlayerActionRef.current = { action: 'fold', amount: 0 };
     const updatedPlayers = [...players];
     updatedPlayers[playerIndex].folded = true;
@@ -250,7 +345,10 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
   };
 
   const handleCall = () => {
-    setTimerActive(false);
+    if (isMultiplayer) {
+      socketService.sendPokerAction(tableIdRef.current!, 'call');
+      return;
+    }
     const player = players[playerIndex];
     const callAmount = currentBet - player.currentBet;
     
@@ -272,7 +370,10 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
   };
 
   const handleRaise = () => {
-    setTimerActive(false);
+    if (isMultiplayer) {
+      socketService.sendPokerAction(tableIdRef.current!, 'raise', currentBet + 20);
+      return;
+    }
     const raiseAmount = currentBet + 20; // Simple raise by 20
     const player = players[playerIndex];
     const totalAmount = raiseAmount - player.currentBet;
@@ -303,7 +404,10 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
   };
 
   const handleCheck = () => {
-    setTimerActive(false);
+    if (isMultiplayer) {
+      socketService.sendPokerAction(tableIdRef.current!, 'check');
+      return;
+    }
     if (players[playerIndex].currentBet < currentBet) {
       BisetkaAlert.warning('Cannot check', 'You must call or raise');
       return;
@@ -348,7 +452,6 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
     // If only one player left, they win immediately
     if (activePlayers.length === 1) {
       console.log('Only one player remaining - awarding pot');
-      setTimerActive(false);
       const winner = activePlayers[0];
       const updatedPlayers = [...currentPlayers];
       const winnerIndex = updatedPlayers.findIndex(p => p.id === winner.id);
@@ -357,11 +460,11 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
       
       // Log AI poker hand data
       if (aiActionsThisRoundRef.current.length > 0) {
-        aiMoveLogService.logPokerMove({
+        (aiMoveLogService.logPokerMove as (data: any) => any)({
           gameId: pokerGameIdRef.current,
           handNumber: handNumberRef.current,
           phase: gamePhase,
-          playerAction: lastPlayerActionRef.current || undefined,
+          playerAction: (lastPlayerActionRef.current?.action as any) ?? undefined,
           aiActions: aiActionsThisRoundRef.current,
           communityCards: communityCards,
           potSize: pot,
@@ -371,9 +474,12 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
             isAI: winner.id !== playerIndex,
             winAmount: pot,
           },
-        }).catch(err => console.warn('Failed to log poker hand:', err));
+        }).catch((err: unknown) => console.warn('Failed to log poker hand:', err));
       }
       
+      if (winner.id === playerIndex) {
+        setWinSnackbar({visible: true, message: `🎉 You won $${pot}!`});
+      }
       BisetkaAlert.success('Winner!', `${winner.name} wins $${pot}!`, [
         {
           text: 'Next Hand',
@@ -388,7 +494,6 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
     
     if (allPlayersActed && allBetsEqual) {
       console.log('Advancing to next phase');
-      setTimerActive(false);
       advanceGamePhase(currentPlayers);
     } else {
       const updatedPlayers = [...currentPlayers];
@@ -397,9 +502,6 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
       setPlayers(updatedPlayers);
       
       console.log('Next player active:', nextIndex, updatedPlayers[nextIndex].name);
-      
-      // Reset and start timer for next player
-      resetTimer();
       
       // Simulate AI moves for other players
       if (nextIndex !== playerIndex) {
@@ -529,9 +631,6 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
     setActivePlayerIndex(activeIdx);
     setPlayers(updatedPlayers);
     
-    // Start timer for new betting round
-    resetTimer();
-    
     if (activeIdx !== playerIndex) {
       setTimeout(() => {
         simulateAIMove(activeIdx);
@@ -547,11 +646,11 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
       
       // Log AI poker hand data at showdown
       if (aiActionsThisRoundRef.current.length > 0) {
-        aiMoveLogService.logPokerMove({
+        (aiMoveLogService.logPokerMove as (data: any) => any)({
           gameId: pokerGameIdRef.current,
           handNumber: handNumberRef.current,
           phase: 'showdown',
-          playerAction: lastPlayerActionRef.current || undefined,
+          playerAction: (lastPlayerActionRef.current?.action as any) ?? undefined,
           aiActions: aiActionsThisRoundRef.current,
           communityCards: communityCards,
           potSize: pot,
@@ -561,9 +660,12 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
             isAI: winner.id !== playerIndex,
             winAmount: pot,
           },
-        }).catch(err => console.warn('Failed to log poker hand:', err));
+        }).catch((err: unknown) => console.warn('Failed to log poker hand:', err));
       }
       
+      if (winner.id === playerIndex) {
+        setWinSnackbar({visible: true, message: `🎉 You won ${pot} chips!`});
+      }
       BisetkaAlert.success('Winner!', `${winner.name} wins ${pot} chips!`);
       const updatedPlayers = [...currentPlayers];
       const winnerIndex = updatedPlayers.findIndex(p => p.id === winner.id);
@@ -576,11 +678,11 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
       
       // Log AI poker hand data at showdown
       if (aiActionsThisRoundRef.current.length > 0) {
-        aiMoveLogService.logPokerMove({
+        (aiMoveLogService.logPokerMove as (data: any) => any)({
           gameId: pokerGameIdRef.current,
           handNumber: handNumberRef.current,
           phase: 'showdown',
-          playerAction: lastPlayerActionRef.current || undefined,
+          playerAction: (lastPlayerActionRef.current?.action as any) ?? undefined,
           aiActions: aiActionsThisRoundRef.current,
           communityCards: communityCards,
           potSize: pot,
@@ -590,9 +692,12 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
             isAI: randomWinner.id !== playerIndex,
             winAmount: pot,
           },
-        }).catch(err => console.warn('Failed to log poker hand:', err));
+        }).catch((err: unknown) => console.warn('Failed to log poker hand:', err));
       }
       
+      if (randomWinner.id === playerIndex) {
+        setWinSnackbar({visible: true, message: `🎉 You won ${pot} chips at showdown!`});
+      }
       BisetkaAlert.success('Winner!', `${randomWinner.name} wins ${pot} chips at showdown!`);
       const updatedPlayers = [...currentPlayers];
       const winnerIndex = updatedPlayers.findIndex(p => p.id === randomWinner.id);
@@ -629,7 +734,8 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
   };
 
   const renderPlayer = (player: Player, position: number) => {
-    const isCurrentPlayer = player.id === playerIndex;
+    const myIdx = isMultiplayer ? mySeatRef.current : playerIndex;
+    const isCurrentPlayer = player.id === myIdx;
     const showCards = isCurrentPlayer || gamePhase === 'showdown';
     
     const positionStyle = position === 0 ? styles.position0 :
@@ -648,7 +754,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
         )}
         <View style={[styles.playerInfo, player.isActive && styles.activePlayer, player.folded && styles.foldedPlayer]}>
           <Text style={styles.playerName}>
-            {player.name}
+            {isCurrentPlayer ? 'You' : player.name}
           </Text>
           <Text style={styles.playerChips}>${player.chips}</Text>
           {player.currentBet > 0 && (
@@ -672,17 +778,41 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
       style={styles.container}
       resizeMode="cover">
       <SafeAreaView style={styles.safeArea}>
+
+      {/* ── Connecting / Waiting Room Overlay ── */}
+      {(isConnecting || waitingRoom) && (
+        <View style={styles.waitingOverlay}>
+          {isConnecting && !waitingRoom ? (
+            <>
+              <ActivityIndicator size="large" color="#FFD700" />
+              <Text style={styles.waitingTitle}>Finding a table…</Text>
+            </>
+          ) : waitingRoom ? (
+            <>
+              <Text style={styles.waitingTitle}>♠️ Texas Hold’em</Text>
+              <Text style={styles.waitingSubtitle}>Waiting for players…</Text>
+              <Text style={styles.waitingCountdown}>{waitingRoom.countdown}s</Text>
+              <View style={styles.waitingSeats}>
+                {waitingRoom.seats.map((seat, idx) => (
+                  <View key={idx} style={[styles.waitingSeat, seat ? styles.waitingSeatFilled : styles.waitingSeatEmpty]}>
+                    <Text style={styles.waitingSeatText}>{seat ? seat.displayName : `Seat ${idx + 1}`}</Text>
+                    {!seat && <Text style={styles.waitingSeatSub}>Waiting…</Text>}
+                  </View>
+                ))}
+              </View>
+              <Text style={styles.waitingInfo}>
+                {waitingRoom.humanCount} / 6 players found — empty seats will be filled by AI
+              </Text>
+            </>
+          ) : null}
+        </View>
+      )}
       <GameToolbar
         title={`Texas Hold'em - ${gamePhase.toUpperCase()}`}
         onBack={() => navigation.goBack()}
         backgroundColor="transparent"
         rightElement={
           <View style={{ alignItems: 'flex-end' }}>
-            {timerActive && (
-              <View style={[styles.timerContainer, timeRemaining <= 10 && styles.timerWarning]}>
-                <Text style={styles.timerText}>⏱️ {timeRemaining}s</Text>
-              </View>
-            )}
             <Text style={styles.potAmount}>Pot: ${pot}</Text>
           </View>
         }
@@ -694,9 +824,6 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
           style={styles.pokerTable}
           resizeMode="contain"
         >
-          {/* Render players in positions around the table */}
-          {players.slice(1, 6).map((player, idx) => renderPlayer(player, idx + 1))}
-
           {/* Community cards in center */}
           <View style={styles.communityCardsContainer}>
             <Text style={styles.communityTitle}>Community Cards</Text>
@@ -707,25 +834,33 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
             </View>
           </View>
         </ImageBackground>
+
+        {/* Player overlays rendered OUTSIDE ImageBackground so they don't cause it to re-render */}
+        <View style={StyleSheet.absoluteFill} pointerEvents="none">
+          {players
+            .map((player, seatIdx) => ({ player, seatIdx }))
+            .filter(({ seatIdx }) => seatIdx !== myPlayerIndex)
+            .map(({ player }, idx) => renderPlayer(player, idx + 1))}
+        </View>
       </View>
 
       {/* Current player (you) at bottom */}
       <View style={styles.currentPlayerArea}>
-        {players[playerIndex] && renderPlayer(players[playerIndex], 0)}
+        {players[myPlayerIndex] && renderPlayer(players[myPlayerIndex]!, 0)}
         
-        {players[playerIndex] && players[playerIndex].isActive && !players[playerIndex].folded && (
+        {players[myPlayerIndex] && players[myPlayerIndex]!.isActive && !players[myPlayerIndex]!.folded && (
           <View style={styles.actionButtons}>
             <TouchableOpacity style={[styles.button, styles.foldButton]} onPress={handleFold}>
               <Text style={styles.buttonText}>Fold</Text>
             </TouchableOpacity>
             
-            {players[playerIndex].currentBet === currentBet ? (
+            {players[myPlayerIndex]!.currentBet === currentBet ? (
               <TouchableOpacity style={[styles.button, styles.checkButton]} onPress={handleCheck}>
                 <Text style={styles.buttonText}>Check</Text>
               </TouchableOpacity>
             ) : (
               <TouchableOpacity style={[styles.button, styles.callButton]} onPress={handleCall}>
-                <Text style={styles.buttonText}>Call ${currentBet - players[playerIndex].currentBet}</Text>
+                <Text style={styles.buttonText}>Call ${currentBet - players[myPlayerIndex]!.currentBet}</Text>
               </TouchableOpacity>
             )}
             
@@ -735,6 +870,19 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
           </View>
         )}
       </View>
+
+      <Snackbar
+        visible={winSnackbar.visible}
+        onDismiss={() => setWinSnackbar({visible: false, message: ''})}
+        duration={3500}
+        style={styles.winSnackbar}
+        action={{
+          label: 'Nice!',
+          onPress: () => setWinSnackbar({visible: false, message: ''}),
+          labelStyle: {color: '#FFD700'},
+        }}>
+        <Text style={styles.winSnackbarText}>{winSnackbar.message}</Text>
+      </Snackbar>
     </SafeAreaView>
     </ImageBackground>
   );
@@ -747,6 +895,86 @@ const styles = StyleSheet.create({
   },
   safeArea: {
     flex: 1,
+  },
+  winSnackbar: {
+    backgroundColor: '#1a472a',
+    borderWidth: 1,
+    borderColor: '#FFD700',
+    borderRadius: 8,
+    marginBottom: 10,
+    marginHorizontal: 12,
+  },
+  winSnackbarText: {
+    color: '#FFD700',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  // Waiting room overlay
+  waitingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.85)',
+    zIndex: 100,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  waitingTitle: {
+    color: '#FFD700',
+    fontSize: 28,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  waitingSubtitle: {
+    color: '#ccc',
+    fontSize: 16,
+    marginBottom: 4,
+  },
+  waitingCountdown: {
+    color: '#fff',
+    fontSize: 48,
+    fontWeight: 'bold',
+    marginVertical: 12,
+  },
+  waitingSeats: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 8,
+    marginBottom: 16,
+  },
+  waitingSeat: {
+    width: 100,
+    padding: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+    margin: 4,
+  },
+  waitingSeatFilled: {
+    backgroundColor: '#1a5c3e',
+    borderWidth: 2,
+    borderColor: '#FFD700',
+  },
+  waitingSeatEmpty: {
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderWidth: 1,
+    borderColor: '#555',
+  },
+  waitingSeatText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 13,
+    textAlign: 'center',
+  },
+  waitingSeatSub: {
+    color: '#aaa',
+    fontSize: 11,
+    marginTop: 2,
+  },
+  waitingInfo: {
+    color: '#aaa',
+    fontSize: 13,
+    textAlign: 'center',
+    marginTop: 8,
   },
   header: {
     padding: 15,
@@ -771,21 +999,6 @@ const styles = StyleSheet.create({
   headerTitle: {
     color: '#fff',
     fontSize: 18,
-    fontWeight: 'bold',
-  },
-  timerContainer: {
-    marginTop: 5,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 12,
-  },
-  timerWarning: {
-    backgroundColor: 'rgba(255, 0, 0, 0.3)',
-  },
-  timerText: {
-    color: '#fff',
-    fontSize: 14,
     fontWeight: 'bold',
   },
   potAmount: {
@@ -837,32 +1050,26 @@ const styles = StyleSheet.create({
   position0: {
     bottom: '8%',
     alignSelf: 'center',
-    backgroundColor:'red'
   },
   position1: {
     bottom: '28%',
     right: '2%',
-    backgroundColor:'blue'
   },
   position2: {
     top: '25%',
     right: '2%',
-    backgroundColor:'orange'
   },
   position3: {
     top: '0%',
     alignSelf: 'center',
-    backgroundColor:'yellow'
   },
   position4: {
     top: '25%',
     left: '2%',
-    backgroundColor:'red'
   },
   position5: {
     bottom: '28%',
     left: '2%',
-    backgroundColor:'grey'
   },
   playerInfo: {
     backgroundColor: '#1a5c3e',
@@ -874,13 +1081,8 @@ const styles = StyleSheet.create({
   },
   activePlayer: {
     borderColor: '#ffd700',
-    borderWidth: 4,
+    borderWidth: 3,
     backgroundColor: '#2a7c4e',
-    shadowColor: '#ffd700',
-    shadowOffset: {width: 0, height: 0},
-    shadowOpacity: 0.8,
-    shadowRadius: 8,
-    elevation: 8,
   },
   foldedPlayer: {
     opacity: 0.5,
