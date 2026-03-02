@@ -2,7 +2,7 @@ import React, {useState, useEffect, useRef} from 'react';
 import {View, Text, StyleSheet, TouchableOpacity, Animated} from 'react-native';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import GameToolbar from '../../../components/GameToolbar';
+import GameToolbar from '../../../components/global/GameToolbar';
 import { aiMoveLogService } from '../../../services/aiMoveLog.service';
 import { v4 as uuidv4 } from 'uuid';
 import { useGameEndRefresh } from '../../../libs/hooks/useGameEndRefresh';
@@ -284,6 +284,7 @@ const MrotsiScreen = ({navigation, route}: any) => {
       <GameToolbar
         title={`Mrotsi${gameState.gameMode === 'ai' ? ' (vs AI)' : ''}`}
         onBack={() => navigation.goBack()}
+        backgroundColor="transparent"
         rightElement={
           <TouchableOpacity onPress={resetGame} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
             <Text style={styles.newGameText}>New</Text>

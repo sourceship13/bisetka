@@ -11,12 +11,12 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
-import GameToolbar from '../../../components/GameToolbar';
+import GameToolbar from '../../../components/global/GameToolbar';
 import { CardType, Suit } from '../../../components/Card';
 import DynamicCard from '../../../components/DynamicCard';
-import CardCustomizationModal from '../../../components/CardCustomizationModal';
+import CardCustomizationModal from '../../../components/global/CardCustomizationModal';
 import CardHandFan from '../../../components/CardHandFan';
-import type { CardTheme } from '../../../components/CardCustomizationModal';
+import type { CardTheme } from '../../../components/global/CardCustomizationModal';
 import {
   BaazarGameState,
   BidLevel,
@@ -678,6 +678,7 @@ const BaazarBlotScreen = ({ navigation }: any) => {
         <GameToolbar
           title="Bazaar Blot"
           onBack={() => navigation.goBack()}
+          backgroundColor="transparent"
           rightElement={
             <TouchableOpacity onPress={() => setShowCustomization(true)}>
               <Text style={{ color: '#FFD700', fontSize: 13, fontWeight: '700' }}>🎨 Cards</Text>

@@ -9,7 +9,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import GameToolbar from '../../../components/GameToolbar';
+import GameToolbar from '../../../components/global/GameToolbar';
 import { useGameEndRefresh } from '../../../libs/hooks/useGameEndRefresh';
 import LinearGradient from 'react-native-linear-gradient';
 import {
