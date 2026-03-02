@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -6,11 +6,98 @@ import {
   Modal,
   TouchableOpacity,
   Dimensions,
+  Animated,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { colors } from '../../theme/colors';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+
+const CONFETTI_COLORS = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8', '#F7DC6F', '#BB8FCE', '#FF9FF3', '#54A0FF'];
+const NUM_FLAKES = 45;
+
+interface Flake {
+  x: number;
+  size: number;
+  color: string;
+  duration: number;
+  delay: number;
+  rotateRange: string;
+  translateY: Animated.Value;
+  rotate: Animated.Value;
+}
+
+const createFlakes = (): Flake[] =>
+  Array.from({ length: NUM_FLAKES }, () => ({
+    x: Math.random() * SCREEN_WIDTH,
+    size: 7 + Math.random() * 9,
+    color: CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)],
+    duration: 2200 + Math.random() * 2000,
+    delay: Math.random() * 1800,
+    rotateRange: `${270 + Math.floor(Math.random() * 360)}deg`,
+    translateY: new Animated.Value(-20),
+    rotate: new Animated.Value(0),
+  }));
+
+const ConfettiRain: React.FC = () => {
+  const flakesRef = useRef<Flake[]>(createFlakes());
+  const animationsRef = useRef<Animated.CompositeAnimation[]>([]);
+
+  useEffect(() => {
+    animationsRef.current.forEach(a => a.stop());
+    animationsRef.current = flakesRef.current.map(flake => {
+      flake.translateY.setValue(-20);
+      flake.rotate.setValue(0);
+      const anim = Animated.loop(
+        Animated.parallel([
+          Animated.timing(flake.translateY, {
+            toValue: SCREEN_HEIGHT + 20,
+            duration: flake.duration,
+            delay: flake.delay,
+            useNativeDriver: true,
+          }),
+          Animated.timing(flake.rotate, {
+            toValue: 1,
+            duration: flake.duration,
+            delay: flake.delay,
+            useNativeDriver: true,
+          }),
+        ]),
+      );
+      anim.start();
+      return anim;
+    });
+    return () => animationsRef.current.forEach(a => a.stop());
+  }, []);
+
+  return (
+    <View style={StyleSheet.absoluteFill} pointerEvents="none">
+      {flakesRef.current.map((flake, i) => (
+        <Animated.View
+          key={i}
+          style={{
+            position: 'absolute',
+            left: flake.x,
+            top: 0,
+            width: flake.size,
+            height: flake.size,
+            backgroundColor: flake.color,
+            borderRadius: flake.size * 0.25,
+            transform: [
+              { translateY: flake.translateY },
+              {
+                rotate: flake.rotate.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: ['0deg', flake.rotateRange],
+                }),
+              },
+            ],
+          }}
+        />
+      ))}
+    </View>
+  );
+};
 
 export interface BisetkaModalButton {
   text: string;
@@ -78,6 +165,7 @@ const BisetkaModal: React.FC<BisetkaModalProps> = ({
       onRequestClose={onClose}
     >
       <View style={styles.overlay}>
+        {type === 'success' && <ConfettiRain />}
         <View style={styles.modalContainer}>
           {/* Gradient header with icon */}
           <LinearGradient
