@@ -17,8 +17,8 @@ import {
   Position,
 } from '../../../game/chessLogic';
 import ChessPiece from '../../../components/ChessPiece';
-import CardCustomizationModal from '../../../components/global/CardCustomizationModal';
-import type { CardTheme } from '../../../components/global/CardCustomizationModal';
+import GameThemeCustomizer from '../../../components/global/GameThemeCustomizer';
+import type { GameTheme } from '../../../components/global/GameThemeCustomizer';
 import { aiMoveLogService } from '../../../services/aiMoveLog.service';
 import { v4 as uuidv4 } from 'uuid';
 import { useGameEndRefresh } from '../../../libs/hooks/useGameEndRefresh';
@@ -31,10 +31,10 @@ const ChessScreen = ({navigation}: any) => {
   const lastPlayerMoveRef = useRef<{ from: Position; to: Position; piece: string; captured?: string } | null>(null);
   useGameEndRefresh(!!(gameState?.isCheckmate || gameState?.isStalemate), 'chess');
   const [showCustomization, setShowCustomization] = useState(false);
-  const [customTheme, setCustomTheme] = useState<CardTheme | undefined>(undefined);
+  const [gameTheme, setGameTheme] = useState<GameTheme>({});
 
-  const handleSaveTheme = (theme: CardTheme) => {
-    setCustomTheme(theme);
+  const handleApplyTheme = (theme: GameTheme) => {
+    setGameTheme(theme);
   };
 
   useEffect(() => {
@@ -346,11 +346,12 @@ const ChessScreen = ({navigation}: any) => {
         </SafeAreaView>
       </LinearGradient>
 
-      <CardCustomizationModal
+      <GameThemeCustomizer
         visible={showCustomization}
         onClose={() => setShowCustomization(false)}
-        onSave={handleSaveTheme}
-        currentTheme={customTheme}
+        onApply={handleApplyTheme}
+        gameType="chess"
+        initialTheme={gameTheme}
       />
     </ImageBackground>
   );

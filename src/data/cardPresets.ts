@@ -2,7 +2,7 @@
  * Pre-configured card themes and card backs
  */
 
-import type { CardTheme, CardFont } from '../components/global/CardCustomizationModal';
+import type { CardTheme, CardFont } from '../components/global/GameCustomizationModal';
 
 export interface PresetTheme extends Omit<CardTheme, 'id' | 'createdAt'> {
   presetId: string;
