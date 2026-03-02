@@ -1,5 +1,5 @@
 import React, {useState, useEffect, useRef} from 'react';
-import {View, Text, StyleSheet, TouchableOpacity, ScrollView} from 'react-native';
+import {View, Text, StyleSheet, TouchableOpacity, ScrollView, ImageBackground} from 'react-native';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import GameToolbar from '../../../components/global/GameToolbar';
@@ -154,8 +154,8 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
   };
 
   const initializeGame = () => {
-    // Initialize 8 players
-    const initialPlayers: Player[] = Array.from({length: 8}, (_, i) => ({
+    // Initialize 6 players
+    const initialPlayers: Player[] = Array.from({length: 6}, (_, i) => ({
       id: i,
       name: i === 0 ? 'You' : `Player ${i + 1}`,
       chips: 1000,
@@ -181,7 +181,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
     
     // Move dealer button to next player
     const currentDealerIndex = currentPlayers.findIndex(p => p.isDealer);
-    const nextDealerIndex = (currentDealerIndex + 1) % 8;
+    const nextDealerIndex = (currentDealerIndex + 1) % 6;
     
     // Deal 2 cards to each player
     const updatedPlayers = currentPlayers.map((player, index) => ({
@@ -195,8 +195,8 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
 
     // Small blind and big blind (positions 1 and 2 after dealer)
     const dealerIndex = updatedPlayers.findIndex(p => p.isDealer);
-    const smallBlindIndex = (dealerIndex + 1) % 8;
-    const bigBlindIndex = (dealerIndex + 2) % 8;
+    const smallBlindIndex = (dealerIndex + 1) % 6;
+    const bigBlindIndex = (dealerIndex + 2) % 6;
     
     updatedPlayers[smallBlindIndex].chips -= 5;
     updatedPlayers[smallBlindIndex].currentBet = 5;
@@ -206,7 +206,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
     updatedPlayers[bigBlindIndex].hasActed = true;
 
     // First to act is after big blind
-    const firstPlayerIndex = (dealerIndex + 3) % 8;
+    const firstPlayerIndex = (dealerIndex + 3) % 6;
     updatedPlayers[firstPlayerIndex].isActive = true;
 
     setPlayers(updatedPlayers);
@@ -319,11 +319,11 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
 
   const moveToNextPlayer = (currentPlayers: Player[]) => {
     // Find next active player who hasn't folded
-    let nextIndex = (activePlayerIndex + 1) % 8;
+    let nextIndex = (activePlayerIndex + 1) % 6;
     let attempts = 0;
     
     while (currentPlayers[nextIndex].folded && attempts < 8) {
-      nextIndex = (nextIndex + 1) % 8;
+      nextIndex = (nextIndex + 1) % 6;
       attempts++;
     }
 
@@ -515,13 +515,13 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
     // Reset for next betting round
     setCurrentBet(0);
     const dealerIndex = updatedPlayers.findIndex(p => p.isDealer);
-    const firstPlayerIndex = (dealerIndex + 1) % 8;
+    const firstPlayerIndex = (dealerIndex + 1) % 6;
     
     // Find first active player who hasn't folded
     let activeIdx = firstPlayerIndex;
     let attempts = 0;
     while (updatedPlayers[activeIdx].folded && attempts < 8) {
-      activeIdx = (activeIdx + 1) % 8;
+      activeIdx = (activeIdx + 1) % 6;
       attempts++;
     }
     
@@ -637,9 +637,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
                          position === 2 ? styles.position2 :
                          position === 3 ? styles.position3 :
                          position === 4 ? styles.position4 :
-                         position === 5 ? styles.position5 :
-                         position === 6 ? styles.position6 :
-                         styles.position7;
+                         styles.position5;
 
     return (
       <View key={player.id} style={[styles.playerContainer, positionStyle]}>
@@ -669,7 +667,11 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <ImageBackground
+      source={require('../../../../assets/blot/park-background.png')}
+      style={styles.container}
+      resizeMode="cover">
+      <SafeAreaView style={styles.safeArea}>
       <GameToolbar
         title={`Texas Hold'em - ${gamePhase.toUpperCase()}`}
         onBack={() => navigation.goBack()}
@@ -687,18 +689,24 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
       />
 
       <View style={styles.tableContainer}>
-        {/* Render players in positions around the table */}
-        {players.slice(1, 8).map((player, idx) => renderPlayer(player, idx + 1))}
+        <ImageBackground
+          source={require('../../../../assets/poker/table.png')}
+          style={styles.pokerTable}
+          resizeMode="contain"
+        >
+          {/* Render players in positions around the table */}
+          {players.slice(1, 6).map((player, idx) => renderPlayer(player, idx + 1))}
 
-        {/* Community cards in center */}
-        <View style={styles.communityCardsContainer}>
-          <Text style={styles.communityTitle}>Community Cards</Text>
-          <View style={styles.communityCards}>
-            {communityCards.map((card, idx) => (
-              <View key={idx}>{renderCard(card)}</View>
-            ))}
+          {/* Community cards in center */}
+          <View style={styles.communityCardsContainer}>
+            <Text style={styles.communityTitle}>Community Cards</Text>
+            <View style={styles.communityCards}>
+              {communityCards.map((card, idx) => (
+                <View key={idx}>{renderCard(card)}</View>
+              ))}
+            </View>
           </View>
-        </View>
+        </ImageBackground>
       </View>
 
       {/* Current player (you) at bottom */}
@@ -728,13 +736,17 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
         )}
       </View>
     </SafeAreaView>
+    </ImageBackground>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0d5e3a',
+    backgroundColor: 'transparent',
+  },
+  safeArea: {
+    flex: 1,
   },
   header: {
     padding: 15,
@@ -786,6 +798,13 @@ const styles = StyleSheet.create({
     position: 'relative',
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: 'transparent',
+  },
+  pokerTable: {
+    width: '100%',
+    maxWidth: 600,
+    aspectRatio: 1024 / 1536,
+    alignSelf: 'center',
   },
   playerContainer: {
     position: 'absolute',
@@ -816,36 +835,34 @@ const styles = StyleSheet.create({
     color: '#000',
   },
   position0: {
-    bottom: '5%',
-    left: '42%',
+    bottom: '8%',
+    alignSelf: 'center',
+    backgroundColor:'red'
   },
   position1: {
-    bottom: '20%',
-    right: '15%',
+    bottom: '28%',
+    right: '2%',
+    backgroundColor:'blue'
   },
   position2: {
-    bottom: '40%',
-    right: '8%',
+    top: '25%',
+    right: '2%',
+    backgroundColor:'orange'
   },
   position3: {
-    top: '25%',
-    right: '15%',
+    top: '0%',
+    alignSelf: 'center',
+    backgroundColor:'yellow'
   },
   position4: {
-    top: '8%',
-    left: '42%',
+    top: '25%',
+    left: '2%',
+    backgroundColor:'red'
   },
   position5: {
-    top: '25%',
-    left: '15%',
-  },
-  position6: {
-    bottom: '40%',
-    left: '8%',
-  },
-  position7: {
-    bottom: '20%',
-    left: '15%',
+    bottom: '28%',
+    left: '2%',
+    backgroundColor:'grey'
   },
   playerInfo: {
     backgroundColor: '#1a5c3e',
@@ -891,6 +908,9 @@ const styles = StyleSheet.create({
     gap: 3,
   },
   communityCardsContainer: {
+    position: 'absolute',
+    top: '42%',
+    alignSelf: 'center',
     alignItems: 'center',
   },
   communityTitle: {
@@ -941,7 +961,7 @@ const styles = StyleSheet.create({
   },
   currentPlayerArea: {
     padding: 15,
-    backgroundColor: '#094029',
+    backgroundColor: 'rgba(9, 64, 41, 0.8)',
   },
   actionButtons: {
     flexDirection: 'row',
