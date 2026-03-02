@@ -1,8 +1,9 @@
 import React, {useState, useEffect, useRef} from 'react';
-import {View, Text, StyleSheet, TouchableOpacity} from 'react-native';
+import {View, Text, StyleSheet, TouchableOpacity, ImageBackground} from 'react-native';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import GameToolbar from '../../../components/GameToolbar';
+import LinearGradient from 'react-native-linear-gradient';
+import GameToolbar from '../../../components/global/GameToolbar';
 import {
   Difficulty,
   ChessGameState,
@@ -16,6 +17,8 @@ import {
   Position,
 } from '../../../game/chessLogic';
 import ChessPiece from '../../../components/ChessPiece';
+import CardCustomizationModal from '../../../components/global/CardCustomizationModal';
+import type { CardTheme } from '../../../components/global/CardCustomizationModal';
 import { aiMoveLogService } from '../../../services/aiMoveLog.service';
 import { v4 as uuidv4 } from 'uuid';
 import { useGameEndRefresh } from '../../../libs/hooks/useGameEndRefresh';
@@ -27,6 +30,12 @@ const ChessScreen = ({navigation}: any) => {
   const moveCountRef = useRef(0);
   const lastPlayerMoveRef = useRef<{ from: Position; to: Position; piece: string; captured?: string } | null>(null);
   useGameEndRefresh(!!(gameState?.isCheckmate || gameState?.isStalemate), 'chess');
+  const [showCustomization, setShowCustomization] = useState(false);
+  const [customTheme, setCustomTheme] = useState<CardTheme | undefined>(undefined);
+
+  const handleSaveTheme = (theme: CardTheme) => {
+    setCustomTheme(theme);
+  };
 
   useEffect(() => {
     // Computer's turn
@@ -194,10 +203,19 @@ const ChessScreen = ({navigation}: any) => {
   // Difficulty selection screen
   if (!difficulty || !gameState) {
     return (
-      <SafeAreaView style={styles.container}>
-        <GameToolbar title="Chess" onBack={() => navigation.goBack()} />
+      <ImageBackground
+        source={require('../../../../assets/blot/park-background.png')}
+        style={styles.container}
+        blurRadius={3}
+      >
+        <LinearGradient
+          colors={['rgba(15,15,35,0.7)', 'rgba(26,23,66,0.6)']}
+          style={styles.overlay}
+        >
+          <SafeAreaView style={styles.safeArea}>
+            <GameToolbar title="Chess" onBack={() => navigation.goBack()} backgroundColor="transparent" />
 
-        <View style={styles.difficultySelection}>
+            <View style={styles.difficultySelection}>
           <Text style={styles.difficultyTitle}>Select Difficulty</Text>
 
           <TouchableOpacity
@@ -230,22 +248,38 @@ const ChessScreen = ({navigation}: any) => {
             </Text>
           </TouchableOpacity>
         </View>
-      </SafeAreaView>
+          </SafeAreaView>
+        </LinearGradient>
+      </ImageBackground>
     );
   }
 
   // Game screen
   return (
-    <SafeAreaView style={styles.container}>
-      <GameToolbar
-        title={`Chess - ${difficulty}`}
-        onBack={resetGame}
-        rightElement={
-          <TouchableOpacity onPress={resetGame} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-            <Text style={styles.newGameText}>New</Text>
-          </TouchableOpacity>
-        }
-      />
+    <ImageBackground
+      source={require('../../../../assets/blot/park-background.png')}
+      style={styles.container}
+      blurRadius={3}
+    >
+      <LinearGradient
+        colors={['rgba(15,15,35,0.7)', 'rgba(26,23,66,0.6)']}
+        style={styles.overlay}
+      >
+        <SafeAreaView style={styles.safeArea}>
+          <GameToolbar
+            title={`Chess - ${difficulty}`}
+            onBack={resetGame}
+            backgroundColor="transparent"
+            rightElement={
+              <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
+                <TouchableOpacity
+                  onPress={() => setShowCustomization(true)}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                  <Text style={styles.customizeText}>🎨</Text>
+                </TouchableOpacity>
+              </View>
+            }
+          />
 
       <View style={styles.statusBar}>
         <Text style={styles.turnText}>
@@ -255,7 +289,12 @@ const ChessScreen = ({navigation}: any) => {
       </View>
 
       <View style={styles.boardContainer}>
-        <View style={styles.board}>
+        <ImageBackground
+          source={require('../../../../assets/chess/board.png')}
+          style={styles.board}
+          resizeMode="stretch"
+        >
+          <View style={styles.gridContainer}>
           {gameState.board.map((row, rowIndex) => (
             <View key={rowIndex} style={styles.row}>
               {row.map((piece, colIndex) => {
@@ -271,7 +310,6 @@ const ChessScreen = ({navigation}: any) => {
                     key={`${rowIndex}-${colIndex}`}
                     style={[
                       styles.square,
-                      isLight ? styles.lightSquare : styles.darkSquare,
                       isSelected && styles.selectedSquare,
                       isPossibleMove && styles.possibleMoveSquare,
                     ]}
@@ -284,7 +322,8 @@ const ChessScreen = ({navigation}: any) => {
               })}
             </View>
           ))}
-        </View>
+          </View>
+        </ImageBackground>
       </View>
 
       {(gameState.isCheckmate || gameState.isStalemate) && (
@@ -304,36 +343,36 @@ const ChessScreen = ({navigation}: any) => {
           </View>
         </View>
       )}
-    </SafeAreaView>
+        </SafeAreaView>
+      </LinearGradient>
+
+      <CardCustomizationModal
+        visible={showCustomization}
+        onClose={() => setShowCustomization(false)}
+        onSave={handleSaveTheme}
+        currentTheme={customTheme}
+      />
+    </ImageBackground>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#312E2B',
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#1C1917',
+  overlay: {
+    flex: 1,
   },
-  backButton: {
-    fontSize: 16,
-    color: '#fff',
-    fontWeight: '600',
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#fff',
+  safeArea: {
+    flex: 1,
   },
   newGameText: {
     fontSize: 16,
     color: '#FFD700',
     fontWeight: '600',
+  },
+  customizeText: {
+    fontSize: 20,
   },
   difficultySelection: {
     flex: 1,
@@ -401,14 +440,17 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 8,
   },
   board: {
     aspectRatio: 1,
     width: '100%',
     maxWidth: 500,
-    borderWidth: 3,
-    borderColor: '#1C1917',
+  },
+  gridContainer: {
+    flex: 1,
+    paddingTop: 40,
+    paddingBottom: 55,
+    paddingHorizontal: 52,
   },
   row: {
     flex: 1,
@@ -418,18 +460,19 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: 'transparent',
   },
   lightSquare: {
-    backgroundColor: '#F0D9B5',
+    backgroundColor: 'transparent',
   },
   darkSquare: {
-    backgroundColor: '#B58863',
+    backgroundColor: 'transparent',
   },
   selectedSquare: {
-    backgroundColor: '#7FA650',
+    backgroundColor: 'rgba(127, 166, 80, 0.6)',
   },
   possibleMoveSquare: {
-    backgroundColor: 'rgba(127, 166, 80, 0.5)',
+    backgroundColor: 'rgba(127, 166, 80, 0.4)',
   },
   moveIndicator: {
     position: 'absolute',

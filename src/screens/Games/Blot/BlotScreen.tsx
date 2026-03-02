@@ -12,12 +12,12 @@ import {
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
-import GameToolbar from '../../../components/GameToolbar';
+import GameToolbar from '../../../components/global/GameToolbar';
 import { CardType, Suit } from '../../../components/Card';
 import DynamicCard from '../../../components/DynamicCard';
-import CardCustomizationModal from '../../../components/CardCustomizationModal';
+import CardCustomizationModal from '../../../components/global/CardCustomizationModal';
 import CardHandFan from '../../../components/CardHandFan';
-import type { CardTheme } from '../../../components/CardCustomizationModal';
+import type { CardTheme } from '../../../components/global/CardCustomizationModal';
 import {
   GameState,
   initializeGame,

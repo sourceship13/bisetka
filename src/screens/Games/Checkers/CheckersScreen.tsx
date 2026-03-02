@@ -1,8 +1,11 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, ImageBackground } from 'react-native';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import GameToolbar from '../../../components/GameToolbar';
+import LinearGradient from 'react-native-linear-gradient';
+import GameToolbar from '../../../components/global/GameToolbar';
+import CardCustomizationModal from '../../../components/global/CardCustomizationModal';
+import type { CardTheme } from '../../../components/global/CardCustomizationModal';
 import { aiMoveLogService } from '../../../services/aiMoveLog.service';
 import { socketService } from '../../../services/SocketService';
 import { v4 as uuidv4 } from 'uuid';
@@ -107,6 +110,12 @@ const CheckersScreen = ({ navigation, route }: any) => {
   const [mySocketColor, setMySocketColor] = useState<'white'|'black'|null>(null);
   const [serverTurn,    setServerTurn]    = useState<'white'|'black'>('white');
   const [statusMsg,     setStatusMsg]     = useState('');
+  const [showCustomization, setShowCustomization] = useState(false);
+  const [customTheme, setCustomTheme] = useState<CardTheme | undefined>(undefined);
+
+  const handleSaveTheme = (theme: CardTheme) => {
+    setCustomTheme(theme);
+  };
 
   const myPieceColor: PieceColor = mySocketColor === 'black' ? 'black' : 'red';
   const isMyTurn = isMultiplayer ? serverTurn === mySocketColor : gameState.currentPlayer === 'red';
@@ -302,20 +311,29 @@ const CheckersScreen = ({ navigation, route }: any) => {
   // ── matchmaking screen ────────────────────────────────────────────────────
   if (isMultiplayer && (mpStatus==='connecting'||mpStatus==='searching'||mpStatus==='waiting')) {
     return (
-      <SafeAreaView style={styles.container}>
-        <GameToolbar title="Checkers" onBack={() => { navigation.goBack(); }} />
-        <View style={styles.centeredContent}>
-          <ActivityIndicator size="large" color="#3498db" />
-          <Text style={styles.searchingText}>{statusMsg}</Text>
-          <TouchableOpacity style={styles.cancelButton} onPress={() => {
-            const socket = socketService.getSocket();
-            socket?.emit('cancel_matchmaking', { userId });
-            navigation.goBack();
-          }}>
-            <Text style={styles.cancelText}>Cancel</Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
+      <ImageBackground
+        source={require('../../../../assets/blot/park-background.png')}
+        style={styles.container}
+        blurRadius={3}>
+        <LinearGradient
+          colors={['rgba(0,0,0,0.3)', 'rgba(0,0,0,0.5)']}
+          style={styles.overlay}>
+          <SafeAreaView style={styles.safeArea}>
+            <GameToolbar title="Checkers" onBack={() => { navigation.goBack(); }} backgroundColor="transparent" />
+            <View style={styles.centeredContent}>
+              <ActivityIndicator size="large" color="#3498db" />
+              <Text style={styles.searchingText}>{statusMsg}</Text>
+              <TouchableOpacity style={styles.cancelButton} onPress={() => {
+                const socket = socketService.getSocket();
+                socket?.emit('cancel_matchmaking', { userId });
+                navigation.goBack();
+              }}>
+                <Text style={styles.cancelText}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </SafeAreaView>
+        </LinearGradient>
+      </ImageBackground>
     );
   }
 
@@ -326,14 +344,29 @@ const CheckersScreen = ({ navigation, route }: any) => {
 
   // ── board render ──────────────────────────────────────────────────────────
   return (
-    <SafeAreaView style={styles.container}>
-      <GameToolbar
-        title={isMultiplayer ? 'Checkers (Online)' : mode==='ai' ? 'Checkers (vs AI)' : 'Checkers'}
-        onBack={() => {
-          if (isMultiplayer && roomId) socketService.resign(roomId, userId);
-          navigation.goBack();
-        }}
-      />
+    <ImageBackground
+      source={require('../../../../assets/blot/park-background.png')}
+      style={styles.container}
+      blurRadius={3}>
+      <LinearGradient
+        colors={['rgba(0,0,0,0.3)', 'rgba(0,0,0,0.5)']}
+        style={styles.overlay}>
+        <SafeAreaView style={styles.safeArea}>
+          <GameToolbar
+            title={isMultiplayer ? 'Checkers (Online)' : mode==='ai' ? 'Checkers (vs AI)' : 'Checkers'}
+            onBack={() => {
+              if (isMultiplayer && roomId) socketService.resign(roomId, userId);
+              navigation.goBack();
+            }}
+            backgroundColor="transparent"
+            rightElement={
+              <TouchableOpacity
+                onPress={() => setShowCustomization(true)}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                <Text style={{ fontSize: 20 }}>🎨</Text>
+              </TouchableOpacity>
+            }
+          />
 
       <View style={styles.statusBar}>
         <Text style={styles.turnText}>{turnLabel}</Text>
@@ -345,7 +378,12 @@ const CheckersScreen = ({ navigation, route }: any) => {
       </View>
 
       <View style={styles.boardContainer}>
-        <View style={styles.board}>
+        <ImageBackground
+          source={require('../../../../assets/chess/board.png')}
+          style={styles.board}
+          resizeMode="stretch"
+        >
+          <View style={styles.gridContainer}>
           {Array(8).fill(null).map((_,dRow) => {
             const logRow = myPieceColor==='black' ? 7-dRow : dRow;
             return (
@@ -361,7 +399,6 @@ const CheckersScreen = ({ navigation, route }: any) => {
                       key={`${dRow}-${dCol}`}
                       style={[
                         styles.square,
-                        isLight ? styles.lightSquare : styles.darkSquare,
                         isSel && styles.selectedSquare,
                         isPoss && styles.possibleMoveSquare,
                       ]}
@@ -379,7 +416,8 @@ const CheckersScreen = ({ navigation, route }: any) => {
               </View>
             );
           })}
-        </View>
+          </View>
+        </ImageBackground>
       </View>
 
       {gameState.isGameOver && (
@@ -402,12 +440,23 @@ const CheckersScreen = ({ navigation, route }: any) => {
           </View>
         </View>
       )}
-    </SafeAreaView>
+        </SafeAreaView>
+      </LinearGradient>
+
+      <CardCustomizationModal
+        visible={showCustomization}
+        onClose={() => setShowCustomization(false)}
+        onSave={handleSaveTheme}
+        currentTheme={customTheme}
+      />
+    </ImageBackground>
   );
 };
 
 const styles = StyleSheet.create({
-  container:          { flex:1, backgroundColor:'#2C3E50' },
+  container:          { flex:1 },
+  overlay:            { flex:1 },
+  safeArea:           { flex:1 },
   centeredContent:    { flex:1, justifyContent:'center', alignItems:'center', gap:20, padding:20 },
   searchingText:      { color:'#ecf0f1', fontSize:18, textAlign:'center', marginTop:16 },
   cancelButton:       { marginTop:20, paddingHorizontal:32, paddingVertical:12, backgroundColor:'#e74c3c', borderRadius:8 },
@@ -416,13 +465,14 @@ const styles = StyleSheet.create({
   turnText:           { fontSize:16, fontWeight:'600', color:'#ecf0f1' },
   colorBadge:         { fontSize:13, color:'#bdc3c7', marginTop:2 },
   boardContainer:     { flex:1, justifyContent:'center', alignItems:'center', padding:20 },
-  board:              { width:'100%', maxWidth:400, aspectRatio:1, borderWidth:2, borderColor:'#1a252f' },
+  board:              { width:'100%', maxWidth:500, aspectRatio:1 },
+  gridContainer:      { flex:1, paddingTop:40, paddingBottom:55, paddingHorizontal:50 },
   row:                { flex:1, flexDirection:'row' },
-  square:             { flex:1, justifyContent:'center', alignItems:'center' },
-  lightSquare:        { backgroundColor:'#f0d9b5' },
-  darkSquare:         { backgroundColor:'#b58863' },
-  selectedSquare:     { backgroundColor:'#829769' },
-  possibleMoveSquare: { backgroundColor:'#646f40' },
+  square:             { flex:1, justifyContent:'center', alignItems:'center', backgroundColor:'transparent' },
+  lightSquare:        { backgroundColor:'transparent' },
+  darkSquare:         { backgroundColor:'transparent' },
+  selectedSquare:     { backgroundColor:'rgba(130, 151, 105, 0.6)' },
+  possibleMoveSquare: { backgroundColor:'rgba(100, 111, 64, 0.5)' },
   piece:              { width:'70%', height:'70%', borderRadius:100, justifyContent:'center', alignItems:'center', borderWidth:2, borderColor:'#000' },
   redPiece:           { backgroundColor:'#e74c3c' },
   blackPiece:         { backgroundColor:'#2c3e50' },

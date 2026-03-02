@@ -1,4 +1,4 @@
-import { CustomizationConfig } from '../components/GamePieceCustomizationModal';
+import { CustomizationConfig } from '../components/global/GamePieceCustomizationModal';
 import {
   generateCardBackground,
   generateCardBack,
