@@ -37,6 +37,46 @@ interface Player {
 
 type GamePhase = 'waiting' | 'preflop' | 'flop' | 'turn' | 'river' | 'showdown';
 
+const TURN_SECONDS = 20;
+
+/**
+ * Isolated per-player turn timer. Mounts fresh on each turn (via key prop),
+ * so only this tiny component re-renders on every tick — not the game screen.
+ */
+const PlayerTurnTimer = React.memo(({ onExpire }: { onExpire: () => void }) => {
+  const [remaining, setRemaining] = React.useState(TURN_SECONDS);
+  const onExpireRef = React.useRef(onExpire);
+  React.useEffect(() => { onExpireRef.current = onExpire; });
+
+  React.useEffect(() => {
+    const id = setInterval(() => {
+      setRemaining(prev => {
+        if (prev <= 1) {
+          clearInterval(id);
+          setTimeout(() => onExpireRef.current(), 0);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const pct = remaining / TURN_SECONDS;
+  const barColor = pct > 0.5 ? '#4caf50' : pct > 0.25 ? '#ff9800' : '#f44336';
+
+  return (
+    <View style={{ marginTop: 4 }}>
+      <View style={{ height: 3, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 2, overflow: 'hidden' }}>
+        <View style={{ height: 3, width: `${Math.round(pct * 100)}%`, backgroundColor: barColor, borderRadius: 2 }} />
+      </View>
+      <Text style={{ color: barColor, fontSize: 11, fontWeight: 'bold', textAlign: 'center', marginTop: 2 }}>
+        {remaining}s
+      </Text>
+    </View>
+  );
+});
+
 const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
   const {session, gameType, mode} = route.params;
   const isMultiplayer = mode !== 'ai';
@@ -759,6 +799,18 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
           <Text style={styles.playerChips}>${player.chips}</Text>
           {player.currentBet > 0 && (
             <Text style={styles.playerBet}>Bet: ${player.currentBet}</Text>
+          )}
+          {player.isActive && gamePhase !== 'waiting' && gamePhase !== 'showdown' && (
+            <PlayerTurnTimer
+              key={`turn-${activePlayerIndex}-${player.id}`}
+              onExpire={() => {
+                if (isCurrentPlayer) {
+                  handleFold();
+                } else if (!isMultiplayer) {
+                  simulateAIMove(player.id);
+                }
+              }}
+            />
           )}
         </View>
         {!player.folded && (
