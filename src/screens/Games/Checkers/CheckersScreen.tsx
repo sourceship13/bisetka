@@ -4,8 +4,8 @@ import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import GameToolbar from '../../../components/global/GameToolbar';
-import CardCustomizationModal from '../../../components/global/CardCustomizationModal';
-import type { CardTheme } from '../../../components/global/CardCustomizationModal';
+import GameThemeCustomizer from '../../../components/global/GameThemeCustomizer';
+import type { GameTheme } from '../../../components/global/GameThemeCustomizer';
 import { aiMoveLogService } from '../../../services/aiMoveLog.service';
 import { socketService } from '../../../services/SocketService';
 import { v4 as uuidv4 } from 'uuid';
@@ -111,10 +111,10 @@ const CheckersScreen = ({ navigation, route }: any) => {
   const [serverTurn,    setServerTurn]    = useState<'white'|'black'>('white');
   const [statusMsg,     setStatusMsg]     = useState('');
   const [showCustomization, setShowCustomization] = useState(false);
-  const [customTheme, setCustomTheme] = useState<CardTheme | undefined>(undefined);
+  const [gameTheme, setGameTheme] = useState<GameTheme>({});
 
-  const handleSaveTheme = (theme: CardTheme) => {
-    setCustomTheme(theme);
+  const handleApplyTheme = (theme: GameTheme) => {
+    setGameTheme(theme);
   };
 
   const myPieceColor: PieceColor = mySocketColor === 'black' ? 'black' : 'red';
@@ -443,11 +443,12 @@ const CheckersScreen = ({ navigation, route }: any) => {
         </SafeAreaView>
       </LinearGradient>
 
-      <CardCustomizationModal
+      <GameThemeCustomizer
         visible={showCustomization}
         onClose={() => setShowCustomization(false)}
-        onSave={handleSaveTheme}
-        currentTheme={customTheme}
+        onApply={handleApplyTheme}
+        gameType="checkers"
+        initialTheme={gameTheme}
       />
     </ImageBackground>
   );

@@ -15,9 +15,9 @@ import LinearGradient from 'react-native-linear-gradient';
 import GameToolbar from '../../../components/global/GameToolbar';
 import { CardType, Suit } from '../../../components/Card';
 import DynamicCard from '../../../components/DynamicCard';
-import CardCustomizationModal from '../../../components/global/CardCustomizationModal';
+import CardCustomizationModal from '../../../components/global/GameCustomizationModal';
 import CardHandFan from '../../../components/CardHandFan';
-import type { CardTheme } from '../../../components/global/CardCustomizationModal';
+import type { CardTheme } from '../../../components/global/GameCustomizationModal';
 import {
   GameState,
   initializeGame,
