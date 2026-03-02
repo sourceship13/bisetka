@@ -16,10 +16,10 @@ import tokenService from '../services/token.service';
 import DynamicCard from '../components/DynamicCard';
 import { CardType } from '../components/Card';
 import InGameChat from '../components/InGameChat';
-import GameToolbar from '../components/GameToolbar';
-import CardCustomizationModal from '../components/CardCustomizationModal';
+import GameToolbar from '../components/global/GameToolbar';
+import CardCustomizationModal from '../components/global/CardCustomizationModal';
 import CardHandFan from '../components/CardHandFan';
-import type { CardTheme } from '../components/CardCustomizationModal';
+import type { CardTheme } from '../components/global/CardCustomizationModal';
 
 const { width: SW } = Dimensions.get('window');
 

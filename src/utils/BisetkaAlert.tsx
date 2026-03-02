@@ -1,5 +1,5 @@
 import React from 'react';
-import BisetkaModal, { BisetkaModalButton } from '../components/BisetkaModal';
+import BisetkaModal, { BisetkaModalButton } from '../components/global/BisetkaModal';
 
 /**
  * BisetkaAlert - Custom alert system that replaces React Native's Alert

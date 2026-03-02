@@ -9,7 +9,7 @@ import {
   Dimensions,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import {colors, spacing, typography} from '../theme';
+import {colors, spacing, typography} from '../../theme';
 
 const {width} = Dimensions.get('window');
 

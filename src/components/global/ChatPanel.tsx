@@ -9,8 +9,8 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import chatService, { Message } from '../services/chat.service';
-import chatSocketService from '../services/chatSocket.service';
+import chatService, { Message } from '../../services/chat.service';
+import chatSocketService from '../../services/chatSocket.service';
 
 interface ChatPanelProps {
   chatId: string;

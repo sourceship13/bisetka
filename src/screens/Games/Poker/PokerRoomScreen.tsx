@@ -2,7 +2,7 @@ import React, {useState, useEffect, useRef} from 'react';
 import {View, Text, StyleSheet, TouchableOpacity, ScrollView} from 'react-native';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import GameToolbar from '../../../components/GameToolbar';
+import GameToolbar from '../../../components/global/GameToolbar';
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {RootStackParamList} from '../../../navigation/AppNavigator';
 import { aiMoveLogService } from '../../../services/aiMoveLog.service';
@@ -673,7 +673,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
       <GameToolbar
         title={`Texas Hold'em - ${gamePhase.toUpperCase()}`}
         onBack={() => navigation.goBack()}
-        backgroundColor="#094029"
+        backgroundColor="transparent"
         rightElement={
           <View style={{ alignItems: 'flex-end' }}>
             {timerActive && (

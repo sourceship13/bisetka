@@ -2,7 +2,7 @@ import React, {useState} from 'react';
 import {StyleSheet, StatusBar} from 'react-native';
 import { BisetkaAlert } from '../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import GameModeSelector from '../../components/GameModeSelector';
+import GameModeSelector from '../../components/global/GameModeSelector';
 import TeamModeSelector, { TeamMode } from '../../components/TeamModeSelector';
 import {GAME_LABELS, gameSessionsService} from '../../services/gameSessions.service';
 import {NativeStackScreenProps} from '@react-navigation/native-stack';

@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import GameToolbar from '../../../components/global/GameToolbar';
 import {
   ChessGameState,
   initializeChessGame,
@@ -394,12 +395,6 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
       <TouchableOpacity style={styles.menuButton} onPress={() => setShowJoinModal(true)}>
         <Text style={styles.menuButtonText}>🔗 Join Private Game</Text>
       </TouchableOpacity>
-
-      <TouchableOpacity
-        style={[styles.menuButton, styles.backButton]}
-        onPress={() => navigation.goBack()}>
-        <Text style={styles.menuButtonText}>← Back</Text>
-      </TouchableOpacity>
     </View>
   );
 
@@ -447,6 +442,7 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
 
   return (
     <SafeAreaView style={styles.container}>
+      <GameToolbar title="Multiplayer Chess" onBack={() => navigation.goBack()} backgroundColor="transparent" />
       {mode === 'menu' && renderMenu()}
       {mode === 'matchmaking' && renderMatchmaking()}
       {mode === 'private' && renderPrivateRoom()}
