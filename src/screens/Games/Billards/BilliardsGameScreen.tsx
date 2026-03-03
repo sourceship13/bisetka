@@ -25,11 +25,25 @@ type Props = NativeStackScreenProps<RootStackParamList, 'BilliardsGame'>;
 
 const {width: SCREEN_WIDTH, height: SCREEN_HEIGHT} = Dimensions.get('window');
 
-// Portrait table: fills most of the screen width, taller than wide
-const TABLE_PADDING = 24;
-const RAIL_WIDTH = 14;
-const TABLE_WIDTH = SCREEN_WIDTH - TABLE_PADDING * 2 - RAIL_WIDTH * 2;
-const TABLE_HEIGHT = TABLE_WIDTH * 1.85; // standard pool ratio ~1:2
+// Portrait table: fills the full screen width and available vertical space
+const TABLE_PADDING = 0;
+const RAIL_WIDTH = 0;
+const TABLE_WIDTH = SCREEN_WIDTH;
+// Reserve ~230px for toolbar + power bar + pocketed row + safe-area insets
+const TABLE_HEIGHT = SCREEN_HEIGHT - 230;
+
+// table.png is 1024x1536 with the brown wooden rail baked in.
+// Scanning the image reveals the green felt starts at x=235, y=207.
+// We scale the image up so the felt fills TABLE_WIDTH x TABLE_HEIGHT exactly,
+// then offset it so the brown border is cropped off by overflow:hidden.
+const IMG_W = 1024, IMG_H = 1536;
+const IMG_RAIL_X = 235, IMG_RAIL_Y = 207;
+const IMG_FELT_W = IMG_W - IMG_RAIL_X * 2; // 554px
+const IMG_FELT_H = IMG_H - IMG_RAIL_Y * 2; // 1122px
+const TABLE_IMG_W = TABLE_WIDTH  * (IMG_W / IMG_FELT_W);  // scaled image width
+const TABLE_IMG_H = TABLE_HEIGHT * (IMG_H / IMG_FELT_H);  // scaled image height
+const TABLE_IMG_LEFT = -TABLE_WIDTH  * (IMG_RAIL_X / IMG_FELT_W); // left offset
+const TABLE_IMG_TOP  = -TABLE_HEIGHT * (IMG_RAIL_Y / IMG_FELT_H); // top offset
 const BALL_RADIUS = TABLE_WIDTH * 0.042;
 const POCKET_RADIUS = BALL_RADIUS * 1.6; // slightly forgiving for mobile touch controls, close to real proportions
 const CUE_LENGTH = TABLE_WIDTH * 0.65;
@@ -1493,17 +1507,15 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
       {/* Table */}
       <View style={styles.tableOuter}>
         <View style={styles.tableRail}>
-          {/* Corner diamonds */}
-          {POCKETS.map((p, i) => (
-            <View key={`rail-pocket-${i}`} style={[styles.railPocket, {
-              left: p.x + RAIL_WIDTH - POCKET_RADIUS * 0.8,
-              top: p.y + RAIL_WIDTH - POCKET_RADIUS * 0.8,
-            }]} />
-          ))}
           <ImageBackground
             source={require('../../../../assets/pool/table.png')}
             style={styles.tableFelt}
-            imageStyle={styles.tableFeltImage}
+            imageStyle={{
+              width: TABLE_IMG_W-150,
+              height: TABLE_IMG_H-100,
+              left: TABLE_IMG_LEFT+80,
+              top: TABLE_IMG_TOP+50,
+            }}
             resizeMode="stretch"
             {...panResponder.panHandlers}>
             {/* Pockets */}
@@ -1789,14 +1801,11 @@ const styles = StyleSheet.create({
   powerLabel: {color: '#aaa', fontSize: 11, marginRight: 8, width: 40},
   powerTrack: {flex: 1, height: 6, backgroundColor: '#2a2a2a', borderRadius: 3, overflow: 'hidden'},
   powerFill: {height: '100%', borderRadius: 3},
-  tableOuter: {alignItems: 'center'},
+  tableOuter: {width: '100%'},
   tableRail: {
-    backgroundColor: '#6B3410',
-    borderRadius: 10,
-    padding: RAIL_WIDTH,
-    // Shadow
-    shadowColor: '#000', shadowOffset: {width: 0, height: 4},
-    shadowOpacity: 0.5, shadowRadius: 8, elevation: 10,
+    width: TABLE_WIDTH,
+    height: TABLE_HEIGHT,
+    overflow: 'hidden',
   },
   railPocket: {
     position: 'absolute',
@@ -1809,13 +1818,12 @@ const styles = StyleSheet.create({
   tableFelt: {
     width: TABLE_WIDTH,
     height: TABLE_HEIGHT,
-    borderRadius: 3,
+    borderRadius: 0,
     position: 'relative',
     overflow: 'hidden',
   },
   tableFeltImage: {
-    borderRadius: 3,
-    
+    borderRadius: 0,
   },
   pocket: {
     position: 'absolute',
