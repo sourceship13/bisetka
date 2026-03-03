@@ -23,6 +23,7 @@ import {
 } from '../../../game/chessLogic';
 import ChessPiece from '../../../components/ChessPiece';
 import {socketService, GameMove} from '../../../services/SocketService';
+import tokenService from '../../../services/token.service';
 import { useGameEndRefresh } from '../../../libs/hooks/useGameEndRefresh';
 import InGameChat from '../../../components/InGameChat';
 
@@ -45,10 +46,8 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
   const [showJoinModal, setShowJoinModal] = useState(false);
 
   useEffect(() => {
-    // Connect to socket server
-    connectToServer();
+    // Setup socket listeners FIRST (sync) so no events are missed during connection
 
-    // Setup socket listeners (only once on mount)
     socketService.onMatchmakingStatus((data) => {
       if (data.status === 'searching') {
         setGameStatus('Searching for opponent...');
@@ -58,11 +57,27 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
     socketService.onOpponentJoined((data) => {
       setOpponentId(data.opponent.id);
       setGameStatus('Opponent found! Get ready...');
+      // Player 1 (room creator) must also signal ready so the backend starts the game
+      const liveRoomId = roomIdRef.current;
+      if (liveRoomId) {
+        socketService.playerReady(liveRoomId, userId);
+      }
     });
 
     socketService.onGameStarted((data) => {
       setGameStatus('Game started!');
       setMode('game');
+      // Apply server-assigned color so both players have the correct side
+      if (data.myColor) {
+        myColorRef.current = data.myColor;
+        setMyColor(data.myColor);
+        setIsMyTurn(data.myColor === 'white'); // white always moves first
+      }
+      // Apply server-sent roomId if provided (ensures stale closures resolve correctly)
+      if (data.roomId) {
+        roomIdRef.current = data.roomId;
+        setRoomId(data.roomId);
+      }
       const initialGame = initializeChessGame('medium');
       setGameState(initialGame);
     });
@@ -140,14 +155,20 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
       BisetkaAlert.error('Error', error.message);
     });
 
-    // Auto-start based on route mode
-    if (routeMode === 'random') {
-      handleFindMatch();
-    } else if (routeMode === 'private-create') {
-      handleCreatePrivateRoom();
-    } else if (routeMode === 'private-join' && joinCode) {
-      setJoinRoomCode(joinCode);
-    }
+    // Connect socket first, THEN run auto-start so socket is ready
+    const initialize = async () => {
+      await connectToServer();
+
+      if (routeMode === 'random') {
+        handleFindMatch();
+      } else if (routeMode === 'private-create') {
+        handleCreatePrivateRoom();
+      } else if (routeMode === 'private-join' && joinCode) {
+        // Socket is now connected — safe to trigger join
+        setJoinRoomCode(joinCode);
+      }
+    };
+    initialize();
 
     return () => {
       console.log('🧹 Cleaning up socket listeners');
@@ -166,7 +187,8 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
 
   const connectToServer = async () => {
     try {
-      await socketService.connect(userId, 'temp-token'); // Use real token from auth
+      const token = await tokenService.getAccessToken();
+      await socketService.connect(userId, token || '');
       console.log('Connected to multiplayer server');
     } catch (error) {
       BisetkaAlert.error('Connection Error', 'Failed to connect to server');
@@ -197,7 +219,7 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
 
   const handleCreatePrivateRoom = async () => {
     try {
-      const roomData = await socketService.createPrivateRoom('chess', userId);
+      const roomData = await socketService.createPrivateRoom('chess', userId, joinCode);
       roomIdRef.current = roomData.roomId;
       myColorRef.current = 'white';
       setRoomId(roomData.roomId);

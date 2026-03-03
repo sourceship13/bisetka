@@ -203,7 +203,7 @@ const NardiScreen = ({ navigation, route }: any) => {
         if (routeMode === 'random') {
           socket.emit('find_match', {gameType: 'nardi', userId});
         } else if (routeMode === 'private-create') {
-          const roomData = await socketService.createPrivateRoom('nardi', userId);
+          const roomData = await socketService.createPrivateRoom('nardi', userId, (session as any)?.code);
           if (!cancelled) { onRoomAssigned(roomData); socket.emit('player_ready', {roomId: roomData.roomId, userId}); }
         } else if (routeMode === 'private-join') {
           const joinCode = (session as any)?.code;
