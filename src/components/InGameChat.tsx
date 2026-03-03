@@ -93,6 +93,8 @@ const InGameChat: React.FC<InGameChatProps> = ({
         console.log('[InGameChat] Adding new message to state');
         return [...prev, msg];
       });
+      // Scroll to bottom when new message arrives
+      setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 50);
     };
 
     chatSocketService.onMessage(chatId, handleNew);
@@ -117,6 +119,7 @@ const InGameChat: React.FC<InGameChatProps> = ({
         if (prev.some(m => m.id === message.id)) return prev;
         return [...prev, message];
       });
+      setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 50);
     } catch (err) {
       console.warn('[InGameChat] send error:', err);
       setInputText(text);
@@ -179,13 +182,15 @@ const InGameChat: React.FC<InGameChatProps> = ({
         <View style={styles.messagesWrapper}>
           <FlatList
             ref={flatListRef}
-            data={messages.slice(-3)} // Show only last 3 messages
+            data={messages}
             keyExtractor={item => item.id}
             renderItem={renderMessage}
             contentContainerStyle={styles.messageList}
-            showsVerticalScrollIndicator={false}
-            scrollEnabled={false} // Disable scrolling - always show last 3
-            inverted={false} // Newest at bottom
+            showsVerticalScrollIndicator={true}
+            scrollEnabled={true}
+            inverted={false}
+            onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
+            onLayout={() => flatListRef.current?.scrollToEnd({ animated: false })}
             ListEmptyComponent={null}
           />
         </View>
@@ -238,7 +243,7 @@ const styles = StyleSheet.create({
   messagesWrapper: {
     paddingHorizontal: 16,
     paddingBottom: 8,
-    maxHeight: 200,
+    maxHeight: 260,
   },
   messageList: {
     justifyContent: 'flex-start',
