@@ -1,5 +1,5 @@
 import React, {useState, useEffect, useRef, useCallback} from 'react';
-import {View, Text, StyleSheet, TouchableOpacity, ScrollView, ImageBackground, ActivityIndicator} from 'react-native';
+import {View, Text, StyleSheet, TouchableOpacity, ScrollView, ImageBackground, ActivityIndicator, Clipboard} from 'react-native';
 import { Snackbar } from 'react-native-paper';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -38,8 +38,10 @@ interface Player {
 type GamePhase = 'waiting' | 'preflop' | 'flop' | 'turn' | 'river' | 'showdown';
 
 const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
-  const {session, gameType, mode} = route.params;
+  const {session, gameType, mode, joinCode} = route.params as any;
   const isMultiplayer = mode !== 'ai';
+  const isPrivateCreate = mode === 'private-create';
+  const isPrivateJoin   = mode === 'private-join';
   const userId = session?.userId || session?.user?.id || 'guest-' + Math.random().toString(36).substr(2, 6);
   const rawName: any = session?.displayName || session?.user?.fullName;
   const displayName: string = typeof rawName === 'string' && rawName
@@ -56,6 +58,11 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
   const [waitingRoom, setWaitingRoom] = useState<WaitingRoom | null>(null);
   const waitingCountdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [isConnecting, setIsConnecting] = useState(isMultiplayer);
+  // Private room
+  const [privateRoomCode, setPrivateRoomCode] = useState<string | null>(null);
+  const [isPrivateHost, setIsPrivateHost] = useState(false);
+  const [privateHumanCount, setPrivateHumanCount] = useState(0);
+  const [codeCopied, setCodeCopied] = useState(false);
   
   const [players, setPlayers] = useState<Player[]>([]);
   const [communityCards, setCommunityCards] = useState<Card[]>([]);
@@ -149,20 +156,33 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
           setMySeat(data.seatIndex);
         });
 
+        // Private room created (host gets code back)
+        socketService.onPokerPrivateCreated((data) => {
+          if (!mounted) return;
+          tableIdRef.current = data.tableId;
+          mySeatRef.current = data.seatIndex;
+          setTableId(data.tableId);
+          setMySeat(data.seatIndex);
+          setPrivateRoomCode(data.roomCode);
+          setIsPrivateHost(true);
+        });
+
         socketService.onPokerRoomUpdate((data) => {
           if (!mounted) return;
-          // Start visual countdown
+          if (data.isPrivate) setPrivateHumanCount(data.humanCount);
           if (waitingCountdownRef.current) clearInterval(waitingCountdownRef.current);
           let remaining = data.waitSeconds;
           setWaitingRoom({ seats: data.seats, humanCount: data.humanCount, waitSeconds: data.waitSeconds, countdown: remaining });
-          waitingCountdownRef.current = setInterval(() => {
-            remaining--;
-            if (remaining <= 0) {
-              if (waitingCountdownRef.current) clearInterval(waitingCountdownRef.current);
-              return;
-            }
-            setWaitingRoom(prev => prev ? { ...prev, countdown: remaining } : null);
-          }, 1000);
+          if (remaining > 0) {
+            waitingCountdownRef.current = setInterval(() => {
+              remaining--;
+              if (remaining <= 0) {
+                if (waitingCountdownRef.current) clearInterval(waitingCountdownRef.current);
+                return;
+              }
+              setWaitingRoom(prev => prev ? { ...prev, countdown: remaining } : null);
+            }, 1000);
+          }
         });
 
         socketService.onPokerGameStarted((data) => {
@@ -190,7 +210,13 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
           );
         });
 
-        socketService.joinPokerMatchmaking(userId, displayName);
+        if (isPrivateCreate) {
+          socketService.createPokerPrivateRoom(userId, displayName);
+        } else if (isPrivateJoin && joinCode) {
+          socketService.joinPokerPrivateRoom(joinCode as string, userId, displayName);
+        } else {
+          socketService.joinPokerMatchmaking(userId, displayName);
+        }
         // Keep isConnecting=true until poker_game_started arrives
       } catch (err) {
         console.error('Poker socket connect error:', err);
@@ -785,13 +811,33 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
           {isConnecting && !waitingRoom ? (
             <>
               <ActivityIndicator size="large" color="#FFD700" />
-              <Text style={styles.waitingTitle}>Finding a table…</Text>
+              <Text style={styles.waitingTitle}>
+                {isPrivateCreate ? 'Creating private table…' : isPrivateJoin ? 'Joining private table…' : 'Finding a table…'}
+              </Text>
             </>
           ) : waitingRoom ? (
             <>
-              <Text style={styles.waitingTitle}>♠️ Texas Hold’em</Text>
-              <Text style={styles.waitingSubtitle}>Waiting for players…</Text>
-              <Text style={styles.waitingCountdown}>{waitingRoom.countdown}s</Text>
+              <Text style={styles.waitingTitle}>♠️ Texas Hold'em</Text>
+
+              {/* Private room code */}
+              {privateRoomCode ? (
+                <View style={styles.privateCodeBlock}>
+                  <Text style={styles.privateCodeLabel}>PRIVATE ROOM CODE</Text>
+                  <Text style={styles.privateCodeValue}>{privateRoomCode}</Text>
+                  <TouchableOpacity
+                    style={styles.copyCodeBtn}
+                    onPress={() => {
+                      Clipboard.setString(privateRoomCode);
+                      setCodeCopied(true);
+                      setTimeout(() => setCodeCopied(false), 2000);
+                    }}>
+                    <Text style={styles.copyCodeBtnText}>{codeCopied ? '✓ Copied!' : 'Copy Code'}</Text>
+                  </TouchableOpacity>
+                  <Text style={styles.privateCodeHint}>Share this code with friends to join</Text>
+                </View>
+              ) : null}
+
+              {/* Seats */}
               <View style={styles.waitingSeats}>
                 {waitingRoom.seats.map((seat, idx) => (
                   <View key={idx} style={[styles.waitingSeat, seat ? styles.waitingSeatFilled : styles.waitingSeatEmpty]}>
@@ -800,9 +846,35 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
                   </View>
                 ))}
               </View>
-              <Text style={styles.waitingInfo}>
-                {waitingRoom.humanCount} / 6 players found — empty seats will be filled by AI
-              </Text>
+
+              {/* Countdown vs player count */}
+              {privateRoomCode ? (
+                <Text style={styles.waitingSubtitle}>{privateHumanCount} / 6 players joined</Text>
+              ) : (
+                <>
+                  <Text style={styles.waitingCountdown}>{waitingRoom.countdown}s</Text>
+                  <Text style={styles.waitingInfo}>
+                    {waitingRoom.humanCount} / 6 players found — empty seats will be filled by AI
+                  </Text>
+                </>
+              )}
+
+              {isPrivateJoin && !isPrivateHost && !!privateRoomCode && (
+                <Text style={styles.waitingInfo}>Waiting for host to start the game…</Text>
+              )}
+
+              {isPrivateHost && (
+                <TouchableOpacity
+                  style={[styles.startPrivateBtn, privateHumanCount < 2 && styles.startPrivateBtnDisabled]}
+                  disabled={privateHumanCount < 2}
+                  onPress={() => {
+                    if (tableIdRef.current) socketService.startPokerPrivateRoom(tableIdRef.current, userId);
+                  }}>
+                  <Text style={styles.startPrivateBtnText}>
+                    {privateHumanCount < 2 ? 'Waiting for players…' : 'Start Game'}
+                  </Text>
+                </TouchableOpacity>
+              )}
             </>
           ) : null}
         </View>
@@ -975,6 +1047,61 @@ const styles = StyleSheet.create({
     fontSize: 13,
     textAlign: 'center',
     marginTop: 8,
+  },
+  privateCodeBlock: {
+    backgroundColor: 'rgba(255,215,0,0.1)',
+    borderWidth: 2,
+    borderColor: '#FFD700',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    marginBottom: 16,
+    width: '85%',
+  },
+  privateCodeLabel: {
+    color: '#FFD700',
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 2,
+    marginBottom: 6,
+  },
+  privateCodeValue: {
+    color: '#fff',
+    fontSize: 40,
+    fontWeight: 'bold',
+    letterSpacing: 10,
+    marginBottom: 10,
+  },
+  copyCodeBtn: {
+    backgroundColor: '#FFD700',
+    borderRadius: 8,
+    paddingHorizontal: 18,
+    paddingVertical: 8,
+    marginBottom: 8,
+  },
+  copyCodeBtnText: {
+    color: '#000',
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
+  privateCodeHint: {
+    color: '#aaa',
+    fontSize: 12,
+  },
+  startPrivateBtn: {
+    marginTop: 20,
+    backgroundColor: '#27ae60',
+    borderRadius: 10,
+    paddingHorizontal: 36,
+    paddingVertical: 14,
+  },
+  startPrivateBtnDisabled: {
+    backgroundColor: '#555',
+  },
+  startPrivateBtnText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
   },
   header: {
     padding: 15,

@@ -67,9 +67,19 @@ interface BaazarGameState {
 const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
   const userId = route.params?.userId || 'test-user-' + Math.random().toString(36).substr(2, 9);
   const teamMode: 'hybrid' | 'full-multiplayer' = route.params?.teamMode ?? 'hybrid';
-  
-  const [gameMode, setGameMode] = useState<'menu' | 'matchmaking' | 'game'>('menu');
+  const initialMode = route.params?.mode; // 'random' | 'private-create' | 'private-join'
+  const initialJoinCode: string | undefined = route.params?.joinCode;
+
+  const getInitialGameMode = () => {
+    if (initialMode === 'private-create') return 'private';
+    if (initialMode === 'private-join') return 'matchmaking';
+    if (initialMode === 'random') return 'matchmaking';
+    return 'menu';
+  };
+
+  const [gameMode, setGameMode] = useState<'menu' | 'matchmaking' | 'private' | 'game'>(getInitialGameMode());
   const [roomId, setRoomId] = useState<string | null>(null);
+  const [roomCode, setRoomCode] = useState<string>('');
   const [players, setPlayers] = useState<GamePlayer[]>([]);
   const [myPosition, setMyPosition] = useState<number>(-1);
   const [myTeam, setMyTeam] = useState<1 | 2>(1);
@@ -221,6 +231,28 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
         console.error('❌ Socket error:', error);
         BisetkaAlert.error('Error', error.message);
       });
+
+      // Private room creation event
+      socket.on('baazar_room_created', (data: { roomId: string; roomCode: string }) => {
+        setRoomId(data.roomId);
+        setRoomCode(data.roomCode);
+        setMyPosition(0);
+        setMyTeam(1);
+        setGameMode('private');
+      });
+
+      // Auto-start private flows after listeners are ready
+      if (initialMode === 'private-create') {
+        socket.emit('create_baazar_private_room', { userId, desiredCode: initialJoinCode });
+      } else if (initialMode === 'private-join' && initialJoinCode) {
+        socket.emit('join_baazar_private_room', { roomCode: initialJoinCode, userId });
+      } else if (initialMode === 'random') {
+        if (teamMode === 'full-multiplayer') {
+          socket.emit('find_baazar_teams_match', { userId });
+        } else {
+          socket.emit('find_baazar_match', { userId });
+        }
+      }
     };
 
     setupSocketListeners();
@@ -233,6 +265,7 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
         socket.off('baazar_bid_made');
         socket.off('baazar_card_played');
         socket.off('baazar_game_ended');
+        socket.off('baazar_room_created');
         socket.off('error');
       }
     };
@@ -381,6 +414,38 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
           <TouchableOpacity style={styles.cancelBtn} onPress={handleCancelMatchmaking}>
             <Text style={styles.cancelBtnText}>Cancel</Text>
           </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    </ImageBackground>
+  );
+
+  const renderPrivateRoom = () => (
+    <ImageBackground
+      source={require('../../assets/blot/park-background.png')}
+      style={styles.bg}
+      resizeMode="cover">
+      <LinearGradient
+        colors={['rgba(0,0,0,0.55)', 'rgba(0,40,0,0.72)']}
+        style={StyleSheet.absoluteFill}
+      />
+      <SafeAreaView style={styles.safe}>
+        <GameToolbar
+          title="Bazaar Blot"
+          onBack={() => navigation.goBack()}
+          backgroundColor="transparent"
+        />
+        <View style={styles.menuBody}>
+          <Text style={styles.bigTitle}>🔒 Private Room</Text>
+          <Text style={styles.subtitle}>Share this code with your opponent</Text>
+
+          <View style={[styles.infoBox, { paddingVertical: 24, paddingHorizontal: 32, marginVertical: 24 }]}>
+            <Text style={{ fontSize: 42, fontWeight: 'bold', color: '#FFD700', letterSpacing: 8 }}>
+              {roomCode}
+            </Text>
+          </View>
+
+          <ActivityIndicator size="small" color="#FFD700" style={{ marginTop: 16 }} />
+          <Text style={[styles.statusText, { marginTop: 12 }]}>Waiting for opponent to join…</Text>
         </View>
       </SafeAreaView>
     </ImageBackground>
@@ -766,6 +831,7 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
     </>
   );
   if (gameMode === 'matchmaking') return renderMatchmaking();
+  if (gameMode === 'private') return renderPrivateRoom();
   if (gameMode === 'game') return (
     <>
       {renderGame()}

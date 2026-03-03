@@ -14,6 +14,16 @@ type Props = NativeStackScreenProps<RootStackParamList, 'GameMode'>;
 
 type SessionMode = 'random' | 'ai' | 'private-create' | 'private-join';
 
+// Games whose private rooms live entirely in the socket layer (no REST/DB session).
+// For these, skip the REST API and navigate straight to the game screen.
+const SOCKET_BASED_GAMES = new Set([
+  'poker',
+  'chess-multiplayer',
+  'blot',
+  'baazar-blot',
+  'cards',
+]);
+
 // Map game types to their actual game screens
 const GAME_SCREEN_MAP: Record<string, keyof RootStackParamList> = {
   // Card games
@@ -131,6 +141,7 @@ const GameModeScreen: React.FC<Props> = ({route, navigation}) => {
           session: { ...sessionData, userId: user?.id || 'guest', displayName: resolvedName },
           gameType: gameType as any,
           mode: mode,
+          joinCode: sessionData.code,
         } as any);
         break;
       }
@@ -186,7 +197,9 @@ const GameModeScreen: React.FC<Props> = ({route, navigation}) => {
         } else {
           navigation.replace('MultiplayerBaazarBlot' as any, {
             userId: user?.id || 'guest',
-            teamMode: teamMode, // Pass team mode
+            mode: mode,
+            joinCode: sessionData.code,
+            teamMode: teamMode,
           });
         }
         break;
@@ -225,7 +238,8 @@ const GameModeScreen: React.FC<Props> = ({route, navigation}) => {
       const result = await action();
       handleSuccess(mode, result);
     } catch (error: any) {
-      BisetkaAlert.error('Unable to start game', error?.message || 'Unexpected error');
+      const title = mode === 'private-join' ? 'Unable to join game' : 'Unable to start game';
+      BisetkaAlert.error(title, error?.message || 'Unexpected error. Please try again.');
     } finally {
       setLoading(prev => ({...prev, [key]: false}));
     }
@@ -272,16 +286,26 @@ const GameModeScreen: React.FC<Props> = ({route, navigation}) => {
               return gameSessionsService.createAiMatch(gameType);
             })
           }
-          onCreatePrivate={() =>
+          onCreatePrivate={() => {
+            if (SOCKET_BASED_GAMES.has(gameType)) {
+              // Socket-managed room — navigate immediately, let the game screen create via socket
+              navigateToGame('private-create', {});
+              return;
+            }
             withLoading('private', 'private-create', async () => {
               return gameSessionsService.createPrivateMatch(gameType);
-            })
-          }
-          onJoinPrivate={code =>
+            });
+          }}
+          onJoinPrivate={code => {
+            if (SOCKET_BASED_GAMES.has(gameType)) {
+              // Socket-managed room — navigate with the entered code; game screen joins via socket
+              navigateToGame('private-join', { code });
+              return;
+            }
             withLoading('join', 'private-join', async () => {
               return gameSessionsService.joinPrivateMatch(gameType, code);
-            })
-          }
+            });
+          }}
         />
       )}
     </SafeAreaView>
