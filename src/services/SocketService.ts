@@ -148,14 +148,14 @@ class SocketService {
   }
 
   // Create private room
-  createPrivateRoom(gameType: string, userId: string): Promise<any> {
+  createPrivateRoom(gameType: string, userId: string, desiredCode?: string): Promise<any> {
     return new Promise((resolve, reject) => {
       if (!this.socket) {
         reject(new Error('Not connected'));
         return;
       }
 
-      this.socket.emit('create_private_room', { gameType, userId });
+      this.socket.emit('create_private_room', { gameType, userId, desiredCode });
 
       this.socket.once('room_created', (data) => {
         resolve(data);
@@ -261,8 +261,24 @@ class SocketService {
     this.socket?.emit('cancel_poker_matchmaking', { userId });
   }
 
+  createPokerPrivateRoom(userId: string, displayName: string): void {
+    this.socket?.emit('create_poker_private_room', { userId, displayName });
+  }
+
+  joinPokerPrivateRoom(roomCode: string, userId: string, displayName: string): void {
+    this.socket?.emit('join_poker_private_room', { roomCode, userId, displayName });
+  }
+
+  startPokerPrivateRoom(tableId: string, userId: string): void {
+    this.socket?.emit('start_poker_private', { tableId, userId });
+  }
+
   sendPokerAction(tableId: string, action: 'fold' | 'call' | 'raise' | 'check', amount?: number): void {
     this.socket?.emit('poker_action', { tableId, action, amount });
+  }
+
+  rejoinPoker(userId: string): void {
+    this.socket?.emit('rejoin_poker', { userId });
   }
 
   onPokerJoined(cb: (data: { tableId: string; seatIndex: number }) => void) {
@@ -277,6 +293,10 @@ class SocketService {
     this.socket?.on('poker_game_started', cb);
   }
 
+  onPokerPrivateCreated(cb: (data: { tableId: string; roomCode: string; seatIndex: number }) => void) {
+    this.socket?.on('poker_private_created', cb);
+  }
+
   onPokerStateUpdate(cb: (data: any) => void) {
     this.socket?.on('poker_state_update', cb);
   }
@@ -285,16 +305,27 @@ class SocketService {
     this.socket?.on('poker_hand_result', cb);
   }
 
+  onPokerTurnTimeout(cb: (data: { tableId: string; seat: number; message: string }) => void) {
+    this.socket?.on('poker_turn_timeout', cb);
+  }
+
+  onPokerPlayerDisconnected(cb: (data: { tableId: string; seat: number; displayName: string }) => void) {
+    this.socket?.on('poker_player_disconnected', cb);
+  }
+
   onPokerMatchmakingCancelled(cb: () => void) {
     this.socket?.on('poker_matchmaking_cancelled', cb);
   }
 
   offPokerEvents() {
     this.socket?.off('poker_joined');
+    this.socket?.off('poker_private_created');
     this.socket?.off('poker_room_update');
     this.socket?.off('poker_game_started');
     this.socket?.off('poker_state_update');
     this.socket?.off('poker_hand_result');
+    this.socket?.off('poker_turn_timeout');
+    this.socket?.off('poker_player_disconnected');
     this.socket?.off('poker_matchmaking_cancelled');
   }
 

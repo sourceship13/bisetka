@@ -1,4 +1,4 @@
-import React, {useState, useRef} from 'react';
+import React, {useState, useRef, useEffect} from 'react';
 import {
   View,
   Text,
@@ -9,7 +9,9 @@ import {
   Animated,
   Platform,
   Image,
-  Alert,
+  TextInput,
+  ActivityIndicator,
+  KeyboardAvoidingView,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
@@ -17,6 +19,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import pushNotificationService from '../../services/pushNotification.service';
 import apiService from '../../services/api.service';
 import {colors} from '../../theme/colors';
+import {useAuth} from '../../libs/hooks/useAuth';
 
 const BisetkaLogo = require('../../../assets/imgs/bisetka-logo.png');
 
@@ -29,9 +32,10 @@ interface Slide {
   emoji: string;
   gradient: [string, string];
   isNotificationSlide?: boolean;
+  isUsernameSlide?: boolean;
 }
 
-const slides: Slide[] = [
+const BASE_SLIDES: Slide[] = [
   {
     id: '1',
     title: 'Play Classic Games',
@@ -67,13 +71,66 @@ const slides: Slide[] = [
   },
 ];
 
+const USERNAME_SLIDE: Slide = {
+  id: '5',
+  title: 'Choose Your Username',
+  description: 'Pick a unique username so other players can find and challenge you.',
+  emoji: '👤',
+  gradient: ['#4facfe', '#00f2fe'],
+  isUsernameSlide: true,
+};
+
 const ONBOARDING_COMPLETE_KEY = '@bisetka_onboarding_complete';
 
-const OnboardingScreen: React.FC<{navigation: any}> = ({navigation}) => {
+const OnboardingScreen: React.FC<{navigation: any; route?: any}> = ({navigation}) => {
+  const {user, setUser} = useAuth();
+
+  // Derive directly from the live user object — never stale, no param-timing issues
+  const needsUsernameSelection: boolean = !!(
+    user?.needsUsernameSelection ||
+    !user?.username ||
+    user?.username?.includes('null') ||
+    user?.username?.includes('undefined') ||
+    user?.username?.startsWith('user_')
+  );
+  const slides = needsUsernameSelection ? [...BASE_SLIDES, USERNAME_SLIDE] : BASE_SLIDES;
+
   const [currentIndex, setCurrentIndex] = useState(0);
   const [notificationStatus, setNotificationStatus] = useState<'pending' | 'granted' | 'denied' | 'blocked'>('pending');
+
+  // Username slide state
+  const [username, setUsername] = useState('');
+  const [checking, setChecking] = useState(false);
+  const [available, setAvailable] = useState<boolean | null>(null);
+  const [usernameMessage, setUsernameMessage] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
   const flatListRef = useRef<FlatList>(null);
   const scrollX = useRef(new Animated.Value(0)).current;
+
+  // Debounced username availability check
+  useEffect(() => {
+    if (!needsUsernameSelection) return;
+    if (username.length < 3) {
+      setAvailable(null);
+      setUsernameMessage('');
+      return;
+    }
+    const timeoutId = setTimeout(async () => {
+      try {
+        setChecking(true);
+        const result = await apiService.checkUsername(username);
+        setAvailable(result.available);
+        setUsernameMessage(result.message);
+      } catch (error) {
+        setUsernameMessage('Error checking availability');
+        setAvailable(null);
+      } finally {
+        setChecking(false);
+      }
+    }, 500);
+    return () => clearTimeout(timeoutId);
+  }, [username, needsUsernameSelection]);
 
   const handleNext = () => {
     if (currentIndex < slides.length - 1) {
@@ -109,6 +166,22 @@ const OnboardingScreen: React.FC<{navigation: any}> = ({navigation}) => {
   };
 
   const handleGetStarted = async () => {
+    if (needsUsernameSelection) {
+      if (!available) return;
+      try {
+        setSubmitting(true);
+        const response = await apiService.updateUsername(username);
+        const updatedUser = {...response.user, needsUsernameSelection: false};
+        setUser(updatedUser);
+      } catch (error: any) {
+        setUsernameMessage(error.message || 'Failed to set username. Try again.');
+        setAvailable(false);
+        setSubmitting(false);
+        return;
+      } finally {
+        setSubmitting(false);
+      }
+    }
     await completeOnboarding();
   };
 
@@ -139,7 +212,9 @@ const OnboardingScreen: React.FC<{navigation: any}> = ({navigation}) => {
   };
 
   const renderSlide = ({item}: {item: Slide}) => (
-    <View style={slideStyles.slide}>
+    <KeyboardAvoidingView
+      style={slideStyles.slide}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <View style={slideStyles.slideContent}>
         {/* Emoji Icon */}
         <LinearGradient
@@ -152,7 +227,7 @@ const OnboardingScreen: React.FC<{navigation: any}> = ({navigation}) => {
         <Text style={slideStyles.slideTitle}>{item.title}</Text>
         <Text style={slideStyles.slideDescription}>{item.description}</Text>
 
-        {/* Notification button on last slide */}
+        {/* Notification button on notification slide */}
         {item.isNotificationSlide && notificationStatus === 'pending' && (
           <TouchableOpacity
             style={slideStyles.notifButton}
@@ -169,9 +244,7 @@ const OnboardingScreen: React.FC<{navigation: any}> = ({navigation}) => {
         )}
         {item.isNotificationSlide && notificationStatus === 'granted' && (
           <View style={slideStyles.notifStatus}>
-            <Text style={slideStyles.notifStatusText}>
-              ✅ Notifications enabled!
-            </Text>
+            <Text style={slideStyles.notifStatusText}>✅ Notifications enabled!</Text>
           </View>
         )}
         {item.isNotificationSlide && notificationStatus === 'denied' && (
@@ -203,8 +276,39 @@ const OnboardingScreen: React.FC<{navigation: any}> = ({navigation}) => {
             </TouchableOpacity>
           </View>
         )}
+
+        {/* Username input on username slide */}
+        {item.isUsernameSlide && (
+          <View style={slideStyles.usernameContainer}>
+            <View style={slideStyles.usernameInputRow}>
+              <TextInput
+                style={slideStyles.usernameInput}
+                value={username}
+                onChangeText={setUsername}
+                placeholder="Enter username"
+                placeholderTextColor={colors.text.tertiary}
+                autoCapitalize="none"
+                autoCorrect={false}
+                maxLength={20}
+                autoFocus={false}
+              />
+              <Text style={slideStyles.usernameStatusIcon}>
+                {checking ? '⏳' : available === true ? '✅' : available === false ? '❌' : '🔤'}
+              </Text>
+            </View>
+            {username.length >= 3 && (
+              <Text style={[slideStyles.usernameStatusText,
+                {color: available === true ? '#38ef7d' : available === false ? '#f5576c' : colors.text.secondary}]}>
+                {usernameMessage}
+              </Text>
+            )}
+            <Text style={slideStyles.usernameHint}>
+              3–20 characters · letters, numbers and underscores only
+            </Text>
+          </View>
+        )}
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 
   const dotPosition = Animated.divide(scrollX, screenWidth);
@@ -218,7 +322,7 @@ const OnboardingScreen: React.FC<{navigation: any}> = ({navigation}) => {
         {/* Header: Skip + Logo */}
         <View style={slideStyles.header}>
           <View style={{width: 60}}>
-            {!isLastSlide && (
+            {!isLastSlide && !needsUsernameSelection && (
               <TouchableOpacity onPress={handleSkip}>
                 <Text style={slideStyles.skipText}>Skip</Text>
               </TouchableOpacity>
@@ -275,12 +379,24 @@ const OnboardingScreen: React.FC<{navigation: any}> = ({navigation}) => {
         {/* Button */}
         <View style={slideStyles.buttonContainer}>
           {isLastSlide ? (
-            <TouchableOpacity onPress={handleGetStarted} activeOpacity={0.8}>
+            <TouchableOpacity
+              onPress={handleGetStarted}
+              activeOpacity={0.8}
+              disabled={submitting || (needsUsernameSelection && !available)}
+              style={{opacity: submitting || (needsUsernameSelection && !available) ? 0.5 : 1}}>
               <LinearGradient
                 colors={[colors.primary, colors.primaryDark]}
                 style={slideStyles.button}>
-                <Text style={slideStyles.buttonText}>Get Started</Text>
-                <Text style={{fontSize: 18, color: '#fff'}}>→</Text>
+                {submitting ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <>
+                    <Text style={slideStyles.buttonText}>
+                      {needsUsernameSelection ? 'Set Username & Start' : 'Get Started'}
+                    </Text>
+                    <Text style={{fontSize: 18, color: '#fff'}}>→</Text>
+                  </>
+                )}
               </LinearGradient>
             </TouchableOpacity>
           ) : (
@@ -422,6 +538,42 @@ const slideStyles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '700',
     color: '#fff',
+  },
+  usernameContainer: {
+    marginTop: 28,
+    width: '100%',
+  },
+  usernameInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.25)',
+    paddingHorizontal: 16,
+    paddingRight: 12,
+  },
+  usernameInput: {
+    flex: 1,
+    paddingVertical: 14,
+    fontSize: 16,
+    color: colors.text.primary,
+  },
+  usernameStatusIcon: {
+    fontSize: 20,
+    marginLeft: 8,
+  },
+  usernameStatusText: {
+    fontSize: 13,
+    fontWeight: '600',
+    marginTop: 6,
+    marginLeft: 4,
+  },
+  usernameHint: {
+    fontSize: 12,
+    color: colors.text.tertiary,
+    marginTop: 6,
+    marginLeft: 4,
   },
 });
 
