@@ -10,6 +10,7 @@ import { aiMoveLogService } from '../../../services/aiMoveLog.service';
 import { socketService } from '../../../services/SocketService';
 import { v4 as uuidv4 } from 'uuid';
 import { useGameEndRefresh } from '../../../libs/hooks/useGameEndRefresh';
+import InGameChat from '../../../components/InGameChat';
 
 type PieceType = 'regular' | 'king';
 type PieceColor = 'red' | 'black';
@@ -449,6 +450,14 @@ const CheckersScreen = ({ navigation, route }: any) => {
         onApply={handleApplyTheme}
         gameType="checkers"
         initialTheme={gameTheme}
+      />
+
+      {/* In-game chat overlay (multiplayer only) */}
+      <InGameChat
+        roomId={roomId || ''}
+        currentUserId={userId}
+        gameType="checkers"
+        visible={isMultiplayer && !!roomId}
       />
     </ImageBackground>
   );
