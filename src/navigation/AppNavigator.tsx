@@ -133,14 +133,17 @@ const AppNavigator = () => {
           {!user ? (
             // Auth Stack - User is NOT signed in
             <Stack.Screen name="Login" component={LoginScreen} />
-          ) : needsUsername ? (
-            // Username Selection - User needs to pick a username
+          ) : needsUsername && !needsOnboarding ? (
+            // Returning user who needs a username but already saw onboarding
             <Stack.Screen name="UsernameSelection" component={UsernameSelectionScreen} />
           ) : (
-            // App Stack - User IS signed in with valid username
+            // App Stack - User IS signed in
             <>
-              {needsOnboarding && (
-                <Stack.Screen name="Onboarding" component={OnboardingScreen} />
+              {(needsOnboarding || needsUsername) && (
+                <Stack.Screen
+                  name="Onboarding"
+                  component={OnboardingScreen}
+                />
               )}
               <Stack.Screen name="Home" component={HomeScreen} />
               <Stack.Screen name="Blot" component={BlotScreen} />

@@ -133,7 +133,7 @@ const GameModeScreen: React.FC<Props> = ({route, navigation}) => {
         navigation.replace('Checkers', {session: sessionData, mode: mode} as any);
         break;
       case 'Mrotsi':
-        navigation.replace('Mrotsi', {session: sessionData} as any);
+        navigation.replace('Mrotsi', {session: sessionData, gameType: gameType, mode: mode} as any);
         break;
       case 'Chess':
         navigation.replace('Chess' as any);
