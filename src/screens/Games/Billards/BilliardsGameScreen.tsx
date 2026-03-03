@@ -20,6 +20,7 @@ import { useGameEndRefresh } from '../../../libs/hooks/useGameEndRefresh';
 import {socketService} from '../../../services/SocketService';
 import {useAuth} from '../../../libs/hooks/useAuth';
 import BisetkaAlert from '../../../utils/BisetkaAlert';
+import InGameChat from '../../../components/InGameChat';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'BilliardsGame'>;
 
@@ -1782,6 +1783,14 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
           {isMultiplayer ? '🌐 Online' : `AI: ${difficulty}`}
         </Text>
       </View>
+
+      {/* In-game chat overlay (multiplayer only) */}
+      <InGameChat
+        roomId={roomId || ''}
+        currentUserId={userId}
+        gameType={variant}
+        visible={isMultiplayer && !!roomId}
+      />
     </SafeAreaView>
   );
 };
