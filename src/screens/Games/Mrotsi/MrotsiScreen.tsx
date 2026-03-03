@@ -22,7 +22,8 @@ interface GameState {
 }
 
 const MrotsiScreen = ({navigation, route}: any) => {
-  const {session, gameType, mode} = route.params || {};
+  const {session, gameType, mode: routeMode} = route.params || {};
+  const mode = routeMode ?? session?.mode ?? 'ai'; // fall back to session.mode; default to 'ai' so AI always works
   const [gameState, setGameState] = useState<GameState>(initializeGame(mode));
   const [diceAnimations] = useState(
     Array(5).fill(0).map(() => new Animated.Value(0))
