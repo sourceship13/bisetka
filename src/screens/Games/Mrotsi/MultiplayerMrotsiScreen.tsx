@@ -234,7 +234,7 @@ const MultiplayerMrotsiScreen = ({navigation, route}: any) => {
 
   const handleCreatePrivateRoom = async () => {
     try {
-      const roomData = await socketService.createPrivateRoom('mrotsi', userId);
+      const roomData = await socketService.createPrivateRoom('mrotsi', userId, joinCode);
       roomIdRef.current = roomData.roomId;
       mySlotRef.current = 'player1';
       setMySlot('player1');

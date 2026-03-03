@@ -52,13 +52,13 @@ export const gameSessionsService = {
   createPrivateMatch: (gameType: GameType) =>
     request(`/games/${gameType}/private`, {
       method: 'POST',
-    }),
+    }).then((s: any) => ({ ...s, code: s.access_code ?? s.code })),
 
   joinPrivateMatch: (gameType: GameType, code: string) =>
     request(`/games/${gameType}/private/join`, {
       method: 'POST',
       body: JSON.stringify({ code }),
-    }),
+    }).then((s: any) => ({ ...s, code: s.access_code ?? s.code })),
 
   createAiMatch: (gameType: GameType, difficulty: 'easy' | 'medium' | 'hard' = 'medium') =>
     request(`/games/${gameType}/ai`, {

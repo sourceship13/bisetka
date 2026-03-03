@@ -68,5 +68,16 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<false/>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>bisetka</string>
+			</array>
+			<key>CFBundleURLName</key>
+			<string>com.nolimit.bisetka</string>
+		</dict>
+	</array>
 </dict>
 </plist>
