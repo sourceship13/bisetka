@@ -8,6 +8,7 @@ import {
   PanResponder,
   Animated,
   Easing,
+  ImageBackground,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import GameToolbar from '../../../components/global/GameToolbar';
@@ -16,23 +17,42 @@ import {RootStackParamList} from '../../../navigation/AppNavigator';
 import {aiMoveLogService} from '../../../services/aiMoveLog.service';
 import {v4 as uuidv4} from 'uuid';
 import { useGameEndRefresh } from '../../../libs/hooks/useGameEndRefresh';
+import {socketService} from '../../../services/SocketService';
+import {useAuth} from '../../../libs/hooks/useAuth';
+import BisetkaAlert from '../../../utils/BisetkaAlert';
+import InGameChat from '../../../components/InGameChat';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'BilliardsGame'>;
 
 const {width: SCREEN_WIDTH, height: SCREEN_HEIGHT} = Dimensions.get('window');
 
-// Portrait table: fills most of the screen width, taller than wide
-const TABLE_PADDING = 24;
-const RAIL_WIDTH = 14;
-const TABLE_WIDTH = SCREEN_WIDTH - TABLE_PADDING * 2 - RAIL_WIDTH * 2;
-const TABLE_HEIGHT = TABLE_WIDTH * 1.85; // standard pool ratio ~1:2
+// Portrait table: fills the full screen width and available vertical space
+const TABLE_PADDING = 0;
+const RAIL_WIDTH = 0;
+const TABLE_WIDTH = SCREEN_WIDTH;
+// Reserve ~230px for toolbar + power bar + pocketed row + safe-area insets
+const TABLE_HEIGHT = SCREEN_HEIGHT - 230;
+
+// table.png is 1024x1536 with the brown wooden rail baked in.
+// Scanning the image reveals the green felt starts at x=235, y=207.
+// We scale the image up so the felt fills TABLE_WIDTH x TABLE_HEIGHT exactly,
+// then offset it so the brown border is cropped off by overflow:hidden.
+const IMG_W = 1024, IMG_H = 1536;
+const IMG_RAIL_X = 235, IMG_RAIL_Y = 207;
+const IMG_FELT_W = IMG_W - IMG_RAIL_X * 2; // 554px
+const IMG_FELT_H = IMG_H - IMG_RAIL_Y * 2; // 1122px
+const TABLE_IMG_W = TABLE_WIDTH  * (IMG_W / IMG_FELT_W);  // scaled image width
+const TABLE_IMG_H = TABLE_HEIGHT * (IMG_H / IMG_FELT_H);  // scaled image height
+const TABLE_IMG_LEFT = -TABLE_WIDTH  * (IMG_RAIL_X / IMG_FELT_W); // left offset
+const TABLE_IMG_TOP  = -TABLE_HEIGHT * (IMG_RAIL_Y / IMG_FELT_H); // top offset
 const BALL_RADIUS = TABLE_WIDTH * 0.042;
 const POCKET_RADIUS = BALL_RADIUS * 1.6; // slightly forgiving for mobile touch controls, close to real proportions
+const POCKET_PADDING = 20; // inset each pocket 20px away from the table edges
 const CUE_LENGTH = TABLE_WIDTH * 0.65;
 const CUE_THICK = 3;
 const FRICTION = 0.984;
 const MIN_SPEED = 0.12;
-const MAX_FORCE = 30;
+const MAX_FORCE = 55;
 
 type Vec2 = {x: number; y: number};
 
@@ -58,12 +78,12 @@ const BALL_COLORS: Record<number, string> = {
 };
 
 const POCKETS: Vec2[] = [
-  {x: POCKET_RADIUS * 0.6, y: POCKET_RADIUS * 0.6},                          // top-left
-  {x: TABLE_WIDTH - POCKET_RADIUS * 0.6, y: POCKET_RADIUS * 0.6},            // top-right
-  {x: POCKET_RADIUS * 0.35, y: TABLE_HEIGHT / 2},                             // center-left (side pocket)
-  {x: TABLE_WIDTH - POCKET_RADIUS * 0.35, y: TABLE_HEIGHT / 2},               // center-right (side pocket)
-  {x: POCKET_RADIUS * 0.6, y: TABLE_HEIGHT - POCKET_RADIUS * 0.6},           // bottom-left
-  {x: TABLE_WIDTH - POCKET_RADIUS * 0.6, y: TABLE_HEIGHT - POCKET_RADIUS * 0.6}, // bottom-right
+  {x: POCKET_RADIUS * 0.6 + POCKET_PADDING, y: POCKET_RADIUS * 0.6 + POCKET_PADDING},                                   // top-left
+  {x: TABLE_WIDTH - POCKET_RADIUS * 0.6 - POCKET_PADDING, y: POCKET_RADIUS * 0.6 + POCKET_PADDING},                     // top-right
+  {x: POCKET_RADIUS * 0.35 + POCKET_PADDING, y: TABLE_HEIGHT / 2},                                                       // center-left (side pocket)
+  {x: TABLE_WIDTH - POCKET_RADIUS * 0.35 - POCKET_PADDING, y: TABLE_HEIGHT / 2},                                         // center-right (side pocket)
+  {x: POCKET_RADIUS * 0.6 + POCKET_PADDING, y: TABLE_HEIGHT - POCKET_RADIUS * 0.6 - POCKET_PADDING},                    // bottom-left
+  {x: TABLE_WIDTH - POCKET_RADIUS * 0.6 - POCKET_PADDING, y: TABLE_HEIGHT - POCKET_RADIUS * 0.6 - POCKET_PADDING},      // bottom-right
 ];
 
 const makeBall = (num: number, x: number, y: number): Ball => ({
@@ -145,7 +165,8 @@ const GameOverOverlay: React.FC<{
   isWin: boolean;
   onNewGame: () => void;
   onGoBack: () => void;
-}> = ({isWin, onNewGame, onGoBack}) => {
+  isMultiplayer?: boolean;
+}> = ({isWin, onNewGame, onGoBack, isMultiplayer}) => {
   const fadeIn = useRef(new Animated.Value(0)).current;
   const scaleText = useRef(new Animated.Value(0.3)).current;
   const slideUp = useRef(new Animated.Value(50)).current;
@@ -254,10 +275,10 @@ const GameOverOverlay: React.FC<{
           <Text style={[styles.gameOverTitle, {
             color: isWin ? '#FFD700' : '#FF4444',
           }]}>
-            {isWin ? '🏆 YOU WIN! 🏆' : '💀 AI WINS 💀'}
+            {isWin ? '🏆 YOU WIN! 🏆' : (isMultiplayer ? '💀 YOU LOSE 💀' : '💀 AI WINS 💀')}
           </Text>
           <Text style={styles.gameOverSubtitle}>
-            {isWin ? 'Great shooting!' : 'Better luck next time...'}
+            {isWin ? 'Great shooting!' : (isMultiplayer ? 'Opponent wins...' : 'Better luck next time...')}
           </Text>
         </Animated.View>
 
@@ -285,6 +306,12 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
   const {session} = route.params;
   const variant: GameVariant = session?.gameType === '9-ball' ? '9-ball' : '8-ball';
   const difficulty = session?.difficulty || 'medium';
+  const mode = session?.mode;
+  const isMultiplayer = !!(mode && mode !== 'ai');
+
+  // Auth / user ID
+  const {user} = useAuth();
+  const userId: string = (user as any)?.id || session?.user?.id || session?.id || 'guest';
 
   const [balls, setBalls] = useState<Ball[]>(
     variant === '9-ball' ? createRack9Ball() : createRack8Ball(),
@@ -327,6 +354,30 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
   playerTypeRef.current = playerType;
   const aiTypeRef = useRef(aiType);
   aiTypeRef.current = aiType;
+  const winnerRef = useRef(winner);
+  winnerRef.current = winner;
+
+  // ── Multiplayer state ────────────────────────────────────────────────────────
+  const [mpStatus, setMpStatus] = useState<'idle'|'connecting'|'searching'|'waiting'|'playing'|'ended'>('idle');
+  const [roomId, setRoomId] = useState<string | null>(null);
+  const [myColor, setMyColor] = useState<'white' | 'black' | null>(null);
+
+  // Derived: is it my turn to shoot?
+  // white = player1 (playerTurn=true), black = player2 (playerTurn=false)
+  const isMyTurn = isMultiplayer
+    ? (myColor === null ? false : myColor === 'white' ? playerTurn : !playerTurn)
+    : playerTurn;
+
+  const isMultiplayerRef = useRef(isMultiplayer);
+  isMultiplayerRef.current = isMultiplayer;
+  const roomIdRef = useRef<string | null>(null);
+  roomIdRef.current = roomId;
+  const myColorRef = useRef<'white' | 'black' | null>(null);
+  myColorRef.current = myColor;
+  const isMyTurnRef = useRef(isMyTurn);
+  isMyTurnRef.current = isMyTurn;
+  // Set to true when I fire the cue ball — cleared after move is sent
+  const iAmShooterRef = useRef(false);
 
   // AI move logging refs
   const billiardsGameIdRef = useRef<string>(uuidv4());
@@ -341,6 +392,123 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
 
   // Head string Y position (cue ball must be placed behind this on scratch)
   const HEAD_STRING_Y = TABLE_HEIGHT * 0.72;
+
+  // ── Multiplayer socket setup ─────────────────────────────────────────────────
+  useEffect(() => {
+    if (!isMultiplayer) return;
+    let cancelled = false;
+    setMpStatus('connecting');
+
+    (async () => {
+      try {
+        await socketService.connect(userId, session?.access_token || 'temp-token');
+        if (cancelled) return;
+        const socket = socketService.getSocket();
+        if (!socket) return;
+
+        setMpStatus('searching');
+
+        // Clean slate — remove any stale listeners
+        ['match_found','room_joined','opponent_joined','game_started','move_made','game_ended','opponent_disconnected']
+          .forEach(ev => socket.off(ev));
+
+        let resolvedRoomId: string | null = null;
+
+        socket.on('match_found', (data: any) => {
+          if (cancelled) return;
+          resolvedRoomId = data.roomId;
+          setRoomId(data.roomId);
+          if (data.color) setMyColor(data.color as 'white' | 'black');
+          setMpStatus('waiting');
+          socket.emit('player_ready', { roomId: data.roomId, userId });
+        });
+
+        socket.on('room_joined', (data: any) => {
+          if (cancelled) return;
+          resolvedRoomId = data.roomId;
+          setRoomId(data.roomId);
+          setMpStatus('waiting');
+        });
+
+        socket.on('opponent_joined', () => {
+          if (cancelled) return;
+          if (resolvedRoomId) socket.emit('player_ready', { roomId: resolvedRoomId, userId });
+        });
+
+        socket.on('game_started', (data: any) => {
+          if (cancelled) return;
+          setMyColor(data.myColor);
+          // White shoots first — playerTurn=true means white's turn
+          setPlayerTurn(true);
+          playerTurnRef.current = true;
+          setMpStatus('playing');
+        });
+
+        socket.on('move_made', (data: any) => {
+          if (cancelled) return;
+          const move = data.move;
+          if (!move || !move.balls) return;
+          // Apply the sender's final ball state
+          setBalls(move.balls.map((b: any) => ({
+            ...b,
+            pos: { ...b.pos },
+            vel: { x: 0, y: 0 }, // balls have stopped — no animation needed
+          })));
+          setPlayerTurn(move.playerTurn);
+          playerTurnRef.current = move.playerTurn;
+          if (move.playerType !== undefined) { setPlayerType(move.playerType); playerTypeRef.current = move.playerType; }
+          if (move.aiType !== undefined) { setAiType(move.aiType); aiTypeRef.current = move.aiType; }
+          const bih = move.ballInHand === true;
+          setBallInHand(bih);
+          ballInHandRef.current = bih;
+          // Rebuild pocketed lists from ball state
+          setPocketedSolids(move.balls.filter((b: any) => b.pocketed && b.type === 'solid'));
+          setPocketedStripes(move.balls.filter((b: any) => b.pocketed && b.type === 'stripe'));
+          // Note: game over is handled by game_ended event (uses winnerId for unambiguous result)
+        });
+
+        socket.on('game_ended', (data: any) => {
+          if (cancelled) return;
+          const iWon = data.winnerId === userId;
+          setGameOver(true);
+          gameOverRef.current = true;
+          setWinner(iWon ? 'player' : 'ai');
+          setMpStatus('ended');
+        });
+
+        socket.on('opponent_disconnected', () => {
+          if (cancelled) return;
+          BisetkaAlert.success('Opponent disconnected', 'You win by forfeit!');
+          setGameOver(true);
+          gameOverRef.current = true;
+          setWinner('player');
+          setMpStatus('ended');
+        });
+
+        // Start matchmaking
+        if (mode === 'random') {
+          const gameType = variant === '9-ball' ? '9-ball' : 'billiards';
+          socket.emit('find_match', { gameType, userId });
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setMpStatus('idle');
+          console.warn('Billiards multiplayer connection failed:', err);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      const socket = socketService.getSocket();
+      if (socket) {
+        ['match_found','room_joined','opponent_joined','game_started','move_made','game_ended','opponent_disconnected']
+          .forEach(ev => socket.off(ev));
+        if (mode === 'random') socket.emit('cancel_matchmaking', { userId });
+      }
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // --- Physics ---
 
@@ -628,8 +796,32 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
     };
   }, [isMoving, simulateStep]);
 
+  // ── Multiplayer: send move after shot settles ──────────────────────────────
+  // Fires whenever isMoving flips to false; sends ball state to server if I was the shooter
+  useEffect(() => {
+    if (isMoving) return;                   // only act when movement just stopped
+    if (!isMultiplayer) return;
+    if (!iAmShooterRef.current) return;     // guard: was this MY shot?
+    iAmShooterRef.current = false;
+    if (!roomIdRef.current) return;
+
+    // All state refs have been committed after this render cycle
+    socketService.makeMove(roomIdRef.current, userId, {
+      balls: ballsRef.current,
+      playerTurn: playerTurnRef.current,    // whose turn it is AFTER this shot
+      playerType: playerTypeRef.current,
+      aiType: aiTypeRef.current,
+      ballInHand: ballInHandRef.current,
+      gameOver: gameOverRef.current,
+      winner: gameOverRef.current ? winnerRef.current : null,
+    } as any);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isMoving]);
+
   // After balls stop, trigger AI turn
   useEffect(() => {
+    // In multiplayer there is no AI — skip
+    if (isMultiplayer) return;
     if (!isMoving && !playerTurn && !gameOver && !ballInHand) {
       const timer = setTimeout(() => {
         const cue = ballsRef.current.find(b => b.type === 'cue' && !b.pocketed);
@@ -734,7 +926,7 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
       onPanResponderGrant: (evt) => {
-        if (isMovingRef.current || !playerTurnRef.current || gameOverRef.current) return;
+        if (isMovingRef.current || !isMyTurnRef.current || gameOverRef.current) return;
         const {locationX, locationY} = evt.nativeEvent;
 
         // Ball-in-hand: tap to place cue ball
@@ -764,7 +956,7 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
         setDragCurrent(start);
       },
       onPanResponderMove: (evt) => {
-        if (isMovingRef.current || !playerTurnRef.current || gameOverRef.current) return;
+        if (isMovingRef.current || !isMyTurnRef.current || gameOverRef.current) return;
         const {locationX, locationY} = evt.nativeEvent;
 
         // Ball-in-hand: drag to reposition
@@ -803,7 +995,7 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
         }
 
         const ds = dragStartRef.current;
-        if (isMovingRef.current || !playerTurnRef.current || gameOverRef.current || !ds) {
+        if (isMovingRef.current || !isMyTurnRef.current || gameOverRef.current || !ds) {
           setDragStart(null);
           dragStartRef.current = null;
           setDragCurrent(null);
@@ -820,7 +1012,7 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
         const d = Math.sqrt(dx * dx + dy * dy);
         if (d < 5) { setDragStart(null); dragStartRef.current = null; setDragCurrent(null); setPower(0); return; }
 
-        const force = Math.min(d / 10, MAX_FORCE);
+        const force = Math.min((d / 120) * MAX_FORCE, MAX_FORCE);
         const angle = Math.atan2(dy, dx);
 
         // Reset shot tracking for this shot
@@ -843,6 +1035,8 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
           }
           return next;
         });
+        // Mark that I was the shooter — used to send multiplayer move on settle
+        iAmShooterRef.current = true;
         setIsMoving(true);
         setDragStart(null);
         dragStartRef.current = null;
@@ -1291,9 +1485,12 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
         rightElement={
           <Text style={styles.turnText}>
             {gameOver
-              ? winner === 'player' ? '🏆 You Win!' : '💀 AI Wins'
+              ? winner === 'player' ? '🏆 You Win!' : (isMultiplayer ? '💀 You Lose' : '💀 AI Wins')
               : ballInHand ? '👆 Place cue ball'
-              : isMoving ? '⏳' : playerTurn ? '🎯 Your Shot' : '🤖 AI'}
+              : isMoving ? '⏳'
+              : isMultiplayer
+                ? (isMyTurn ? '🎯 Your Shot' : '⏳ Opponent...')
+                : (playerTurn ? '🎯 Your Shot' : '🤖 AI')}
           </Text>
         }
       />
@@ -1312,14 +1509,17 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
       {/* Table */}
       <View style={styles.tableOuter}>
         <View style={styles.tableRail}>
-          {/* Corner diamonds */}
-          {POCKETS.map((p, i) => (
-            <View key={`rail-pocket-${i}`} style={[styles.railPocket, {
-              left: p.x + RAIL_WIDTH - POCKET_RADIUS * 0.8,
-              top: p.y + RAIL_WIDTH - POCKET_RADIUS * 0.8,
-            }]} />
-          ))}
-          <View style={styles.tableFelt} {...panResponder.panHandlers}>
+          <ImageBackground
+            source={require('../../../../assets/pool/table.png')}
+            style={styles.tableFelt}
+            imageStyle={{
+              width: TABLE_IMG_W-150,
+              height: TABLE_IMG_H-100,
+              left: TABLE_IMG_LEFT+80,
+              top: TABLE_IMG_TOP+50,
+            }}
+            resizeMode="stretch"
+            {...panResponder.panHandlers}>
             {/* Pockets */}
             {POCKETS.map((p, i) => (
               <View key={`pocket-${i}`} style={[styles.pocket, {
@@ -1425,7 +1625,7 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
                 </View>
               );
             })}
-          </View>
+          </ImageBackground>
         </View>
       </View>
 
@@ -1541,23 +1741,56 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
       )}
 
       {/* Drag hint */}
-      {!isMoving && playerTurn && !gameOver && !dragStart && !ballInHand && (
+      {!isMoving && isMyTurn && !gameOver && !dragStart && !ballInHand && (
         <Text style={styles.hint}>Drag back from the cue ball to aim & shoot</Text>
+      )}
+
+      {/* Multiplayer matchmaking / waiting overlay */}
+      {isMultiplayer && mpStatus !== 'playing' && mpStatus !== 'ended' && (
+        <View style={styles.mpOverlay}>
+          <Text style={styles.mpOverlayTitle}>
+            {variant === '9-ball' ? '9-Ball Pool' : '8-Ball Pool'}
+          </Text>
+          <Text style={styles.mpOverlayStatus}>
+            {mpStatus === 'connecting' ? 'Connecting to server...' :
+             mpStatus === 'searching'  ? 'Finding an opponent...' :
+             mpStatus === 'waiting'    ? 'Waiting for game to start...' : ''}
+          </Text>
+          <TouchableOpacity
+            style={styles.mpCancelBtn}
+            onPress={() => {
+              socketService.cancelMatchmaking(userId);
+              navigation.goBack();
+            }}>
+            <Text style={styles.mpCancelText}>Cancel</Text>
+          </TouchableOpacity>
+        </View>
       )}
 
       {/* Game over overlay with animation */}
       {gameOver && (
         <GameOverOverlay
           isWin={winner === 'player'}
+          isMultiplayer={isMultiplayer}
           onNewGame={handleNewGame}
           onGoBack={() => navigation.goBack()}
         />
       )}
 
-      {/* Difficulty badge */}
+      {/* Difficulty badge / online badge */}
       <View style={styles.badge}>
-        <Text style={styles.badgeText}>AI: {difficulty}</Text>
+        <Text style={styles.badgeText}>
+          {isMultiplayer ? '🌐 Online' : `AI: ${difficulty}`}
+        </Text>
       </View>
+
+      {/* In-game chat overlay (multiplayer only) */}
+      <InGameChat
+        roomId={roomId || ''}
+        currentUserId={userId}
+        gameType={variant}
+        visible={isMultiplayer && !!roomId}
+      />
     </SafeAreaView>
   );
 };
@@ -1578,14 +1811,11 @@ const styles = StyleSheet.create({
   powerLabel: {color: '#aaa', fontSize: 11, marginRight: 8, width: 40},
   powerTrack: {flex: 1, height: 6, backgroundColor: '#2a2a2a', borderRadius: 3, overflow: 'hidden'},
   powerFill: {height: '100%', borderRadius: 3},
-  tableOuter: {alignItems: 'center'},
+  tableOuter: {width: '100%'},
   tableRail: {
-    backgroundColor: '#6B3410',
-    borderRadius: 10,
-    padding: RAIL_WIDTH,
-    // Shadow
-    shadowColor: '#000', shadowOffset: {width: 0, height: 4},
-    shadowOpacity: 0.5, shadowRadius: 8, elevation: 10,
+    width: TABLE_WIDTH,
+    height: TABLE_HEIGHT,
+    overflow: 'hidden',
   },
   railPocket: {
     position: 'absolute',
@@ -1598,10 +1828,12 @@ const styles = StyleSheet.create({
   tableFelt: {
     width: TABLE_WIDTH,
     height: TABLE_HEIGHT,
-    backgroundColor: '#0D7A0D',
-    borderRadius: 3,
+    borderRadius: 0,
     position: 'relative',
     overflow: 'hidden',
+  },
+  tableFeltImage: {
+    borderRadius: 0,
   },
   pocket: {
     position: 'absolute',
@@ -1710,6 +1942,35 @@ const styles = StyleSheet.create({
     backgroundColor: '#222', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 6,
   },
   badgeText: {color: '#FFD700', fontSize: 11, fontWeight: '600', textTransform: 'capitalize'},
+  // Multiplayer matchmaking overlay
+  mpOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.93)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 200,
+  },
+  mpOverlayTitle: {
+    color: '#FFD700',
+    fontSize: 24,
+    fontWeight: '800',
+    marginBottom: 14,
+  },
+  mpOverlayStatus: {
+    color: '#ccc',
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 32,
+  },
+  mpCancelBtn: {
+    paddingHorizontal: 28,
+    paddingVertical: 12,
+    backgroundColor: '#333',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#555',
+  },
+  mpCancelText: {color: '#fff', fontSize: 14, fontWeight: '600'},
 });
 
 export default BilliardsGameScreen;

@@ -52,6 +52,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
   const getInitialGameMode = () => {
     if (initialMode === 'ai') return 'local';
     if (initialMode === 'private-create') return 'private';
+    if (initialMode === 'private-join') return 'matchmaking';
     if (initialMode === 'random') return 'matchmaking';
     return 'menu';
   };
@@ -167,6 +168,11 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
         // Auto-create private room if coming from GameModeScreen with private-create mode
         if (initialMode === 'private-create') {
           await createPrivateRoomOnMount();
+        }
+        
+        // Auto-join private room if coming from GameModeScreen with private-join mode
+        if (initialMode === 'private-join' && initialJoinCode) {
+          await joinPrivateRoomOnMount();
         }
         
         // Auto-find match if coming with random mode
@@ -389,7 +395,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
     
     try {
       await ensureSocketConnected();
-      const roomData = await socketService.createPrivateRoom('blot', userId);
+      const roomData = await socketService.createPrivateRoom('blot', userId, initialJoinCode);
       setCurrentRoom({ roomId: roomData.roomId, roomCode: roomData.roomCode });
       setRoomCode(roomData.roomCode);
       setPlayerColor('white');
@@ -400,6 +406,32 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
     }
   };
   
+  // Auto-join private room when navigating with private-join mode
+  const joinPrivateRoomOnMount = async () => {
+    setGameState(null);
+    isGameStartedRef.current = false;
+    setIsGameStarted(false);
+    setIsReadySent(false);
+    setIsMyTurn(false);
+    setSelectedCard(null);
+    setCurrentRoom(null);
+    setOpponent(null);
+
+    try {
+      await ensureSocketConnected();
+      const roomData = await socketService.joinPrivateRoom(initialJoinCode!, userId);
+      setCurrentRoom({ roomId: roomData.roomId });
+      setPlayerColor(roomData.color || 'black');
+      setOpponent(roomData.opponent);
+      setIsMyTurn((roomData.color || 'black') === 'white');
+      setGameMode('game'); // Exit matchmaking — show game screen with "Ready to Play"
+    } catch (error: any) {
+      BisetkaAlert.error('Error', 'Failed to join room. Check the code and try again.');
+      setGameMode('menu');
+      console.error(error);
+    }
+  };
+
   // Auto-find match when navigating with random mode
   const findMatchOnMount = async () => {
     setGameState(null);
