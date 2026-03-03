@@ -96,7 +96,7 @@ const CheckersScreen = ({ navigation, route }: any) => {
     session?.user?.id || session?.id || ('guest-' + Math.random().toString(36).substr(2, 6))
   );
   const userId = userIdRef.current;
-  const isMultiplayer = mode === 'random' || mode === 'private';
+  const isMultiplayer = mode === 'random' || mode === 'private' || mode === 'private-create' || mode === 'private-join';
 
   const [gameState, setGameState] = useState<GameState>(freshGame());
   const gameIdRef   = useRef<string>(uuidv4());
@@ -107,6 +107,7 @@ const CheckersScreen = ({ navigation, route }: any) => {
   // ── multiplayer state ──
   const [mpStatus, setMpStatus] = useState<'idle'|'connecting'|'searching'|'waiting'|'playing'|'ended'>('idle');
   const [roomId, setRoomId]     = useState<string|null>(null);
+  const [roomCode, setRoomCode] = useState<string|null>(null);
   // server assigns 'white'|'black'; white→red pieces, black→black pieces
   const [mySocketColor, setMySocketColor] = useState<'white'|'black'|null>(null);
   const [serverTurn,    setServerTurn]    = useState<'white'|'black'>('white');
@@ -132,8 +133,6 @@ const CheckersScreen = ({ navigation, route }: any) => {
       try {
         await socketService.connect(userId, session?.access_token || 'temp-token');
         if (cancelled) return;
-        setMpStatus('searching');
-        setStatusMsg('Finding opponent...');
 
         const socket = socketService.getSocket();
         if (!socket) return;
@@ -142,7 +141,7 @@ const CheckersScreen = ({ navigation, route }: any) => {
         ['match_found','room_joined','opponent_joined','game_started','move_made','game_ended','opponent_disconnected']
           .forEach(ev => socket.off(ev));
 
-        let resolvedRoomId = roomId; // capture for closures
+        let resolvedRoomId: string | null = null;
 
         socket.on('match_found', (data: any) => {
           if (cancelled) return;
@@ -154,15 +153,19 @@ const CheckersScreen = ({ navigation, route }: any) => {
           socket.emit('player_ready', { roomId: data.roomId, userId });
         });
 
+        // Fires on the JOINER when they successfully enter a private room
         socket.on('room_joined', (data: any) => {
           if (cancelled) return;
           resolvedRoomId = data.roomId;
           setRoomId(data.roomId);
           setMySocketColor(data.color);
           setMpStatus('waiting');
-          setStatusMsg('Waiting for opponent to join...');
+          setStatusMsg('Waiting for game to start...');
+          // Joiner sends ready immediately — creator sends ready on opponent_joined
+          socket.emit('player_ready', { roomId: data.roomId, userId });
         });
 
+        // Fires on the CREATOR when player 2 joins the room
         socket.on('opponent_joined', () => {
           if (cancelled) return;
           setStatusMsg('Opponent joined! Starting...');
@@ -212,7 +215,44 @@ const CheckersScreen = ({ navigation, route }: any) => {
           setMpStatus('ended');
         });
 
-        if (mode === 'random') socket.emit('find_match', { gameType: 'checkers', userId });
+        // ── start the right flow depending on mode ──────────────────────────
+        if (mode === 'random') {
+          setStatusMsg('Finding opponent...');
+          setMpStatus('searching');
+          socket.emit('find_match', { gameType: 'checkers', userId });
+        } else if (mode === 'private-create') {
+          setStatusMsg('Creating room...');
+          setMpStatus('searching');
+          try {
+            const joinCode = session?.code;
+            const roomData = await socketService.createPrivateRoom('checkers', userId, joinCode);
+            if (!cancelled) {
+              resolvedRoomId = roomData.roomId;
+              setRoomId(roomData.roomId);
+              setRoomCode(roomData.roomCode);
+              setMySocketColor('white');
+              setMpStatus('waiting');
+              setStatusMsg(`Room created! Code: ${roomData.roomCode}`);
+            }
+          } catch (err: any) {
+            if (!cancelled) {
+              BisetkaAlert.error('Error', 'Failed to create room');
+              setMpStatus('idle');
+              navigation.goBack();
+            }
+          }
+        } else if (mode === 'private-join') {
+          const joinCode = session?.code;
+          if (!joinCode) {
+            BisetkaAlert.error('Error', 'No room code provided');
+            setMpStatus('idle');
+            navigation.goBack();
+            return;
+          }
+          setStatusMsg('Joining room...');
+          setMpStatus('searching');
+          socket.emit('join_private_room', { roomCode: joinCode, userId });
+        }
       } catch (err) {
         if (!cancelled) { setMpStatus('idle'); setStatusMsg('Connection failed. Please try again.'); }
       }
@@ -309,7 +349,7 @@ const CheckersScreen = ({ navigation, route }: any) => {
     }
   }, [gameState, isMyTurn, myPieceColor, mpStatus, roomId, isMultiplayer, mode, userId]);
 
-  // ── matchmaking screen ────────────────────────────────────────────────────
+  // ── matchmaking / waiting screen ──────────────────────────────────────────
   if (isMultiplayer && (mpStatus==='connecting'||mpStatus==='searching'||mpStatus==='waiting')) {
     return (
       <ImageBackground
@@ -322,8 +362,24 @@ const CheckersScreen = ({ navigation, route }: any) => {
           <SafeAreaView style={styles.safeArea}>
             <GameToolbar title="Checkers" onBack={() => { navigation.goBack(); }} backgroundColor="transparent" />
             <View style={styles.centeredContent}>
-              <ActivityIndicator size="large" color="#3498db" />
-              <Text style={styles.searchingText}>{statusMsg}</Text>
+              {mode === 'private-create' && roomCode ? (
+                // ── Room created — show shareable code ──────────────────────
+                <>
+                  <Text style={styles.roomCreatedTitle}>Room Created! 🎮</Text>
+                  <Text style={styles.roomCodeLabel}>Share this code with your friend:</Text>
+                  <View style={styles.roomCodeBox}>
+                    <Text style={styles.roomCodeValue}>{roomCode}</Text>
+                  </View>
+                  <Text style={styles.searchingText}>Waiting for opponent to join...</Text>
+                  <ActivityIndicator size="small" color="#3498db" style={{marginTop: 8}} />
+                </>
+              ) : (
+                // ── Spinner for random / joining ────────────────────────────
+                <>
+                  <ActivityIndicator size="large" color="#3498db" />
+                  <Text style={styles.searchingText}>{statusMsg}</Text>
+                </>
+              )}
               <TouchableOpacity style={styles.cancelButton} onPress={() => {
                 const socket = socketService.getSocket();
                 socket?.emit('cancel_matchmaking', { userId });
@@ -471,6 +527,10 @@ const styles = StyleSheet.create({
   searchingText:      { color:'#ecf0f1', fontSize:18, textAlign:'center', marginTop:16 },
   cancelButton:       { marginTop:20, paddingHorizontal:32, paddingVertical:12, backgroundColor:'#e74c3c', borderRadius:8 },
   cancelText:         { color:'#fff', fontSize:16, fontWeight:'600' },
+  roomCreatedTitle:   { color:'#ffffff', fontSize:24, fontWeight:'bold', textAlign:'center', marginBottom:8 },
+  roomCodeLabel:      { color:'#bdc3c7', fontSize:15, textAlign:'center', marginBottom:12 },
+  roomCodeBox:        { backgroundColor:'rgba(255,255,255,0.15)', borderRadius:12, paddingHorizontal:32, paddingVertical:16, marginBottom:8 },
+  roomCodeValue:      { color:'#ffffff', fontSize:42, fontWeight:'bold', letterSpacing:6, textAlign:'center' },
   statusBar:          { alignItems:'center', paddingVertical:10, backgroundColor:'#34495e', paddingHorizontal:10 },
   turnText:           { fontSize:16, fontWeight:'600', color:'#ecf0f1' },
   colorBadge:         { fontSize:13, color:'#bdc3c7', marginTop:2 },
