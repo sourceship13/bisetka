@@ -46,6 +46,7 @@ const TABLE_IMG_LEFT = -TABLE_WIDTH  * (IMG_RAIL_X / IMG_FELT_W); // left offset
 const TABLE_IMG_TOP  = -TABLE_HEIGHT * (IMG_RAIL_Y / IMG_FELT_H); // top offset
 const BALL_RADIUS = TABLE_WIDTH * 0.042;
 const POCKET_RADIUS = BALL_RADIUS * 1.6; // slightly forgiving for mobile touch controls, close to real proportions
+const POCKET_PADDING = 20; // inset each pocket 20px away from the table edges
 const CUE_LENGTH = TABLE_WIDTH * 0.65;
 const CUE_THICK = 3;
 const FRICTION = 0.984;
@@ -76,12 +77,12 @@ const BALL_COLORS: Record<number, string> = {
 };
 
 const POCKETS: Vec2[] = [
-  {x: POCKET_RADIUS * 0.6, y: POCKET_RADIUS * 0.6},                          // top-left
-  {x: TABLE_WIDTH - POCKET_RADIUS * 0.6, y: POCKET_RADIUS * 0.6},            // top-right
-  {x: POCKET_RADIUS * 0.35, y: TABLE_HEIGHT / 2},                             // center-left (side pocket)
-  {x: TABLE_WIDTH - POCKET_RADIUS * 0.35, y: TABLE_HEIGHT / 2},               // center-right (side pocket)
-  {x: POCKET_RADIUS * 0.6, y: TABLE_HEIGHT - POCKET_RADIUS * 0.6},           // bottom-left
-  {x: TABLE_WIDTH - POCKET_RADIUS * 0.6, y: TABLE_HEIGHT - POCKET_RADIUS * 0.6}, // bottom-right
+  {x: POCKET_RADIUS * 0.6 + POCKET_PADDING, y: POCKET_RADIUS * 0.6 + POCKET_PADDING},                                   // top-left
+  {x: TABLE_WIDTH - POCKET_RADIUS * 0.6 - POCKET_PADDING, y: POCKET_RADIUS * 0.6 + POCKET_PADDING},                     // top-right
+  {x: POCKET_RADIUS * 0.35 + POCKET_PADDING, y: TABLE_HEIGHT / 2},                                                       // center-left (side pocket)
+  {x: TABLE_WIDTH - POCKET_RADIUS * 0.35 - POCKET_PADDING, y: TABLE_HEIGHT / 2},                                         // center-right (side pocket)
+  {x: POCKET_RADIUS * 0.6 + POCKET_PADDING, y: TABLE_HEIGHT - POCKET_RADIUS * 0.6 - POCKET_PADDING},                    // bottom-left
+  {x: TABLE_WIDTH - POCKET_RADIUS * 0.6 - POCKET_PADDING, y: TABLE_HEIGHT - POCKET_RADIUS * 0.6 - POCKET_PADDING},      // bottom-right
 ];
 
 const makeBall = (num: number, x: number, y: number): Ball => ({
