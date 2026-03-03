@@ -8,7 +8,7 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
-  Animated,
+  Image,
   Dimensions,
 } from 'react-native';
 import chatService, { Message } from '../services/chat.service';
@@ -28,8 +28,7 @@ interface InGameChatProps {
   opponentUsername?: string;
 }
 
-const { height: SCREEN_HEIGHT } = Dimensions.get('window');
-const PANEL_HEIGHT = Math.round(SCREEN_HEIGHT * 0.46);
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const InGameChat: React.FC<InGameChatProps> = ({
   roomId,
@@ -38,18 +37,10 @@ const InGameChat: React.FC<InGameChatProps> = ({
   visible,
   opponentUsername,
 }) => {
-  const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
   const [chatId, setChatId] = useState<string | null>(null);
-  const [unreadCount, setUnreadCount] = useState(0);
   const flatListRef = useRef<FlatList>(null);
-  // Start panel translated fully out of view (below screen)
-  const panelAnim = useRef(new Animated.Value(PANEL_HEIGHT)).current;
-  const isOpenRef = useRef(false);
-
-  // Sync ref with state for use inside socket callbacks
-  useEffect(() => { isOpenRef.current = isOpen; }, [isOpen]);
 
   // ── Step 1: Get/create chat room when game is active ──────────────────────
   useEffect(() => {
@@ -91,21 +82,21 @@ const InGameChat: React.FC<InGameChatProps> = ({
 
     setup();
 
-    // Real-time handler — skip if message ID already in list (prevents
-    // duplicates when postMessage + socket both deliver the same message)
+    // Real-time handler
     const handleNew = (msg: Message) => {
+      console.log('[InGameChat] Received message via socket:', msg.id, msg.content);
       setMessages(prev => {
-        if (prev.some(m => m.id === msg.id)) return prev;
+        if (prev.some(m => m.id === msg.id)) {
+          console.log('[InGameChat] Duplicate message, skipping:', msg.id);
+          return prev;
+        }
+        console.log('[InGameChat] Adding new message to state');
         return [...prev, msg];
       });
-      if (!isOpenRef.current) {
-        setUnreadCount(prev => prev + 1);
-      } else {
-        setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 80);
-      }
     };
 
     chatSocketService.onMessage(chatId, handleNew);
+    console.log('[InGameChat] Registered message handler for chat:', chatId);
 
     return () => {
       cancelled = true;
@@ -114,64 +105,63 @@ const InGameChat: React.FC<InGameChatProps> = ({
     };
   }, [chatId, currentUserId]);
 
-  // ── UI helpers ─────────────────────────────────────────────────────────────
-  const openPanel = () => {
-    setUnreadCount(0);
-    setIsOpen(true);
-    Animated.spring(panelAnim, {
-      toValue: 0,
-      useNativeDriver: true,
-      tension: 75,
-      friction: 11,
-    }).start(() => {
-      setTimeout(() => flatListRef.current?.scrollToEnd({ animated: false }), 120);
-    });
-  };
-
-  const closePanel = () => {
-    Animated.spring(panelAnim, {
-      toValue: PANEL_HEIGHT,
-      useNativeDriver: true,
-      tension: 75,
-      friction: 11,
-    }).start(() => setIsOpen(false));
-  };
-
-  const togglePanel = () => (isOpen ? closePanel() : openPanel());
-
   const handleSend = async () => {
     const text = inputText.trim();
     if (!text || !chatId) return;
     setInputText('');
     try {
-      await chatService.postMessage(chatId, text);
-      // The socket broadcast will deliver the message via handleNew —
-      // no manual append here to avoid duplicate keys.
-      setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 80);
+      const { message } = await chatService.postMessage(chatId, text);
+      // Add message locally for immediate display (socket will also broadcast it)
+      setMessages(prev => {
+        // Avoid duplicate if socket already delivered it
+        if (prev.some(m => m.id === message.id)) return prev;
+        return [...prev, message];
+      });
     } catch (err) {
       console.warn('[InGameChat] send error:', err);
-      setInputText(text); // restore on failure
+      setInputText(text);
     }
+  };
+
+  const getInitials = (name: string) => {
+    const parts = name.split(' ');
+    if (parts.length >= 2) {
+      return (parts[0]![0] + parts[1]![0]).toUpperCase();
+    }
+    return name.substring(0, 2).toUpperCase();
+  };
+
+  const getProfileColor = (userId: string) => {
+    // Generate consistent color based on user ID
+    const colors = [
+      '#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', 
+      '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E2'
+    ];
+    const index = userId.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0) % colors.length;
+    return colors[index];
   };
 
   const renderMessage = ({ item }: { item: Message }) => {
     const isMe = item.sender_id === currentUserId;
+    const senderName = isMe ? 'You' : (item.sender_username || opponentUsername || 'Player');
+    const profileColor = getProfileColor(item.sender_id);
+
     return (
-      <View style={[styles.bubble, isMe ? styles.bubbleMe : styles.bubbleThem]}>
-        {!isMe && (
-          <Text style={styles.senderName}>
-            {item.sender_username || opponentUsername || 'Opponent'}
-          </Text>
-        )}
-        <Text style={[styles.bubbleText, isMe ? styles.textMe : styles.textThem]}>
-          {item.content}
-        </Text>
-        <Text style={styles.timestamp}>
-          {new Date(item.created_at).toLocaleTimeString([], {
-            hour: '2-digit',
-            minute: '2-digit',
-          })}
-        </Text>
+      <View style={styles.messageContainer}>
+        {/* Profile Picture */}
+        <View style={[styles.profilePic, { backgroundColor: profileColor }]}>
+          <Text style={styles.initials}>{getInitials(senderName)}</Text>
+        </View>
+
+        {/* Message Content */}
+        <View style={styles.messageContent}>
+          <Text style={styles.senderName}>{senderName}</Text>
+          <View style={styles.messageBar}>
+            <Text style={styles.messageText} numberOfLines={2}>
+              {item.content}
+            </Text>
+          </View>
+        </View>
       </View>
     );
   };
@@ -180,252 +170,178 @@ const InGameChat: React.FC<InGameChatProps> = ({
 
   return (
     <View style={styles.root} pointerEvents="box-none">
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.container}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}>
 
-      {/* ── Sliding panel ───────────────────────────────────────────────── */}
-      <Animated.View
-        style={[styles.panel, { transform: [{ translateY: panelAnim }] }]}
-        pointerEvents={isOpen ? 'auto' : 'none'}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}
-          style={{ flex: 1 }}>
-
-          {/* Header */}
-          <View style={styles.panelHeader}>
-            <Text style={styles.panelTitle}>💬 Game Chat</Text>
-            {opponentUsername ? (
-              <Text style={styles.panelSubtitle}>vs {opponentUsername}</Text>
-            ) : null}
-            <TouchableOpacity
-              onPress={closePanel}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-              <Text style={styles.closeBtn}>✕</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Messages */}
+        {/* Messages List */}
+        <View style={styles.messagesWrapper}>
           <FlatList
             ref={flatListRef}
-            data={messages}
+            data={messages.slice(-3)} // Show only last 3 messages
             keyExtractor={item => item.id}
             renderItem={renderMessage}
             contentContainerStyle={styles.messageList}
             showsVerticalScrollIndicator={false}
-            onContentSizeChange={() =>
-              flatListRef.current?.scrollToEnd({ animated: false })
-            }
-            ListEmptyComponent={
-              <Text style={styles.emptyText}>
-                No messages yet — say hi! 👋
-              </Text>
-            }
+            scrollEnabled={false} // Disable scrolling - always show last 3
+            inverted={false} // Newest at bottom
+            ListEmptyComponent={null}
           />
+        </View>
 
-          {/* Input */}
-          <View style={styles.inputRow}>
+        {/* Input Bar */}
+        <View style={styles.inputContainer}>
+          <View style={styles.inputWrapper}>
             <TextInput
               style={styles.input}
-              placeholder="Message..."
-              placeholderTextColor="rgba(255,255,255,0.35)"
+              placeholder="Send Message"
+              placeholderTextColor="rgba(255,255,255,0.4)"
               value={inputText}
               onChangeText={setInputText}
               onSubmitEditing={handleSend}
               returnKeyType="send"
               maxLength={500}
             />
+            
+            {/* Send Button */}
             <TouchableOpacity
               style={[styles.sendBtn, !inputText.trim() && styles.sendBtnDisabled]}
               onPress={handleSend}
               disabled={!inputText.trim()}>
-              <Text style={styles.sendBtnText}>↑</Text>
+              <Text style={styles.sendIcon}>➤</Text>
+            </TouchableOpacity>
+
+            {/* Menu Button */}
+            <TouchableOpacity style={styles.menuBtn}>
+              <Text style={styles.menuIcon}>⋯</Text>
             </TouchableOpacity>
           </View>
+        </View>
 
-        </KeyboardAvoidingView>
-      </Animated.View>
-
-      {/* ── Floating toggle button ───────────────────────────────────────── */}
-      <TouchableOpacity
-        style={styles.fab}
-        onPress={togglePanel}
-        activeOpacity={0.8}>
-        <Text style={styles.fabIcon}>💬</Text>
-        {unreadCount > 0 && (
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>
-              {unreadCount > 9 ? '9+' : String(unreadCount)}
-            </Text>
-          </View>
-        )}
-      </TouchableOpacity>
-
+      </KeyboardAvoidingView>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   root: {
-    ...StyleSheet.absoluteFillObject,
-    zIndex: 999,
-  },
-  panel: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    height: PANEL_HEIGHT,
-    backgroundColor: 'rgba(10, 10, 25, 0.93)',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    overflow: 'hidden',
+    zIndex: 999,
   },
-  panelHeader: {
+  container: {
+    width: '100%',
+  },
+  messagesWrapper: {
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+    maxHeight: 200,
+  },
+  messageList: {
+    justifyContent: 'flex-start',
+  },
+  messageContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingTop: 14,
-    paddingBottom: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(255,255,255,0.15)',
+    marginVertical: 6,
   },
-  panelTitle: {
+  profilePic: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.3)',
+  },
+  initials: {
     color: '#fff',
     fontSize: 16,
     fontWeight: '700',
+  },
+  messageContent: {
     flex: 1,
   },
-  panelSubtitle: {
-    color: 'rgba(255,255,255,0.45)',
-    fontSize: 13,
-    marginRight: 10,
-  },
-  closeBtn: {
-    color: 'rgba(255,255,255,0.55)',
-    fontSize: 18,
-    fontWeight: '600',
-    paddingHorizontal: 2,
-  },
-  messageList: {
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    flexGrow: 1,
-    justifyContent: 'flex-end',
-  },
-  emptyText: {
-    color: 'rgba(255,255,255,0.3)',
-    textAlign: 'center',
-    marginTop: 20,
-    fontSize: 14,
-  },
-  bubble: {
-    maxWidth: '80%',
-    marginVertical: 4,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 14,
-  },
-  bubbleMe: {
-    alignSelf: 'flex-end',
-    backgroundColor: 'rgba(0, 122, 255, 0.88)',
-  },
-  bubbleThem: {
-    alignSelf: 'flex-start',
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.2)',
-  },
   senderName: {
-    color: 'rgba(255,255,255,0.55)',
-    fontSize: 11,
-    fontWeight: '600',
-    marginBottom: 2,
-  },
-  bubbleText: {
-    fontSize: 15,
-    lineHeight: 20,
-  },
-  textMe: {
     color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 4,
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
-  textThem: {
-    color: 'rgba(255,255,255,0.9)',
+  messageBar: {
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+    backdropFilter: 'blur(10px)',
+    maxWidth: SCREEN_WIDTH - 100,
   },
-  timestamp: {
-    fontSize: 10,
-    color: 'rgba(255,255,255,0.35)',
-    marginTop: 3,
-    alignSelf: 'flex-end',
+  messageText: {
+    color: 'rgba(255,255,255,0.95)',
+    fontSize: 14,
+    lineHeight: 18,
   },
-  inputRow: {
+  inputContainer: {
+    paddingHorizontal: 16,
+    paddingBottom: Platform.OS === 'ios' ? 20 : 12,
+    paddingTop: 8,
+  },
+  inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    borderRadius: 25,
+    paddingHorizontal: 16,
     paddingVertical: 10,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(255,255,255,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
   },
   input: {
     flex: 1,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 9,
     color: '#fff',
     fontSize: 15,
-    maxHeight: 80,
+    paddingVertical: 0,
+    paddingRight: 8,
   },
   sendBtn: {
-    marginLeft: 8,
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: '#007AFF',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'transparent',
     justifyContent: 'center',
     alignItems: 'center',
+    marginLeft: 4,
   },
   sendBtnDisabled: {
-    opacity: 0.35,
+    opacity: 0.3,
   },
-  sendBtnText: {
+  sendIcon: {
     color: '#fff',
     fontSize: 20,
-    fontWeight: '700',
-    lineHeight: 22,
+    fontWeight: '600',
   },
-  fab: {
-    position: 'absolute',
-    bottom: 92,
-    right: 16,
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: 'rgba(0, 0, 0, 0.72)',
+  menuBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.22)',
+    marginLeft: 4,
   },
-  fabIcon: {
-    fontSize: 22,
-  },
-  badge: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    minWidth: 18,
-    height: 18,
-    borderRadius: 9,
-    backgroundColor: '#FF3B30',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 4,
-    borderWidth: 1.5,
-    borderColor: 'rgba(0,0,0,0.35)',
-  },
-  badgeText: {
+  menuIcon: {
     color: '#fff',
-    fontSize: 10,
-    fontWeight: '700',
+    fontSize: 24,
+    fontWeight: '600',
+    letterSpacing: 2,
   },
 });
 
