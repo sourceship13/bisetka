@@ -277,6 +277,10 @@ class SocketService {
     this.socket?.emit('poker_action', { tableId, action, amount });
   }
 
+  rejoinPoker(userId: string): void {
+    this.socket?.emit('rejoin_poker', { userId });
+  }
+
   onPokerJoined(cb: (data: { tableId: string; seatIndex: number }) => void) {
     this.socket?.on('poker_joined', cb);
   }
@@ -301,6 +305,14 @@ class SocketService {
     this.socket?.on('poker_hand_result', cb);
   }
 
+  onPokerTurnTimeout(cb: (data: { tableId: string; seat: number; message: string }) => void) {
+    this.socket?.on('poker_turn_timeout', cb);
+  }
+
+  onPokerPlayerDisconnected(cb: (data: { tableId: string; seat: number; displayName: string }) => void) {
+    this.socket?.on('poker_player_disconnected', cb);
+  }
+
   onPokerMatchmakingCancelled(cb: () => void) {
     this.socket?.on('poker_matchmaking_cancelled', cb);
   }
@@ -312,6 +324,8 @@ class SocketService {
     this.socket?.off('poker_game_started');
     this.socket?.off('poker_state_update');
     this.socket?.off('poker_hand_result');
+    this.socket?.off('poker_turn_timeout');
+    this.socket?.off('poker_player_disconnected');
     this.socket?.off('poker_matchmaking_cancelled');
   }
 

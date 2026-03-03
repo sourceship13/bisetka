@@ -147,6 +147,8 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
 
         // Remove any stale listeners from previous mounts before registering fresh ones
         socketService.offPokerEvents();
+        // Always attempt to rejoin an existing table first — handles socket reconnects mid-game
+        socketService.rejoinPoker(userId);
 
         socketService.onPokerJoined((data) => {
           if (!mounted) return;
@@ -208,6 +210,16 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
             data.isYourWin ? '🎉 You Won!' : `${data.winnerName} Won`,
             `${data.winnerName} wins $${data.potAmount}!`
           );
+        });
+
+        socketService.onPokerTurnTimeout((data) => {
+          if (!mounted) return;
+          BisetkaAlert.alert('Turn Timed Out', data.message || 'You were auto-folded for inactivity.');
+        });
+
+        socketService.onPokerPlayerDisconnected((data) => {
+          if (!mounted) return;
+          setWinSnackbar({ visible: true, message: `${data.displayName} disconnected` });
         });
 
         if (isPrivateCreate) {
