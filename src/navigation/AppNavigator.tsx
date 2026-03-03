@@ -16,6 +16,7 @@ import NardiScreen from '../screens/Games/Nardi/NardiScreen';
 import ChessScreen from '../screens/Games/Chess/ChessScreen';
 import MultiplayerChessScreen from '../screens/Games/Chess/MultiplayerChessScreen';
 import MrotsiScreen from '../screens/Games/Mrotsi/MrotsiScreen';
+import MultiplayerMrotsiScreen from '../screens/Games/Mrotsi/MultiplayerMrotsiScreen';
 import CheckersScreen from '../screens/Games/Checkers/CheckersScreen';
 import PokerRoomScreen from '../screens/Games/Poker/PokerRoomScreen';
 import BilliardsGameScreen from '../screens/Games/Billards/BilliardsGameScreen';
@@ -45,6 +46,7 @@ export type RootStackParamList = {
   Nardi: undefined;
   Chess: undefined;
   MultiplayerChess: { userId: string };
+  MultiplayerMrotsi: { userId: string; mode?: string; joinCode?: string };
   Checkers: { session: any; gameType: GameType; mode: string };
   Mrotsi: { session: any; gameType: GameType; mode: string };
   PokerRoom: { session: any; gameType: GameType; mode: string };
@@ -155,6 +157,7 @@ const AppNavigator = () => {
               <Stack.Screen name="Checkers" component={CheckersScreen} />
               <Stack.Screen name="Nardi" component={NardiScreen} />
               <Stack.Screen name="Mrotsi" component={MrotsiScreen} />
+              <Stack.Screen name="MultiplayerMrotsi" component={MultiplayerMrotsiScreen} />
               <Stack.Screen name="PokerRoom" component={PokerRoomScreen} />
               <Stack.Screen name="BilliardsGame" component={BilliardsGameScreen} />
               <Stack.Screen name="Slots" component={SlotsScreen} />
