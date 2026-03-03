@@ -62,7 +62,9 @@ class ChatSocketService {
 
     // New message received
     this.socket.on('chat:message', (data: { message: Message }) => {
+      console.log('💬 Socket received chat:message event:', data.message.chat_id, data.message.content);
       const handlers = this.messageHandlers.get(data.message.chat_id) || [];
+      console.log('💬 Found', handlers.length, 'handlers for chat:', data.message.chat_id);
       handlers.forEach(handler => handler(data.message));
     });
 
@@ -85,7 +87,11 @@ class ChatSocketService {
 
   // Join a chat room
   joinChat(chatId: string, userId: string) {
-    if (!this.socket) return;
+    if (!this.socket) {
+      console.warn('💬 Cannot join chat - socket not connected');
+      return;
+    }
+    console.log('💬 Joining chat:', chatId, 'as user:', userId);
     this.socket.emit('chat:join', { chatId, userId });
   }
 

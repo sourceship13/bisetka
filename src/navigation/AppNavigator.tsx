@@ -1,5 +1,5 @@
 import React, {useState, useEffect} from 'react';
-import {NavigationContainer} from '@react-navigation/native';
+import {NavigationContainer, LinkingOptions} from '@react-navigation/native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -16,6 +16,7 @@ import NardiScreen from '../screens/Games/Nardi/NardiScreen';
 import ChessScreen from '../screens/Games/Chess/ChessScreen';
 import MultiplayerChessScreen from '../screens/Games/Chess/MultiplayerChessScreen';
 import MrotsiScreen from '../screens/Games/Mrotsi/MrotsiScreen';
+import MultiplayerMrotsiScreen from '../screens/Games/Mrotsi/MultiplayerMrotsiScreen';
 import CheckersScreen from '../screens/Games/Checkers/CheckersScreen';
 import PokerRoomScreen from '../screens/Games/Poker/PokerRoomScreen';
 import BilliardsGameScreen from '../screens/Games/Billards/BilliardsGameScreen';
@@ -45,9 +46,10 @@ export type RootStackParamList = {
   Nardi: undefined;
   Chess: undefined;
   MultiplayerChess: { userId: string };
+  MultiplayerMrotsi: { userId: string; mode?: string; joinCode?: string };
   Checkers: { session: any; gameType: GameType; mode: string };
   Mrotsi: { session: any; gameType: GameType; mode: string };
-  PokerRoom: { session: any; gameType: GameType; mode: string };
+  PokerRoom: { session: any; gameType: GameType; mode: string; joinCode?: string };
   BilliardsGame: { session: any };
   Slots: undefined;
   GameMode: { gameType: GameType };
@@ -62,6 +64,56 @@ export type RootStackParamList = {
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
+
+// Deep linking configuration
+const linking: LinkingOptions<RootStackParamList> = {
+  prefixes: ['bisetka://'],
+  config: {
+    screens: {
+      Login: 'login',
+      UsernameSelection: 'username-selection',
+      Onboarding: 'onboarding',
+      Home: 'home',
+      Blot: 'blot',
+      MultiplayerBlot: {
+        path: 'multiplayer-blot/:userId',
+        parse: {
+          userId: (userId: string) => userId,
+          mode: (mode: string) => mode as 'ai' | 'menu' | 'private-create' | 'private-join' | 'random',
+          difficulty: (difficulty: string) => difficulty as 'easy' | 'medium' | 'hard',
+          joinCode: (joinCode: string) => joinCode,
+        },
+      },
+      BaazarBlot: 'baazar-blot',
+      MultiplayerBaazarBlot: 'multiplayer-baazar-blot/:userId',
+      Nardi: 'nardi',
+      Chess: 'chess',
+      MultiplayerChess: 'multiplayer-chess/:userId',
+      MultiplayerMrotsi: {
+        path: 'multiplayer-mrotsi/:userId',
+        parse: {
+          userId: (userId: string) => userId,
+          mode: (mode: string) => mode,
+          joinCode: (joinCode: string) => joinCode,
+        },
+      },
+      Checkers: 'checkers',
+      Mrotsi: 'mrotsi',
+      PokerRoom: 'poker',
+      BilliardsGame: 'billiards',
+      Slots: 'slots',
+      GameMode: 'game-mode/:gameType',
+      GameInfo: 'game-info/:gameType',
+      SessionStatus: 'session-status/:gameType',
+      GlobalChat: 'global-chat',
+      DMList: 'dm-list',
+      DMChat: 'dm/:chatId',
+      Leaderboard: 'leaderboard',
+      ChatRoomsList: 'chat-rooms',
+      ChatRoom: 'chat-room/:roomId',
+    },
+  },
+};
 
 const AppNavigator = () => {
   const {user, isLoading} = useAuth();
@@ -125,7 +177,7 @@ const AppNavigator = () => {
 
   return (
     <SafeAreaProvider>
-      <NavigationContainer>
+      <NavigationContainer linking={linking}>
         <Stack.Navigator
           screenOptions={{
             headerShown: false,
@@ -133,14 +185,17 @@ const AppNavigator = () => {
           {!user ? (
             // Auth Stack - User is NOT signed in
             <Stack.Screen name="Login" component={LoginScreen} />
-          ) : needsUsername ? (
-            // Username Selection - User needs to pick a username
+          ) : needsUsername && !needsOnboarding ? (
+            // Returning user who needs a username but already saw onboarding
             <Stack.Screen name="UsernameSelection" component={UsernameSelectionScreen} />
           ) : (
-            // App Stack - User IS signed in with valid username
+            // App Stack - User IS signed in
             <>
-              {needsOnboarding && (
-                <Stack.Screen name="Onboarding" component={OnboardingScreen} />
+              {(needsOnboarding || needsUsername) && (
+                <Stack.Screen
+                  name="Onboarding"
+                  component={OnboardingScreen}
+                />
               )}
               <Stack.Screen name="Home" component={HomeScreen} />
               <Stack.Screen name="Blot" component={BlotScreen} />
@@ -152,6 +207,7 @@ const AppNavigator = () => {
               <Stack.Screen name="Checkers" component={CheckersScreen} />
               <Stack.Screen name="Nardi" component={NardiScreen} />
               <Stack.Screen name="Mrotsi" component={MrotsiScreen} />
+              <Stack.Screen name="MultiplayerMrotsi" component={MultiplayerMrotsiScreen} />
               <Stack.Screen name="PokerRoom" component={PokerRoomScreen} />
               <Stack.Screen name="BilliardsGame" component={BilliardsGameScreen} />
               <Stack.Screen name="Slots" component={SlotsScreen} />

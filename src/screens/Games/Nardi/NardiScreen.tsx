@@ -7,6 +7,7 @@ import {
   ImageBackground,
   Image,
   Dimensions,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import GameToolbar from '../../../components/global/GameToolbar';
@@ -24,6 +25,9 @@ import {
   switchPlayer,
   Move,
 } from '../../../game/nardiLogic';
+import {socketService} from '../../../services/SocketService';
+import InGameChat from '../../../components/InGameChat';
+import {BisetkaAlert} from '../../../utils/BisetkaAlert';
 
 const { width, height } = Dimensions.get('window');
 const BOARD_SIZE = Math.min(width - 32, height * 0.65);
@@ -78,12 +82,23 @@ type OpponentType = 'ai' | 'local';
 
 const NardiScreen = ({ navigation, route }: any) => {
   const routeMode = route?.params?.mode;
-  const opponentType: OpponentType = routeMode === 'ai' ? 'ai' : 'local';
-  
+  const session = route?.params?.session;
+  const isMultiplayer = routeMode === 'random' || routeMode === 'private-create' || routeMode === 'private-join';
+  const userId: string = session?.user?.id || session?.id || 'guest';
+  const opponentType: OpponentType = isMultiplayer ? 'local' : (routeMode === 'ai' ? 'ai' : 'local');
+
   const [gameState, setGameState] = useState<NardiGameState | null>(null);
   const [selectedPoint, setSelectedPoint] = useState<number | null>(null);
   const aiTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   useGameEndRefresh(gameState?.winner != null, 'nardi');
+
+  // ── multiplayer state ────────────────────────────────────────────
+  const [mpStatus, setMpStatus] = useState<'idle'|'connecting'|'searching'|'waiting'|'playing'|'ended'>('idle');
+  const [roomId, setRoomId] = useState<string|null>(null);
+  const roomIdRef = useRef<string|null>(null);
+  const [myMpColor, setMyMpColor] = useState<'white'|'black'>('white');
+  const myMpColorRef = useRef<'white'|'black'>('white');
+  const myNardiColor: 'white'|'black' = isMultiplayer ? myMpColor : 'white';
 
   // Clear selection whenever state changes
   useEffect(() => {
@@ -102,6 +117,114 @@ const NardiScreen = ({ navigation, route }: any) => {
   useEffect(() => {
     const initialState = initializeNardiGame('short');
     setGameState(initialState);
+  }, []);
+
+  // ── Multiplayer socket setup ────────────────────────────────────────────
+  useEffect(() => {
+    if (!isMultiplayer) return;
+    let cancelled = false;
+    setMpStatus('connecting');
+    (async () => {
+      try {
+        await socketService.connect(userId, (session as any)?.access_token || 'temp-token');
+        if (cancelled) return;
+        const socket = socketService.getSocket();
+        if (!socket) return;
+        setMpStatus('searching');
+        ['match_found','room_joined','opponent_joined','game_started','move_made','game_ended','opponent_disconnected']
+          .forEach(ev => socket.off(ev));
+        let resolvedRoomId: string | null = null;
+        const onRoomAssigned = (data: any) => {
+          if (cancelled) return;
+          resolvedRoomId = data.roomId;
+          roomIdRef.current = data.roomId;
+          setRoomId(data.roomId);
+          const color: 'white'|'black' = data.color === 'white' ? 'white' : 'black';
+          myMpColorRef.current = color;
+          setMyMpColor(color);
+          setMpStatus('waiting');
+        };
+        socket.on('match_found', (data: any) => {
+          onRoomAssigned(data);
+          socket.emit('player_ready', {roomId: data.roomId, userId});
+        });
+        socket.on('room_joined', (data: any) => { onRoomAssigned(data); });
+        socket.on('opponent_joined', () => {
+          if (cancelled || !resolvedRoomId) return;
+          socket.emit('player_ready', {roomId: resolvedRoomId, userId});
+        });
+        socket.on('game_started', () => {
+          if (cancelled) return;
+          setGameState(initializeNardiGame('short'));
+          setMpStatus('playing');
+        });
+        socket.on('move_made', (data: any) => {
+          if (cancelled) return;
+          const mv = data.move;
+          if (mv?.type === 'roll_dice') {
+            setGameState(prev => {
+              if (!prev || prev.phase !== 'rolling') return prev;
+              const {die1, die2} = mv.dice;
+              const movesRemaining = die1 === die2 ? 4 : 2;
+              const ns: NardiGameState = {
+                ...prev,
+                dice: {die1, die2, rolled: true},
+                phase: 'moving',
+                movesRemaining,
+                possibleMoves: [],
+              };
+              ns.possibleMoves = calculatePossibleMoves(ns);
+              return ns.possibleMoves.length === 0 ? switchPlayer(ns) : ns;
+            });
+          } else if (mv?.type === 'move_piece') {
+            setGameState(prev => {
+              if (!prev) return prev;
+              return applyMove(prev, {from: mv.from, to: mv.to});
+            });
+          } else if (mv?.type === 'end_turn') {
+            setGameState(prev => prev ? switchPlayer(prev) : prev);
+          }
+        });
+        socket.on('game_ended', (data: any) => {
+          if (cancelled) return;
+          setMpStatus('ended');
+          const iWon = data.winnerId === userId;
+          setGameState(prev => prev ? {
+            ...prev,
+            winner: iWon ? myMpColorRef.current : (myMpColorRef.current === 'white' ? 'black' : 'white'),
+          } : prev);
+        });
+        socket.on('opponent_disconnected', () => {
+          if (cancelled) return;
+          setMpStatus('ended');
+          BisetkaAlert.success('Opponent disconnected', 'You win by forfeit!');
+          setGameState(prev => prev ? {...prev, winner: myMpColorRef.current} : prev);
+        });
+        if (routeMode === 'random') {
+          socket.emit('find_match', {gameType: 'nardi', userId});
+        } else if (routeMode === 'private-create') {
+          const roomData = await socketService.createPrivateRoom('nardi', userId, (session as any)?.code);
+          if (!cancelled) { onRoomAssigned(roomData); socket.emit('player_ready', {roomId: roomData.roomId, userId}); }
+        } else if (routeMode === 'private-join') {
+          const joinCode = (session as any)?.code;
+          if (joinCode) {
+            const roomData = await socketService.joinPrivateRoom(joinCode, userId);
+            if (!cancelled) onRoomAssigned(roomData);
+          }
+        }
+      } catch {
+        if (!cancelled) setMpStatus('idle');
+      }
+    })();
+    return () => {
+      cancelled = true;
+      const socket = socketService.getSocket();
+      if (socket) {
+        ['match_found','room_joined','opponent_joined','game_started','move_made','game_ended','opponent_disconnected']
+          .forEach(ev => socket.off(ev));
+        if (routeMode === 'random') socket.emit('cancel_matchmaking', {userId});
+      }
+    };
   }, []);
 
   // Helper: figure out which die value a move used
@@ -151,50 +274,61 @@ const NardiScreen = ({ navigation, route }: any) => {
   };
 
   const handleRollDice = () => {
-    setGameState(prev => {
-      if (!prev || prev.phase !== 'rolling') return prev;
+    if (!gameState || gameState.phase !== 'rolling') return;
+    const myColor = isMultiplayer ? myMpColorRef.current : 'white';
+    if (gameState.currentPlayer !== myColor) return;
 
-      const dice = rollDice();
-      const movesRemaining = dice.die1 === dice.die2 ? 4 : 2;
-      const newState: NardiGameState = {
-        ...prev,
-        dice,
-        phase: 'moving',
-        movesRemaining,
-        possibleMoves: [],
-      };
-      newState.possibleMoves = calculatePossibleMoves(newState);
+    const dice = rollDice();
+    const movesRemaining = dice.die1 === dice.die2 ? 4 : 2;
+    const newState: NardiGameState = {
+      ...gameState,
+      dice,
+      phase: 'moving',
+      movesRemaining,
+      possibleMoves: [],
+    };
+    newState.possibleMoves = calculatePossibleMoves(newState);
+    console.log('🎲 Rolled:', dice.die1, dice.die2, 'possible moves:', newState.possibleMoves.length);
 
-      console.log('🎲 White Rolled:', dice.die1, dice.die2, 'possible moves:', newState.possibleMoves.length);
-
-      if (newState.possibleMoves.length === 0) {
-        return switchPlayer(newState);
+    if (isMultiplayer && roomIdRef.current) {
+      socketService.makeMove(roomIdRef.current, userId, {type: 'roll_dice', dice: {die1: dice.die1, die2: dice.die2}});
+    }
+    if (newState.possibleMoves.length === 0) {
+      if (isMultiplayer && roomIdRef.current) {
+        socketService.makeMove(roomIdRef.current, userId, {type: 'end_turn'});
       }
-      return newState;
-    });
+      setGameState(switchPlayer(newState));
+    } else {
+      setGameState(newState);
+    }
   };
 
   const handleMove = (move: Move) => {
-    setGameState(prev => {
-      if (!prev) return prev;
+    if (!gameState) return;
+    const myColor = isMultiplayer ? myMpColorRef.current : 'white';
+    if (gameState.currentPlayer !== myColor) return;
 
-      const updated = applyMove(prev, move);
+    const updated = applyMove(gameState, move);
+    console.log('📍 Move:', move.from, '->', move.to, 'movesLeft:', updated.movesRemaining);
 
-      console.log('📍 Player move:', move.from, '->', move.to,
-        'movesLeft:', updated.movesRemaining,
-        'nextMoves:', updated.possibleMoves.length);
-
-      if (updated.movesRemaining === 0 || updated.possibleMoves.length === 0) {
-        return switchPlayer(updated);
+    if (isMultiplayer && roomIdRef.current) {
+      socketService.makeMove(roomIdRef.current, userId, {type: 'move_piece', from: move.from, to: move.to});
+    }
+    if (updated.movesRemaining === 0 || updated.possibleMoves.length === 0) {
+      if (isMultiplayer && roomIdRef.current) {
+        socketService.makeMove(roomIdRef.current, userId, {type: 'end_turn'});
       }
-      return updated;
-    });
+      setGameState(switchPlayer(updated));
+    } else {
+      setGameState(updated);
+    }
   };
 
   // === AI TURN LOGIC ===
   // When it becomes AI's turn (black + rolling), run the entire AI turn as a scheduled sequence.
   useEffect(() => {
     if (!gameState) return;
+    if (isMultiplayer) return; // no AI in multiplayer mode
     if (gameState.currentPlayer !== 'black' || opponentType !== 'ai') return;
     if (gameState.phase !== 'rolling') return;
 
@@ -262,26 +396,31 @@ const NardiScreen = ({ navigation, route }: any) => {
   useEffect(() => {
     if (!gameState) return;
     if (gameState.phase !== 'moving') return;
-    if (gameState.currentPlayer !== 'white') return;
+    const myColor = isMultiplayer ? myMpColorRef.current : 'white';
+    if (gameState.currentPlayer !== myColor) return;
     if (gameState.possibleMoves.length > 0) return;
     if (gameState.movesRemaining <= 0) return;
 
-    // Player has moves remaining but nothing to play — auto-skip after short delay
-    console.log('⏭️ White has no valid moves with', gameState.movesRemaining, 'remaining — auto-ending turn');
+    console.log('⏭️ No valid moves with', gameState.movesRemaining, 'remaining — auto-ending turn');
     const t = setTimeout(() => {
+      const mc = isMultiplayer ? myMpColorRef.current : 'white';
       setGameState(prev => {
-        if (!prev || prev.currentPlayer !== 'white' || prev.phase !== 'moving') return prev;
-        if (prev.possibleMoves.length > 0) return prev; // re-check in case state changed
+        if (!prev || prev.currentPlayer !== mc || prev.phase !== 'moving') return prev;
+        if (prev.possibleMoves.length > 0) return prev;
         return switchPlayer(prev);
       });
+      if (isMultiplayer && roomIdRef.current) {
+        socketService.makeMove(roomIdRef.current, userId, {type: 'end_turn'});
+      }
     }, 1500);
     return () => clearTimeout(t);
   }, [gameState?.currentPlayer, gameState?.phase, gameState?.possibleMoves?.length, gameState?.movesRemaining]);
 
   // Handle tapping the bar (to enter checkers from bar)
   const handleBarPress = () => {
-    if (!gameState || gameState.currentPlayer !== 'white' || gameState.phase !== 'moving') return;
-    if (gameState.bar.white <= 0) return;
+    const myColor = isMultiplayer ? myMpColorRef.current : 'white';
+    if (!gameState || gameState.currentPlayer !== myColor || gameState.phase !== 'moving') return;
+    if (gameState.bar[myColor] <= 0) return;
 
     const barMoves = gameState.possibleMoves.filter(m => m.from === -1);
     console.log('🔴 Bar pressed, moves:', barMoves.length);
@@ -298,17 +437,18 @@ const NardiScreen = ({ navigation, route }: any) => {
   };
 
   const handlePointPress = (pointIndex: number) => {
-    if (!gameState || gameState.currentPlayer !== 'white' || gameState.phase !== 'moving') {
-      console.log('❌ Cannot press point:', { 
-        hasGame: !!gameState, 
-        player: gameState?.currentPlayer, 
-        phase: gameState?.phase 
+    const myColor = isMultiplayer ? myMpColorRef.current : 'white';
+    if (!gameState || gameState.currentPlayer !== myColor || gameState.phase !== 'moving') {
+      console.log('❌ Cannot press point:', {
+        hasGame: !!gameState,
+        player: gameState?.currentPlayer,
+        phase: gameState?.phase,
       });
       return;
     }
 
     // If player has checkers on bar, they MUST enter from bar first
-    if (gameState.bar.white > 0) {
+    if (gameState.bar[myColor] > 0) {
       // Only allow tapping destinations for bar entry
       if (selectedPoint === -1) {
         const move = gameState.possibleMoves.find(m => m.from === -1 && m.to === pointIndex);
@@ -393,14 +533,15 @@ const NardiScreen = ({ navigation, route }: any) => {
     
     // Also highlight as valid destination for bar entry even before bar is "selected"
     const isBarEntryDest = gameState.bar[gameState.currentPlayer] > 0 &&
-      gameState.currentPlayer === 'white' &&
+      gameState.currentPlayer === myColorForRender &&
       gameState.possibleMoves.some(m => m.from === -1 && m.to === pointIndex);
     
     // Check if this piece can be moved (has any valid moves)
+    const myColorForRender = isMultiplayer ? myMpColorRef.current : 'white';
     const canMove = checkers > 0 &&
-      gameState.phase === 'moving' && 
-      gameState.currentPlayer === 'white' &&
-      point.checkers[point.checkers.length - 1] === 'white' &&
+      gameState.phase === 'moving' &&
+      gameState.currentPlayer === myColorForRender &&
+      point.checkers[point.checkers.length - 1] === myColorForRender &&
       gameState.possibleMoves.some(m => m.from === pointIndex);
 
     const maxVisible = 5;
@@ -475,10 +616,42 @@ const NardiScreen = ({ navigation, route }: any) => {
         
         <SafeAreaView style={styles.safeArea}>
           <GameToolbar
-            title="🎲 Nardi"
-            onBack={() => navigation.goBack()}
+            title={isMultiplayer ? '🎲 Nardi (Online)' : '🎲 Nardi'}
+            onBack={() => {
+              if (isMultiplayer && roomIdRef.current) {
+                (socketService as any).resign?.(roomIdRef.current, userId);
+              }
+              navigation.goBack();
+            }}
             backgroundColor="transparent"
           />
+
+          {/* Matchmaking overlay */}
+          {isMultiplayer && mpStatus !== 'playing' && mpStatus !== 'ended' && (
+            <View style={{
+              ...StyleSheet.absoluteFillObject,
+              backgroundColor: 'rgba(0,0,0,0.85)',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 100,
+              gap: 20,
+            }}>
+              <ActivityIndicator size="large" color="#6366f1" />
+              <Text style={{ color: '#fff', fontSize: 18, textAlign: 'center', paddingHorizontal: 32 }}>
+                {mpStatus === 'connecting' ? 'Connecting...' :
+                 mpStatus === 'searching'  ? 'Finding opponent...' :
+                 'Waiting for game to start...'}
+              </Text>
+              <TouchableOpacity
+                style={{ paddingHorizontal: 28, paddingVertical: 12, backgroundColor: '#ef4444', borderRadius: 10 }}
+                onPress={() => {
+                  (socketService as any).cancelMatchmaking?.(userId);
+                  navigation.goBack();
+                }}>
+                <Text style={{ color: '#fff', fontWeight: '700', fontSize: 15 }}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
           {/* Borne-off / Home counts */}
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 24, marginBottom: 4 }}>
@@ -593,9 +766,9 @@ const NardiScreen = ({ navigation, route }: any) => {
           </View>
 
           <View style={{ paddingHorizontal: 16, paddingVertical: 12 }}>
-            {gameState.phase === 'rolling' && gameState.currentPlayer === 'white' && (
-              <TouchableOpacity 
-                style={{ borderRadius: 16, overflow: 'hidden', elevation: 6 }} 
+            {gameState.phase === 'rolling' && gameState.currentPlayer === myNardiColor && (
+              <TouchableOpacity
+                style={{ borderRadius: 16, overflow: 'hidden', elevation: 6 }}
                 onPress={() => {
                   console.log('🎲 Roll Dice button pressed!');
                   handleRollDice();
@@ -608,7 +781,7 @@ const NardiScreen = ({ navigation, route }: any) => {
               </TouchableOpacity>
             )}
             {/* No valid moves — End Turn button + auto-skip message */}
-            {gameState.phase === 'moving' && gameState.currentPlayer === 'white' && 
+            {gameState.phase === 'moving' && gameState.currentPlayer === myNardiColor &&
              gameState.possibleMoves.length === 0 && gameState.movesRemaining > 0 && (
               <View style={{ alignItems: 'center', gap: 8 }}>
                 <Text style={{ color: '#fbbf24', fontSize: 14, fontWeight: '600' }}>
@@ -627,22 +800,29 @@ const NardiScreen = ({ navigation, route }: any) => {
                 </TouchableOpacity>
               </View>
             )}
-            {gameState.currentPlayer === 'black' && opponentType === 'ai' && (
+            {!isMultiplayer && gameState.currentPlayer === 'black' && opponentType === 'ai' && (
               <View style={styles.aiTurn}>
                 <Text style={styles.aiText}>🤖 AI is thinking...</Text>
+              </View>
+            )}
+            {isMultiplayer && gameState.currentPlayer !== myNardiColor && (
+              <View style={styles.aiTurn}>
+                <Text style={styles.aiText}>⏳ Opponent's turn...</Text>
               </View>
             )}
           </View>
 
           <View style={styles.status}>
             <Text style={styles.statusText}>
-              {gameState.currentPlayer === 'white' ? '⚪ Your Turn' : '⚫ AI Turn'}
-              {gameState.phase === 'rolling' && gameState.currentPlayer === 'white' && ' - Roll Dice'}
-              {gameState.phase === 'moving' && gameState.currentPlayer === 'white' && 
+              {gameState.currentPlayer === myNardiColor
+                ? (myNardiColor === 'white' ? '⚪ Your Turn' : '⚫ Your Turn')
+                : (isMultiplayer ? "⏳ Opponent's Turn" : '⚫ AI Turn')}
+              {gameState.phase === 'rolling' && gameState.currentPlayer === myNardiColor && ' - Roll Dice'}
+              {gameState.phase === 'moving' && gameState.currentPlayer === myNardiColor &&
                 gameState.possibleMoves.length > 0 &&
                 ` - ${gameState.movesRemaining} move${gameState.movesRemaining !== 1 ? 's' : ''} left`}
             </Text>
-            {gameState.bar.white > 0 && gameState.currentPlayer === 'white' && gameState.phase === 'moving' && (
+            {gameState.bar[myNardiColor] > 0 && gameState.currentPlayer === myNardiColor && gameState.phase === 'moving' && (
               <Text style={{ color: '#fbbf24', fontSize: 13, fontWeight: '600', marginTop: 2 }}>
                 ⚠️ Tap the bar to re-enter your checker!
               </Text>
@@ -660,10 +840,10 @@ const NardiScreen = ({ navigation, route }: any) => {
           {gameState.winner && (
             <View style={styles.winOverlay}>
               <LinearGradient
-                colors={gameState.winner === 'white' ? ['#10b981', '#34d399'] : ['#ef4444', '#f87171']}
+                colors={gameState.winner === myNardiColor ? ['#10b981', '#34d399'] : ['#ef4444', '#f87171']}
                 style={styles.winCard}>
                 <Text style={styles.winTitle}>
-                  {gameState.winner === 'white' ? '🏆 You Win!' : '💀 AI Wins'}
+                  {gameState.winner === myNardiColor ? '🏆 You Win!' : (isMultiplayer ? '💀 Opponent Wins' : '💀 AI Wins')}
                 </Text>
                 <TouchableOpacity
                   style={styles.newGameBtn}
@@ -675,6 +855,14 @@ const NardiScreen = ({ navigation, route }: any) => {
           )}
         </SafeAreaView>
       </LinearGradient>
+
+      {/* In-game chat overlay (multiplayer only) */}
+      <InGameChat
+        roomId={roomId || ''}
+        currentUserId={userId}
+        gameType="nardi"
+        visible={isMultiplayer && mpStatus === 'playing' && !!roomId}
+      />
     </ImageBackground>
   );
 };
