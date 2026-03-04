@@ -12,6 +12,7 @@ import {
 import {SafeAreaView} from 'react-native-safe-area-context';
 import GameToolbar from '../../../components/global/GameToolbar';
 import {socketService} from '../../../services/SocketService';
+import tokenService from '../../../services/token.service';
 import InGameChat from '../../../components/InGameChat';
 import {BisetkaAlert} from '../../../utils/BisetkaAlert';
 import {useGameEndRefresh} from '../../../libs/hooks/useGameEndRefresh';
@@ -104,94 +105,106 @@ const MultiplayerMrotsiScreen = ({navigation, route}: any) => {
 
   // ─── Socket setup ───────────────────────────────────────────────────────────
   useEffect(() => {
-    connectToServer();
-
-    socketService.onMatchmakingStatus(data => {
-      if (data.status === 'searching') setGameStatus('Searching for opponent...');
-    });
-
-    socketService.onOpponentJoined(data => {
-      setGameStatus(`Opponent found! Get ready...`);
-    });
-
-    socketService.onGameStarted(data => {
-      setGameStatus('Game started!');
-      setScreen('game');
-      setGameState({
-        player1Score: 0, player2Score: 0,
-        currentRound: 1, totalRounds: 5,
-        player1Dice: null, player2Dice: null,
-        player1RoundScore: null, player2RoundScore: null,
-        player1Combination: null, player2Combination: null,
-      });
-      setHasRolled(false);
-      setOpponentHasRolled(false);
-      setLastRoundResult(null);
-      setRoundHistory([]);
-    });
-
-    socketService.onMoveMade((data: any) => {
-      const gs: MrotsiGameState = data.gameState;
-      const rolledBy: 'player1' | 'player2' = data.rolledBy;
-
-      const liveSlot = mySlotRef.current;
-      const opponentSlot = liveSlot === 'player1' ? 'player2' : 'player1';
-
-      if (rolledBy === opponentSlot) {
-        setOpponentHasRolled(true);
+    // Connect socket first — ALL listeners must be registered AFTER the socket
+    // exists, otherwise this.socket?.on(...) is a no-op and P1 never receives
+    // game_started / opponent_joined.
+    const initialize = async () => {
+      try {
+        await connectToServer();
+      } catch {
+        BisetkaAlert.error('Connection Error', 'Failed to connect to server');
+        return;
       }
 
-      setGameState(gs);
+      // Register all listeners now that this.socket is valid
+      socketService.onMatchmakingStatus(data => {
+        if (data.status === 'searching') setGameStatus('Searching for opponent...');
+      });
 
-      if (data.roundComplete && data.roundResult) {
-        const result: RoundResult = data.roundResult;
-        setLastRoundResult(result);
-        setRoundHistory(prev => [...prev, result]);
-        // Reset per-round roll flags
+      socketService.onOpponentJoined(data => {
+        setGameStatus(`Opponent found! Get ready...`);
+      });
+
+      socketService.onGameStarted(data => {
+        setGameStatus('Game started!');
+        setScreen('game');
+        setGameState({
+          player1Score: 0, player2Score: 0,
+          currentRound: 1, totalRounds: 5,
+          player1Dice: null, player2Dice: null,
+          player1RoundScore: null, player2RoundScore: null,
+          player1Combination: null, player2Combination: null,
+        });
         setHasRolled(false);
         setOpponentHasRolled(false);
-        setMyDice([]);
+        setLastRoundResult(null);
+        setRoundHistory([]);
+      });
+
+      socketService.onMoveMade((data: any) => {
+        const gs: MrotsiGameState = data.gameState;
+        const rolledBy: 'player1' | 'player2' = data.rolledBy;
+
+        const liveSlot = mySlotRef.current;
+        const opponentSlot = liveSlot === 'player1' ? 'player2' : 'player1';
+
+        if (rolledBy === opponentSlot) {
+          setOpponentHasRolled(true);
+        }
+
+        setGameState(gs);
+
+        if (data.roundComplete && data.roundResult) {
+          const result: RoundResult = data.roundResult;
+          setLastRoundResult(result);
+          setRoundHistory(prev => [...prev, result]);
+          // Reset per-round roll flags
+          setHasRolled(false);
+          setOpponentHasRolled(false);
+          setMyDice([]);
+        }
+      });
+
+      socketService.onGameEnded((data: any) => {
+        refreshOnGameEnd().catch(console.error);
+        const {winnerId, finalScore} = data;
+        const didIWin = winnerId === userId;
+        const isDraw = !winnerId;
+
+        const title = isDraw ? 'Draw!' : didIWin ? 'You Won! 🎉' : 'You Lost';
+        const message = isDraw
+          ? `Final score: ${finalScore?.player1 ?? 0} – ${finalScore?.player2 ?? 0}`
+          : didIWin
+          ? `You won! ${finalScore?.player1 ?? 0} – ${finalScore?.player2 ?? 0}`
+          : `Opponent won! ${finalScore?.player1 ?? 0} – ${finalScore?.player2 ?? 0}`;
+
+        BisetkaAlert.alert(title, message, [
+          {text: 'Play Again', onPress: () => navigation.replace('GameMode', {gameType: 'mrotsi'})},
+          {text: 'Home', onPress: () => navigation.replace('Home')},
+        ]);
+      });
+
+      socketService.onOpponentDisconnected(() => {
+        refreshOnGameEnd().catch(console.error);
+        BisetkaAlert.warning('Opponent Disconnected', 'Your opponent has left the game.', [
+          {text: 'OK', onPress: () => navigation.replace('GameMode', {gameType: 'mrotsi'})},
+        ]);
+      });
+
+      socketService.onError((error: any) => {
+        BisetkaAlert.error('Error', error.message);
+      });
+
+      // Auto-start
+      if (routeMode === 'random') {
+        handleFindMatch();
+      } else if (routeMode === 'private-create') {
+        handleCreatePrivateRoom();
+      } else if (routeMode === 'private-join' && joinCode) {
+        setJoinRoomCode(joinCode);
       }
-    });
-
-    socketService.onGameEnded((data: any) => {
-      refreshOnGameEnd().catch(console.error);
-      const {winnerId, finalScore} = data;
-      const didIWin = winnerId === userId;
-      const isDraw = !winnerId;
-
-      const title = isDraw ? 'Draw!' : didIWin ? 'You Won! 🎉' : 'You Lost';
-      const message = isDraw
-        ? `Final score: ${finalScore?.player1 ?? 0} – ${finalScore?.player2 ?? 0}`
-        : didIWin
-        ? `You won! ${finalScore?.player1 ?? 0} – ${finalScore?.player2 ?? 0}`
-        : `Opponent won! ${finalScore?.player1 ?? 0} – ${finalScore?.player2 ?? 0}`;
-
-      BisetkaAlert.alert(title, message, [
-        {text: 'Play Again', onPress: () => navigation.replace('GameMode', {gameType: 'mrotsi'})},
-        {text: 'Home', onPress: () => navigation.replace('Home')},
-      ]);
-    });
-
-    socketService.onOpponentDisconnected(() => {
-      refreshOnGameEnd().catch(console.error);
-      BisetkaAlert.warning('Opponent Disconnected', 'Your opponent has left the game.', [
-        {text: 'OK', onPress: () => navigation.replace('GameMode', {gameType: 'mrotsi'})},
-      ]);
-    });
-
-    socketService.onError((error: any) => {
-      BisetkaAlert.error('Error', error.message);
-    });
-
-    // Auto-start modes
-    if (routeMode === 'random') {
-      handleFindMatch();
-    } else if (routeMode === 'private-create') {
-      handleCreatePrivateRoom();
-    } else if (routeMode === 'private-join' && joinCode) {
-      setJoinRoomCode(joinCode);
-    }
+    };
+    initialize();
 
     return () => {
       socketService.removeAllListeners();
@@ -207,11 +220,8 @@ const MultiplayerMrotsiScreen = ({navigation, route}: any) => {
   }, [joinRoomCode, routeMode]);
 
   const connectToServer = async () => {
-    try {
-      await socketService.connect(userId, 'temp-token');
-    } catch {
-      BisetkaAlert.error('Connection Error', 'Failed to connect to server');
-    }
+    const token = await tokenService.getAccessToken() ?? 'guest';
+    await socketService.connect(userId, token);
   };
 
   const handleFindMatch = async () => {
@@ -239,12 +249,12 @@ const MultiplayerMrotsiScreen = ({navigation, route}: any) => {
       mySlotRef.current = 'player1';
       setMySlot('player1');
       setRoomId(roomData.roomId);
-      setRoomCode(roomData.code);
+      setRoomCode(roomData.roomCode);
       setScreen('matchmaking');
-      setGameStatus(`Room created! Share code: ${roomData.code}`);
+      setGameStatus(`Room created! Share code: ${roomData.roomCode}`);
       socketService.playerReady(roomData.roomId, userId);
     } catch (err: any) {
-      BisetkaAlert.error('Error', err.message);
+      BisetkaAlert.error('Error', err?.message || String(err) || 'Failed to create room');
     }
   };
 
@@ -259,7 +269,7 @@ const MultiplayerMrotsiScreen = ({navigation, route}: any) => {
       setGameStatus('Joined room! Waiting for game to start...');
       socketService.playerReady(roomData.roomId, userId);
     } catch (err: any) {
-      BisetkaAlert.error('Error', err.message);
+      BisetkaAlert.error('Error', err?.message || String(err) || 'Failed to join room');
     }
   };
 

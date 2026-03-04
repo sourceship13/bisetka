@@ -9,6 +9,8 @@ import {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {RootStackParamList} from '../../navigation/AppNavigator';
 import {colors} from '../../theme';
 import {useAuth} from '../../libs/hooks/useAuth';
+import {socketService} from '../../services/SocketService';
+import tokenService from '../../services/token.service';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'GameMode'>;
 
@@ -22,6 +24,9 @@ const SOCKET_BASED_GAMES = new Set([
   'blot',
   'baazar-blot',
   'cards',
+  'mrotsi',
+  'checkers',
+  'nardi',
 ]);
 
 // Map game types to their actual game screens
@@ -98,15 +103,17 @@ const GameModeScreen: React.FC<Props> = ({route, navigation}) => {
   });
 
   const navigateToGame = (mode: SessionMode, result: any) => {
-    let screenName = GAME_SCREEN_MAP[gameType];
+    // When joining via code from a different game's screen, use the found game type
+    const effectiveGameType: string = result?.foundGameType || gameType;
+    let screenName = GAME_SCREEN_MAP[effectiveGameType];
     
     // For chess, route to multiplayer screen if not AI mode
-    if (gameType === 'chess' && mode !== 'ai') {
+    if (effectiveGameType === 'chess' && mode !== 'ai') {
       screenName = 'MultiplayerChess';
     }
 
     // For mrotsi, route to multiplayer screen if not AI mode
-    if (gameType === 'mrotsi' && mode !== 'ai') {
+    if (effectiveGameType === 'mrotsi' && mode !== 'ai') {
       screenName = 'MultiplayerMrotsi' as any;
     }
     
@@ -118,7 +125,7 @@ const GameModeScreen: React.FC<Props> = ({route, navigation}) => {
     // Build session data with team mode for team games
     const sessionData = {
       ...result,
-      gameType,
+      gameType: effectiveGameType,
       mode,
       difficulty: result?.difficulty || 'medium',
       teamMode: isTeamGame ? teamMode : undefined,
@@ -296,15 +303,29 @@ const GameModeScreen: React.FC<Props> = ({route, navigation}) => {
               return gameSessionsService.createPrivateMatch(gameType);
             });
           }}
-          onJoinPrivate={code => {
-            if (SOCKET_BASED_GAMES.has(gameType)) {
-              // Socket-managed room — navigate with the entered code; game screen joins via socket
-              navigateToGame('private-join', { code });
-              return;
+          onJoinPrivate={async code => {
+            // Universal join: look up the room code on the socket layer first.
+            // This lets a user enter a code on ANY game's screen and get routed
+            // to the correct multiplayer screen automatically.
+            setLoading(prev => ({...prev, join: true}));
+            try {
+              const token = await tokenService.getAccessToken() ?? 'guest';
+              await socketService.connect(user?.id || 'guest', token);
+              const roomInfo = await socketService.lookupRoomCode(code);
+              // Navigate to the screen matching the ROOM's game type, not the current screen's
+              navigateToGame('private-join', { code, foundGameType: roomInfo.gameType });
+            } catch (err: any) {
+              if (SOCKET_BASED_GAMES.has(gameType)) {
+                BisetkaAlert.error('Unable to join game', err?.message || 'Room not found');
+              } else {
+                // Fall back to REST for non-socket games
+                withLoading('join', 'private-join', async () => {
+                  return gameSessionsService.joinPrivateMatch(gameType, code);
+                });
+              }
+            } finally {
+              setLoading(prev => ({...prev, join: false}));
             }
-            withLoading('join', 'private-join', async () => {
-              return gameSessionsService.joinPrivateMatch(gameType, code);
-            });
           }}
         />
       )}
