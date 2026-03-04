@@ -1,11 +1,13 @@
 import React, {useState, useEffect, useRef} from 'react';
-import {View, Text, StyleSheet, TouchableOpacity, Animated} from 'react-native';
+import {View, Text, StyleSheet, TouchableOpacity, Animated, ImageBackground, Dimensions} from 'react-native';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import GameToolbar from '../../../components/global/GameToolbar';
 import { aiMoveLogService } from '../../../services/aiMoveLog.service';
 import { v4 as uuidv4 } from 'uuid';
 import { useGameEndRefresh } from '../../../libs/hooks/useGameEndRefresh';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 interface GameState {
   playerDice: number[];
@@ -28,9 +30,21 @@ const MrotsiScreen = ({navigation, route}: any) => {
   const [diceAnimations] = useState(
     Array(5).fill(0).map(() => new Animated.Value(0))
   );
+  const [rollingDice, setRollingDice] = useState<number[]>([1, 1, 1, 1, 1]);
+  const [isRolling, setIsRolling] = useState(false);
   const gameIdRef = useRef<string>(uuidv4());
   const lastPlayerDiceRef = useRef<{ dice: number[]; score: number } | null>(null);
+  const rollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   useGameEndRefresh(gameState.isGameOver, 'mrotsi');
+
+  // Cleanup rolling animation on unmount
+  useEffect(() => {
+    return () => {
+      if (rollingIntervalRef.current) {
+        clearInterval(rollingIntervalRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     // AI opponent's turn - use full gameState to avoid stale closures in production builds
@@ -198,22 +212,39 @@ const MrotsiScreen = ({navigation, route}: any) => {
   }
 
   function animateDice() {
-    const animations = diceAnimations.map(anim => {
-      return Animated.sequence([
-        Animated.timing(anim, {
-          toValue: 1,
-          duration: 100,
-          useNativeDriver: true,
-        }),
-        Animated.timing(anim, {
-          toValue: 0,
-          duration: 100,
-          useNativeDriver: true,
-        }),
+    setIsRolling(true);
+    
+    // Show random dice faces during roll
+    rollingIntervalRef.current = setInterval(() => {
+      setRollingDice([
+        Math.floor(Math.random() * 6) + 1,
+        Math.floor(Math.random() * 6) + 1,
+        Math.floor(Math.random() * 6) + 1,
+        Math.floor(Math.random() * 6) + 1,
+        Math.floor(Math.random() * 6) + 1,
       ]);
+    }, 80);
+
+    // Animate dice rotation and scale
+    const animations = diceAnimations.map(anim => {
+      return Animated.loop(
+        Animated.sequence([
+          Animated.timing(anim, {
+            toValue: 1,
+            duration: 120,
+            useNativeDriver: true,
+          }),
+          Animated.timing(anim, {
+            toValue: 0,
+            duration: 120,
+            useNativeDriver: true,
+          }),
+        ]),
+        { iterations: 3 }
+      );
     });
 
-    Animated.stagger(50, animations).start();
+    Animated.stagger(30, animations).start();
   }
 
   function rollPlayerDice() {
@@ -222,6 +253,13 @@ const MrotsiScreen = ({navigation, route}: any) => {
     animateDice();
     
     setTimeout(() => {
+      // Stop rolling animation
+      if (rollingIntervalRef.current) {
+        clearInterval(rollingIntervalRef.current);
+        rollingIntervalRef.current = null;
+      }
+      setIsRolling(false);
+
       const newDice = rollDice();
       const score = calculateScore(newDice);
       
@@ -236,7 +274,7 @@ const MrotsiScreen = ({navigation, route}: any) => {
         playerScore: prev.playerScore + score,
         playerRolled: true,
       }));
-    }, 600);
+    }, 800);
   }
 
   function rollOpponentDice() {
@@ -281,270 +319,450 @@ const MrotsiScreen = ({navigation, route}: any) => {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <GameToolbar
-        title={`Mrotsi${gameState.gameMode === 'ai' ? ' (vs AI)' : ''}`}
-        onBack={() => navigation.goBack()}
-        backgroundColor="transparent"
-        rightElement={
-          <TouchableOpacity onPress={resetGame} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-            <Text style={styles.newGameText}>New</Text>
-          </TouchableOpacity>
-        }
-      />
+    <ImageBackground
+      source={require('../../../../assets/blot/park-background.png')}
+      style={styles.backgroundImage}
+      resizeMode="cover"
+    >
+      <SafeAreaView style={styles.container}>
+        <GameToolbar
+          title={`Mrotsi${gameState.gameMode === 'ai' ? ' (vs AI)' : ''}`}
+          onBack={() => navigation.goBack()}
+          backgroundColor="transparent"
+          rightElement={
+            <TouchableOpacity onPress={resetGame} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <Text style={styles.newGameText}>New Game</Text>
+            </TouchableOpacity>
+          }
+        />
 
-      <View style={styles.scoreContainer}>
-        <Text style={styles.roundText}>Round {gameState.currentRound} of {gameState.totalRounds}</Text>
-        <View style={styles.scoresRow}>
-          <View style={styles.scoreBox}>
-            <Text style={styles.scoreLabel}>You</Text>
-            <Text style={styles.scoreValue}>{gameState.playerScore}</Text>
-          </View>
-          <View style={styles.scoreBox}>
-            <Text style={styles.scoreLabel}>Opponent</Text>
-            <Text style={styles.scoreValue}>{gameState.opponentScore}</Text>
-          </View>
-        </View>
-      </View>
-
-      {/* Opponent's Dice */}
-      <View style={styles.diceSection}>
-        <Text style={styles.sectionTitle}>Opponent's Dice</Text>
-        <View style={styles.diceContainer}>
-          {gameState.opponentDice.map((die, index) => (
-            <View 
-              key={`opp-${index}`} 
-              style={[
-                styles.die,
-                gameState.opponentRolled && styles.dieRevealed
-              ]}
-            >
-              <Text style={styles.dieText}>
-                {gameState.opponentRolled ? getDiceEmoji(die) : '?'}
-              </Text>
+        {/* Score Display */}
+        <View style={styles.scoreContainer}>
+          <Text style={styles.roundText}>Round {gameState.currentRound} of {gameState.totalRounds}</Text>
+          <View style={styles.scoresRow}>
+            <View style={styles.scoreBox}>
+              <Text style={styles.scoreLabel}>You</Text>
+              <Text style={styles.scoreValue}>{gameState.playerScore}</Text>
             </View>
-          ))}
+            <View style={styles.scoreBox}>
+              <Text style={styles.scoreLabel}>Opponent</Text>
+              <Text style={styles.scoreValue}>{gameState.opponentScore}</Text>
+            </View>
+          </View>
         </View>
-        {gameState.opponentRolled && (
-          <Text style={styles.combinationText}>{getScoreName(gameState.opponentDice)}</Text>
-        )}
-      </View>
 
-      {/* Player's Dice */}
-      <View style={styles.diceSection}>
-        <Text style={styles.sectionTitle}>Your Dice</Text>
-        <View style={styles.diceContainer}>
-          {gameState.playerDice.map((die, index) => (
-            <Animated.View 
-              key={`player-${index}`}
+        {/* Wooden Table with Dice */}
+        <View style={styles.tableContainer}>
+          <ImageBackground
+            source={require('../../../../assets/blot/card-table.png')}
+            style={styles.woodenTable}
+            imageStyle={styles.woodenTableImage}
+            resizeMode="cover"
+          >
+            {/* Opponent's Dice Area */}
+            <View style={styles.opponentDiceArea}>
+              <Text style={styles.areaLabel}>Opponent</Text>
+              <View style={styles.diceRow}>
+                {gameState.opponentDice.map((die, index) => (
+                  <View 
+                    key={`opp-${index}`} 
+                    style={[
+                      styles.diceBox,
+                      gameState.opponentRolled && styles.diceBoxRevealed
+                    ]}
+                  >
+                    <Text style={styles.diceValue}>
+                      {gameState.opponentRolled ? getDiceEmoji(die) : '?'}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+              {gameState.opponentRolled && (
+                <Text style={styles.handNameText}>{getScoreName(gameState.opponentDice)}</Text>
+              )}
+            </View>
+
+            {/* Center Divider */}
+            <View style={styles.centerDivider} />
+
+            {/* Player's Dice Area */}
+            <View style={styles.playerDiceArea}>
+              <Text style={styles.areaLabel}>You</Text>
+              <View style={styles.diceRow}>
+                {(isRolling ? rollingDice : gameState.playerDice).map((die, index) => (
+                  <Animated.View 
+                    key={`player-${index}`}
+                    style={[
+                      styles.diceBox,
+                      styles.playerDiceBox,
+                      {
+                        transform: [
+                          {
+                            scale: diceAnimations[index].interpolate({
+                              inputRange: [0, 1],
+                              outputRange: [1, 1.15],
+                            }),
+                          },
+                          {
+                            rotate: diceAnimations[index].interpolate({
+                              inputRange: [0, 1],
+                              outputRange: ['0deg', '360deg'],
+                            }),
+                          },
+                        ],
+                      },
+                    ]}
+                  >
+                    <Text style={styles.diceValue}>{getDiceEmoji(die)}</Text>
+                  </Animated.View>
+                ))}
+              </View>
+              {gameState.playerRolled && !isRolling && (
+                <Text style={styles.handNameText}>{getScoreName(gameState.playerDice)}</Text>
+              )}
+            </View>
+          </ImageBackground>
+        </View>
+
+        {/* Action Button */}
+        <View style={styles.actionContainer}>
+          {!gameState.isGameOver ? (
+            <TouchableOpacity
               style={[
-                styles.die,
-                styles.playerDie,
-                {
-                  transform: [{
-                    scale: diceAnimations[index].interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [1, 1.2],
-                    }),
-                  }],
-                },
+                styles.rollButton,
+                (gameState.playerRolled || gameState.isGameOver) && styles.rollButtonDisabled
               ]}
+              onPress={rollPlayerDice}
+              disabled={gameState.playerRolled || gameState.isGameOver}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
-              <Text style={styles.dieText}>{getDiceEmoji(die)}</Text>
-            </Animated.View>
-          ))}
+              <Text style={styles.rollButtonText}>
+                {gameState.playerRolled ? 'Waiting for next round...' : '🎲 Roll Dice!'}
+              </Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={styles.playAgainButton}
+              onPress={resetGame}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Text style={styles.playAgainText}>🎮 Play Again</Text>
+            </TouchableOpacity>
+          )}
         </View>
-        {gameState.playerRolled && (
-          <Text style={styles.combinationText}>{getScoreName(gameState.playerDice)}</Text>
-        )}
-      </View>
 
-      <View style={styles.actionContainer}>
-        {!gameState.isGameOver ? (
-          <TouchableOpacity
-            style={[
-              styles.rollButton,
-              (gameState.playerRolled || gameState.isGameOver) && styles.rollButtonDisabled
-            ]}
-            onPress={rollPlayerDice}
-            disabled={gameState.playerRolled || gameState.isGameOver}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Text style={styles.rollButtonText}>
-              {gameState.playerRolled ? 'Waiting for next round...' : 'Roll Dice!'}
-            </Text>
-          </TouchableOpacity>
-        ) : (
-          <TouchableOpacity
-            style={styles.playAgainButton}
-            onPress={resetGame}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Text style={styles.playAgainText}>Play Again</Text>
-          </TouchableOpacity>
+        {/* Game Over Overlay */}
+        {gameState.isGameOver && (
+          <View style={styles.gameOverOverlay}>
+            <View style={styles.gameOverBanner}>
+              <Text style={styles.gameOverText}>
+                {gameState.winner === 'player' ? '🎉 Victory!' : gameState.winner === 'opponent' ? '😔 Defeat' : '🤝 Tie Game!'}
+              </Text>
+              <Text style={styles.gameOverScore}>
+                {gameState.playerScore} - {gameState.opponentScore}
+              </Text>
+              
+              <View style={styles.gameOverButtons}>
+                <TouchableOpacity
+                  style={styles.playAgainButtonModal}
+                  onPress={resetGame}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Text style={styles.playAgainModalText}>🎮 Play Again</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  style={styles.closeButtonModal}
+                  onPress={() => navigation.goBack()}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Text style={styles.closeModalText}>✕ Close</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
         )}
-      </View>
-
-      {gameState.isGameOver && (
-        <View style={styles.gameOverBanner}>
-          <Text style={styles.gameOverText}>
-            {gameState.winner === 'player' ? '🎉 You Win!' : gameState.winner === 'opponent' ? '😔 You Lose!' : '🤝 Tie Game!'}
-          </Text>
-        </View>
-      )}
-    </SafeAreaView>
+      </SafeAreaView>
+    </ImageBackground>
   );
 };
 
 const styles = StyleSheet.create({
+  backgroundImage: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+  },
   container: {
     flex: 1,
-    backgroundColor: '#1a1a2e',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  backButton: {
-    fontSize: 16,
-    color: '#4a90e2',
-    fontWeight: '600',
+    backgroundColor: 'transparent',
   },
   newGameText: {
     fontSize: 16,
-    color: '#4a90e2',
-    fontWeight: '600',
+    color: '#FFD700',
+    fontWeight: '700',
+    textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 3,
   },
   scoreContainer: {
-    padding: 20,
-    backgroundColor: '#16213e',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    marginHorizontal: 16,
+    marginTop: 8,
+    borderRadius: 16,
   },
   roundText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#fff',
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#FFD700',
     textAlign: 'center',
-    marginBottom: 16,
+    marginBottom: 12,
+    textShadowColor: 'rgba(0, 0, 0, 0.9)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 4,
   },
   scoresRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
+    gap: 12,
   },
   scoreBox: {
+    flex: 1,
     alignItems: 'center',
-    backgroundColor: '#0f3460',
+    backgroundColor: 'rgba(139, 69, 19, 0.8)',
     padding: 16,
     borderRadius: 12,
-    minWidth: 120,
+    borderWidth: 2,
+    borderColor: '#8B4513',
   },
   scoreLabel: {
     fontSize: 14,
-    color: '#94a3b8',
+    color: '#FFD700',
     marginBottom: 4,
+    fontWeight: '600',
   },
   scoreValue: {
-    fontSize: 32,
+    fontSize: 36,
     fontWeight: 'bold',
-    color: '#4a90e2',
+    color: '#FFF',
+    textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 3,
   },
-  diceSection: {
+  tableContainer: {
+    flex: 1,
+    marginHorizontal: 16,
+    marginVertical: 20,
+  },
+  woodenTable: {
+    flex: 1,
     padding: 20,
+    justifyContent: 'space-between',
+  },
+  woodenTableImage: {
+    borderRadius: 24,
+  },
+  opponentDiceArea: {
     alignItems: 'center',
+    paddingVertical: 16,
   },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#94a3b8',
+  playerDiceArea: {
+    alignItems: 'center',
+    paddingVertical: 16,
+  },
+  centerDivider: {
+    height: 2,
+    backgroundColor: 'rgba(139, 69, 19, 0.6)',
+    marginVertical: 8,
+  },
+  areaLabel: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFD700',
     marginBottom: 12,
+    textShadowColor: 'rgba(0, 0, 0, 0.9)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 4,
   },
-  diceContainer: {
+  diceRow: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 12,
+    gap: 8,
+    flexWrap: 'wrap',
   },
-  die: {
-    width: 50,
-    height: 50,
-    backgroundColor: '#2a2a3e',
-    borderRadius: 8,
+  diceBox: {
+    width: 56,
+    height: 56,
+    backgroundColor: 'rgba(50, 50, 50, 0.9)',
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#4a4a6e',
+    borderWidth: 3,
+    borderColor: '#555',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.5,
+    shadowRadius: 6,
+    elevation: 8,
   },
-  playerDie: {
-    backgroundColor: '#0f3460',
-    borderColor: '#4a90e2',
+  diceBoxRevealed: {
+    backgroundColor: 'rgba(139, 0, 0, 0.85)',
+    borderColor: '#DC143C',
   },
-  dieRevealed: {
-    backgroundColor: '#2d3748',
-    borderColor: '#e53e3e',
+  playerDiceBox: {
+    backgroundColor: 'rgba(0, 100, 0, 0.85)',
+    borderColor: '#228B22',
   },
-  dieText: {
-    fontSize: 32,
-    color: '#fff',
+  diceValue: {
+    fontSize: 36,
+    color: '#FFF',
   },
-  combinationText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#4a90e2',
+  handNameText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFD700',
     marginTop: 8,
+    textAlign: 'center',
+    textShadowColor: 'rgba(0, 0, 0, 0.9)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 3,
   },
   actionContainer: {
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
     alignItems: 'center',
   },
   rollButton: {
-    backgroundColor: '#4a90e2',
+    backgroundColor: 'rgba(34, 139, 34, 0.95)',
     paddingHorizontal: 40,
-    paddingVertical: 16,
-    borderRadius: 12,
-    minWidth: 200,
+    paddingVertical: 18,
+    borderRadius: 16,
+    minWidth: 240,
+    borderWidth: 3,
+    borderColor: '#228B22',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.5,
+    shadowRadius: 6,
+    elevation: 8,
   },
   rollButtonDisabled: {
-    backgroundColor: '#2a3f5f',
+    backgroundColor: 'rgba(80, 80, 80, 0.8)',
+    borderColor: '#555',
   },
   rollButtonText: {
-    color: '#fff',
-    fontSize: 18,
+    color: '#FFF',
+    fontSize: 20,
     fontWeight: 'bold',
     textAlign: 'center',
+    textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 3,
   },
   playAgainButton: {
-    backgroundColor: '#10b981',
+    backgroundColor: 'rgba(255, 215, 0, 0.95)',
     paddingHorizontal: 40,
-    paddingVertical: 16,
-    borderRadius: 12,
-    minWidth: 200,
+    paddingVertical: 18,
+    borderRadius: 16,
+    minWidth: 240,
+    borderWidth: 3,
+    borderColor: '#FFD700',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.5,
+    shadowRadius: 6,
+    elevation: 8,
   },
   playAgainText: {
-    color: '#fff',
-    fontSize: 18,
+    color: '#8B4513',
+    fontSize: 20,
     fontWeight: 'bold',
     textAlign: 'center',
   },
-  gameOverBanner: {
+  gameOverOverlay: {
     position: 'absolute',
-    top: '40%',
-    left: 20,
-    right: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.9)',
-    padding: 24,
-    borderRadius: 16,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    justifyContent: 'center',
     alignItems: 'center',
   },
+  gameOverBanner: {
+    backgroundColor: 'rgba(139, 69, 19, 0.95)',
+    padding: 32,
+    borderRadius: 24,
+    alignItems: 'center',
+    borderWidth: 4,
+    borderColor: '#FFD700',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.8,
+    shadowRadius: 12,
+    elevation: 16,
+    minWidth: SCREEN_WIDTH * 0.7,
+  },
   gameOverText: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: 'bold',
-    color: '#fff',
+    color: '#FFD700',
+    marginBottom: 12,
+    textShadowColor: 'rgba(0, 0, 0, 0.9)',
+    textShadowOffset: { width: 2, height: 2 },
+    textShadowRadius: 4,
+  },
+  gameOverScore: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#FFF',
+    textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 3,
+    marginBottom: 20,
+  },
+  gameOverButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 8,
+  },
+  playAgainButtonModal: {
+    backgroundColor: 'rgba(34, 139, 34, 0.95)',
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#228B22',
+    flex: 1,
+  },
+  playAgainModalText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
+  },
+  closeButtonModal: {
+    backgroundColor: 'rgba(220, 20, 60, 0.95)',
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#DC143C',
+    flex: 1,
+  },
+  closeModalText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
   },
 });
 
