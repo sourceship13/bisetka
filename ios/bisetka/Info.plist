@@ -79,5 +79,7 @@
 			<string>com.nolimit.bisetka</string>
 		</dict>
 	</array>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Bisetka uses your microphone for voice chat with your opponent during games.</string>
 </dict>
 </plist>
