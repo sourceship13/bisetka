@@ -394,6 +394,28 @@ class SocketService {
   getSocket(): Socket | null {
     return this.socket;
   }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // VOICE CHAT SIGNALING  (relayed through the backend game socket)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  emitVoiceOffer(roomId: string, sdp: any): void {
+    this.socket?.emit('voice:offer', { roomId, sdp });
+  }
+
+  emitVoiceAnswer(roomId: string, sdp: any): void {
+    this.socket?.emit('voice:answer', { roomId, sdp });
+  }
+
+  emitVoiceIceCandidate(roomId: string, candidate: any): void {
+    this.socket?.emit('voice:ice-candidate', { roomId, candidate });
+  }
+
+  emitVoiceHangup(roomId: string): void {
+    this.socket?.emit('voice:hangup', { roomId });
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
 }
 
 // Export singleton instance
