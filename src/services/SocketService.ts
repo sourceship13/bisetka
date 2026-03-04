@@ -116,8 +116,8 @@ class SocketService {
   // Find a random opponent
   findMatch(gameType: string, userId: string): Promise<any> {
     return new Promise((resolve, reject) => {
-      if (!this.socket) {
-        reject(new Error('Not connected'));
+      if (!this.socket?.connected) {
+        reject(new Error('Not connected to server'));
         return;
       }
 
@@ -132,7 +132,7 @@ class SocketService {
       });
 
       this.socket.once('error', (error) => {
-        reject(error);
+        reject(new Error(error?.message || String(error) || 'Matchmaking failed'));
       });
 
       // Timeout after 60 seconds
@@ -150,44 +150,103 @@ class SocketService {
   // Create private room
   createPrivateRoom(gameType: string, userId: string, desiredCode?: string): Promise<any> {
     return new Promise((resolve, reject) => {
-      if (!this.socket) {
-        reject(new Error('Not connected'));
+      if (!this.socket?.connected) {
+        reject(new Error('Not connected to server'));
         return;
       }
 
-      this.socket.emit('create_private_room', { gameType, userId, desiredCode });
+      // Clear any stale listeners from a previous call
+      this.socket.off('room_created');
+      this.socket.off('error');
+
+      const timer = setTimeout(() => {
+        this.socket?.off('room_created');
+        this.socket?.off('error');
+        reject(new Error('Room creation timed out'));
+      }, 15000);
 
       this.socket.once('room_created', (data) => {
+        clearTimeout(timer);
+        this.socket?.off('error');
         resolve(data);
       });
 
       this.socket.once('error', (error) => {
-        reject(error);
+        clearTimeout(timer);
+        this.socket?.off('room_created');
+        reject(new Error(error?.message || String(error) || 'Room creation failed'));
       });
+
+      this.socket.emit('create_private_room', { gameType, userId, desiredCode });
     });
   }
 
   // Join private room
   joinPrivateRoom(roomCode: string, userId: string): Promise<any> {
     return new Promise((resolve, reject) => {
-      if (!this.socket) {
-        reject(new Error('Not connected'));
+      if (!this.socket?.connected) {
+        reject(new Error('Not connected to server'));
         return;
       }
 
-      // Clear any stale listeners that could intercept our events
+      // Clear stale listeners
       this.socket.off('room_joined');
       this.socket.off('match_found');
+      this.socket.off('error');
 
-      this.socket.emit('join_private_room', { roomCode, userId });
+      const timer = setTimeout(() => {
+        this.socket?.off('room_joined');
+        this.socket?.off('error');
+        reject(new Error('Room not found or join timed out'));
+      }, 10000);
 
+      // Register listeners BEFORE emitting (avoids race condition)
       this.socket.once('room_joined', (data) => {
+        clearTimeout(timer);
+        this.socket?.off('error');
         resolve(data);
       });
 
       this.socket.once('error', (error) => {
-        reject(error);
+        clearTimeout(timer);
+        this.socket?.off('room_joined');
+        reject(new Error(error?.message || String(error) || 'Failed to join room'));
       });
+
+      this.socket.emit('join_private_room', { roomCode, userId });
+    });
+  }
+
+  // Look up which game type owns a room code (works from any game screen)
+  lookupRoomCode(roomCode: string): Promise<{ roomCode: string; roomId: string; gameType: string }> {
+    return new Promise((resolve, reject) => {
+      if (!this.socket?.connected) {
+        reject(new Error('Not connected to server'));
+        return;
+      }
+
+      this.socket.off('room_code_found');
+      this.socket.off('room_code_not_found');
+
+      const timer = setTimeout(() => {
+        this.socket?.off('room_code_found');
+        this.socket?.off('room_code_not_found');
+        reject(new Error('Lookup timed out'));
+      }, 5000);
+
+      this.socket.once('room_code_found', (data) => {
+        clearTimeout(timer);
+        this.socket?.off('room_code_not_found');
+        resolve(data);
+      });
+
+      this.socket.once('room_code_not_found', () => {
+        clearTimeout(timer);
+        this.socket?.off('room_code_found');
+        reject(new Error('Room not found. Check your code and try again.'));
+      });
+
+      this.socket.emit('lookup_room_code', { roomCode });
     });
   }
 
