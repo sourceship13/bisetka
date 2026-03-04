@@ -39,6 +39,7 @@ end
 setup_permissions([
   'Notifications',
   'LocationWhenInUse',
+  'Microphone',
 ])
 
 target 'bisetka' do

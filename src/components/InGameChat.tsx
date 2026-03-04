@@ -10,10 +10,12 @@ import {
   Platform,
   Image,
   Dimensions,
+  ActivityIndicator,
 } from 'react-native';
 import chatService, { Message } from '../services/chat.service';
 import chatSocketService from '../services/chatSocket.service';
 import tokenService from '../services/token.service';
+import { useVoiceChat } from '../hooks/useVoiceChat';
 
 interface InGameChatProps {
   /** The game room ID — used as the game session ID to get/create a chat */
@@ -41,6 +43,17 @@ const InGameChat: React.FC<InGameChatProps> = ({
   const [inputText, setInputText] = useState('');
   const [chatId, setChatId] = useState<string | null>(null);
   const flatListRef = useRef<FlatList>(null);
+
+  // ── Voice chat ─────────────────────────────────────────────────────────────
+  const {
+    callState,
+    isMuted,
+    isOpponentMuted,
+    startCall,
+    hangup,
+    toggleMute,
+    toggleOpponentMute,
+  } = useVoiceChat(roomId, currentUserId, visible);
 
   // ── Step 1: Get/create chat room when game is active ──────────────────────
   useEffect(() => {
@@ -195,6 +208,64 @@ const InGameChat: React.FC<InGameChatProps> = ({
           />
         </View>
 
+        {/* ── Voice Chat Bar ────────────────────────────────────────────── */}
+        <View style={styles.voiceBar}>
+          {callState === 'idle' && (
+            <TouchableOpacity style={styles.voiceStartBtn} onPress={startCall} activeOpacity={0.75}>
+              <Text style={styles.voiceStartIcon}>🎙</Text>
+              <Text style={styles.voiceStartLabel}>Voice chat</Text>
+            </TouchableOpacity>
+          )}
+
+          {callState === 'connecting' && (
+            <View style={styles.voiceActiveRow}>
+              <ActivityIndicator size="small" color="#F5C518" style={{ marginRight: 8 }} />
+              <Text style={styles.voiceStatusText}>Connecting…</Text>
+              <TouchableOpacity style={[styles.voiceIconBtn, styles.voiceHangupBtn]} onPress={hangup}>
+                <Text style={styles.voiceIconText}>📵</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {callState === 'connected' && (
+            <View style={styles.voiceActiveRow}>
+              {/* Self mute */}
+              <TouchableOpacity
+                style={[styles.voiceIconBtn, isMuted && styles.voiceBtnMuted]}
+                onPress={toggleMute}
+                activeOpacity={0.75}>
+                <Text style={styles.voiceIconText}>{isMuted ? '🔇' : '🎙'}</Text>
+              </TouchableOpacity>
+
+              {/* Status dot */}
+              <View style={styles.voiceConnectedDot} />
+              <Text style={styles.voiceStatusText}>Live</Text>
+
+              {/* Opponent mute */}
+              <TouchableOpacity
+                style={[styles.voiceIconBtn, isOpponentMuted && styles.voiceBtnMuted]}
+                onPress={toggleOpponentMute}
+                activeOpacity={0.75}>
+                <Text style={styles.voiceIconText}>{isOpponentMuted ? '🔕' : '🔊'}</Text>
+              </TouchableOpacity>
+
+              {/* Hang up */}
+              <TouchableOpacity style={[styles.voiceIconBtn, styles.voiceHangupBtn]} onPress={hangup} activeOpacity={0.75}>
+                <Text style={styles.voiceIconText}>📵</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {callState === 'error' && (
+            <View style={styles.voiceActiveRow}>
+              <Text style={styles.voiceErrorText}>⚠ Mic unavailable</Text>
+              <TouchableOpacity style={styles.voiceRetryBtn} onPress={startCall}>
+                <Text style={styles.voiceRetryText}>Retry</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+
         {/* Input Bar */}
         <View style={styles.inputContainer}>
           <View style={styles.inputWrapper}>
@@ -287,7 +358,6 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.2)',
-    backdropFilter: 'blur(10px)',
     maxWidth: SCREEN_WIDTH - 100,
   },
   messageText: {
@@ -347,6 +417,97 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '600',
     letterSpacing: 2,
+  },
+
+  // ── Voice chat bar ─────────────────────────────────────────────────────────
+  voiceBar: {
+    marginHorizontal: 16,
+    marginBottom: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+    minHeight: 42,
+    justifyContent: 'center',
+  },
+  voiceStartBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    backgroundColor: 'rgba(100, 100, 255, 0.25)',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(150,150,255,0.35)',
+  },
+  voiceStartIcon: {
+    fontSize: 16,
+    marginRight: 6,
+  },
+  voiceStartLabel: {
+    color: 'rgba(255,255,255,0.85)',
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  voiceActiveRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  voiceStatusText: {
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 13,
+    fontWeight: '500',
+    flex: 1,
+  },
+  voiceConnectedDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#34D399',
+    marginRight: 4,
+  },
+  voiceIconBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.18)',
+    marginRight: 8,
+  },
+  voiceBtnMuted: {
+    backgroundColor: 'rgba(239,68,68,0.35)',
+    borderColor: 'rgba(239,68,68,0.55)',
+  },
+  voiceHangupBtn: {
+    backgroundColor: 'rgba(220,38,38,0.4)',
+    borderColor: 'rgba(220,38,38,0.6)',
+  },
+  voiceIconText: {
+    fontSize: 16,
+  },
+  voiceErrorText: {
+    color: '#FCA5A5',
+    fontSize: 13,
+    flex: 1,
+  },
+  voiceRetryBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  voiceRetryText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
   },
 });
 
