@@ -28,6 +28,7 @@ import GlobalChatScreen from '../screens/Games/Blot/GlobalChatScreen';
 import DMListScreen from '../screens/Private Chat/DMListScreen';
 import DMChatScreen from '../screens/Private Chat/DMChatScreen';
 import LeaderboardScreen from '../screens/Meta/LeaderboardScreen';
+import ActiveRoomsScreen from '../screens/Meta/ActiveRoomsScreen';
 import ChatRoomsListScreen from '../screens/Global Chat/ChatRoomsListScreen';
 import ChatRoomScreen from '../screens/Global Chat/ChatRoomScreen';
 import {useAuth} from '../libs/hooks/useAuth';
@@ -59,6 +60,7 @@ export type RootStackParamList = {
   DMList: undefined;
   DMChat: { chatId: string; chatName: string };
   Leaderboard: undefined;
+  ActiveRooms: undefined;
   ChatRoomsList: undefined;
   ChatRoom: { roomId: string };
 };
@@ -109,6 +111,7 @@ const linking: LinkingOptions<RootStackParamList> = {
       DMList: 'dm-list',
       DMChat: 'dm/:chatId',
       Leaderboard: 'leaderboard',
+      ActiveRooms: 'active-rooms',
       ChatRoomsList: 'chat-rooms',
       ChatRoom: 'chat-room/:roomId',
     },
@@ -218,6 +221,7 @@ const AppNavigator = () => {
               <Stack.Screen name="DMList" component={DMListScreen} />
               <Stack.Screen name="DMChat" component={DMChatScreen} />
               <Stack.Screen name="Leaderboard" component={LeaderboardScreen} />
+              <Stack.Screen name="ActiveRooms" component={ActiveRoomsScreen} />
               <Stack.Screen name="ChatRoomsList" component={ChatRoomsListScreen} />
               <Stack.Screen name="ChatRoom" component={ChatRoomScreen} />
             </>

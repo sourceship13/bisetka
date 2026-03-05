@@ -273,6 +273,33 @@ const HomeScreen = ({navigation}: any) => {
           </View>
         </View>
 
+        {/* Active Rooms Button */}
+        <View style={styles.activeRoomsContainer}>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('ActiveRooms')}
+            style={styles.activeRoomsButton}
+            activeOpacity={0.85}>
+            <LinearGradient
+              colors={['#ec4899', '#f472b6']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.activeRoomsGradient}>
+              <View style={[styles.activeRoomsContent]}>
+                <View style={styles.activeRoomsLeft}>
+                  <Text style={styles.activeRoomsIcon}>🎮</Text>
+                  <View>
+                    <Text style={styles.activeRoomsTitle}>Active Rooms</Text>
+                    <Text style={styles.activeRoomsSubtitle}>
+                      Watch or join multiplayer games
+                    </Text>
+                  </View>
+                </View>
+                <Text style={styles.activeRoomsArrow}>→</Text>
+              </View>
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+
         {/* Section Title */}
         <View style={styles.sectionHead}>
           <Text style={styles.sectionTitle}>🎮 Choose a Game</Text>
@@ -396,6 +423,53 @@ const styles = StyleSheet.create({
   },
   actionIcon: {
     fontSize: 28,
+  },
+  activeRoomsContainer: {
+
+  },
+  activeRoomsButton: {
+    borderRadius: 16,
+    shadowColor: '#ec4899',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  activeRoomsGradient: {
+    padding: 16,
+    
+    borderRadius: 16,
+    minHeight:100
+  },
+  activeRoomsContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    maxWidth: 380,
+  },
+  activeRoomsLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    flex: 1,
+  },
+  activeRoomsIcon: {
+    fontSize: 32,
+  },
+  activeRoomsTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#fff',
+    marginBottom: 2,
+  },
+  activeRoomsSubtitle: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.8)',
+  },
+  activeRoomsArrow: {
+    fontSize: 24,
+    color: '#fff',
+    fontWeight: '700',
   },
   sectionHead: {
     paddingHorizontal: 16,
