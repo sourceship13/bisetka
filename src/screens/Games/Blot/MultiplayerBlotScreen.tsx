@@ -22,6 +22,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { useGameEndRefresh } from '../../../libs/hooks/useGameEndRefresh';
 import CardHandFan from '../../../components/CardHandFan';
 import InGameChat from '../../../components/InGameChat';
+import GameToolbar from '../../../components/global/GameToolbar';
+import RoomNameModal from '../../../components/RoomNameModal';
 
 interface GameState {
   deck: Card[];
@@ -84,6 +86,8 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [showDifficultyModal, setShowDifficultyModal] = useState(false);
   const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
+  const [roomName, setRoomName] = useState('Multiplayer Blot');
+  const [showRoomNameModal, setShowRoomNameModal] = useState(false);
   const gameStartTime = useRef<Date | null>(null);
   const blotGameIdRef = useRef<string>(uuidv4());
   const trickCountRef = useRef(0);
@@ -539,6 +543,19 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
     console.log('Sending player_ready to backend:', currentRoom.roomId, userId);
     setIsReadySent(true);
     socketService.playerReady(currentRoom.roomId, userId);
+  };
+
+  const handleSaveRoomName = async (newName: string) => {
+    try {
+      setRoomName(newName);
+      if (currentRoom?.roomId) {
+        socketService.setRoomName(currentRoom.roomId, newName);
+      }
+      BisetkaAlert.success('Success', 'Room name updated!');
+    } catch (error) {
+      console.error('Failed to update room name:', error);
+      BisetkaAlert.error('Error', 'Failed to update room name');
+    }
   };
 
   const handlePlayCard = (card: Card) => {
@@ -1102,6 +1119,22 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
         colors={['rgba(15,15,35,0.7)', 'rgba(26,23,66,0.6)']}
         style={styles.overlay}>
         <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right']}>
+      {(gameMode === 'game' || gameMode === 'local') && (
+        <GameToolbar
+          title={roomName}
+          onBack={() => navigation.goBack()}
+          backgroundColor="transparent"
+          rightElement={
+            <TouchableOpacity 
+              onPress={() => setShowRoomNameModal(true)}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              style={styles.editRoomButton}
+            >
+              <Text style={styles.editRoomIcon}>✏️</Text>
+            </TouchableOpacity>
+          }
+        />
+      )}
       {gameMode === 'menu' && renderMenu()}
       {gameMode === 'matchmaking' && renderMatchmaking()}
       {gameMode === 'private' && renderPrivateRoom()}
@@ -1176,6 +1209,15 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
           </View>
         </View>
       </Modal>
+
+      {/* Room Name Editor Modal */}
+      <RoomNameModal
+        visible={showRoomNameModal}
+        onClose={() => setShowRoomNameModal(false)}
+        currentName={roomName}
+        onSave={handleSaveRoomName}
+        gameType="Blot"
+      />
         </SafeAreaView>
       </LinearGradient>
     </ImageBackground>
@@ -1622,6 +1664,14 @@ const styles = StyleSheet.create({
   },
   trumpSuit: {
     fontSize: 32,
+  },
+  editRoomButton: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  editRoomIcon: {
+    fontSize: 18,
   },
 });
 

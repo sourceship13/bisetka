@@ -4,6 +4,7 @@ import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import GameToolbar from '../../../components/global/GameToolbar';
+import RoomNameModal from '../../../components/RoomNameModal';
 import GameThemeCustomizer from '../../../components/global/GameThemeCustomizer';
 import type { GameTheme } from '../../../components/global/GameThemeCustomizer';
 import { aiMoveLogService } from '../../../services/aiMoveLog.service';
@@ -114,6 +115,8 @@ const CheckersScreen = ({ navigation, route }: any) => {
   const [statusMsg,     setStatusMsg]     = useState('');
   const [showCustomization, setShowCustomization] = useState(false);
   const [gameTheme, setGameTheme] = useState<GameTheme>({});
+  const [roomName, setRoomName] = useState('Multiplayer Checkers');
+  const [showRoomNameModal, setShowRoomNameModal] = useState(false);
 
   const handleApplyTheme = (theme: GameTheme) => {
     setGameTheme(theme);
@@ -351,6 +354,19 @@ const CheckersScreen = ({ navigation, route }: any) => {
 
   // ── matchmaking / waiting screen ──────────────────────────────────────────
   if (isMultiplayer && (mpStatus==='connecting'||mpStatus==='searching'||mpStatus==='waiting')) {
+  const handleSaveRoomName = async (newName: string) => {
+    try {
+      setRoomName(newName);
+      if (roomIdRef.current) {
+        socketService.setRoomName(roomIdRef.current, newName);
+      }
+      BisetkaAlert.success('Success', 'Room name updated!');
+    } catch (error) {
+      console.error('Failed to update room name:', error);
+      BisetkaAlert.error('Error', 'Failed to update room name');
+    }
+  };
+
     return (
       <ImageBackground
         source={require('../../../../assets/blot/park-background.png')}
@@ -389,6 +405,15 @@ const CheckersScreen = ({ navigation, route }: any) => {
               </TouchableOpacity>
             </View>
           </SafeAreaView>
+
+          {/* Room Name Editor Modal */}
+          <RoomNameModal
+            visible={showRoomNameModal}
+            onClose={() => setShowRoomNameModal(false)}
+            currentName={roomName}
+            onSave={handleSaveRoomName}
+            gameType="Checkers"
+          />
         </LinearGradient>
       </ImageBackground>
     );
@@ -417,11 +442,21 @@ const CheckersScreen = ({ navigation, route }: any) => {
             }}
             backgroundColor="transparent"
             rightElement={
-              <TouchableOpacity
-                onPress={() => setShowCustomization(true)}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                <Text style={{ fontSize: 20 }}>🎨</Text>
-              </TouchableOpacity>
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                {isMultiplayer && mpStatus === 'playing' && (
+                  <TouchableOpacity
+                    onPress={() => setShowRoomNameModal(true)}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    style={{ padding: 8, borderRadius: 8, backgroundColor: 'rgba(255, 255, 255, 0.1)' }}>
+                    <Text style={{ fontSize: 18 }}>✏️</Text>
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity
+                  onPress={() => setShowCustomization(true)}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                  <Text style={{ fontSize: 20 }}>🎨</Text>
+                </TouchableOpacity>
+              </View>
             }
           />
 
