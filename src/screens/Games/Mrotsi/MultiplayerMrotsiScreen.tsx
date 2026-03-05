@@ -363,16 +363,15 @@ const MultiplayerMrotsiScreen = ({navigation, route}: any) => {
             </View>
           </View>
         </Modal>
+        {/* Room Name Editor Modal */}
+        <RoomNameModal
+          visible={showRoomNameModal}
+          onClose={() => setShowRoomNameModal(false)}
+          currentName={roomName}
+          onSave={handleSaveRoomName}
+          gameType="Mrotsi"
+        />
       </SafeAreaView>
-
-          {/* Room Name Editor Modal */}
-          <RoomNameModal
-            visible={showRoomNameModal}
-            onClose={() => setShowRoomNameModal(false)}
-            currentName={roomName}
-            onSave={handleSaveRoomName}
-            gameType="Mrotsi"
-          />
     );
   }
 
