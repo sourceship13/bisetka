@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import GameToolbar from '../../../components/global/GameToolbar';
+import RoomNameModal from '../../../components/RoomNameModal';
 import {socketService} from '../../../services/SocketService';
 import tokenService from '../../../services/token.service';
 import InGameChat from '../../../components/InGameChat';
@@ -102,6 +103,8 @@ const MultiplayerMrotsiScreen = ({navigation, route}: any) => {
   const [opponentHasRolled, setOpponentHasRolled] = useState(false);
   const [lastRoundResult, setLastRoundResult] = useState<RoundResult | null>(null);
   const [roundHistory, setRoundHistory] = useState<RoundResult[]>([]);
+  const [roomName, setRoomName] = useState('Multiplayer Mrotsi');
+  const [showRoomNameModal, setShowRoomNameModal] = useState(false);
 
   // ─── Socket setup ───────────────────────────────────────────────────────────
   useEffect(() => {
@@ -290,6 +293,19 @@ const MultiplayerMrotsiScreen = ({navigation, route}: any) => {
 
   // ─── Screens ────────────────────────────────────────────────────────────────
   if (screen === 'menu') {
+  const handleSaveRoomName = async (newName: string) => {
+    try {
+      setRoomName(newName);
+      if (roomIdRef.current) {
+        socketService.setRoomName(roomIdRef.current, newName);
+      }
+      BisetkaAlert.success('Success', 'Room name updated!');
+    } catch (error) {
+      console.error('Failed to update room name:', error);
+      BisetkaAlert.error('Error', 'Failed to update room name');
+    }
+  };
+
     return (
       <SafeAreaView style={styles.container}>
         <GameToolbar title="Mrotsi Multiplayer" onBack={() => navigation.goBack()} backgroundColor="transparent" />
@@ -337,6 +353,15 @@ const MultiplayerMrotsiScreen = ({navigation, route}: any) => {
           </View>
         </Modal>
       </SafeAreaView>
+
+          {/* Room Name Editor Modal */}
+          <RoomNameModal
+            visible={showRoomNameModal}
+            onClose={() => setShowRoomNameModal(false)}
+            currentName={roomName}
+            onSave={handleSaveRoomName}
+            gameType="Mrotsi"
+          />
     );
   }
 
@@ -373,6 +398,16 @@ const MultiplayerMrotsiScreen = ({navigation, route}: any) => {
           ])
         }
         backgroundColor="transparent"
+        rightElement={
+          screen === 'game' ? (
+            <TouchableOpacity
+              onPress={() => setShowRoomNameModal(true)}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              style={{ padding: 8, borderRadius: 8, backgroundColor: 'rgba(255, 255, 255, 0.1)' }}>
+              <Text style={{ fontSize: 18 }}>✏️</Text>
+            </TouchableOpacity>
+          ) : undefined
+        }
       />
 
       <ScrollView contentContainerStyle={styles.gameContent} showsVerticalScrollIndicator={false}>

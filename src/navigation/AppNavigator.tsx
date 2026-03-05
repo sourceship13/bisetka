@@ -18,6 +18,7 @@ import MultiplayerChessScreen from '../screens/Games/Chess/MultiplayerChessScree
 import MrotsiScreen from '../screens/Games/Mrotsi/MrotsiScreen';
 import MultiplayerMrotsiScreen from '../screens/Games/Mrotsi/MultiplayerMrotsiScreen';
 import CheckersScreen from '../screens/Games/Checkers/CheckersScreen';
+import MultiplayerCheckersScreen from '../screens/Games/Checkers/MultiplayerCheckersScreen';
 import PokerRoomScreen from '../screens/Games/Poker/PokerRoomScreen';
 import BilliardsGameScreen from '../screens/Games/Billards/BilliardsGameScreen';
 import SlotsScreen from '../screens/Games/Slots/SlotsScreen';
@@ -49,6 +50,7 @@ export type RootStackParamList = {
   MultiplayerChess: { userId: string };
   MultiplayerMrotsi: { userId: string; mode?: string; joinCode?: string };
   Checkers: { session: any; gameType: GameType; mode: string };
+  MultiplayerCheckers: { userId: string; mode?: string; joinCode?: string };
   Mrotsi: { session: any; gameType: GameType; mode: string };
   PokerRoom: { session: any; gameType: GameType; mode: string; joinCode?: string };
   BilliardsGame: { session: any };
@@ -100,6 +102,7 @@ const linking: LinkingOptions<RootStackParamList> = {
         },
       },
       Checkers: 'checkers',
+      MultiplayerCheckers: 'multiplayer-checkers/:userId',
       Mrotsi: 'mrotsi',
       PokerRoom: 'poker',
       BilliardsGame: 'billiards',
@@ -208,6 +211,7 @@ const AppNavigator = () => {
               <Stack.Screen name="Chess" component={ChessScreen} />
               <Stack.Screen name="MultiplayerChess" component={MultiplayerChessScreen} />
               <Stack.Screen name="Checkers" component={CheckersScreen} />
+              <Stack.Screen name="MultiplayerCheckers" component={MultiplayerCheckersScreen} />
               <Stack.Screen name="Nardi" component={NardiScreen} />
               <Stack.Screen name="Mrotsi" component={MrotsiScreen} />
               <Stack.Screen name="MultiplayerMrotsi" component={MultiplayerMrotsiScreen} />

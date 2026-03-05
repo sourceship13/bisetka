@@ -7,10 +7,13 @@ import {
   ActivityIndicator,
   TextInput,
   Modal,
+  ImageBackground,
 } from 'react-native';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import LinearGradient from 'react-native-linear-gradient';
 import GameToolbar from '../../../components/global/GameToolbar';
+import RoomNameModal from '../../../components/RoomNameModal';
 import {
   ChessGameState,
   initializeChessGame,
@@ -44,120 +47,127 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
   const [isMyTurn, setIsMyTurn] = useState<boolean>(false);
   const [gameStatus, setGameStatus] = useState<string>('Waiting for opponent...');
   const [showJoinModal, setShowJoinModal] = useState(false);
+  const [roomName, setRoomName] = useState('Multiplayer Chess');
+  const [showRoomNameModal, setShowRoomNameModal] = useState(false);
 
   useEffect(() => {
-    // Setup socket listeners FIRST (sync) so no events are missed during connection
-
-    socketService.onMatchmakingStatus((data) => {
-      if (data.status === 'searching') {
-        setGameStatus('Searching for opponent...');
-      }
-    });
-
-    socketService.onOpponentJoined((data) => {
-      setOpponentId(data.opponent.id);
-      setGameStatus('Opponent found! Get ready...');
-      // Player 1 (room creator) must also signal ready so the backend starts the game
-      const liveRoomId = roomIdRef.current;
-      if (liveRoomId) {
-        socketService.playerReady(liveRoomId, userId);
-      }
-    });
-
-    socketService.onGameStarted((data) => {
-      setGameStatus('Game started!');
-      setMode('game');
-      // Apply server-assigned color so both players have the correct side
-      if (data.myColor) {
-        myColorRef.current = data.myColor;
-        setMyColor(data.myColor);
-        setIsMyTurn(data.myColor === 'white'); // white always moves first
-      }
-      // Apply server-sent roomId if provided (ensures stale closures resolve correctly)
-      if (data.roomId) {
-        roomIdRef.current = data.roomId;
-        setRoomId(data.roomId);
-      }
-      const initialGame = initializeChessGame('medium');
-      setGameState(initialGame);
-    });
-
-    socketService.onMoveMade((data) => {
-      // Use the current turn from the server (not nextTurn)
-      const nextPlayer = data.currentTurn;
-      // Always read from ref — the closure is stale, state is not
-      const liveColor = myColorRef.current;
-      console.log('♟️  move_made received:', {
-        move: data.move,
-        currentTurn: data.currentTurn,
-        myColor: liveColor,
-        willBeMyTurn: nextPlayer === liveColor
-      });
-
-      // Update game state - use functional update to avoid stale closure
-      setGameState((prevState) => {
-        if (!prevState) return prevState;
-
-        const newBoard = makeChessMove(prevState.board, data.move);
-        const isCheck = isKingInCheck(newBoard, nextPlayer);
-        const isCheckMate = isCheckmate(newBoard, nextPlayer);
-        const isStaleMate = isStalemate(newBoard, nextPlayer);
-
-        return {
-          ...prevState,
-          board: newBoard,
-          currentPlayer: nextPlayer,
-          selectedSquare: null,
-          possibleMoves: [],
-          isCheck,
-          isCheckmate: isCheckMate,
-          isStalemate: isStaleMate,
-        };
-      });
-
-      setCurrentTurn(nextPlayer);
-      setIsMyTurn(nextPlayer === liveColor);
-    });
-
-    socketService.onGameEnded((data) => {
-      console.log('🏁 game_ended received:', data);
-      refreshOnGameEnd().catch(console.error);
-      if (data.result === 'resignation') {
-        const didIWin = data.winnerId === userId;
-        if (didIWin) {
-          BisetkaAlert.success(
-            'Game Over',
-            'Opponent resigned. You win!',
-            [{text: 'OK', onPress: () => navigation.replace('GameMode', {gameType: 'chess-multiplayer'})}]
-          );
-        } else {
-          BisetkaAlert.alert(
-            'Game Over',
-            'You resigned.',
-            [{text: 'OK', onPress: () => navigation.replace('GameMode', {gameType: 'chess-multiplayer'})}]
-          );
-        }
-      }
-    });
-
-    socketService.onOpponentDisconnected(() => {
-      console.log('👋 opponent_disconnected received');
-      refreshOnGameEnd().catch(console.error);
-      BisetkaAlert.warning(
-        'Opponent Disconnected',
-        'Your opponent has disconnected from the game.',
-        [{text: 'OK', onPress: () => navigation.replace('GameMode', {gameType: 'chess-multiplayer'})}]
-      );
-    });
-
-    socketService.onError((error) => {
-      console.error('❌ Socket error:', error);
-      BisetkaAlert.error('Error', error.message);
-    });
-
-    // Connect socket first, THEN run auto-start so socket is ready
+    // Connect first, then register listeners on the live socket, then start matchmaking.
+    // Registering listeners before connect() is a no-op because this.socket is null.
     const initialize = async () => {
       await connectToServer();
+
+      // ── Register all event listeners NOW (socket exists) ──────────────────
+      socketService.onMatchmakingStatus((data) => {
+        if (data.status === 'searching') {
+          setGameStatus('Searching for opponent...');
+        }
+      });
+
+      socketService.onOpponentJoined((data) => {
+        setOpponentId(data.opponent.id);
+        setGameStatus('Opponent found! Get ready...');
+        // Player 1 (room creator) must also signal ready so the backend starts the game
+        const liveRoomId = roomIdRef.current;
+        if (liveRoomId) {
+          socketService.playerReady(liveRoomId, userId);
+        }
+      });
+
+      socketService.onGameStarted((data) => {
+        console.log('🎮 game_started received:', data);
+        setGameStatus('Game started!');
+        setMode('game');
+        // Apply server-assigned color so both players have the correct side
+        const assignedColor: 'white' | 'black' | null =
+          data.myColor ||
+          (data.player1Id === userId ? 'white' : data.player2Id === userId ? 'black' : null);
+        if (assignedColor) {
+          myColorRef.current = assignedColor;
+          setMyColor(assignedColor);
+          setIsMyTurn(assignedColor === 'white'); // white always moves first
+        }
+        // Apply server-sent roomId if provided (ensures stale closures resolve correctly)
+        if (data.roomId) {
+          roomIdRef.current = data.roomId;
+          setRoomId(data.roomId);
+        }
+        const initialGame = initializeChessGame('medium');
+        setGameState(initialGame);
+      });
+
+      socketService.onMoveMade((data) => {
+        // Use the current turn from the server (not nextTurn)
+        const nextPlayer = data.currentTurn;
+        // Always read from ref — the closure is stale, state is not
+        const liveColor = myColorRef.current;
+        console.log('♟️  move_made received:', {
+          move: data.move,
+          currentTurn: data.currentTurn,
+          myColor: liveColor,
+          willBeMyTurn: nextPlayer === liveColor
+        });
+
+        // Update game state - use functional update to avoid stale closure
+        setGameState((prevState) => {
+          if (!prevState) return prevState;
+
+          const newBoard = makeChessMove(prevState.board, data.move);
+          const isCheck = isKingInCheck(newBoard, nextPlayer);
+          const isCheckMate = isCheckmate(newBoard, nextPlayer);
+          const isStaleMate = isStalemate(newBoard, nextPlayer);
+
+          return {
+            ...prevState,
+            board: newBoard,
+            currentPlayer: nextPlayer,
+            selectedSquare: null,
+            possibleMoves: [],
+            isCheck,
+            isCheckmate: isCheckMate,
+            isStalemate: isStaleMate,
+          };
+        });
+
+        setCurrentTurn(nextPlayer);
+        setIsMyTurn(nextPlayer === liveColor);
+      });
+
+      socketService.onGameEnded((data) => {
+        console.log('🏁 game_ended received:', data);
+        refreshOnGameEnd().catch(console.error);
+        if (data.result === 'resignation') {
+          const didIWin = data.winnerId === userId;
+          if (didIWin) {
+            BisetkaAlert.success(
+              'Game Over',
+              'Opponent resigned. You win!',
+              [{text: 'OK', onPress: () => navigation.replace('GameMode', {gameType: 'chess-multiplayer'})}]
+            );
+          } else {
+            BisetkaAlert.alert(
+              'Game Over',
+              'You resigned.',
+              [{text: 'OK', onPress: () => navigation.replace('GameMode', {gameType: 'chess-multiplayer'})}]
+            );
+          }
+        }
+      });
+
+      socketService.onOpponentDisconnected(() => {
+        console.log('👋 opponent_disconnected received');
+        refreshOnGameEnd().catch(console.error);
+        BisetkaAlert.warning(
+          'Opponent Disconnected',
+          'Your opponent has disconnected from the game.',
+          [{text: 'OK', onPress: () => navigation.replace('GameMode', {gameType: 'chess-multiplayer'})}]
+        );
+      });
+
+      socketService.onError((error) => {
+        console.error('❌ Socket error:', error);
+        BisetkaAlert.error('Error', error.message);
+      });
+      // ─────────────────────────────────────────────────────────────────────
 
       if (routeMode === 'random') {
         handleFindMatch();
@@ -261,6 +271,19 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
     }
   };
 
+  const handleSaveRoomName = async (newName: string) => {
+    try {
+      setRoomName(newName);
+      if (roomIdRef.current) {
+        socketService.setRoomName(roomIdRef.current, newName);
+      }
+      BisetkaAlert.success('Success', 'Room name updated!');
+    } catch (error) {
+      console.error('Failed to update room name:', error);
+      BisetkaAlert.error('Error', 'Failed to update room name');
+    }
+  };
+
   const handleSquarePress = (row: number, col: number) => {
     if (!gameState || !isMyTurn || gameState.isCheckmate || gameState.isStalemate) return;
 
@@ -361,47 +384,6 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
     ]);
   };
 
-  const renderSquare = (row: number, col: number) => {
-    if (!gameState) return null;
-
-    const piece = gameState.board[row][col];
-    const isWhiteSquare = (row + col) % 2 === 0;
-    const isSelected =
-      gameState.selectedSquare?.row === row &&
-      gameState.selectedSquare?.col === col;
-    const isPossibleMove = gameState.possibleMoves.some(
-      m => m.row === row && m.col === col
-    );
-
-    return (
-      <TouchableOpacity
-        key={`${row}-${col}`}
-        style={[
-          styles.square,
-          isWhiteSquare ? styles.whiteSquare : styles.blackSquare,
-          isSelected && styles.selectedSquare,
-        ]}
-        onPress={() => handleSquarePress(row, col)}>
-        {piece && <ChessPiece type={piece.type} color={piece.color} />}
-        {isPossibleMove && <View style={styles.possibleMove} />}
-      </TouchableOpacity>
-    );
-  };
-
-  const renderBoard = () => {
-    if (!gameState) return null;
-
-    return (
-      <View style={styles.board}>
-        {gameState.board.map((row, rowIndex) => (
-          <View key={rowIndex} style={styles.row}>
-            {row.map((_, colIndex) => renderSquare(rowIndex, colIndex))}
-          </View>
-        ))}
-      </View>
-    );
-  };
-
   const renderMenu = () => (
     <View style={styles.menuContainer}>
       <Text style={styles.title}>Multiplayer Chess</Text>
@@ -422,7 +404,7 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
 
   const renderMatchmaking = () => (
     <View style={styles.waitingContainer}>
-      <ActivityIndicator size="large" color="#007AFF" />
+      <ActivityIndicator size="large" color="#FFD700" />
       <Text style={styles.waitingText}>{gameStatus}</Text>
       <TouchableOpacity
         style={styles.cancelButton}
@@ -439,8 +421,8 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
     <View style={styles.waitingContainer}>
       {!opponentId ? (
         <>
-          <Text style={styles.title}>Private Game Created</Text>
-          <Text style={styles.roomCodeText}>Room Code:</Text>
+          <Text style={styles.privateTitleText}>Private Game Created</Text>
+          <Text style={styles.roomCodeLabel}>Room Code:</Text>
           <Text style={styles.roomCode}>{roomCode}</Text>
           <Text style={styles.waitingText}>Share this code with your friend</Text>
           <Text style={styles.helpText}>Waiting for opponent to join...</Text>
@@ -463,42 +445,137 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
-      <GameToolbar title="Multiplayer Chess" onBack={() => navigation.goBack()} backgroundColor="transparent" />
-      {mode === 'menu' && renderMenu()}
-      {mode === 'matchmaking' && renderMatchmaking()}
-      {mode === 'private' && renderPrivateRoom()}
-      {mode === 'game' && gameState && (
-        <>
-          <View style={styles.header}>
-            <Text style={styles.turnText}>
-              {isMyTurn ? 'Your Turn' : "Opponent's Turn"}
-            </Text>
-            <Text style={styles.colorText}>
-              You are playing as: {myColor === 'white' ? '⚪ White' : '⚫ Black'}
-            </Text>
-            {gameState.isCheck && (
-              <Text style={styles.checkText}>⚠️ Check!</Text>
-            )}
-          </View>
+    <ImageBackground
+      source={require('../../../../assets/blot/park-background.png')}
+      style={styles.container}
+      blurRadius={3}>
+      <LinearGradient
+        colors={['rgba(15,15,35,0.7)', 'rgba(26,23,66,0.6)']}
+        style={styles.overlay}>
+        <SafeAreaView style={styles.safeArea}>
+          <GameToolbar
+            title={roomName}
+            onBack={() => navigation.goBack()}
+            backgroundColor="transparent"
+            rightElement={
+              mode === 'game' ? (
+                <TouchableOpacity 
+                  onPress={() => setShowRoomNameModal(true)}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  style={styles.editRoomButton}
+                >
+                  <Text style={styles.editRoomIcon}>✏️</Text>
+                </TouchableOpacity>
+              ) : undefined
+            }
+          />
 
-          {renderBoard()}
+          {mode === 'menu' && renderMenu()}
+          {mode === 'matchmaking' && renderMatchmaking()}
+          {mode === 'private' && renderPrivateRoom()}
 
-          <View style={styles.controls}>
-            <TouchableOpacity style={styles.resignButton} onPress={handleResign}>
-              <Text style={styles.resignButtonText}>Resign</Text>
-            </TouchableOpacity>
-          </View>
-        </>
-      )}
+          {mode === 'game' && gameState && (
+            <>
+              {/* Status bar */}
+              <View style={styles.statusBar}>
+                <Text style={styles.turnText}>
+                  {isMyTurn ? '♟ Your Turn' : "⏳ Opponent's Turn"}
+                </Text>
+                <Text style={styles.colorText}>
+                  {myColor === 'white' ? '⚪ White' : '⚫ Black'}
+                </Text>
+                {gameState.isCheck && <Text style={styles.checkText}>CHECK!</Text>}
+              </View>
 
-      {/* In-game chat overlay (multiplayer only) */}
-      <InGameChat
-        roomId={roomId}
-        currentUserId={userId}
-        gameType="chess"
-        visible={mode === 'game' && !!gameState && !!roomId}
-      />
+              {/* Board */}
+              <View style={styles.boardContainer}>
+                <ImageBackground
+                  source={require('../../../../assets/chess/board.png')}
+                  style={styles.board}
+                  resizeMode="stretch">
+                  <View style={styles.gridContainer}>
+                    {gameState.board.map((row, rowIndex) => (
+                      <View key={rowIndex} style={styles.row}>
+                        {row.map((piece, colIndex) => {
+                          const isSelected =
+                            gameState.selectedSquare?.row === rowIndex &&
+                            gameState.selectedSquare?.col === colIndex;
+                          const isPossibleMove = gameState.possibleMoves.some(
+                            m => m.row === rowIndex && m.col === colIndex,
+                          );
+                          return (
+                            <TouchableOpacity
+                              key={`${rowIndex}-${colIndex}`}
+                              style={[
+                                styles.square,
+                                isSelected && styles.selectedSquare,
+                                isPossibleMove && styles.possibleMoveSquare,
+                              ]}
+                              onPress={() => handleSquarePress(rowIndex, colIndex)}
+                              hitSlop={{top: 2, bottom: 2, left: 2, right: 2}}>
+                              {piece && <ChessPiece type={piece.type} color={piece.color} />}
+                              {isPossibleMove && <View style={styles.moveIndicator} />}
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </View>
+                    ))}
+                  </View>
+                </ImageBackground>
+              </View>
+
+              {/* Game over overlay */}
+              {(gameState.isCheckmate || gameState.isStalemate) && (
+                <View style={styles.gameOverOverlay}>
+                  <View style={styles.gameOverBox}>
+                    <Text style={styles.gameOverTitle}>
+                      {gameState.isCheckmate ? 'Checkmate!' : 'Stalemate!'}
+                    </Text>
+                    <Text style={styles.gameOverText}>
+                      {gameState.isCheckmate
+                        ? currentTurn !== myColor
+                          ? 'You Win! 🏆'
+                          : 'Opponent Wins'
+                        : "It's a Draw!"}
+                    </Text>
+                    <TouchableOpacity
+                      style={styles.playAgainButton}
+                      onPress={() =>
+                        navigation.replace('GameMode', {gameType: 'chess-multiplayer'})
+                      }>
+                      <Text style={styles.playAgainText}>Play Again</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
+            </>
+          )}
+
+          {/* In-game chat overlay */}
+          <InGameChat
+            roomId={roomId}
+            currentUserId={userId}
+            gameType="chess"
+            visible={mode === 'game' && !!gameState && !!roomId}
+          />
+
+           {/* Resign */}
+              <View style={styles.controls}>
+                <TouchableOpacity style={styles.resignButton} onPress={handleResign}>
+                  <Text style={styles.resignButtonText}>Resign</Text>
+                </TouchableOpacity>
+              </View>
+
+          {/* Room Name Editor Modal */}
+          <RoomNameModal
+            visible={showRoomNameModal}
+            onClose={() => setShowRoomNameModal(false)}
+            currentName={roomName}
+            onSave={handleSaveRoomName}
+            gameType="Chess"
+          />
+        </SafeAreaView>
+      </LinearGradient>
 
       {/* Join Room Modal */}
       <Modal
@@ -532,15 +609,22 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+    </ImageBackground>
   );
 };
 
 const styles = StyleSheet.create({
+  // ── Shell ──────────────────────────────────────────────────────────────────
   container: {
     flex: 1,
-    backgroundColor: '#1a1a2e',
   },
+  overlay: {
+    flex: 1,
+  },
+  safeArea: {
+    flex: 1,
+  },
+  // ── Menu / waiting screens ────────────────────────────────────────────────
   menuContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -550,25 +634,23 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#fff',
+    color: '#FFD700',
     marginBottom: 40,
   },
   menuButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: 'rgba(255,215,0,0.15)',
+    borderWidth: 1,
+    borderColor: '#FFD700',
     padding: 20,
     borderRadius: 12,
     width: '100%',
     marginBottom: 15,
   },
   menuButtonText: {
-    color: '#fff',
+    color: '#FFD700',
     fontSize: 18,
     fontWeight: '600',
     textAlign: 'center',
-  },
-  backButton: {
-    backgroundColor: '#555',
-    marginTop: 20,
   },
   waitingContainer: {
     flex: 1,
@@ -584,127 +666,194 @@ const styles = StyleSheet.create({
   },
   helpText: {
     fontSize: 16,
-    color: '#888',
+    color: 'rgba(255,255,255,0.6)',
     marginTop: 10,
     textAlign: 'center',
   },
-  roomCodeText: {
-    fontSize: 18,
-    color: '#fff',
-    marginTop: 30,
+  privateTitleText: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#FFD700',
+    marginBottom: 12,
+  },
+  roomCodeLabel: {
+    fontSize: 16,
+    color: 'rgba(255,255,255,0.7)',
+    marginTop: 20,
   },
   roomCode: {
-    fontSize: 36,
+    fontSize: 40,
     fontWeight: 'bold',
-    color: '#007AFF',
-    marginTop: 10,
-    letterSpacing: 4,
+    color: '#FFD700',
+    marginTop: 8,
+    letterSpacing: 6,
   },
   cancelButton: {
-    marginTop: 30,
-    padding: 15,
-    backgroundColor: '#ff3b30',
-    borderRadius: 8,
-    minWidth: 150,
+    marginTop: 32,
+    paddingVertical: 14,
+    paddingHorizontal: 40,
+    backgroundColor: '#EF4444',
+    borderRadius: 10,
+    minWidth: 160,
   },
   cancelButtonText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
     textAlign: 'center',
   },
-  header: {
-    padding: 15,
-    backgroundColor: '#16213e',
+  // ── Status bar ────────────────────────────────────────────────────────────
+  statusBar: {
+    backgroundColor: '#1C1917',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    borderBottomWidth: 2,
+    borderBottomColor: '#FFD700',
   },
   turnText: {
-    fontSize: 20,
+    fontSize: 15,
     fontWeight: 'bold',
     color: '#fff',
   },
   colorText: {
-    fontSize: 16,
-    color: '#aaa',
-    marginTop: 5,
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.65)',
   },
   checkText: {
-    fontSize: 18,
-    color: '#ff3b30',
+    fontSize: 14,
     fontWeight: 'bold',
-    marginTop: 5,
+    color: '#EF4444',
   },
-  board: {
-    alignSelf: 'center',
-    marginTop: 20,
-    borderWidth: 2,
-    borderColor: '#333',
-  },
-  row: {
-    flexDirection: 'row',
-  },
-  square: {
-    width: 45,
-    height: 45,
+  // ── Board ─────────────────────────────────────────────────────────────────
+  boardContainer: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  whiteSquare: {
-    backgroundColor: '#f0d9b5',
+  board: {
+    aspectRatio: 1,
+    width: '100%',
+    maxWidth: 500,
   },
-  blackSquare: {
-    backgroundColor: '#b58863',
+  gridContainer: {
+    flex: 1,
+    paddingTop: 40,
+    paddingBottom: 55,
+    paddingHorizontal: 52,
+  },
+  row: {
+    flex: 1,
+    flexDirection: 'row',
+  },
+  square: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'transparent',
   },
   selectedSquare: {
-    backgroundColor: '#7cb342',
+    backgroundColor: 'rgba(127, 166, 80, 0.6)',
   },
-  possibleMove: {
+  possibleMoveSquare: {
+    backgroundColor: 'rgba(127, 166, 80, 0.4)',
+  },
+  moveIndicator: {
+    position: 'absolute',
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: 'rgba(0, 122, 255, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
   },
+  // ── Controls ──────────────────────────────────────────────────────────────
   controls: {
-    padding: 20,
+    paddingVertical: 14,
     alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.3)',
   },
   resignButton: {
-    backgroundColor: '#ff3b30',
-    paddingVertical: 12,
-    paddingHorizontal: 40,
+    backgroundColor: '#EF4444',
+    paddingVertical: 11,
+    paddingHorizontal: 44,
     borderRadius: 8,
   },
   resignButtonText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
   },
+  // ── Game over overlay ─────────────────────────────────────────────────────
+  gameOverOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.82)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  gameOverBox: {
+    backgroundColor: '#fff',
+    borderRadius: 14,
+    padding: 36,
+    alignItems: 'center',
+    minWidth: 260,
+  },
+  gameOverTitle: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#1C1917',
+    marginBottom: 12,
+  },
+  gameOverText: {
+    fontSize: 20,
+    color: '#312E2B',
+    marginBottom: 24,
+  },
+  playAgainButton: {
+    backgroundColor: '#FFD700',
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 32,
+  },
+  playAgainText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1C1917',
+  },
+  // ── Join modal ────────────────────────────────────────────────────────────
   modalContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: 'rgba(0,0,0,0.75)',
   },
   modalContent: {
     backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 20,
-    width: '80%',
+    borderRadius: 14,
+    padding: 24,
+    width: '82%',
   },
   modalTitle: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: 'bold',
     marginBottom: 20,
     textAlign: 'center',
+    color: '#1C1917',
   },
   input: {
     borderWidth: 1,
     borderColor: '#ddd',
     borderRadius: 8,
-    padding: 15,
-    fontSize: 18,
+    padding: 14,
+    fontSize: 20,
     textAlign: 'center',
+    letterSpacing: 4,
     marginBottom: 20,
+    color: '#1C1917',
   },
   modalButtons: {
     flexDirection: 'row',
@@ -712,7 +861,7 @@ const styles = StyleSheet.create({
   },
   modalButton: {
     flex: 1,
-    padding: 15,
+    padding: 14,
     borderRadius: 8,
     marginHorizontal: 5,
   },
@@ -720,12 +869,21 @@ const styles = StyleSheet.create({
     backgroundColor: '#eee',
   },
   modalJoinButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#FFD700',
   },
   modalButtonText: {
     fontSize: 16,
     fontWeight: '600',
     textAlign: 'center',
+    color: '#1C1917',
+  },
+  editRoomButton: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  editRoomIcon: {
+    fontSize: 18,
   },
 });
 
