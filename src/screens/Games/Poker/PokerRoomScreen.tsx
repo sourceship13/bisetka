@@ -1,10 +1,10 @@
 import React, {useState, useEffect, useRef, useCallback} from 'react';
-import {View, Text, StyleSheet, TouchableOpacity, ScrollView, ImageBackground, ActivityIndicator, Clipboard} from 'react-native';
+import {View, Text, StyleSheet, TouchableOpacity, ScrollView, ImageBackground, ActivityIndicator, Clipboard, TextInput} from 'react-native';
 import { Snackbar } from 'react-native-paper';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import GameToolbar from '../../../components/global/GameToolbar';
-import RoomNameModal from '../../../components/RoomNameModal';
+
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {RootStackParamList} from '../../../navigation/AppNavigator';
 import { aiMoveLogService } from '../../../services/aiMoveLog.service';
@@ -115,7 +115,8 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
   const [playerIndex] = useState(0); // used only in AI mode; overridden in multiplayer via computed value below
   const [winSnackbar, setWinSnackbar] = useState<WinSnackbar>({visible: false, message: ''});
   const [roomName, setRoomName] = useState('Multiplayer Poker');
-  const [showRoomNameModal, setShowRoomNameModal] = useState(false);
+  const [editingRoomName, setEditingRoomName] = useState(false);
+  const [draftRoomName, setDraftRoomName] = useState('');
   // Effective seat index for the human player
   const myPlayerIndex = isMultiplayer ? mySeatRef.current : playerIndex;
   const lastResetTimeRef = useRef(0);
@@ -970,23 +971,63 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
           ) : null}
         </View>
       )}
-      <GameToolbar
-        title={roomName}
-        onBack={() => navigation.goBack()}
-        backgroundColor="transparent"
-        rightElement={
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-            <Text style={styles.potAmount}>Pot: ${pot}</Text>
-            <TouchableOpacity 
-              onPress={() => setShowRoomNameModal(true)}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              style={styles.editRoomButton}
-            >
-              <Text style={styles.editRoomIcon}>✏️</Text>
-            </TouchableOpacity>
-          </View>
-        }
-      />
+      {editingRoomName ? (
+        <View style={styles.inlineNameEditor}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            style={styles.inlineBackBtn}>
+            <Text style={styles.inlineBackText}>← Back</Text>
+          </TouchableOpacity>
+          <TextInput
+            style={styles.inlineNameInput}
+            value={draftRoomName}
+            onChangeText={setDraftRoomName}
+            autoFocus
+            maxLength={40}
+            returnKeyType="done"
+            onSubmitEditing={() => {
+              if (draftRoomName.trim()) handleSaveRoomName(draftRoomName.trim());
+              setEditingRoomName(false);
+            }}
+            selectTextOnFocus
+            placeholderTextColor="rgba(255,255,255,0.4)"
+            placeholder="Room name…"
+          />
+          <TouchableOpacity
+            onPress={() => setEditingRoomName(false)}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            style={styles.inlineNameBtn}>
+            <Text style={styles.inlineNameCancel}>✕</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => {
+              if (draftRoomName.trim()) handleSaveRoomName(draftRoomName.trim());
+              setEditingRoomName(false);
+            }}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            style={styles.inlineNameBtn}>
+            <Text style={styles.inlineNameSave}>✓</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <GameToolbar
+          title={roomName}
+          onBack={() => navigation.goBack()}
+          backgroundColor="transparent"
+          rightElement={
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <Text style={styles.potAmount}>Pot: ${pot}</Text>
+              <TouchableOpacity
+                onPress={() => { setDraftRoomName(roomName); setEditingRoomName(true); }}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                style={styles.editRoomButton}>
+                <Text style={styles.editRoomIcon}>✏️</Text>
+              </TouchableOpacity>
+            </View>
+          }
+        />
+      )}
 
       <View style={styles.tableContainer}>
         <ImageBackground
@@ -1054,14 +1095,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
         <Text style={styles.winSnackbarText}>{winSnackbar.message}</Text>
       </Snackbar>
 
-      {/* Room Name Editor Modal */}
-      <RoomNameModal
-        visible={showRoomNameModal}
-        onClose={() => setShowRoomNameModal(false)}
-        currentName={roomName}
-        onSave={handleSaveRoomName}
-        gameType="Poker"
-      />
+
     </SafeAreaView>
     </ImageBackground>
   );
@@ -1435,6 +1469,49 @@ const styles = StyleSheet.create({
   },
   editRoomIcon: {
     fontSize: 18,
+  },
+  inlineNameEditor: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,215,0,0.3)',
+    gap: 8,
+  },
+  inlineBackBtn: {
+    minWidth: 60,
+  },
+  inlineBackText: {
+    fontSize: 15,
+    color: '#fff',
+    fontWeight: '600',
+  },
+  inlineNameInput: {
+    flex: 1,
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#FFD700',
+    borderBottomWidth: 1.5,
+    borderBottomColor: '#FFD700',
+    paddingVertical: 4,
+    paddingHorizontal: 4,
+  },
+  inlineNameBtn: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+  },
+  inlineNameCancel: {
+    fontSize: 16,
+    color: '#f87171',
+    fontWeight: '700',
+  },
+  inlineNameSave: {
+    fontSize: 18,
+    color: '#4ade80',
+    fontWeight: '700',
   },
 });
 
