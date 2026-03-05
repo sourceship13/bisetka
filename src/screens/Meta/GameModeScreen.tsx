@@ -116,6 +116,11 @@ const GameModeScreen: React.FC<Props> = ({route, navigation}) => {
     if (effectiveGameType === 'mrotsi' && mode !== 'ai') {
       screenName = 'MultiplayerMrotsi' as any;
     }
+
+    // For checkers, route to dedicated multiplayer screen if not AI mode
+    if (effectiveGameType === 'checkers' && mode !== 'ai') {
+      screenName = 'MultiplayerCheckers' as any;
+    }
     
     if (!screenName || screenName === 'Home') {
       BisetkaAlert.alert('Coming Soon', `${label.title} is not available yet!`);
@@ -154,6 +159,13 @@ const GameModeScreen: React.FC<Props> = ({route, navigation}) => {
       }
       case 'Checkers':
         navigation.replace('Checkers', {session: sessionData, mode: mode} as any);
+        break;
+      case 'MultiplayerCheckers':
+        navigation.replace('MultiplayerCheckers' as any, {
+          userId: user?.id || 'guest',
+          mode: mode,
+          joinCode: sessionData.code,
+        });
         break;
       case 'Mrotsi':
         navigation.replace('Mrotsi', {session: sessionData, gameType: gameType, mode: mode} as any);

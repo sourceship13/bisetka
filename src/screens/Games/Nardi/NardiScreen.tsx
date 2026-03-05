@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import GameToolbar from '../../../components/global/GameToolbar';
+import RoomNameModal from '../../../components/RoomNameModal';
 import { useGameEndRefresh } from '../../../libs/hooks/useGameEndRefresh';
 import LinearGradient from 'react-native-linear-gradient';
 import {
@@ -97,6 +98,8 @@ const NardiScreen = ({ navigation, route }: any) => {
   const [roomId, setRoomId] = useState<string|null>(null);
   const roomIdRef = useRef<string|null>(null);
   const [myMpColor, setMyMpColor] = useState<'white'|'black'>('white');
+  const [roomName, setRoomName] = useState('Multiplayer Nardi');
+  const [showRoomNameModal, setShowRoomNameModal] = useState(false);
   const myMpColorRef = useRef<'white'|'black'>('white');
   const myNardiColor: 'white'|'black' = isMultiplayer ? myMpColor : 'white';
 
@@ -554,6 +557,19 @@ const NardiScreen = ({ navigation, route }: any) => {
       console.log('🎨 Rendering point 1:', { checkers, color, pos, CHECKER_SIZE, POINT_WIDTH });
     }
 
+  const handleSaveRoomName = async (newName: string) => {
+    try {
+      setRoomName(newName);
+      if (roomIdRef.current) {
+        socketService.setRoomName(roomIdRef.current, newName);
+      }
+      BisetkaAlert.success('Success', 'Room name updated!');
+    } catch (error) {
+      console.error('Failed to update room name:', error);
+      BisetkaAlert.error('Error', 'Failed to update room name');
+    }
+  };
+
     return (
       <TouchableOpacity
         key={pointNum}
@@ -624,6 +640,16 @@ const NardiScreen = ({ navigation, route }: any) => {
               navigation.goBack();
             }}
             backgroundColor="transparent"
+            rightElement={
+              isMultiplayer && mpStatus === 'playing' ? (
+                <TouchableOpacity
+                  onPress={() => setShowRoomNameModal(true)}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  style={{ padding: 8, borderRadius: 8, backgroundColor: 'rgba(255, 255, 255, 0.1)' }}>
+                  <Text style={{ fontSize: 18 }}>✏️</Text>
+                </TouchableOpacity>
+              ) : undefined
+            }
           />
 
           {/* Matchmaking overlay */}
@@ -854,6 +880,15 @@ const NardiScreen = ({ navigation, route }: any) => {
             </View>
           )}
         </SafeAreaView>
+
+          {/* Room Name Editor Modal */}
+          <RoomNameModal
+            visible={showRoomNameModal}
+            onClose={() => setShowRoomNameModal(false)}
+            currentName={roomName}
+            onSave={handleSaveRoomName}
+            gameType="Nardi"
+          />
       </LinearGradient>
 
       {/* In-game chat overlay (multiplayer only) */}
