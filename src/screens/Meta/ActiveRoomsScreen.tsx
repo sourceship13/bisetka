@@ -275,10 +275,13 @@ const ActiveRoomsScreen = ({ navigation }: any) => {
               <Text style={styles.gameIcon}>{icon}</Text>
               <View style={styles.roomTitleContainer}>
                 <Text style={styles.roomName} numberOfLines={1}>
-                  {room.room_name}
+                  {room.room_name ||
+                    room.game_type
+                      .replace(/-/g, ' ')
+                      .replace(/\b\w/g, l => l.toUpperCase()) + ' Room'}
                 </Text>
                 <Text style={styles.gameTypeName}>
-                  {room.game_type.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                  {room.game_type.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                 </Text>
               </View>
             </View>
