@@ -284,17 +284,6 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
     }
   };
 
-  // Listen for room name updates from other players (real-time sync)
-  useEffect(() => {
-    const socket = socketService.getSocket();
-    if (!socket) return;
-    const onNameUpdate = (data: { roomId: string; roomName: string }) => {
-      setRoomName(data.roomName);
-    };
-    socket.on('room_name_updated', onNameUpdate);
-    return () => { socket.off('room_name_updated', onNameUpdate); };
-  }, []);
-
   const handleSquarePress = (row: number, col: number) => {
     if (!gameState || !isMyTurn || gameState.isCheckmate || gameState.isStalemate) return;
 
@@ -887,14 +876,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'center',
     color: '#1C1917',
-  },
-  editRoomButton: {
-    padding: 8,
-    borderRadius: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  editRoomIcon: {
-    fontSize: 18,
   },
 });
 
