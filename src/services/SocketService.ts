@@ -404,6 +404,14 @@ class SocketService {
     this.socket?.off('room_name_updated');
   }
 
+  onRoomClosed(cb: (data: { roomId: string }) => void) {
+    this.socket?.on('room_closed', cb);
+  }
+
+  offRoomClosed() {
+    this.socket?.off('room_closed');
+  }
+
   // ─────────────────────────────────────────────────────────────────────────
 
   // Get socket instance for custom events (e.g., chat rooms)
