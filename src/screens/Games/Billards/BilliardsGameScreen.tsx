@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import GameToolbar from '../../../components/global/GameToolbar';
+import RoomNameModal from '../../../components/RoomNameModal';
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {RootStackParamList} from '../../../navigation/AppNavigator';
 import {aiMoveLogService} from '../../../services/aiMoveLog.service';
@@ -318,6 +319,8 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
   );
   const [isMoving, setIsMoving] = useState(false);
   const [playerTurn, setPlayerTurn] = useState(true); // true = human, false = AI
+  const [roomName, setRoomName] = useState('Multiplayer Billiards');
+  const [showRoomNameModal, setShowRoomNameModal] = useState(false);
   const [playerType, setPlayerType] = useState<'solid' | 'stripe' | null>(null);
   const [aiType, setAiType] = useState<'solid' | 'stripe' | null>(null);
   const [pocketedSolids, setPocketedSolids] = useState<Ball[]>([]);
@@ -1111,6 +1114,19 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
     const midY = (cueStartY + cueEndY) / 2;
     const deg = (angle * 180) / Math.PI;
 
+  const handleSaveRoomName = async (newName: string) => {
+    try {
+      setRoomName(newName);
+      if (roomIdRef.current) {
+        socketService.setRoomName(roomIdRef.current, newName);
+      }
+      BisetkaAlert.success('Success', 'Room name updated!');
+    } catch (error) {
+      console.error('Failed to update room name:', error);
+      BisetkaAlert.error('Error', 'Failed to update room name');
+    }
+  };
+
     return (
       <View
         pointerEvents="none"
@@ -1483,15 +1499,25 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
         onBack={() => navigation.goBack()}
         backgroundColor="transparent"
         rightElement={
-          <Text style={styles.turnText}>
-            {gameOver
-              ? winner === 'player' ? '🏆 You Win!' : (isMultiplayer ? '💀 You Lose' : '💀 AI Wins')
-              : ballInHand ? '👆 Place cue ball'
-              : isMoving ? '⏳'
-              : isMultiplayer
-                ? (isMyTurn ? '🎯 Your Shot' : '⏳ Opponent...')
-                : (playerTurn ? '🎯 Your Shot' : '🤖 AI')}
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            {isMultiplayer && !gameOver && (
+              <TouchableOpacity
+                onPress={() => setShowRoomNameModal(true)}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                style={{ padding: 8, borderRadius: 8, backgroundColor: 'rgba(255, 255, 255, 0.1)' }}>
+                <Text style={{ fontSize: 18 }}>✏️</Text>
+              </TouchableOpacity>
+            )}
+            <Text style={styles.turnText}>
+              {gameOver
+                ? winner === 'player' ? '🏆 You Win!' : (isMultiplayer ? '💀 You Lose' : '💀 AI Wins')
+                : ballInHand ? '👆 Place cue ball'
+                : isMoving ? '⏳'
+                : isMultiplayer
+                  ? (isMyTurn ? '🎯 Your Shot' : '⏳ Opponent...')
+                  : (playerTurn ? '🎯 Your Shot' : '🤖 AI')}
+            </Text>
+          </View>
         }
       />
 
@@ -1790,6 +1816,15 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
         currentUserId={userId}
         gameType={variant}
         visible={isMultiplayer && !!roomId}
+      />
+
+      {/* Room Name Editor Modal */}
+      <RoomNameModal
+        visible={showRoomNameModal}
+        onClose={() => setShowRoomNameModal(false)}
+        currentName={roomName}
+        onSave={handleSaveRoomName}
+        gameType="Billiards"
       />
     </SafeAreaView>
   );

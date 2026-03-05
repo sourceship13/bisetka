@@ -4,6 +4,7 @@ import { Snackbar } from 'react-native-paper';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import GameToolbar from '../../../components/global/GameToolbar';
+import RoomNameModal from '../../../components/RoomNameModal';
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {RootStackParamList} from '../../../navigation/AppNavigator';
 import { aiMoveLogService } from '../../../services/aiMoveLog.service';
@@ -113,6 +114,8 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
   // In multiplayer, playerIndex is mySeat (assigned by server); in AI mode it's always 0
   const [playerIndex] = useState(0); // used only in AI mode; overridden in multiplayer via computed value below
   const [winSnackbar, setWinSnackbar] = useState<WinSnackbar>({visible: false, message: ''});
+  const [roomName, setRoomName] = useState('Multiplayer Poker');
+  const [showRoomNameModal, setShowRoomNameModal] = useState(false);
   // Effective seat index for the human player
   const myPlayerIndex = isMultiplayer ? mySeatRef.current : playerIndex;
   const lastResetTimeRef = useRef(0);
@@ -497,6 +500,19 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
     updatedPlayers[playerIndex].hasActed = true;
     setPlayers(updatedPlayers);
     moveToNextPlayer(updatedPlayers);
+  };
+
+  const handleSaveRoomName = async (newName: string) => {
+    try {
+      setRoomName(newName);
+      if (tableIdRef.current) {
+        socketService.setRoomName(tableIdRef.current, newName);
+      }
+      BisetkaAlert.success('Success', 'Room name updated!');
+    } catch (error) {
+      console.error('Failed to update room name:', error);
+      BisetkaAlert.error('Error', 'Failed to update room name');
+    }
   };
 
   const moveToNextPlayer = (currentPlayers: Player[]) => {
@@ -944,12 +960,19 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
         </View>
       )}
       <GameToolbar
-        title={`Texas Hold'em - ${gamePhase.toUpperCase()}`}
+        title={roomName}
         onBack={() => navigation.goBack()}
         backgroundColor="transparent"
         rightElement={
-          <View style={{ alignItems: 'flex-end' }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
             <Text style={styles.potAmount}>Pot: ${pot}</Text>
+            <TouchableOpacity 
+              onPress={() => setShowRoomNameModal(true)}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              style={styles.editRoomButton}
+            >
+              <Text style={styles.editRoomIcon}>✏️</Text>
+            </TouchableOpacity>
           </View>
         }
       />
@@ -1019,6 +1042,15 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
         }}>
         <Text style={styles.winSnackbarText}>{winSnackbar.message}</Text>
       </Snackbar>
+
+      {/* Room Name Editor Modal */}
+      <RoomNameModal
+        visible={showRoomNameModal}
+        onClose={() => setShowRoomNameModal(false)}
+        currentName={roomName}
+        onSave={handleSaveRoomName}
+        gameType="Poker"
+      />
     </SafeAreaView>
     </ImageBackground>
   );
@@ -1384,6 +1416,14 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  editRoomButton: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  editRoomIcon: {
+    fontSize: 18,
   },
 });
 
