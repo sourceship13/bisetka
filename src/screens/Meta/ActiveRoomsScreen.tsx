@@ -119,67 +119,13 @@ const ActiveRoomsScreen = ({ navigation }: any) => {
   const loadRooms = async () => {
     try {
       setLoading(true);
-      // TODO: Replace with actual API call
-      // const response = await fetch(`${API_BASE_URL}/game-rooms/active`);
-      // const data = await response.json();
-      // setRooms(data.rooms);
-      
-      // Mock data for now
-      const mockRooms: GameRoom[] = [
-        {
-          id: '1',
-          game_type: 'chess',
-          room_name: 'Speed Chess Arena',
-          host_username: 'GrandMaster42',
-          status: 'in_progress',
-          active_players: 2,
-          max_players: 2,
-          active_spectators: 15,
-          waitlist_count: 3,
-          player1_username: 'GrandMaster42',
-          player2_username: 'ChessKing99',
-          player3_username: null,
-          player4_username: null,
-          created_at: new Date().toISOString(),
-          last_activity_at: new Date().toISOString(),
-        },
-        {
-          id: '2',
-          game_type: 'poker',
-          room_name: 'High Stakes Table',
-          host_username: 'PokerPro',
-          status: 'waiting',
-          active_players: 4,
-          max_players: 6,
-          active_spectators: 8,
-          waitlist_count: 2,
-          player1_username: 'PokerPro',
-          player2_username: 'AllIn88',
-          player3_username: 'BluffMaster',
-          player4_username: 'CardShark',
-          created_at: new Date().toISOString(),
-          last_activity_at: new Date().toISOString(),
-        },
-        {
-          id: '3',
-          game_type: 'blot',
-          room_name: 'Armenian Masters',
-          host_username: 'BlotLegend',
-          status: 'in_progress',
-          active_players: 2,
-          max_players: 2,
-          active_spectators: 25,
-          waitlist_count: 5,
-          player1_username: 'BlotLegend',
-          player2_username: 'CardAce',
-          player3_username: null,
-          player4_username: null,
-          created_at: new Date().toISOString(),
-          last_activity_at: new Date().toISOString(),
-        },
-      ];
-      
-      setRooms(mockRooms);
+      const token = await tokenService.getAccessToken();
+      const response = await fetch(`${apiConfig.apiURL}/games/all-active`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!response.ok) throw new Error('Failed to load rooms');
+      const data = await response.json();
+      setRooms(data.rooms || []);
     } catch (error) {
       console.error('Failed to load rooms:', error);
       BisetkaAlert.error('Error', 'Failed to load active rooms. Please try again.');

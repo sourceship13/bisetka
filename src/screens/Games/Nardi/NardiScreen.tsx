@@ -570,6 +570,17 @@ const NardiScreen = ({ navigation, route }: any) => {
     }
   };
 
+  // Listen for room name updates from other players (real-time sync)
+  useEffect(() => {
+    const socket = socketService.getSocket();
+    if (!socket) return;
+    const onNameUpdate = (data: { roomId: string; roomName: string }) => {
+      setRoomName(data.roomName);
+    };
+    socket.on('room_name_updated', onNameUpdate);
+    return () => { socket.off('room_name_updated', onNameUpdate); };
+  }, []);
+
     return (
       <TouchableOpacity
         key={pointNum}
