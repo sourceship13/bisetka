@@ -80,15 +80,26 @@ const ActiveRoomsScreen = ({ navigation }: any) => {
     loadRooms();
     loadMySession();
 
-    // Listen for room name updates from other players / own socket
+    // Live room name updates
     socketService.onRoomNameUpdated(({ roomId, roomName }) => {
       setRooms(prev =>
         prev.map(r => (r.id === roomId ? { ...r, room_name: roomName } : r)),
       );
+      // Keep the host's own name input in sync
+      setMySessionId(prev => {
+        if (prev === roomId) setMyRoomName(roomName);
+        return prev;
+      });
+    });
+
+    // Remove rooms the instant they close
+    socketService.onRoomClosed(({ roomId }) => {
+      setRooms(prev => prev.filter(r => r.id !== roomId));
     });
 
     return () => {
       socketService.offRoomNameUpdated();
+      socketService.offRoomClosed();
     };
   }, []);
 
