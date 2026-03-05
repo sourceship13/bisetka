@@ -388,6 +388,22 @@ class SocketService {
     this.socket?.off('poker_matchmaking_cancelled');
   }
 
+  // ─────────────────────────────────────────────────────────────────────────────
+  // ROOM NAMING
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  setRoomName(roomId: string, roomName: string): void {
+    this.socket?.emit('set_room_name', { roomId, roomName });
+  }
+
+  onRoomNameUpdated(cb: (data: { roomId: string; roomName: string }) => void) {
+    this.socket?.on('room_name_updated', cb);
+  }
+
+  offRoomNameUpdated() {
+    this.socket?.off('room_name_updated');
+  }
+
   // ─────────────────────────────────────────────────────────────────────────
 
   // Get socket instance for custom events (e.g., chat rooms)
