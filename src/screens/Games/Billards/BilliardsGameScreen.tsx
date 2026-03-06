@@ -22,6 +22,7 @@ import {socketService} from '../../../services/SocketService';
 import {useAuth} from '../../../libs/hooks/useAuth';
 import BisetkaAlert from '../../../utils/BisetkaAlert';
 import InGameChat from '../../../components/InGameChat';
+import {apiConfig} from '../../../libs/utils/api.utils';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'BilliardsGame'>;
 
@@ -321,6 +322,9 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
   const [playerTurn, setPlayerTurn] = useState(true); // true = human, false = AI
   const [roomName, setRoomName] = useState('Multiplayer Billiards');
   const [showRoomNameModal, setShowRoomNameModal] = useState(false);
+  const roomNameRef = useRef(roomName);
+  useEffect(() => { roomNameRef.current = roomName; }, [roomName]);
+
   const [playerType, setPlayerType] = useState<'solid' | 'stripe' | null>(null);
   const [aiType, setAiType] = useState<'solid' | 'stripe' | null>(null);
   const [pocketedSolids, setPocketedSolids] = useState<Ball[]>([]);
@@ -412,10 +416,18 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
         setMpStatus('searching');
 
         // Clean slate — remove any stale listeners
-        ['match_found','room_joined','opponent_joined','game_started','move_made','game_ended','opponent_disconnected']
+        ['match_found','room_joined','opponent_joined','game_started','move_made','game_ended','opponent_disconnected','room_name_updated']
           .forEach(ev => socket.off(ev));
 
         let resolvedRoomId: string | null = null;
+
+        // Listen for room name updates from other players
+        socket.on('room_name_updated', (data: { roomId: string; dbSessionId?: string; roomName: string }) => {
+          if (data.roomId === resolvedRoomId || data.roomId === roomIdRef.current ||
+              data.dbSessionId === resolvedRoomId || data.dbSessionId === roomIdRef.current) {
+            setRoomName(data.roomName);
+          }
+        });
 
         socket.on('match_found', (data: any) => {
           if (cancelled) return;
@@ -505,7 +517,7 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
       cancelled = true;
       const socket = socketService.getSocket();
       if (socket) {
-        ['match_found','room_joined','opponent_joined','game_started','move_made','game_ended','opponent_disconnected']
+        ['match_found','room_joined','opponent_joined','game_started','move_made','game_ended','opponent_disconnected','room_name_updated']
           .forEach(ev => socket.off(ev));
         if (mode === 'random') socket.emit('cancel_matchmaking', { userId });
       }
@@ -1127,16 +1139,7 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
     }
   };
 
-  // Listen for room name updates from other players (real-time sync)
-  useEffect(() => {
-    const socket = socketService.getSocket();
-    if (!socket) return;
-    const onNameUpdate = (data: { roomId: string; roomName: string }) => {
-      setRoomName(data.roomName);
-    };
-    socket.on('room_name_updated', onNameUpdate);
-    return () => { socket.off('room_name_updated', onNameUpdate); };
-  }, []);
+  // Room name listener — registered after socket connects (inside mp setup)
 
     return (
       <View

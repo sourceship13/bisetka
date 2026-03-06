@@ -18,6 +18,7 @@ import {socketService} from '../../../services/SocketService';
 import tokenService from '../../../services/token.service';
 import {useGameEndRefresh} from '../../../libs/hooks/useGameEndRefresh';
 import InGameChat from '../../../components/InGameChat';
+import {apiConfig} from '../../../libs/utils/api.utils';
 
 // ─── types ────────────────────────────────────────────────────────────────────
 type PieceType = 'regular' | 'king';
@@ -144,11 +145,25 @@ const MultiplayerCheckersScreen = ({navigation, route}: any) => {
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [roomName, setRoomName] = useState('Multiplayer Checkers');
   const [showRoomNameModal, setShowRoomNameModal] = useState(false);
+  // Refs for room name — avoids stale closures in polling / socket handlers
+  const roomNameRef = useRef(roomName);
+  useEffect(() => { roomNameRef.current = roomName; }, [roomName]);
+  const setRoomNameRef = useRef(setRoomName);
+  useEffect(() => { setRoomNameRef.current = setRoomName; }, [setRoomName]);
 
   // ── socket setup ───────────────────────────────────────────────────────────
   useEffect(() => {
     const initialize = async () => {
       await connectToServer();
+
+      // Room name listener — register right after connect (same pattern as other events)
+      const sock = socketService.getSocket();
+      if (sock) {
+        sock.on('room_name_updated', (data: any) => {
+          console.log('[MultiplayerCheckers] room_name_updated received:', data?.roomName);
+          if (data?.roomName) setRoomName(data.roomName);
+        });
+      }
 
       socketService.onMatchmakingStatus(data => {
         if (data.status === 'searching') setGameStatus('Searching for opponent...');
@@ -182,6 +197,8 @@ const MultiplayerCheckersScreen = ({navigation, route}: any) => {
           roomIdRef.current = data.roomId;
           setRoomId(data.roomId);
         }
+        // Sync room name if set before player 2 joined
+        if (data.roomName) setRoomName(data.roomName);
         setMode('game');
       });
 
@@ -196,6 +213,8 @@ const MultiplayerCheckersScreen = ({navigation, route}: any) => {
           }));
         }
         setServerTurn(nextTurn);
+        // Piggyback: sync room name on every move (proven channel)
+        if (data.roomName) setRoomName(data.roomName);
       });
 
       socketService.onGameEnded(data => {
@@ -329,17 +348,6 @@ const MultiplayerCheckersScreen = ({navigation, route}: any) => {
       BisetkaAlert.error('Error', 'Failed to update room name');
     }
   };
-
-  // Listen for room name updates from the other player (real-time sync)
-  useEffect(() => {
-    const socket = socketService.getSocket();
-    if (!socket) return;
-    const onNameUpdate = (data: { roomId: string; roomName: string }) => {
-      setRoomName(data.roomName);
-    };
-    socket.on('room_name_updated', onNameUpdate);
-    return () => { socket.off('room_name_updated', onNameUpdate); };
-  }, []);
 
   const handleResign = () => {
     BisetkaAlert.warning('Resign', 'Are you sure you want to resign?', [

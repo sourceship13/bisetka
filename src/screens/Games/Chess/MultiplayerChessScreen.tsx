@@ -29,6 +29,7 @@ import {socketService, GameMove} from '../../../services/SocketService';
 import tokenService from '../../../services/token.service';
 import { useGameEndRefresh } from '../../../libs/hooks/useGameEndRefresh';
 import InGameChat from '../../../components/InGameChat';
+import {apiConfig} from '../../../libs/utils/api.utils';
 
 const MultiplayerChessScreen = ({navigation, route}: any) => {
   const {userId, mode: routeMode, joinCode} = route.params; // Get from auth context
@@ -49,6 +50,8 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [roomName, setRoomName] = useState('Multiplayer Chess');
   const [showRoomNameModal, setShowRoomNameModal] = useState(false);
+  const roomNameRef = React.useRef(roomName);
+  useEffect(() => { roomNameRef.current = roomName; }, [roomName]);
 
   useEffect(() => {
     // Connect first, then register listeners on the live socket, then start matchmaking.
@@ -57,6 +60,16 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
       await connectToServer();
 
       // ── Register all event listeners NOW (socket exists) ──────────────────
+      // Room name updates from other players
+      const _sock = socketService.getSocket();
+      if (_sock) {
+        _sock.on('room_name_updated', (data: { roomId: string; dbSessionId?: string; roomName: string }) => {
+          if (data.roomId === roomIdRef.current || data.dbSessionId === roomIdRef.current) {
+            setRoomName(data.roomName);
+          }
+        });
+      }
+
       socketService.onMatchmakingStatus((data) => {
         if (data.status === 'searching') {
           setGameStatus('Searching for opponent...');
