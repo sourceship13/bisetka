@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,7 @@ import DynamicCard from '../components/DynamicCard';
 import { CardType } from '../components/Card';
 import InGameChat from '../components/InGameChat';
 import GameToolbar from '../components/global/GameToolbar';
+import RoomNameModal from '../components/RoomNameModal';
 import CardCustomizationModal from '../components/global/GameCustomizationModal';
 import CardHandFan from '../components/CardHandFan';
 import type { CardTheme } from '../components/global/GameCustomizationModal';
@@ -90,6 +91,10 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
   const [pendingBidSuit, setPendingBidSuit] = useState<string>('hearts'); // pre-select hearts so Make Bid is always ready
   const [showCustomization, setShowCustomization] = useState(false);
   const [customTheme, setCustomTheme] = useState<CardTheme | undefined>(undefined);
+  const [roomName, setRoomName] = useState('Multiplayer Baazar Blot');
+  const [showRoomNameModal, setShowRoomNameModal] = useState(false);
+  const roomIdRef = useRef<string | null>(null);
+  useEffect(() => { roomIdRef.current = roomId; }, [roomId]);
 
   // Ensure socket is connected before operations
   const ensureSocketConnected = async (): Promise<boolean> => {
@@ -137,6 +142,11 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
 
       const socket = socketService.getSocket();
       if (!socket) return;
+
+      // Room name updates (same socket that handles game events)
+      socket.on('room_name_updated', (data: any) => {
+        setRoomName(data.roomName);
+      });
 
       // Baazar Blot matchmaking events
       socket.on('baazar_match_found', (data: { 
@@ -729,6 +739,14 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
     );
   };
 
+  const handleSaveRoomName = useCallback((newName: string) => {
+    setRoomName(newName);
+    const rid = roomIdRef.current || roomId;
+    if (rid) {
+      socketService.setRoomName(rid, newName);
+    }
+  }, [roomId]);
+
   const renderGame = () => {
     if (!gameState) {
       return (
@@ -771,13 +789,21 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
         />
         <SafeAreaView style={styles.safe}>
           <GameToolbar
-            title="Bazaar Blot"
+            title={roomName}
             onBack={() => navigation.goBack()}
             backgroundColor="transparent"
             rightElement={
-              <TouchableOpacity onPress={() => setShowCustomization(true)}>
-                <Text style={{ color: '#FFD700', fontSize: 13, fontWeight: '700' }}>🎨 Cards</Text>
-              </TouchableOpacity>
+              <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+                <TouchableOpacity
+                  onPress={() => setShowRoomNameModal(true)}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  style={{ padding: 8, borderRadius: 8, backgroundColor: 'rgba(255, 255, 255, 0.1)' }}>
+                  <Text style={{ fontSize: 18 }}>✏️</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => setShowCustomization(true)}>
+                  <Text style={{ color: '#FFD700', fontSize: 13, fontWeight: '700' }}>🎨 Cards</Text>
+                </TouchableOpacity>
+              </View>
             }
           />
 
@@ -815,6 +841,15 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
             visible={!!(roomId)}
           />
         </SafeAreaView>
+
+        {/* Room Name Editor Modal */}
+        <RoomNameModal
+          visible={showRoomNameModal}
+          onClose={() => setShowRoomNameModal(false)}
+          currentName={roomName}
+          onSave={handleSaveRoomName}
+          gameType="Baazar Blot"
+        />
       </ImageBackground>
     );
   };

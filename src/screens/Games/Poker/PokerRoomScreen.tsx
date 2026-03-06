@@ -11,6 +11,7 @@ import { aiMoveLogService } from '../../../services/aiMoveLog.service';
 import { socketService } from '../../../services/SocketService';
 import tokenService from '../../../services/token.service';
 import { v4 as uuidv4 } from 'uuid';
+import {apiConfig} from '../../../libs/utils/api.utils';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'PokerRoom'>;
 
@@ -94,6 +95,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
   // Multiplayer state
   const [tableId, setTableId] = useState<string | null>(null);
   const tableIdRef = useRef<string | null>(null);
+  const roomIdRef = useRef<string | null>(null);
   const [mySeat, setMySeat] = useState<number>(0);
   const mySeatRef = useRef<number>(0);
   const [waitingRoom, setWaitingRoom] = useState<WaitingRoom | null>(null);
@@ -117,6 +119,9 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
   const [roomName, setRoomName] = useState('Multiplayer Poker');
   const [editingRoomName, setEditingRoomName] = useState(false);
   const [draftRoomName, setDraftRoomName] = useState('');
+  const roomNameRef = useRef(roomName);
+  useEffect(() => { roomNameRef.current = roomName; }, [roomName]);
+
   // Effective seat index for the human player
   const myPlayerIndex = isMultiplayer ? mySeatRef.current : playerIndex;
   const lastResetTimeRef = useRef(0);
@@ -193,6 +198,17 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
         socketService.offPokerEvents();
         // Always attempt to rejoin an existing table first — handles socket reconnects mid-game
         socketService.rejoinPoker(userId);
+
+        // Room name updates from other players
+        const _sock = socketService.getSocket();
+        if (_sock) {
+          _sock.on('room_name_updated', (data: { roomId: string; dbSessionId?: string; roomName: string }) => {
+            if (data.roomId === tableIdRef.current || data.dbSessionId === tableIdRef.current ||
+                data.roomId === roomIdRef.current || data.dbSessionId === roomIdRef.current) {
+              setRoomName(data.roomName);
+            }
+          });
+        }
 
         socketService.onPokerJoined((data) => {
           if (!mounted) return;
@@ -516,16 +532,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
     }
   };
 
-  // Listen for room name updates from other players (real-time sync)
-  useEffect(() => {
-    const socket = socketService.getSocket();
-    if (!socket) return;
-    const onNameUpdate = (data: { roomId: string; roomName: string }) => {
-      setRoomName(data.roomName);
-    };
-    socket.on('room_name_updated', onNameUpdate);
-    return () => { socket.off('room_name_updated', onNameUpdate); };
-  }, []);
+  // Room name listener — registered after socket connects (inside mp setup)
 
   const moveToNextPlayer = (currentPlayers: Player[]) => {
     // Find next active player who hasn't folded

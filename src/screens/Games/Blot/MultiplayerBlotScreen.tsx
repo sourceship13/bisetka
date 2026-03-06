@@ -24,6 +24,7 @@ import CardHandFan from '../../../components/CardHandFan';
 import InGameChat from '../../../components/InGameChat';
 import GameToolbar from '../../../components/global/GameToolbar';
 import RoomNameModal from '../../../components/RoomNameModal';
+import {apiConfig} from '../../../libs/utils/api.utils';
 
 interface GameState {
   deck: Card[];
@@ -69,6 +70,9 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
   const [localGameState, setLocalGameState] = useState<LocalGameState | null>(null);
   const [playerColor, setPlayerColor] = useState<'white' | 'black'>('white');
   // Ref so socket callbacks can always read the latest playerColor without stale closures
+  const roomIdRef = useRef<string | null>(null);
+  // Keep roomIdRef in sync with currentRoom
+  useEffect(() => { roomIdRef.current = currentRoom?.roomId ?? null; }, [currentRoom]);
   const playerColorRef = useRef<'white' | 'black'>('white');
   // 4-player team mode: position 0-3 (0,2=white; 1,3=black). null = 2-player mode.
   const [playerPosition, setPlayerPosition] = useState<number | null>(null);
@@ -88,6 +92,9 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
   const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
   const [roomName, setRoomName] = useState('Multiplayer Blot');
   const [showRoomNameModal, setShowRoomNameModal] = useState(false);
+  const roomNameRef = useRef(roomName);
+  useEffect(() => { roomNameRef.current = roomName; }, [roomName]);
+
   const gameStartTime = useRef<Date | null>(null);
   const blotGameIdRef = useRef<string>(uuidv4());
   const trickCountRef = useRef(0);
@@ -224,6 +231,16 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
   };
 
   const setupSocketListeners = () => {
+    // Room name updates from other players
+    const socket = socketService.getSocket();
+    if (socket) {
+      socket.on('room_name_updated', (data: { roomId: string; dbSessionId?: string; roomName: string }) => {
+        if (data.roomId === roomIdRef.current || data.dbSessionId === roomIdRef.current) {
+          setRoomName(data.roomName);
+        }
+      });
+    }
+
     // Opponent joined
     socketService.onOpponentJoined((data: any) => {
       console.log('Opponent joined:', data);
@@ -558,16 +575,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
     }
   };
 
-  // Listen for room name updates from other players (real-time sync)
-  useEffect(() => {
-    const socket = socketService.getSocket();
-    if (!socket) return;
-    const onNameUpdate = (data: { roomId: string; roomName: string }) => {
-      setRoomName(data.roomName);
-    };
-    socket.on('room_name_updated', onNameUpdate);
-    return () => { socket.off('room_name_updated', onNameUpdate); };
-  }, []);
+  // Room name listener — registered after socket connects (inside mp setup)
 
   const handlePlayCard = (card: Card) => {
     if (isLocalGame) {
