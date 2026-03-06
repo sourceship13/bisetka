@@ -116,11 +116,12 @@ function hasAnyMoves(board: (Piece | null)[][], color: PieceColor): boolean {
 
 // ─── component ────────────────────────────────────────────────────────────────
 const MultiplayerCheckersScreen = ({navigation, route}: any) => {
-  const {userId, mode: routeMode, joinCode} = route.params;
+  const {userId, mode: routeMode, joinCode, dbSessionId} = route.params;
   const {refreshOnGameEnd} = useGameEndRefresh(undefined, 'checkers');
 
   // ── screen mode ────────────────────────────────────────────────────────────
   const [mode, setMode] = useState<'menu' | 'matchmaking' | 'private' | 'game'>('menu');
+  const [isSpectating, setIsSpectating] = useState(false);
 
   // ── game state ─────────────────────────────────────────────────────────────
   const [gameState, setGameState] = useState<GameState>(freshGame());
@@ -258,6 +259,47 @@ const MultiplayerCheckersScreen = ({navigation, route}: any) => {
         handleCreatePrivateRoom();
       } else if (routeMode === 'private-join' && joinCode) {
         setJoinRoomCode(joinCode);
+      } else if (routeMode === 'join-from-lobby' && dbSessionId) {
+        setMode('matchmaking');
+        setGameStatus('Joining game...');
+        const _sock = socketService.getSocket();
+        if (_sock) {
+          _sock.once('room_joined', (data: any) => {
+            roomIdRef.current = data.roomId;
+            mySocketColorRef.current = data.color ?? 'black';
+            setRoomId(data.roomId);
+            setMySocketColor(data.color ?? 'black');
+            setOpponentId(data.opponent?.id ?? '');
+            setGameStatus('Joined! Waiting for game to start...');
+            socketService.playerReady(data.roomId, userId);
+          });
+        }
+        socketService.joinRoomBySession(dbSessionId, userId);
+      } else if (routeMode === 'spectate' && dbSessionId) {
+        setMode('matchmaking');
+        setGameStatus('Connecting to game...');
+        socketService
+          .spectateRoom(dbSessionId, userId)
+          .then((data: any) => {
+            setIsSpectating(true);
+            roomIdRef.current = data.roomId;
+            setRoomId(data.roomId);
+            const board = data.gameState?.board
+              ? deserializeBoard(data.gameState.board)
+              : initializeBoard();
+            setGameState(prev => ({
+              ...prev,
+              board,
+              currentPlayer: data.gameState?.currentTurn === 'black' ? 'black' : 'red',
+            }));
+            if (data.gameState?.currentTurn) setServerTurn(data.gameState.currentTurn);
+            setMode('game');
+            setGameStatus('Spectating');
+          })
+          .catch((err: any) => {
+            BisetkaAlert.error('Error', err.message || 'Could not connect to this game.');
+            navigation.goBack();
+          });
       }
     };
 
@@ -370,6 +412,7 @@ const MultiplayerCheckersScreen = ({navigation, route}: any) => {
       const row = myPieceColor === 'black' ? 7 - dRow : dRow;
       const col = myPieceColor === 'black' ? 7 - dCol : dCol;
 
+      if (isSpectating) return;
       if (gameState.isGameOver) return;
       if (!isMyTurn) return;
 
@@ -409,7 +452,7 @@ const MultiplayerCheckersScreen = ({navigation, route}: any) => {
         setGameState(prev => ({...prev, selectedSquare: null, possibleMoves: []}));
       }
     },
-    [gameState, isMyTurn, myPieceColor, roomId, userId],
+    [gameState, isMyTurn, myPieceColor, roomId, userId, isSpectating],
   );
 
   // ── sub-renders ────────────────────────────────────────────────────────────
@@ -508,13 +551,17 @@ const MultiplayerCheckersScreen = ({navigation, route}: any) => {
               {/* Status bar */}
               <View style={styles.statusBar}>
                 <Text style={styles.turnText}>
-                  {isMyTurn
+                  {isSpectating
+                    ? '👁️ Spectating'
+                    : isMyTurn
                     ? `🎯 Your Turn (${myPieceColor === 'red' ? '🔴 Red' : '⚫ Black'})`
                     : "⏳ Opponent's Turn"}
                 </Text>
-                <Text style={styles.colorText}>
-                  {myPieceColor === 'red' ? '🔴 Red' : '⚫ Black'}
-                </Text>
+                {!isSpectating && (
+                  <Text style={styles.colorText}>
+                    {myPieceColor === 'red' ? '🔴 Red' : '⚫ Black'}
+                  </Text>
+                )}
               </View>
 
               {/* Board */}

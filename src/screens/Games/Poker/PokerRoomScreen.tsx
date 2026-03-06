@@ -81,9 +81,11 @@ const PlayerTurnTimer = React.memo(({ onExpire }: { onExpire: () => void }) => {
 
 const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
   const {session, gameType, mode, joinCode} = route.params as any;
+  const dbSessionId: string | undefined = (route.params as any)?.dbSessionId;
   const isMultiplayer = mode !== 'ai';
   const isPrivateCreate = mode === 'private-create';
   const isPrivateJoin   = mode === 'private-join';
+  const isReplaceAI     = mode === 'replace-ai';
   const userId = session?.userId || session?.user?.id || 'guest-' + Math.random().toString(36).substr(2, 6);
   const rawName: any = session?.displayName || session?.user?.fullName;
   const displayName: string = typeof rawName === 'string' && rawName
@@ -216,6 +218,11 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
           mySeatRef.current = data.seatIndex;
           setTableId(data.tableId);
           setMySeat(data.seatIndex);
+          // replace-ai: game is already running, skip the waiting room
+          if (isReplaceAI) {
+            setIsConnecting(false);
+            setWaitingRoom(null);
+          }
         });
 
         // Private room created (host gets code back)
@@ -286,6 +293,8 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
           socketService.createPokerPrivateRoom(userId, displayName);
         } else if (isPrivateJoin && joinCode) {
           socketService.joinPokerPrivateRoom(joinCode as string, userId, displayName);
+        } else if (isReplaceAI && dbSessionId) {
+          socketService.replaceAiPlayer(dbSessionId, userId, displayName);
         } else {
           socketService.joinPokerMatchmaking(userId, displayName);
         }
