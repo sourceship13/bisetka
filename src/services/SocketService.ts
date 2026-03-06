@@ -16,8 +16,12 @@ export interface MultiplayerGameState {
   status: 'waiting' | 'active' | 'completed';
 }
 
+type RoomNameCallback = (data: { roomId: string; dbSessionId?: string; roomName: string }) => void;
+
 class SocketService {
   private socket: Socket | null = null;
+  private roomNameCallbacks: Set<RoomNameCallback> = new Set();
+  private roomNameListenerAttached = false;
   
   // Use apiConfig to get the correct server URL based on environment
   private getServerUrl(): string {
@@ -37,6 +41,8 @@ class SocketService {
       
       if (this.socket?.connected) {
         console.log('✅ Already connected');
+        this.ensureRoomNameListener();
+        this.ensureOnAnyRoomName();
         resolve(true);
         return;
       }
@@ -44,22 +50,28 @@ class SocketService {
       console.log('🔄 Creating new socket connection...');
       console.log('🔄 Socket.IO config:', {
         url: this.serverUrl,
-        transports: ['websocket', 'polling'],
+        transports: ['websocket'],
       });
       
       this.socket = io(this.serverUrl, {
-        transports: ['websocket', 'polling'], // Try both transports
+        transports: ['websocket'],
         reconnection: true,
         reconnectionAttempts: 5,
         reconnectionDelay: 1000,
         timeout: 10000,
       });
 
+      // onAny survives socket.removeAllListeners() — use it as the reliable
+      // channel for room_name_updated so screen cleanup never kills it.
+      this.ensureOnAnyRoomName();
+
       // Set a timeout for authentication
       const authTimeout = setTimeout(() => {
         console.error('❌ Authentication timeout');
         reject(new Error('Authentication timeout'));
       }, 10000);
+
+      this.ensureRoomNameListener();
 
       this.socket.on('connect', () => {
         console.log('✅ Connected to server, sending authentication...');
@@ -106,6 +118,7 @@ class SocketService {
     if (this.socket) {
       this.socket.disconnect();
       this.socket = null;
+      this.roomNameListenerAttached = false;
     }
   }
 
@@ -306,6 +319,9 @@ class SocketService {
   // Remove all listeners
   removeAllListeners() {
     this.socket?.removeAllListeners();
+    // Re-attach managed listeners that must survive screen cleanup
+    this.roomNameListenerAttached = false;
+    this.ensureRoomNameListener();
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -392,14 +408,60 @@ class SocketService {
   // ROOM NAMING
   // ─────────────────────────────────────────────────────────────────────────────
 
-  setRoomName(roomId: string, roomName: string): void {
-    this.socket?.emit('set_room_name', { roomId, roomName });
+  /** Attach onAny handler for room_name_updated — survives removeAllListeners() */
+  private ensureOnAnyRoomName(): void {
+    if (!this.socket) return;
+    if ((this.socket as any)._roomNameOnAnyAttached) return; // only once per socket instance
+    this.socket.onAny((event: string, ...args: any[]) => {
+      if (event === 'room_name_updated') {
+        console.log('🏷️ [SocketService.onAny] room_name_updated =>', JSON.stringify(args[0]));
+        this.roomNameCallbacks.forEach(cb => cb(args[0]));
+      }
+    });
+    (this.socket as any)._roomNameOnAnyAttached = true;
   }
 
+  /** Attach the global room_name_updated listener if not already attached */
+  private ensureRoomNameListener(): void {
+    if (!this.socket) return;
+    // Remove only the previously-attached managed listener (not all listeners)
+    const prev = (this as any)._managedRoomNameHandler;
+    if (prev) this.socket.off('room_name_updated', prev);
+    const handler = (data: any) => {
+      console.log('🏷️ [SocketService] room_name_updated received:', JSON.stringify(data));
+      this.roomNameCallbacks.forEach(cb => cb(data));
+    };
+    this.socket.on('room_name_updated', handler);
+    (this as any)._managedRoomNameHandler = handler;
+    this.roomNameListenerAttached = true;
+    console.log('🏷️ [SocketService] room_name_updated listener attached, callbacks:', this.roomNameCallbacks.size);
+  }
+
+  setRoomName(roomId: string, roomName: string): void {
+    console.log(`🏷️ [SocketService.setRoomName] roomId=${roomId} roomName=${roomName} socketConnected=${this.socket?.connected} socketId=${this.socket?.id}`);
+    if (!this.socket?.connected) {
+      console.warn('🏷️ [SocketService.setRoomName] Socket not connected! Cannot emit.');
+      return;
+    }
+    this.socket.emit('set_room_name', { roomId, roomName });
+    console.log('🏷️ [SocketService.setRoomName] Emitted set_room_name');
+  }
+
+  /** Subscribe to room name updates — survives reconnects */
+  subscribeRoomName(cb: RoomNameCallback): () => void {
+    this.roomNameCallbacks.add(cb);
+    // Re-ensure listener is attached (might have been stripped by removeAllListeners or screen cleanup)
+    this.ensureRoomNameListener();
+    console.log(`🏷️ [SocketService] subscribeRoomName — now ${this.roomNameCallbacks.size} subscriber(s), socket=${this.socket?.id}`);
+    return () => { this.roomNameCallbacks.delete(cb); };
+  }
+
+  /** @deprecated Use subscribeRoomName instead */
   onRoomNameUpdated(cb: (data: { roomId: string; roomName: string }) => void) {
     this.socket?.on('room_name_updated', cb);
   }
 
+  /** @deprecated Use subscribeRoomName instead */
   offRoomNameUpdated() {
     this.socket?.off('room_name_updated');
   }

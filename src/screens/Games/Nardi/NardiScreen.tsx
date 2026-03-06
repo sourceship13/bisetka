@@ -29,6 +29,7 @@ import {
 import {socketService} from '../../../services/SocketService';
 import InGameChat from '../../../components/InGameChat';
 import {BisetkaAlert} from '../../../utils/BisetkaAlert';
+import {apiConfig} from '../../../libs/utils/api.utils';
 
 const { width, height } = Dimensions.get('window');
 const BOARD_SIZE = Math.min(width - 32, height * 0.65);
@@ -100,6 +101,9 @@ const NardiScreen = ({ navigation, route }: any) => {
   const [myMpColor, setMyMpColor] = useState<'white'|'black'>('white');
   const [roomName, setRoomName] = useState('Multiplayer Nardi');
   const [showRoomNameModal, setShowRoomNameModal] = useState(false);
+  const roomNameRef = useRef(roomName);
+  useEffect(() => { roomNameRef.current = roomName; }, [roomName]);
+
   const myMpColorRef = useRef<'white'|'black'>('white');
   const myNardiColor: 'white'|'black' = isMultiplayer ? myMpColor : 'white';
 
@@ -134,9 +138,17 @@ const NardiScreen = ({ navigation, route }: any) => {
         const socket = socketService.getSocket();
         if (!socket) return;
         setMpStatus('searching');
-        ['match_found','room_joined','opponent_joined','game_started','move_made','game_ended','opponent_disconnected']
+        ['match_found','room_joined','opponent_joined','game_started','move_made','game_ended','opponent_disconnected','room_name_updated']
           .forEach(ev => socket.off(ev));
         let resolvedRoomId: string | null = null;
+
+        // Listen for room name updates from other players
+        socket.on('room_name_updated', (data: { roomId: string; dbSessionId?: string; roomName: string }) => {
+          if (data.roomId === resolvedRoomId || data.roomId === roomIdRef.current ||
+              data.dbSessionId === resolvedRoomId || data.dbSessionId === roomIdRef.current) {
+            setRoomName(data.roomName);
+          }
+        });
         const onRoomAssigned = (data: any) => {
           if (cancelled) return;
           resolvedRoomId = data.roomId;
@@ -223,7 +235,7 @@ const NardiScreen = ({ navigation, route }: any) => {
       cancelled = true;
       const socket = socketService.getSocket();
       if (socket) {
-        ['match_found','room_joined','opponent_joined','game_started','move_made','game_ended','opponent_disconnected']
+        ['match_found','room_joined','opponent_joined','game_started','move_made','game_ended','opponent_disconnected','room_name_updated']
           .forEach(ev => socket.off(ev));
         if (routeMode === 'random') socket.emit('cancel_matchmaking', {userId});
       }
@@ -570,16 +582,7 @@ const NardiScreen = ({ navigation, route }: any) => {
     }
   };
 
-  // Listen for room name updates from other players (real-time sync)
-  useEffect(() => {
-    const socket = socketService.getSocket();
-    if (!socket) return;
-    const onNameUpdate = (data: { roomId: string; roomName: string }) => {
-      setRoomName(data.roomName);
-    };
-    socket.on('room_name_updated', onNameUpdate);
-    return () => { socket.off('room_name_updated', onNameUpdate); };
-  }, []);
+  // Room name listener — registered after socket connects (inside mp setup)
 
     return (
       <TouchableOpacity
