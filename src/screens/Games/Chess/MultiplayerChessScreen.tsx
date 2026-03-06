@@ -32,9 +32,10 @@ import InGameChat from '../../../components/InGameChat';
 import {apiConfig} from '../../../libs/utils/api.utils';
 
 const MultiplayerChessScreen = ({navigation, route}: any) => {
-  const {userId, mode: routeMode, joinCode} = route.params; // Get from auth context
+  const {userId, mode: routeMode, joinCode, dbSessionId} = route.params; // Get from auth context
   const { refreshOnGameEnd } = useGameEndRefresh(undefined, 'chess');
   const [mode, setMode] = useState<'menu' | 'matchmaking' | 'private' | 'game'>('menu');
+  const [isSpectating, setIsSpectating] = useState(false);
   const [gameState, setGameState] = useState<ChessGameState | null>(null);
   const [roomId, setRoomId] = useState<string>('');
   const roomIdRef = React.useRef<string>('');
@@ -189,6 +190,43 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
       } else if (routeMode === 'private-join' && joinCode) {
         // Socket is now connected — safe to trigger join
         setJoinRoomCode(joinCode);
+      } else if (routeMode === 'join-from-lobby' && dbSessionId) {
+        setMode('matchmaking');
+        setGameStatus('Joining game...');
+        const _sock = socketService.getSocket();
+        if (_sock) {
+          _sock.once('room_joined', (data: any) => {
+            roomIdRef.current = data.roomId;
+            myColorRef.current = data.color ?? 'black';
+            setRoomId(data.roomId);
+            setMyColor(data.color ?? 'black');
+            setOpponentId(data.opponent?.id ?? '');
+            setGameStatus('Joined! Waiting for game to start...');
+            socketService.playerReady(data.roomId, userId);
+          });
+        }
+        socketService.joinRoomBySession(dbSessionId, userId);
+      } else if (routeMode === 'spectate' && dbSessionId) {
+        setMode('matchmaking');
+        setGameStatus('Connecting to game...');
+        socketService
+          .spectateRoom(dbSessionId, userId)
+          .then((data: any) => {
+            setIsSpectating(true);
+            roomIdRef.current = data.roomId;
+            setRoomId(data.roomId);
+            if (data.gameState) {
+              setGameState(data.gameState);
+            } else {
+              setGameState(initializeChessGame('medium'));
+            }
+            setMode('game');
+            setGameStatus('Spectating');
+          })
+          .catch((err: any) => {
+            BisetkaAlert.error('Error', err.message || 'Could not connect to this game.');
+            navigation.goBack();
+          });
       }
     };
     initialize();
@@ -298,6 +336,7 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
   };
 
   const handleSquarePress = (row: number, col: number) => {
+    if (isSpectating) return;
     if (!gameState || !isMyTurn || gameState.isCheckmate || gameState.isStalemate) return;
 
     const position: Position = {row, col};
@@ -491,9 +530,13 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
             <>
               {/* Status bar */}
               <View style={styles.statusBar}>
-                <Text style={styles.turnText}>
-                  {isMyTurn ? '♟ Your Turn' : "⏳ Opponent's Turn"}
-                </Text>
+                {isSpectating ? (
+                  <Text style={styles.turnText}>👁️ Spectating</Text>
+                ) : (
+                  <Text style={styles.turnText}>
+                    {isMyTurn ? '♟ Your Turn' : "⏳ Opponent's Turn"}
+                  </Text>
+                )}
                 <Text style={styles.colorText}>
                   {myColor === 'white' ? '⚪ White' : '⚫ Black'}
                 </Text>

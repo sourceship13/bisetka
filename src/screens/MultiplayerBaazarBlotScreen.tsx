@@ -66,15 +66,17 @@ interface BaazarGameState {
 }
 
 const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
-  const userId = route.params?.userId || 'test-user-' + Math.random().toString(36).substr(2, 9);
+  const userId = route.params?.userId || route.params?.session?.userId || 'test-user-' + Math.random().toString(36).substr(2, 9);
   const teamMode: 'hybrid' | 'full-multiplayer' = route.params?.teamMode ?? 'hybrid';
-  const initialMode = route.params?.mode; // 'random' | 'private-create' | 'private-join'
+  const initialMode = route.params?.mode; // 'random' | 'private-create' | 'private-join' | 'replace-ai'
   const initialJoinCode: string | undefined = route.params?.joinCode;
+  const dbSessionId: string | undefined = route.params?.dbSessionId;
 
   const getInitialGameMode = () => {
     if (initialMode === 'private-create') return 'private';
     if (initialMode === 'private-join') return 'matchmaking';
     if (initialMode === 'random') return 'matchmaking';
+    if (initialMode === 'replace-ai') return 'matchmaking';
     return 'menu';
   };
 
@@ -154,6 +156,8 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
         players: GamePlayer[]; 
         myPosition: number;
         myTeam: 1 | 2;
+        gameState?: BaazarGameState;
+        isRejoining?: boolean;
       }) => {
         console.log('🎲 Baazar match found:', data);
         setRoomId(data.roomId);
@@ -163,11 +167,21 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
         setGameMode('game');
         setIsConnecting(false);
 
-        // Automatically mark player as ready
-        socket.emit('baazar_player_ready', {
-          roomId: data.roomId,
-          userId
-        });
+        // If rejoining (replace-AI), apply the current game state immediately
+        if (data.isRejoining && data.gameState) {
+          setGameState(data.gameState);
+          // Game is already active — no need for the ready handshake.
+          // Request a fresh state sync after a short delay as a safety net.
+          setTimeout(() => {
+            socket.emit('baazar_request_sync', { roomId: data.roomId, userId });
+          }, 2000);
+        } else {
+          // Fresh game: mark player as ready so allReady can trigger game start
+          socket.emit('baazar_player_ready', {
+            roomId: data.roomId,
+            userId
+          });
+        }
       });
 
       socket.on('baazar_game_started', (data: { 
@@ -206,7 +220,7 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
         gameState: BaazarGameState;
         currentPlayer: number;
       }) => {
-        console.log('💰 Bid made:', data);
+        console.log('💰 Bid made:', data.playerPosition, 'currentPlayer now:', data.currentPlayer, 'myPosition:', myPosition, 'phase:', data.gameState?.phase);
         // Merge data.currentPlayer into gameState — gameState.currentPlayer is
         // initialized to 0 and only room.currentPlayer is updated server-side.
         setGameState(prev => ({ ...data.gameState, currentPlayer: data.currentPlayer }));
@@ -220,7 +234,7 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
         gameState: BaazarGameState;
         currentPlayer: number;
       }) => {
-        console.log('🃏 Card played:', data);
+        console.log('🃏 Card played by pos:', data.playerPosition, 'currentPlayer now:', data.currentPlayer, 'myPosition:', myPosition, 'myHand length:', data.gameState?.playerHands?.[myPosition]?.length);
         setGameState({ ...data.gameState, currentPlayer: data.currentPlayer });
         setSelectedCard(null);
       });
@@ -237,9 +251,38 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
         );
       });
 
+      // State sync fallback — server responds to baazar_request_sync
+      socket.on('baazar_state_sync', (data: {
+        roomId: string;
+        players: GamePlayer[];
+        gameState: BaazarGameState;
+        currentPlayer: number;
+      }) => {
+        console.log('🔄 State sync received — currentPlayer:', data.currentPlayer, 'phase:', data.gameState?.phase);
+        setGameState({ ...data.gameState, currentPlayer: data.currentPlayer });
+        setPlayers(data.players);
+        setRoomId(prev => prev || data.roomId);
+      });
+
       socket.on('error', (error: { message: string }) => {
         console.error('❌ Socket error:', error);
-        BisetkaAlert.error('Error', error.message);
+        // For replace-ai mode: only reset to menu if we haven't joined a room yet.
+        // roomIdRef.current is always current (updated via ref effect) so avoids stale closure.
+        if (initialMode === 'replace-ai') {
+          if (!roomIdRef.current) {
+            BisetkaAlert.error('Could Not Join', error.message || 'Room not found or game already full.');
+            setGameMode('menu');
+          }
+          // Silently ignore errors once in-game (e.g. "not your turn") to avoid disrupting game
+        } else {
+          BisetkaAlert.error('Error', error.message);
+        }
+      });
+
+      // An AI slot in this room was taken by a real player
+      socket.on('baazar_player_replaced_ai', (data: { position: number; userId: string; players: GamePlayer[] }) => {
+        console.log('🤖→👤 AI replaced by human at position', data.position);
+        setPlayers(data.players);
       });
 
       // Private room creation event
@@ -262,6 +305,11 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
         } else {
           socket.emit('find_baazar_match', { userId });
         }
+      } else if (initialMode === 'replace-ai' && dbSessionId) {
+        // Replace an AI player in an existing Baazar Blot room from the Active Rooms lobby.
+        // Backend will emit baazar_match_found back with gameState so the existing listener
+        // sets up everything and transitions to 'game' mode.
+        socket.emit('replace_ai_player', { dbSessionId, userId, displayName: route.params?.session?.displayName });
       }
     };
 
@@ -275,7 +323,9 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
         socket.off('baazar_bid_made');
         socket.off('baazar_card_played');
         socket.off('baazar_game_ended');
+        socket.off('baazar_state_sync');
         socket.off('baazar_room_created');
+        socket.off('baazar_player_replaced_ai');
         socket.off('error');
       }
     };
