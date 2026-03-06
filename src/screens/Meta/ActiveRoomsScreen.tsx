@@ -368,7 +368,9 @@ const ActiveRoomsScreen = ({ navigation }: any) => {
           {/* Footer */}
           <View style={styles.roomFooter}>
             <Text style={styles.hostText}>Host: {room.host_username}</Text>
-            <Text style={styles.joinPrompt}>Tap to join →</Text>
+            <Text style={styles.joinPrompt}>
+              {room.status === 'waiting' ? '➕ Join Game' : '👁️ Watch'}
+            </Text>
           </View>
         </LinearGradient>
       </TouchableOpacity>
