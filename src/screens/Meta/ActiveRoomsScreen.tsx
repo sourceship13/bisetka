@@ -19,6 +19,19 @@ import { apiConfig } from '../../libs/utils/api.utils';
 import tokenService from '../../services/token.service';
 import { socketService } from '../../services/SocketService';
 
+// Game type to multiplayer screen name mapping
+const GAME_SCREENS: Record<string, string> = {
+  blot: 'MultiplayerBlot',
+  'baazar-blot': 'MultiplayerBaazarBlot',
+  chess: 'MultiplayerChess',
+  checkers: 'MultiplayerCheckers',
+  poker: 'PokerRoom',
+  nardi: 'Nardi',
+  billiards: 'BilliardsGame',
+  '9-ball': 'BilliardsGame',
+  mrotsi: 'MultiplayerMrotsi',
+};
+
 // Game type to emoji mapping
 const GAME_ICONS: Record<string, string> = {
   blot: '🃏',
@@ -81,13 +94,17 @@ const ActiveRoomsScreen = ({ navigation }: any) => {
     loadMySession();
 
     // Live room name updates
-    socketService.onRoomNameUpdated(({ roomId, roomName }) => {
+    socketService.onRoomNameUpdated(({ roomId, roomName, dbSessionId }: any) => {
       setRooms(prev =>
-        prev.map(r => (r.id === roomId ? { ...r, room_name: roomName } : r)),
+        prev.map(r =>
+          r.id === roomId || r.id === dbSessionId
+            ? { ...r, room_name: roomName }
+            : r,
+        ),
       );
       // Keep the host's own name input in sync
       setMySessionId(prev => {
-        if (prev === roomId) setMyRoomName(roomName);
+        if (prev === roomId || prev === dbSessionId) setMyRoomName(roomName);
         return prev;
       });
     });
@@ -136,7 +153,14 @@ const ActiveRoomsScreen = ({ navigation }: any) => {
       });
       if (!response.ok) throw new Error('Failed to load rooms');
       const data = await response.json();
-      setRooms(data.rooms || []);
+      // Deduplicate by id in case DB has stale duplicate rows
+      const seen = new Set<string>();
+      const deduped = (data.rooms || []).filter((r: GameRoom) => {
+        if (seen.has(r.id)) return false;
+        seen.add(r.id);
+        return true;
+      });
+      setRooms(deduped);
     } catch (error) {
       console.error('Failed to load rooms:', error);
       BisetkaAlert.error('Error', 'Failed to load active rooms. Please try again.');
@@ -182,8 +206,12 @@ const ActiveRoomsScreen = ({ navigation }: any) => {
         socketService.setRoomName(mySessionId, trimmed);
       }
       BisetkaAlert.success('Saved', `Room renamed to "${trimmed}"`);
-      // Refresh list so it shows the new name
-      loadRooms();
+      // Update the card in the list directly — no re-fetch needed
+      if (mySessionId) {
+        setRooms(prev =>
+          prev.map(r => (r.id === mySessionId ? { ...r, room_name: trimmed } : r)),
+        );
+      }
     } catch {
       BisetkaAlert.error('Error', 'Could not save room name. Try again.');
     } finally {
@@ -192,10 +220,16 @@ const ActiveRoomsScreen = ({ navigation }: any) => {
   };
 
   const handleJoinRoom = (room: GameRoom) => {
-    // TODO: Implement join room logic
-    // Show modal to choose: Watch as spectator or Join waitlist
+    const screenName = GAME_SCREENS[room.game_type];
+    if (!screenName) {
+      BisetkaAlert.error('Error', `Unknown game type: ${room.game_type}`);
+      return;
+    }
+
+    const roomDisplayName = room.room_name || room.game_type.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) + ' Room';
+
     BisetkaAlert.alert(
-      `Join ${room.room_name}`,
+      `Join ${roomDisplayName}`,
       'How would you like to join?',
       [
         {
@@ -205,8 +239,8 @@ const ActiveRoomsScreen = ({ navigation }: any) => {
         {
           text: '👁️ Watch',
           onPress: () => {
-            // Navigate to spectator view
-            navigation.navigate('SpectatorView', {
+            navigation.navigate(screenName, {
+              mode: 'spectate',
               roomId: room.id,
               gameType: room.game_type,
             });
@@ -215,7 +249,6 @@ const ActiveRoomsScreen = ({ navigation }: any) => {
         {
           text: '🎮 Join Waitlist',
           onPress: () => {
-            // Add to waitlist
             joinWaitlist(room.id);
           },
         },
