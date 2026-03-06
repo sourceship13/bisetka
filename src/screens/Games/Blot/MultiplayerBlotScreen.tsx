@@ -30,6 +30,8 @@ interface GameState {
   deck: Card[];
   player1Hand: Card[];
   player2Hand: Card[];
+  cpuWhiteHand?: Card[];
+  cpuBlackHand?: Card[];
   currentTrick: Card[];
   trumpSuit: string | null;
   player1Score: number;
@@ -44,12 +46,14 @@ interface GameState {
 }
 
 const MultiplayerBlotScreen = ({ navigation, route }: any) => {
-  const userId = route.params?.userId || 'test-user-' + Math.random().toString(36).substr(2, 9);
+  const userId = route.params?.userId || route.params?.session?.id || route.params?.session?.userId || 'test-user-' + Math.random().toString(36).substr(2, 9);
   const { refreshOnGameEnd } = useGameEndRefresh(undefined, 'blot');
-  const initialMode = route.params?.mode; // 'ai', 'private-create', 'private-join', 'random'
+  const initialMode = route.params?.mode; // 'ai', 'private-create', 'private-join', 'random', 'join-from-lobby', 'spectate', 'replace-ai'
   const initialDifficulty = route.params?.difficulty || 'medium';
   const initialJoinCode = route.params?.joinCode;
   const teamMode = route.params?.teamMode; // 'hybrid' | 'full-multiplayer'
+  const dbSessionId: string | undefined = route.params?.dbSessionId;
+  const [isSpectating, setIsSpectating] = useState(false);
   
   // Determine initial gameMode based on navigation params
   const getInitialGameMode = () => {
@@ -57,6 +61,9 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
     if (initialMode === 'private-create') return 'private';
     if (initialMode === 'private-join') return 'matchmaking';
     if (initialMode === 'random') return 'matchmaking';
+    if (initialMode === 'join-from-lobby') return 'matchmaking';
+    if (initialMode === 'spectate') return 'matchmaking';
+    if (initialMode === 'replace-ai') return 'matchmaking';
     return 'menu';
   };
   
@@ -77,6 +84,13 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
   // 4-player team mode: position 0-3 (0,2=white; 1,3=black). null = 2-player mode.
   const [playerPosition, setPlayerPosition] = useState<number | null>(null);
   const playerPositionRef = useRef<number | null>(null);
+  // CPU replacement role: set when this player replaced a CPU via replace-ai
+  const [myCpuRole, setMyCpuRole] = useState<string | null>(null);
+  const myCpuRoleRef = useRef<string | null>(null);
+  const updateMyCpuRole = (role: string | null) => {
+    myCpuRoleRef.current = role;
+    setMyCpuRole(role);
+  };
   // Blocks a second card tap until the server acknowledges the current move
   const moveInFlightRef = useRef(false);
   const [isMyTurn, setIsMyTurn] = useState(false);
@@ -190,6 +204,50 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
         if (initialMode === 'random') {
           await findMatchOnMount();
         }
+
+        // Join a waiting room directly from the Active Rooms lobby
+        if (initialMode === 'join-from-lobby' && dbSessionId) {
+          const socket = socketService.getSocket();
+          if (socket) {
+            socket.once('room_joined', (data: any) => {
+              setCurrentRoom({ roomId: data.roomId });
+              setPlayerColor(data.color ?? 'black');
+              setOpponent(data.opponent);
+              setIsMyTurn((data.color ?? 'black') === 'white');
+              setGameMode('game');
+            });
+          }
+          socketService.joinRoomBySession(dbSessionId, userId);
+        }
+
+        // Spectate an in-progress room from the Active Rooms lobby
+        if (initialMode === 'spectate' && dbSessionId) {
+          try {
+            const data = await socketService.spectateRoom(dbSessionId, userId);
+            setIsSpectating(true);
+            setCurrentRoom({ roomId: data.roomId });
+            if (data.gameState) setGameState(data.gameState);
+            setIsGameStarted(true);
+            isGameStartedRef.current = true;
+            setGameMode('game');
+          } catch (err: any) {
+            BisetkaAlert.error('Error', err.message || 'Could not connect to this game.');
+            setGameMode('menu');
+          }
+        }
+
+        // Replace an AI (CPU) player in a regular Blot room
+        if (initialMode === 'replace-ai' && dbSessionId) {
+          const socket = socketService.getSocket();
+          if (socket) {
+            socket.emit('replace_ai_player', {
+              dbSessionId,
+              userId,
+              displayName: route.params?.session?.displayName || 'Player',
+            });
+            // The backend will emit game_started with cpuRole — handled by onGameStarted listener
+          }
+        }
       } catch (error) {
         console.error('Failed to initialize multiplayer:', error);
         // Connection error alert is already shown in connectSocket
@@ -277,10 +335,27 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
       console.log('✅ My color (from server):', myColor, '| gameState.currentTurn:', data.gameState?.currentTurn);
 
       updatePlayerColor(myColor);
-      setGameState(data.gameState);
+
+      // If this player replaced a CPU, store the cpuRole for turn detection
+      if (data.cpuRole) {
+        updateMyCpuRole(data.cpuRole);
+        // Merge myHand into gameState for rendering
+        if (data.myHand) {
+          setGameState({ ...data.gameState, myHand: data.myHand });
+        } else {
+          setGameState(data.gameState);
+        }
+        setCurrentRoom({ roomId: data.roomId });
+      } else {
+        setGameState(data.gameState);
+      }
       setGameMode('game');
       setIsGameStarted(true);
-      setIsMyTurn(data.gameState?.currentTurn === myColor);
+      setIsMyTurn(
+        data.cpuRole
+          ? data.gameState?.currentTurn === data.cpuRole
+          : data.gameState?.currentTurn === myColor
+      );
     });
 
     // Move made
@@ -291,14 +366,17 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
 
       // 4-player team blot: currentTurn is a position number
       const pos = playerPositionRef.current;
+      const cpuRole = myCpuRoleRef.current;
       const myTurn = pos !== null
         ? data.gameState?.currentTurn === pos
-        : data.currentTurn === playerColorRef.current;
+        : cpuRole
+          ? data.currentTurn === cpuRole
+          : data.currentTurn === playerColorRef.current;
 
       setIsMyTurn(myTurn);
       setGameState(data.gameState);
-      // In 4p mode the server sends myHand; merge it into gameState for rendering
-      if (pos !== null && data.myHand) {
+      // In 4p mode or replacement mode: merge myHand into gameState for rendering
+      if ((pos !== null || cpuRole) && data.myHand) {
         setGameState((prev: any) => prev ? { ...prev, myHand: data.myHand } : prev);
       }
       setSelectedCard(null);
@@ -966,9 +1044,12 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
     const is4P = playerPosition !== null;
     // 4-player: use the per-player hand from gameState.myHand or hands[position]
     // 2-player: use player1Hand / player2Hand
+    // CPU replacement: use myHand (from server) or cpuWhiteHand / cpuBlackHand
     const playerHand = is4P
       ? (gameState?.myHand || gameState?.hands?.[playerPosition] || [])
-      : (playerColor === 'white' ? gameState?.player1Hand || [] : gameState?.player2Hand || []);
+      : myCpuRole
+        ? (gameState?.myHand || (myCpuRole === 'cpuWhite' ? gameState?.cpuWhiteHand : gameState?.cpuBlackHand) || [])
+        : (playerColor === 'white' ? gameState?.player1Hand || [] : gameState?.player2Hand || []);
 
     // Score helpers
     const myScore = is4P
@@ -1079,8 +1160,20 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
                           else if (rel === 2) slotStyle = styles.trickSlotTop;
                           else if (rel === 1) slotStyle = styles.trickSlotRight;
                           else slotStyle = styles.trickSlotLeft;
+                        } else if (card.seat) {
+                          // Seat-based positioning (handles CPU replacement correctly)
+                          // Seats around table: player1=0, cpuWhite=1, player2=2, cpuBlack=3
+                          const SEAT_IDX: Record<string, number> = { player1: 0, cpuWhite: 1, player2: 2, cpuBlack: 3 };
+                          const mySeat = myCpuRole
+                            ? myCpuRole
+                            : (playerColor === 'white' ? 'player1' : 'player2');
+                          const rel = (SEAT_IDX[card.seat] - SEAT_IDX[mySeat] + 4) % 4;
+                          if (rel === 0) slotStyle = styles.trickSlotBottom;
+                          else if (rel === 1) slotStyle = styles.trickSlotLeft;
+                          else if (rel === 2) slotStyle = styles.trickSlotTop;
+                          else slotStyle = styles.trickSlotRight;
                         } else {
-                          // 2+CPU mode: use isHuman + team
+                          // Fallback: 2+CPU mode without seat info
                           const isMyCard   = card.color === playerColor;
                           const isHumanCard = card.isHuman !== false;
                           if (isMyCard && isHumanCard)        slotStyle = styles.trickSlotBottom;

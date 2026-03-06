@@ -263,6 +263,35 @@ class SocketService {
     });
   }
 
+  // Join a waiting room directly from the Active Rooms lobby
+  joinRoomBySession(dbSessionId: string, userId: string): void {
+    this.socket?.emit('join_room_by_session', { dbSessionId, userId });
+  }
+
+  // Spectate an in-progress room from the Active Rooms lobby
+  spectateRoom(dbSessionId: string, userId: string): Promise<any> {
+    return new Promise((resolve, reject) => {
+      if (!this.socket?.connected) {
+        reject(new Error('Not connected to server'));
+        return;
+      }
+      const timer = setTimeout(() => {
+        this.socket?.off('spectate_started');
+        reject(new Error('Spectate request timed out'));
+      }, 10_000);
+      this.socket.once('spectate_started', (data) => {
+        clearTimeout(timer);
+        resolve(data);
+      });
+      this.socket.emit('spectate_room', { dbSessionId, userId });
+    });
+  }
+
+  // Replace an AI player in a Poker or Baazar Blot room
+  replaceAiPlayer(dbSessionId: string, userId: string, displayName?: string): void {
+    this.socket?.emit('replace_ai_player', { dbSessionId, userId, displayName });
+  }
+
   // Make a move
   makeMove(roomId: string, userId: string, move: GameMove) {
     this.socket?.emit('make_move', { roomId, userId, move });
