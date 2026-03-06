@@ -219,56 +219,85 @@ const ActiveRoomsScreen = ({ navigation }: any) => {
     }
   };
 
-  const handleJoinRoom = (room: GameRoom) => {
+  // Game types where an AI player can be replaced by a human
+  const AI_REPLACEABLE_TYPES = ['poker', 'baazar-blot', 'blot'];
+
+  const buildNavParams = (room: GameRoom, mode: string) => {
+    const base = { dbSessionId: room.id, mode };
+    switch (room.game_type) {
+      case 'chess':
+      case 'checkers':
+        return { ...base, userId: user?.id };
+      case 'poker':
+        return {
+          ...base,
+          session: { userId: user?.id, displayName: user?.username ?? 'Player' },
+          gameType: 'poker',
+        };
+      case 'baazar-blot':
+        return {
+          ...base,
+          userId: user?.id,
+          session: { userId: user?.id, displayName: user?.username ?? 'Player' },
+          gameType: 'baazar-blot',
+        };
+      default:
+        // blot, nardi, billiards, 9-ball, mrotsi
+        return {
+          ...base,
+          userId: user?.id,
+          session: { userId: user?.id, id: user?.id, displayName: user?.username ?? 'Player' },
+          gameType: room.game_type,
+        };
+    }
+  };
+
+  const navigateToGame = (room: GameRoom, mode: string) => {
     const screenName = GAME_SCREENS[room.game_type];
     if (!screenName) {
       BisetkaAlert.error('Error', `Unknown game type: ${room.game_type}`);
       return;
     }
-
-    const roomDisplayName = room.room_name || room.game_type.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) + ' Room';
-
-    BisetkaAlert.alert(
-      `Join ${roomDisplayName}`,
-      'How would you like to join?',
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: '👁️ Watch',
-          onPress: () => {
-            navigation.navigate(screenName, {
-              mode: 'spectate',
-              roomId: room.id,
-              gameType: room.game_type,
-            });
-          },
-        },
-        {
-          text: '🎮 Join Waitlist',
-          onPress: () => {
-            joinWaitlist(room.id);
-          },
-        },
-      ]
-    );
+    navigation.navigate(screenName, buildNavParams(room, mode));
   };
 
-  const joinWaitlist = async (roomId: string) => {
-    try {
-      // TODO: API call to join waitlist
-      // await fetch(`${API_BASE_URL}/game-rooms/${roomId}/waitlist`, {
-      //   method: 'POST',
-      // });
-      
-      BisetkaAlert.success('Success', 'You have been added to the waitlist!');
-      loadRooms(); // Refresh to show updated waitlist count
-    } catch (error) {
-      console.error('Failed to join waitlist:', error);
-      BisetkaAlert.error('Error', 'Failed to join waitlist. Please try again.');
+  const handleJoinRoom = (room: GameRoom) => {
+    const roomDisplayName =
+      room.room_name ||
+      room.game_type.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) +
+        ' Room';
+
+    const canReplaceAI = AI_REPLACEABLE_TYPES.includes(room.game_type);
+
+    if (canReplaceAI) {
+      // Poker / Baazar-Blot always have AI slots (both waiting and in-progress)
+      // — always offer Replace AI or Watch; never auto-join-from-lobby
+      BisetkaAlert.alert(
+        roomDisplayName,
+        'What would you like to do?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: '👁️ Watch',
+            onPress: () => navigateToGame(room, 'spectate'),
+          },
+          {
+            text: '🤖→👤 Replace AI',
+            onPress: () => navigateToGame(room, 'replace-ai'),
+          },
+        ],
+      );
+      return;
     }
+
+    if (room.status === 'waiting') {
+      // One open human seat — join directly as player 2
+      navigateToGame(room, 'join-from-lobby');
+      return;
+    }
+
+    // In-progress, non-AI game → spectate
+    navigateToGame(room, 'spectate');
   };
 
   const getStatusBadge = (status: string) => {

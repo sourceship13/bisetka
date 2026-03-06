@@ -85,8 +85,10 @@ type OpponentType = 'ai' | 'local';
 const NardiScreen = ({ navigation, route }: any) => {
   const routeMode = route?.params?.mode;
   const session = route?.params?.session;
-  const isMultiplayer = routeMode === 'random' || routeMode === 'private-create' || routeMode === 'private-join';
-  const userId: string = session?.user?.id || session?.id || 'guest';
+  const dbSessionId: string | undefined = route?.params?.dbSessionId;
+  const isMultiplayer = routeMode === 'random' || routeMode === 'private-create' || routeMode === 'private-join' || routeMode === 'join-from-lobby' || routeMode === 'spectate';
+  const userId: string = session?.user?.id || session?.id || session?.userId || route?.params?.userId || 'guest';
+  const [isSpectating, setIsSpectating] = useState(false);
   const opponentType: OpponentType = isMultiplayer ? 'local' : (routeMode === 'ai' ? 'ai' : 'local');
 
   const [gameState, setGameState] = useState<NardiGameState | null>(null);
@@ -225,6 +227,30 @@ const NardiScreen = ({ navigation, route }: any) => {
           if (joinCode) {
             const roomData = await socketService.joinPrivateRoom(joinCode, userId);
             if (!cancelled) onRoomAssigned(roomData);
+          }
+        } else if (routeMode === 'join-from-lobby' && dbSessionId) {
+          socket.once('room_joined', (data: any) => {
+            if (!cancelled) {
+              onRoomAssigned(data);
+              socket.emit('player_ready', {roomId: data.roomId, userId});
+            }
+          });
+          socketService.joinRoomBySession(dbSessionId, userId);
+        } else if (routeMode === 'spectate' && dbSessionId) {
+          try {
+            const data = await socketService.spectateRoom(dbSessionId, userId);
+            if (!cancelled) {
+              setIsSpectating(true);
+              roomIdRef.current = data.roomId;
+              setRoomId(data.roomId);
+              if (data.gameState) setGameState(data.gameState);
+              setMpStatus('playing');
+            }
+          } catch (err: any) {
+            if (!cancelled) {
+              BisetkaAlert.error('Error', err.message || 'Could not connect to this game.');
+              navigation.goBack();
+            }
           }
         }
       } catch {
