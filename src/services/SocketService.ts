@@ -466,7 +466,7 @@ class SocketService {
     this.socket?.off('room_name_updated');
   }
 
-  onRoomClosed(cb: (data: { roomId: string }) => void) {
+  onRoomClosed(cb: (data: { roomId: string; dbSessionId: string | null }) => void) {
     this.socket?.on('room_closed', cb);
   }
 
