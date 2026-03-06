@@ -110,8 +110,8 @@ const ActiveRoomsScreen = ({ navigation }: any) => {
     });
 
     // Remove rooms the instant they close
-    socketService.onRoomClosed(({ roomId }) => {
-      setRooms(prev => prev.filter(r => r.id !== roomId));
+    socketService.onRoomClosed(({ roomId, dbSessionId }: any) => {
+      setRooms(prev => prev.filter(r => r.id !== roomId && r.id !== dbSessionId));
     });
 
     return () => {
