@@ -24,6 +24,7 @@ import CardHandFan from '../../../components/CardHandFan';
 import InGameChat from '../../../components/InGameChat';
 import GameToolbar from '../../../components/global/GameToolbar';
 import RoomNameModal from '../../../components/RoomNameModal';
+import RoomInfoDrawer from '../../../components/RoomInfoDrawer';
 import {apiConfig} from '../../../libs/utils/api.utils';
 
 interface GameState {
@@ -224,7 +225,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
         // Spectate an in-progress room from the Active Rooms lobby
         if (initialMode === 'spectate' && dbSessionId) {
           try {
-            const data = await socketService.spectateRoom(dbSessionId, userId);
+            const data = await socketService.spectateRoom(dbSessionId, userId, route.params?.session?.displayName);
             setIsSpectating(true);
             setCurrentRoom({ roomId: data.roomId });
             if (data.gameState) setGameState(data.gameState);
@@ -1254,13 +1255,16 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
           onBack={() => navigation.goBack()}
           backgroundColor="transparent"
           rightElement={
-            <TouchableOpacity 
-              onPress={() => setShowRoomNameModal(true)}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              style={styles.editRoomButton}
-            >
-              <Text style={styles.editRoomIcon}>✏️</Text>
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <RoomInfoDrawer roomId={currentRoom?.roomId ?? null} />
+              <TouchableOpacity 
+                onPress={() => setShowRoomNameModal(true)}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                style={styles.editRoomButton}
+              >
+                <Text style={styles.editRoomIcon}>✏️</Text>
+              </TouchableOpacity>
+            </View>
           }
         />
       )}

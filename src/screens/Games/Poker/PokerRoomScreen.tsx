@@ -10,6 +10,7 @@ import {RootStackParamList} from '../../../navigation/AppNavigator';
 import { aiMoveLogService } from '../../../services/aiMoveLog.service';
 import { socketService } from '../../../services/SocketService';
 import tokenService from '../../../services/token.service';
+import RoomInfoDrawer from '../../../components/RoomInfoDrawer';
 import { v4 as uuidv4 } from 'uuid';
 import {apiConfig} from '../../../libs/utils/api.utils';
 
@@ -292,7 +293,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
         });
 
         if (isSpectate && dbSessionId) {
-          const data = await socketService.spectateRoom(dbSessionId, userId);
+          const data = await socketService.spectateRoom(dbSessionId, userId, displayName);
           if (!mounted) return;
           setIsSpectating(true);
           setIsConnecting(false);
@@ -1075,6 +1076,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
           backgroundColor="transparent"
           rightElement={
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <RoomInfoDrawer roomId={tableId} />
               <Text style={styles.potAmount}>Pot: ${pot}</Text>
               <TouchableOpacity
                 onPress={() => { setDraftRoomName(roomName); setEditingRoomName(true); }}
