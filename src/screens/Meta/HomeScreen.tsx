@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,7 @@ import pushNotificationService from '../../services/pushNotification.service';
 import {iOSUIKit} from 'react-native-typography';
 import {colors} from '../../theme';
 import packageJson from '../../../package.json';
+import HomeDrawer from '../../components/HomeDrawer';
 
 const {width} = Dimensions.get('window');
 const CARD_WIDTH = (width - 42) / 2; // 2 columns with gap
@@ -109,6 +110,7 @@ type GameConfig = (typeof GAMES)[number];
 
 const HomeScreen = ({navigation}: any) => {
   const {user, signOut} = useAuth();
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   // Ensure push permission is granted and the FCM token is registered.
   //
@@ -204,6 +206,9 @@ const HomeScreen = ({navigation}: any) => {
           start={{x: 0, y: 0}}
           end={{x: 1, y: 0}}
           style={styles.header}>
+          <TouchableOpacity onPress={() => setDrawerOpen(true)} style={styles.hamburgerBtn}>
+            <Text style={styles.hamburgerText}>☰</Text>
+          </TouchableOpacity>
           <View style={[styles.headerContent, {minHeight: 80  }]}>
             <Text style={styles.welcomeText}>Welcome back,</Text>
             <Text style={styles.userName}>
@@ -316,6 +321,13 @@ const HomeScreen = ({navigation}: any) => {
           <Text style={styles.footerText}>🇦🇲 Bisetka</Text>
         </View>
       </ScrollView>
+
+      <HomeDrawer
+        visible={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        onOpen={() => setDrawerOpen(true)}
+        onNavigate={(screen) => navigation.navigate(screen)}
+      />
     </SafeAreaView>
   );
 };
@@ -361,6 +373,20 @@ const styles = StyleSheet.create({
   logoutText: {
     color: '#fff',
     fontSize: 12,
+    fontWeight: '600',
+  },
+  hamburgerBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+  },
+  hamburgerText: {
+    color: '#fff',
+    fontSize: 22,
     fontWeight: '600',
   },
   quickRow: {
