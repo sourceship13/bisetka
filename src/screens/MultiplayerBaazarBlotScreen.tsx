@@ -68,15 +68,17 @@ interface BaazarGameState {
 const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
   const userId = route.params?.userId || route.params?.session?.userId || 'test-user-' + Math.random().toString(36).substr(2, 9);
   const teamMode: 'hybrid' | 'full-multiplayer' = route.params?.teamMode ?? 'hybrid';
-  const initialMode = route.params?.mode; // 'random' | 'private-create' | 'private-join' | 'replace-ai'
+  const initialMode = route.params?.mode; // 'random' | 'private-create' | 'private-join' | 'replace-ai' | 'spectate'
   const initialJoinCode: string | undefined = route.params?.joinCode;
   const dbSessionId: string | undefined = route.params?.dbSessionId;
+  const allowReplaceAI: boolean = route.params?.allowReplaceAI || false;
 
   const getInitialGameMode = () => {
     if (initialMode === 'private-create') return 'private';
     if (initialMode === 'private-join') return 'matchmaking';
     if (initialMode === 'random') return 'matchmaking';
     if (initialMode === 'replace-ai') return 'matchmaking';
+    if (initialMode === 'spectate') return 'matchmaking';
     return 'menu';
   };
 
@@ -89,6 +91,7 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
   const [gameState, setGameState] = useState<BaazarGameState | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
   const [selectedCard, setSelectedCard] = useState<CardType | null>(null);
+  const [isSpectating, setIsSpectating] = useState(false);
   const [pendingBidLevel, setPendingBidLevel] = useState<number>(9);
   const [pendingBidSuit, setPendingBidSuit] = useState<string>('hearts'); // pre-select hearts so Make Bid is always ready
   const [showCustomization, setShowCustomization] = useState(false);
@@ -303,13 +306,27 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
         if (teamMode === 'full-multiplayer') {
           socket.emit('find_baazar_teams_match', { userId });
         } else {
-          socket.emit('find_baazar_match', { userId });
+          socket.emit('find_baazar_match', { userId, allowReplaceAI });
         }
       } else if (initialMode === 'replace-ai' && dbSessionId) {
         // Replace an AI player in an existing Baazar Blot room from the Active Rooms lobby.
         // Backend will emit baazar_match_found back with gameState so the existing listener
         // sets up everything and transitions to 'game' mode.
         socket.emit('replace_ai_player', { dbSessionId, userId, displayName: route.params?.session?.displayName });
+      } else if (initialMode === 'spectate' && dbSessionId) {
+        // Spectate an in-progress Baazar Blot game
+        socket.once('spectate_started', (data: any) => {
+          setIsSpectating(true);
+          setRoomId(data.roomId);
+          // Use position 0 so the trick table renders all 4 player slots
+          setMyPosition(0);
+          setMyTeam(1);
+          if (data.gameState) setGameState(data.gameState);
+          if (data.players) setPlayers(data.players);
+          setGameMode('game');
+          setIsConnecting(false);
+        });
+        socket.emit('spectate_room', { dbSessionId, userId });
       }
     };
 
@@ -348,7 +365,7 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
         console.log('🔍 Joined Baazar Blot 2v2 (all-human) matchmaking queue');
       } else {
         // hybrid: 1 human + AI partners per side
-        socket.emit('find_baazar_match', { userId });
+        socket.emit('find_baazar_match', { userId, allowReplaceAI });
         console.log('🔍 Joined Baazar Blot hybrid (1+AI vs 1+AI) matchmaking queue');
       }
     }
@@ -369,6 +386,7 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
   };
 
   const handleMakeBid = () => {
+    if (isSpectating) return;
     if (!roomId || !gameState) return;
     const suit = pendingBidSuit || 'hearts';
     const minLevel = (gameState.currentBid || 8) + 1;
@@ -386,6 +404,7 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
   };
 
   const handlePass = () => {
+    if (isSpectating) return;
     if (!roomId || !gameState) return;
 
     const socket = socketService.getSocket();
@@ -399,6 +418,7 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
   };
 
   const handlePlayCard = (card: CardType) => {
+    if (isSpectating) return;
     if (!roomId || !gameState || gameState.currentPlayer !== myPosition) return;
 
     const socket = socketService.getSocket();
@@ -553,7 +573,11 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
           </View>
         )}
 
-        {iHavePassed ? (
+        {isSpectating ? (
+          <Text style={styles.waitingText}>
+            Watching bidding phase…
+          </Text>
+        ) : iHavePassed ? (
           <View style={styles.waitingBox}>
             <Text style={[styles.waitingText, { color: '#ff6b6b' }]}>You passed ✗</Text>
             <ActivityIndicator size="small" color="#555" style={{ marginTop: 6 }} />
@@ -612,7 +636,12 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
         )}
 
         <View style={styles.handSection}>
-          {myHand.length > 0 && (
+          {isSpectating ? (
+            <View style={{ alignItems: 'center', paddingVertical: 16 }}>
+              <Text style={[styles.handLabel, { fontSize: 16, color: '#f59e0b' }]}>👁️ Watching Game</Text>
+              <Text style={[styles.handLabel, { fontSize: 12, opacity: 0.6, marginTop: 4 }]}>You are spectating this match</Text>
+            </View>
+          ) : myHand.length > 0 && (
             <>
               <Text style={styles.handLabel}>Your Hand</Text>
               <CardHandFan
@@ -748,7 +777,7 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
                 {trickCardForPlayer(myPosition) && (
                   <DynamicCard card={trickCardForPlayer(myPosition)!} theme={customTheme} size="small" />
                 )}
-                <Text style={styles.trickPlayerName}>You (T{myTeam})</Text>
+                <Text style={styles.trickPlayerName}>{isSpectating ? playerLabelForPos(myPosition) : `You (T${myTeam})`}</Text>
               </View>
             </View>
           </ImageBackground>
@@ -756,26 +785,33 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
 
         {/* Player's hand */}
         <View style={styles.handSection}>
-          {isMyTurn ? (
-            <Text style={styles.handLabel}>Your turn ↓</Text>
+          {isSpectating ? (
+            <View style={{ alignItems: 'center', paddingVertical: 16 }}>
+              <Text style={[styles.handLabel, { fontSize: 16, color: '#f59e0b' }]}>👁️ Watching Game</Text>
+              <Text style={[styles.handLabel, { fontSize: 12, opacity: 0.6, marginTop: 4 }]}>You are spectating this match</Text>
+            </View>
           ) : (
-            <Text style={styles.handLabelWait}>Waiting…</Text>
-          )}
-          <CardHandFan
-            cards={myHand}
-            maxWidth={SW - 32}
-            renderCard={(card, idx) => {
-              return (
-                <TouchableOpacity
-                  key={`${card.suit}-${card.rank}-${idx}`}
-                  onPress={() => {
-                    if (isMyTurn) {
-                      setSelectedCard(card);
-                      handlePlayCard(card);
-                    }
-                  }}
-                  style={[
-                    styles.cardWrapper,
+            <>
+              {isMyTurn ? (
+                <Text style={styles.handLabel}>Your turn ↓</Text>
+              ) : (
+                <Text style={styles.handLabelWait}>Waiting…</Text>
+              )}
+              <CardHandFan
+                cards={myHand}
+                maxWidth={SW - 32}
+                renderCard={(card, idx) => {
+                  return (
+                    <TouchableOpacity
+                      key={`${card.suit}-${card.rank}-${idx}`}
+                      onPress={() => {
+                        if (isMyTurn) {
+                          setSelectedCard(card);
+                          handlePlayCard(card);
+                        }
+                      }}
+                      style={[
+                        styles.cardWrapper,
                     !isMyTurn ? styles.cardDimmed : styles.cardLegal,
                     selectedCard === card && styles.selectedCard,
                   ]}>
@@ -784,6 +820,8 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
               );
             }}
           />
+            </>
+          )}
         </View>
       </View>
     );

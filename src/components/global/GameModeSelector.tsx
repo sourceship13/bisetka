@@ -7,6 +7,7 @@ import {
   TextInput,
   ActivityIndicator,
   Dimensions,
+  Switch,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import {colors, spacing, typography} from '../../theme';
@@ -23,6 +24,8 @@ export type GameModeSelectorProps = {
   loadingStates?: Partial<Record<'ai' | 'random' | 'private' | 'join', boolean>>;
   disabled?: boolean;
   onBack?: () => void;
+  allowReplaceAI?: boolean;
+  onToggleAllowReplaceAI?: (value: boolean) => void;
 };
 
 // Gradient presets for each mode
@@ -63,6 +66,8 @@ const GameModeSelector: React.FC<GameModeSelectorProps> = ({
   loadingStates,
   disabled,
   onBack,
+  allowReplaceAI,
+  onToggleAllowReplaceAI,
 }) => {
   const [joinCode, setJoinCode] = useState('');
   const [showJoinInput, setShowJoinInput] = useState(false);
@@ -129,6 +134,23 @@ const GameModeSelector: React.FC<GameModeSelectorProps> = ({
       <View style={styles.cardsContainer}>
         {renderModeCard('random', onRandomMatch)}
         {renderModeCard('ai', onPlayAi)}
+
+        {/* Allow Replace AI toggle */}
+        {onToggleAllowReplaceAI && (
+          <View style={styles.toggleRow}>
+            <View style={styles.toggleTextContainer}>
+              <Text style={styles.toggleLabel}>Allow players to join</Text>
+              <Text style={styles.toggleDesc}>Others can replace AI in your game</Text>
+            </View>
+            <Switch
+              value={allowReplaceAI}
+              onValueChange={onToggleAllowReplaceAI}
+              trackColor={{false: 'rgba(255,255,255,0.15)', true: '#4facfe'}}
+              thumbColor={allowReplaceAI ? '#fff' : '#aaa'}
+            />
+          </View>
+        )}
+
         {renderModeCard('private', onCreatePrivate)}
         
         {/* Join Card - Expandable */}
@@ -367,6 +389,27 @@ const styles = StyleSheet.create({
   cancelText: {
     color: colors.text.secondary,
     fontSize: typography.fontSize.sm,
+  },
+  toggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderRadius: 16,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.md,
+  },
+  toggleTextContainer: {
+    flex: 1,
+  },
+  toggleLabel: {
+    fontSize: typography.fontSize.md,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.text.primary,
+  },
+  toggleDesc: {
+    fontSize: typography.fontSize.xs,
+    color: colors.text.secondary,
+    marginTop: 2,
   },
   footer: {
     paddingVertical: spacing.xl,
