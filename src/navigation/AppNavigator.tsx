@@ -34,6 +34,7 @@ import ChatRoomsListScreen from '../screens/Global Chat/ChatRoomsListScreen';
 import ChatRoomScreen from '../screens/Global Chat/ChatRoomScreen';
 import ProfileScreen from '../screens/Meta/ProfileScreen';
 import SettingsScreen from '../screens/Meta/SettingsScreen';
+import StoreScreen from '../screens/Meta/StoreScreen';
 import {useAuth} from '../libs/hooks/useAuth';
 import {ActivityIndicator, View, StyleSheet} from 'react-native';
 import {GameType} from '../services/gameSessions.service';
@@ -69,6 +70,7 @@ export type RootStackParamList = {
   ChatRoom: { roomId: string };
   Profile: undefined;
   Settings: undefined;
+  Store: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -123,6 +125,7 @@ const linking: LinkingOptions<RootStackParamList> = {
       ChatRoom: 'chat-room/:roomId',
       Profile: 'profile',
       Settings: 'settings',
+      Store: 'store',
     },
   },
 };
@@ -236,6 +239,7 @@ const AppNavigator = () => {
               <Stack.Screen name="ChatRoom" component={ChatRoomScreen} />
               <Stack.Screen name="Profile" component={ProfileScreen} />
               <Stack.Screen name="Settings" component={SettingsScreen} />
+              <Stack.Screen name="Store" component={StoreScreen} />
             </>
           )}
         </Stack.Navigator>
