@@ -1,4 +1,4 @@
-import React, {useRef, useEffect, useCallback} from 'react';
+import React, {useRef, useEffect, useCallback, useMemo} from 'react';
 import {
   View,
   Text,
@@ -17,7 +17,7 @@ import AVATARS, {resolveAvatar} from '../utils/avatars';
 
 const {width: SCREEN_WIDTH} = Dimensions.get('window');
 const DRAWER_WIDTH = SCREEN_WIDTH * 0.75;
-const EDGE_WIDTH = 25; // swipe zone from left edge
+const EDGE_WIDTH = 40;
 const SWIPE_THRESHOLD = DRAWER_WIDTH * 0.3;
 
 interface HomeDrawerProps {
@@ -28,6 +28,7 @@ interface HomeDrawerProps {
 }
 
 const MENU_ITEMS = [
+  {key: 'Home', icon: '🏠', label: 'Home', gradient: ['#10b981', '#34d399']},
   {key: 'Profile', icon: '👤', label: 'Profile', gradient: ['#6366f1', '#8b5cf6']},
   {key: 'Store', icon: '🛍️', label: 'Store', gradient: ['#f59e0b', '#fbbf24']},
   {key: 'Settings', icon: '⚙️', label: 'Settings', gradient: ['#64748b', '#94a3b8']},
@@ -38,10 +39,12 @@ const HomeDrawer: React.FC<HomeDrawerProps> = ({visible, onClose, onOpen, onNavi
   const translateX = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
   const overlayOpacity = useRef(new Animated.Value(0)).current;
   const visibleRef = useRef(visible);
+  const onOpenRef = useRef(onOpen);
+  const onCloseRef = useRef(onClose);
 
-  useEffect(() => {
-    visibleRef.current = visible;
-  }, [visible]);
+  useEffect(() => { visibleRef.current = visible; }, [visible]);
+  useEffect(() => { onOpenRef.current = onOpen; }, [onOpen]);
+  useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
 
   const animateOpen = useCallback(() => {
     Animated.parallel([
@@ -75,7 +78,6 @@ const HomeDrawer: React.FC<HomeDrawerProps> = ({visible, onClose, onOpen, onNavi
     ]).start();
   }, [translateX, overlayOpacity]);
 
-  // Animate on visible prop change (hamburger button)
   useEffect(() => {
     if (visible) {
       animateOpen();
@@ -84,49 +86,67 @@ const HomeDrawer: React.FC<HomeDrawerProps> = ({visible, onClose, onOpen, onNavi
     }
   }, [visible, animateOpen, animateClose]);
 
-  // Edge swipe to open
-  const edgePan = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: (_, gs) => !visibleRef.current && gs.x0 < EDGE_WIDTH,
-      onMoveShouldSetPanResponder: (_, gs) =>
-        !visibleRef.current && gs.x0 < EDGE_WIDTH && gs.dx > 10 && Math.abs(gs.dy) < gs.dx,
-      onPanResponderMove: (_, gs) => {
-        const x = Math.min(0, Math.max(-DRAWER_WIDTH, gs.dx - DRAWER_WIDTH));
-        translateX.setValue(x);
-        overlayOpacity.setValue(Math.max(0, (DRAWER_WIDTH + x) / DRAWER_WIDTH));
-      },
-      onPanResponderRelease: (_, gs) => {
-        if (gs.dx > SWIPE_THRESHOLD || gs.vx > 0.5) {
-          onOpen();
-          animateOpen();
-        } else {
-          animateClose();
-        }
-      },
-    }),
-  ).current;
+  // Edge swipe to open — uses refs so closures never go stale
+  const edgePan = useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: (_, gs) =>
+          !visibleRef.current && gs.x0 < EDGE_WIDTH,
+        onMoveShouldSetPanResponder: (_, gs) =>
+          !visibleRef.current &&
+          gs.x0 < EDGE_WIDTH &&
+          gs.dx > 8 &&
+          Math.abs(gs.dy) < gs.dx,
+        onPanResponderTerminationRequest: () => false,
+        onPanResponderMove: (_, gs) => {
+          const x = Math.min(0, Math.max(-DRAWER_WIDTH, gs.dx - DRAWER_WIDTH));
+          translateX.setValue(x);
+          overlayOpacity.setValue(
+            Math.max(0, (DRAWER_WIDTH + x) / DRAWER_WIDTH),
+          );
+        },
+        onPanResponderRelease: (_, gs) => {
+          if (gs.dx > SWIPE_THRESHOLD || gs.vx > 0.5) {
+            onOpenRef.current();
+            animateOpen();
+          } else {
+            animateClose();
+          }
+        },
+      }),
+    [translateX, overlayOpacity, animateOpen, animateClose],
+  );
 
-  // Drag to close (on drawer panel)
-  const drawerPan = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => false,
-      onMoveShouldSetPanResponder: (_, gs) =>
-        visibleRef.current && gs.dx < -10 && Math.abs(gs.dy) < Math.abs(gs.dx),
-      onPanResponderMove: (_, gs) => {
-        const x = Math.min(0, Math.max(-DRAWER_WIDTH, gs.dx));
-        translateX.setValue(x);
-        overlayOpacity.setValue(Math.max(0, (DRAWER_WIDTH + x) / DRAWER_WIDTH));
-      },
-      onPanResponderRelease: (_, gs) => {
-        if (gs.dx < -SWIPE_THRESHOLD || gs.vx < -0.5) {
-          onClose();
-          animateClose();
-        } else {
-          animateOpen();
-        }
-      },
-    }),
-  ).current;
+  // Drag to close (on drawer panel) — capture phase so children don't steal the gesture
+  const drawerPan = useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => false,
+        onMoveShouldSetPanResponder: () => false,
+        onStartShouldSetPanResponderCapture: () => false,
+        onMoveShouldSetPanResponderCapture: (_, gs) =>
+          visibleRef.current &&
+          gs.dx < -10 &&
+          Math.abs(gs.dy) < Math.abs(gs.dx),
+        onPanResponderTerminationRequest: () => false,
+        onPanResponderMove: (_, gs) => {
+          const x = Math.min(0, Math.max(-DRAWER_WIDTH, gs.dx));
+          translateX.setValue(x);
+          overlayOpacity.setValue(
+            Math.max(0, (DRAWER_WIDTH + x) / DRAWER_WIDTH),
+          );
+        },
+        onPanResponderRelease: (_, gs) => {
+          if (gs.dx < -SWIPE_THRESHOLD || gs.vx < -0.5) {
+            onCloseRef.current();
+            animateClose();
+          } else {
+            animateOpen();
+          }
+        },
+      }),
+    [translateX, overlayOpacity, animateOpen, animateClose],
+  );
 
   const displayName =
     user?.full_name ||
@@ -137,8 +157,15 @@ const HomeDrawer: React.FC<HomeDrawerProps> = ({visible, onClose, onOpen, onNavi
   const avatarSource = resolveAvatar(user?.avatar_url);
 
   return (
-    <View style={StyleSheet.absoluteFill} pointerEvents="box-none" {...edgePan.panHandlers}>
-      {/* Overlay */}
+    <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+      {/* Invisible edge swipe zone — always captures touches */}
+      <View
+        style={styles.edgeZone}
+        pointerEvents="auto"
+        {...edgePan.panHandlers}
+      />
+
+      {/* Overlay — only when drawer is open */}
       {visible && (
         <TouchableWithoutFeedback onPress={onClose}>
           <Animated.View style={[styles.overlay, {opacity: overlayOpacity}]} />
@@ -202,6 +229,15 @@ const HomeDrawer: React.FC<HomeDrawerProps> = ({visible, onClose, onOpen, onNavi
 };
 
 const styles = StyleSheet.create({
+  edgeZone: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: 0,
+    width: EDGE_WIDTH,
+    zIndex: 10,
+    elevation: 10,
+  },
   overlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.55)',
