@@ -269,7 +269,7 @@ class SocketService {
   }
 
   // Spectate an in-progress room from the Active Rooms lobby
-  spectateRoom(dbSessionId: string, userId: string): Promise<any> {
+  spectateRoom(dbSessionId: string, userId: string, displayName?: string): Promise<any> {
     return new Promise((resolve, reject) => {
       if (!this.socket?.connected) {
         reject(new Error('Not connected to server'));
@@ -283,7 +283,7 @@ class SocketService {
         clearTimeout(timer);
         resolve(data);
       });
-      this.socket.emit('spectate_room', { dbSessionId, userId });
+      this.socket.emit('spectate_room', { dbSessionId, userId, displayName });
     });
   }
 
