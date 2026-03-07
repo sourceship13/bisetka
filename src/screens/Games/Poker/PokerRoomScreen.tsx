@@ -82,6 +82,7 @@ const PlayerTurnTimer = React.memo(({ onExpire }: { onExpire: () => void }) => {
 const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
   const {session, gameType, mode, joinCode} = route.params as any;
   const dbSessionId: string | undefined = (route.params as any)?.dbSessionId;
+  const allowReplaceAI: boolean = session?.allowReplaceAI || false;
   const isMultiplayer = mode !== 'ai';
   const isPrivateCreate = mode === 'private-create';
   const isPrivateJoin   = mode === 'private-join';
@@ -108,6 +109,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
   const [isPrivateHost, setIsPrivateHost] = useState(false);
   const [privateHumanCount, setPrivateHumanCount] = useState(0);
   const [codeCopied, setCodeCopied] = useState(false);
+  const [isSpectating, setIsSpectating] = useState(false);
   
   const [players, setPlayers] = useState<Player[]>([]);
   const [communityCards, setCommunityCards] = useState<Card[]>([]);
@@ -289,14 +291,50 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
           setWinSnackbar({ visible: true, message: `${data.displayName} disconnected` });
         });
 
-        if (isPrivateCreate) {
+        if (isSpectate && dbSessionId) {
+          const data = await socketService.spectateRoom(dbSessionId, userId);
+          if (!mounted) return;
+          setIsSpectating(true);
+          setIsConnecting(false);
+          setWaitingRoom(null);
+          roomIdRef.current = data.roomId;
+          if (data.gameState) {
+            setCommunityCards(data.gameState.communityCards || []);
+            setPot(data.gameState.pot || 0);
+            setCurrentBet(data.gameState.currentBet || 0);
+            setGamePhase(data.gameState.phase || 'waiting');
+            setActivePlayerIndex(data.gameState.activeSeat ?? 0);
+          }
+          if (data.players) setPlayers(data.players);
+
+          // Listen for ongoing spectator updates
+          const _s = socketService.getSocket();
+          if (_s) {
+            _s.on('poker_spectate_update', (upd: any) => {
+              if (!mounted) return;
+              setCommunityCards(upd.communityCards || []);
+              setPot(upd.pot || 0);
+              setCurrentBet(upd.currentBet || 0);
+              setGamePhase(upd.phase || 'waiting');
+              setActivePlayerIndex(upd.activeSeat ?? 0);
+              if (upd.players) setPlayers(upd.players);
+            });
+            _s.on('poker_spectate_hand_result', (res: any) => {
+              if (!mounted) return;
+              BisetkaAlert.success(
+                `${res.winnerName} Won`,
+                `${res.winnerName} wins $${res.potAmount}!`
+              );
+            });
+          }
+        } else if (isPrivateCreate) {
           socketService.createPokerPrivateRoom(userId, displayName);
         } else if (isPrivateJoin && joinCode) {
           socketService.joinPokerPrivateRoom(joinCode as string, userId, displayName);
         } else if (isReplaceAI && dbSessionId) {
           socketService.replaceAiPlayer(dbSessionId, userId, displayName);
         } else {
-          socketService.joinPokerMatchmaking(userId, displayName);
+          socketService.joinPokerMatchmaking(userId, displayName, allowReplaceAI || undefined);
         }
         // Keep isConnecting=true until poker_game_started arrives
       } catch (err) {
@@ -437,6 +475,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
   };
 
   const handleFold = () => {
+    if (isSpectating) return;
     if (isMultiplayer) {
       socketService.sendPokerAction(tableIdRef.current!, 'fold');
       return;
@@ -452,6 +491,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
   };
 
   const handleCall = () => {
+    if (isSpectating) return;
     if (isMultiplayer) {
       socketService.sendPokerAction(tableIdRef.current!, 'call');
       return;
@@ -477,6 +517,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
   };
 
   const handleRaise = () => {
+    if (isSpectating) return;
     if (isMultiplayer) {
       socketService.sendPokerAction(tableIdRef.current!, 'raise', currentBet + 20);
       return;
@@ -511,6 +552,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
   };
 
   const handleCheck = () => {
+    if (isSpectating) return;
     if (isMultiplayer) {
       socketService.sendPokerAction(tableIdRef.current!, 'check');
       return;
@@ -1073,28 +1115,37 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
 
       {/* Current player (you) at bottom */}
       <View style={styles.currentPlayerArea}>
-        {players[myPlayerIndex] && renderPlayer(players[myPlayerIndex]!, 0)}
-        
-        {players[myPlayerIndex] && players[myPlayerIndex]!.isActive && !players[myPlayerIndex]!.folded && (
-          <View style={styles.actionButtons}>
-            <TouchableOpacity style={[styles.button, styles.foldButton]} onPress={handleFold}>
-              <Text style={styles.buttonText}>Fold</Text>
-            </TouchableOpacity>
-            
-            {players[myPlayerIndex]!.currentBet === currentBet ? (
-              <TouchableOpacity style={[styles.button, styles.checkButton]} onPress={handleCheck}>
-                <Text style={styles.buttonText}>Check</Text>
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity style={[styles.button, styles.callButton]} onPress={handleCall}>
-                <Text style={styles.buttonText}>Call ${currentBet - players[myPlayerIndex]!.currentBet}</Text>
-              </TouchableOpacity>
-            )}
-            
-            <TouchableOpacity style={[styles.button, styles.raiseButton]} onPress={handleRaise}>
-              <Text style={styles.buttonText}>Raise</Text>
-            </TouchableOpacity>
+        {isSpectating ? (
+          <View style={{ alignItems: 'center', paddingVertical: 16 }}>
+            <Text style={{ color: '#FFD700', fontSize: 18, fontWeight: 'bold' }}>👁️ Watching Game</Text>
+            <Text style={{ color: '#ccc', fontSize: 13, marginTop: 4 }}>You are spectating this match</Text>
           </View>
+        ) : (
+          <>
+            {players[myPlayerIndex] && renderPlayer(players[myPlayerIndex]!, 0)}
+            
+            {players[myPlayerIndex] && players[myPlayerIndex]!.isActive && !players[myPlayerIndex]!.folded && (
+              <View style={styles.actionButtons}>
+                <TouchableOpacity style={[styles.button, styles.foldButton]} onPress={handleFold}>
+                  <Text style={styles.buttonText}>Fold</Text>
+                </TouchableOpacity>
+                
+                {players[myPlayerIndex]!.currentBet === currentBet ? (
+                  <TouchableOpacity style={[styles.button, styles.checkButton]} onPress={handleCheck}>
+                    <Text style={styles.buttonText}>Check</Text>
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity style={[styles.button, styles.callButton]} onPress={handleCall}>
+                    <Text style={styles.buttonText}>Call ${currentBet - players[myPlayerIndex]!.currentBet}</Text>
+                  </TouchableOpacity>
+                )}
+                
+                <TouchableOpacity style={[styles.button, styles.raiseButton]} onPress={handleRaise}>
+                  <Text style={styles.buttonText}>Raise</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </>
         )}
       </View>
 

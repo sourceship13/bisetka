@@ -74,6 +74,7 @@ interface GameRoom {
   player4_username: string | null;
   created_at: string;
   last_activity_at: string;
+  allow_replace_ai?: boolean;
 }
 
 const ActiveRoomsScreen = ({ navigation }: any) => {
@@ -267,7 +268,7 @@ const ActiveRoomsScreen = ({ navigation }: any) => {
       room.game_type.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) +
         ' Room';
 
-    const canReplaceAI = AI_REPLACEABLE_TYPES.includes(room.game_type);
+    const canReplaceAI = AI_REPLACEABLE_TYPES.includes(room.game_type) && room.allow_replace_ai;
 
     if (canReplaceAI) {
       // Poker / Baazar-Blot always have AI slots (both waiting and in-progress)
@@ -284,6 +285,22 @@ const ActiveRoomsScreen = ({ navigation }: any) => {
           {
             text: '🤖→👤 Replace AI',
             onPress: () => navigateToGame(room, 'replace-ai'),
+          },
+        ],
+      );
+      return;
+    }
+
+    if (AI_REPLACEABLE_TYPES.includes(room.game_type) && !room.allow_replace_ai) {
+      // AI-replaceable game but host disabled joining — only allow spectating
+      BisetkaAlert.alert(
+        roomDisplayName,
+        'This game is closed to new players. You can watch the game.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: '👁️ Watch',
+            onPress: () => navigateToGame(room, 'spectate'),
           },
         ],
       );
@@ -390,6 +407,13 @@ const ActiveRoomsScreen = ({ navigation }: any) => {
               <View style={styles.statItem}>
                 <Text style={styles.statIcon}>⏳</Text>
                 <Text style={styles.statText}>{room.waitlist_count}</Text>
+              </View>
+            )}
+
+            {AI_REPLACEABLE_TYPES.includes(room.game_type) && !room.allow_replace_ai && (
+              <View style={styles.statItem}>
+                <Text style={styles.statIcon}>🔒</Text>
+                <Text style={styles.statText}>Closed</Text>
               </View>
             )}
           </View>
