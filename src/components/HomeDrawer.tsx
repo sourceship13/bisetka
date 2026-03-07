@@ -29,6 +29,7 @@ interface HomeDrawerProps {
 
 const MENU_ITEMS = [
   {key: 'Profile', icon: '👤', label: 'Profile', gradient: ['#6366f1', '#8b5cf6']},
+  {key: 'Store', icon: '🛍️', label: 'Store', gradient: ['#f59e0b', '#fbbf24']},
   {key: 'Settings', icon: '⚙️', label: 'Settings', gradient: ['#64748b', '#94a3b8']},
 ];
 
