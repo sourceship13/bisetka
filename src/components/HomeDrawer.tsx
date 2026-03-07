@@ -13,6 +13,7 @@ import {
 import LinearGradient from 'react-native-linear-gradient';
 import {useAuth} from '../libs/hooks/useAuth';
 import {colors, spacing} from '../theme';
+import AVATARS, {resolveAvatar} from '../utils/avatars';
 
 const {width: SCREEN_WIDTH} = Dimensions.get('window');
 const DRAWER_WIDTH = SCREEN_WIDTH * 0.75;
@@ -132,6 +133,8 @@ const HomeDrawer: React.FC<HomeDrawerProps> = ({visible, onClose, onOpen, onNavi
     user?.username ||
     'Player';
 
+  const avatarSource = resolveAvatar(user?.avatar_url);
+
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="box-none" {...edgePan.panHandlers}>
       {/* Overlay */}
@@ -152,14 +155,10 @@ const HomeDrawer: React.FC<HomeDrawerProps> = ({visible, onClose, onOpen, onNavi
           end={{x: 1, y: 1}}
           style={styles.userHeader}>
           <View style={styles.avatarWrap}>
-            {user?.avatar_url ? (
-              <Image source={{uri: user.avatar_url}} style={styles.avatar} />
+            {avatarSource ? (
+              <Image source={avatarSource} style={styles.avatar} />
             ) : (
-              <View style={styles.avatarFallback}>
-                <Text style={styles.avatarInitial}>
-                  {(user?.username || 'P')[0].toUpperCase()}
-                </Text>
-              </View>
+              <Image source={AVATARS[0].source} style={styles.avatar} />
             )}
           </View>
           <Text style={styles.drawerName}>{displayName}</Text>
@@ -235,21 +234,6 @@ const styles = StyleSheet.create({
     borderRadius: 32,
     borderWidth: 2,
     borderColor: 'rgba(255,255,255,0.4)',
-  },
-  avatarFallback: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.4)',
-  },
-  avatarInitial: {
-    fontSize: 26,
-    fontWeight: '800',
-    color: '#fff',
   },
   drawerName: {
     fontSize: 20,
