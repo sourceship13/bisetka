@@ -19,6 +19,7 @@ import InGameChat from '../components/InGameChat';
 import GameToolbar from '../components/global/GameToolbar';
 import RoomNameModal from '../components/RoomNameModal';
 import CardCustomizationModal from '../components/global/GameCustomizationModal';
+import RoomInfoDrawer from '../components/RoomInfoDrawer';
 import CardHandFan from '../components/CardHandFan';
 import type { CardTheme } from '../components/global/GameCustomizationModal';
 
@@ -326,7 +327,7 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
           setGameMode('game');
           setIsConnecting(false);
         });
-        socket.emit('spectate_room', { dbSessionId, userId });
+        socket.emit('spectate_room', { dbSessionId, userId, displayName: route.params?.session?.displayName });
       }
     };
 
@@ -882,6 +883,7 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
             backgroundColor="transparent"
             rightElement={
               <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+                <RoomInfoDrawer roomId={roomId} />
                 <TouchableOpacity
                   onPress={() => setShowRoomNameModal(true)}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
