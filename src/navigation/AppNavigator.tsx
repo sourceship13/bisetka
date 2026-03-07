@@ -1,6 +1,7 @@
 import React, {useState, useEffect} from 'react';
 import {NavigationContainer, LinkingOptions} from '@react-navigation/native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
+import {createDrawerNavigator} from '@react-navigation/drawer';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import LoginScreen from '../screens/Meta/LoginScreen';
@@ -35,8 +36,9 @@ import ChatRoomScreen from '../screens/Global Chat/ChatRoomScreen';
 import ProfileScreen from '../screens/Meta/ProfileScreen';
 import SettingsScreen from '../screens/Meta/SettingsScreen';
 import StoreScreen from '../screens/Meta/StoreScreen';
+import DrawerContent from '../components/DrawerContent';
 import {useAuth} from '../libs/hooks/useAuth';
-import {ActivityIndicator, View, StyleSheet} from 'react-native';
+import {ActivityIndicator, View, StyleSheet, Dimensions} from 'react-native';
 import {GameType} from '../services/gameSessions.service';
 
 export type RootStackParamList = {
@@ -74,6 +76,24 @@ export type RootStackParamList = {
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
+const Drawer = createDrawerNavigator();
+
+const HomeDrawerScreen = () => (
+  <Drawer.Navigator
+    drawerContent={props => <DrawerContent {...props} />}
+    screenOptions={{
+      headerShown: false,
+      drawerType: 'front',
+      drawerStyle: {
+        width: Dimensions.get('window').width * 0.75,
+        backgroundColor: 'transparent',
+      },
+      overlayColor: 'rgba(0,0,0,0.55)',
+      swipeEdgeWidth: 40,
+    }}>
+    <Drawer.Screen name="HomeDrawer" component={HomeScreen} />
+  </Drawer.Navigator>
+);
 
 // Deep linking configuration
 const linking: LinkingOptions<RootStackParamList> = {
@@ -212,7 +232,7 @@ const AppNavigator = () => {
                   component={OnboardingScreen}
                 />
               )}
-              <Stack.Screen name="Home" component={HomeScreen} />
+              <Stack.Screen name="Home" component={HomeDrawerScreen} />
               <Stack.Screen name="Blot" component={BlotScreen} />
               <Stack.Screen name="MultiplayerBlot" component={MultiplayerBlotScreen} />
               <Stack.Screen name="BaazarBlot" component={BaazarBlotScreen} />
