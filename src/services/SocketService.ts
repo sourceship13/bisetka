@@ -127,7 +127,7 @@ class SocketService {
   }
 
   // Find a random opponent
-  findMatch(gameType: string, userId: string): Promise<any> {
+  findMatch(gameType: string, userId: string, allowReplaceAI?: boolean): Promise<any> {
     return new Promise((resolve, reject) => {
       if (!this.socket?.connected) {
         reject(new Error('Not connected to server'));
@@ -138,7 +138,7 @@ class SocketService {
       this.socket.off('match_found');
       this.socket.off('room_joined');
 
-      this.socket.emit('find_match', { gameType, userId });
+      this.socket.emit('find_match', { gameType, userId, allowReplaceAI });
 
       this.socket.once('match_found', (data) => {
         resolve(data);
@@ -357,8 +357,8 @@ class SocketService {
   // POKER MULTIPLAYER
   // ─────────────────────────────────────────────────────────────────────────
 
-  joinPokerMatchmaking(userId: string, displayName: string): void {
-    this.socket?.emit('join_poker_matchmaking', { userId, displayName });
+  joinPokerMatchmaking(userId: string, displayName: string, allowReplaceAI?: boolean): void {
+    this.socket?.emit('join_poker_matchmaking', { userId, displayName, allowReplaceAI });
   }
 
   cancelPokerMatchmaking(userId: string): void {

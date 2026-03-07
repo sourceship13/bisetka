@@ -94,7 +94,11 @@ const GameModeScreen: React.FC<Props> = ({route, navigation}) => {
   const isTeamGame = gameType === 'blot' || gameType === 'baazar-blot';
   const [teamMode, setTeamMode] = useState<TeamMode | null>(null);
   const [showTeamSelector, setShowTeamSelector] = useState(isTeamGame);
+  const [allowReplaceAI, setAllowReplaceAI] = useState(false);
   
+  // Only show the "Allow players to join" toggle for games that support AI replacement
+  const supportsReplaceAI = ['poker', 'baazar-blot', 'blot'].includes(gameType);
+
   const [loading, setLoading] = useState({
     ai: false,
     random: false,
@@ -134,6 +138,7 @@ const GameModeScreen: React.FC<Props> = ({route, navigation}) => {
       mode,
       difficulty: result?.difficulty || 'medium',
       teamMode: isTeamGame ? teamMode : undefined,
+      allowReplaceAI: mode === 'ai' ? allowReplaceAI : false,
     };
 
     // Navigate to the appropriate screen
@@ -149,10 +154,12 @@ const GameModeScreen: React.FC<Props> = ({route, navigation}) => {
           : (fn?.givenName || fn?.familyName)
             ? [fn.givenName, fn.familyName].filter(Boolean).join(' ')
             : (user as any)?.username || (user as any)?.email || 'Guest';
+        // When allowReplaceAI is on, route as 'random' so it uses multiplayer socket path
+        const pokerMode = (mode === 'ai' && allowReplaceAI) ? 'random' : mode;
         navigation.replace('PokerRoom', {
           session: { ...sessionData, userId: user?.id || 'guest', displayName: resolvedName },
           gameType: gameType as any,
-          mode: mode,
+          mode: pokerMode,
           joinCode: sessionData.code,
         } as any);
         break;
@@ -194,20 +201,21 @@ const GameModeScreen: React.FC<Props> = ({route, navigation}) => {
         });
         break;
       case 'Blot':
-        if (mode === 'ai') {
+        if (mode === 'ai' && !allowReplaceAI) {
           navigation.replace('Blot' as any);
         } else {
           navigation.replace('MultiplayerBlot' as any, {
             userId: user?.id || 'guest',
-            mode: mode,
+            mode: mode === 'ai' ? 'random' : mode,
             difficulty: sessionData.difficulty || 'medium',
             joinCode: sessionData.code,
-            teamMode: teamMode, // Pass team mode
+            teamMode: teamMode,
+            allowReplaceAI: allowReplaceAI || undefined,
           });
         }
         break;
       case 'BaazarBlot':
-        if (mode === 'ai') {
+        if (mode === 'ai' && !allowReplaceAI) {
           navigation.replace('BaazarBlot' as any, {
             userId: user?.id || 'guest',
             mode: mode,
@@ -216,9 +224,10 @@ const GameModeScreen: React.FC<Props> = ({route, navigation}) => {
         } else {
           navigation.replace('MultiplayerBaazarBlot' as any, {
             userId: user?.id || 'guest',
-            mode: mode,
+            mode: mode === 'ai' ? 'random' : mode,
             joinCode: sessionData.code,
             teamMode: teamMode,
+            allowReplaceAI: allowReplaceAI || undefined,
           });
         }
         break;
@@ -295,6 +304,8 @@ const GameModeScreen: React.FC<Props> = ({route, navigation}) => {
           subtitle={label.description}
           loadingStates={loading}
           onBack={handleBackFromModeSelector}
+          allowReplaceAI={allowReplaceAI}
+          onToggleAllowReplaceAI={supportsReplaceAI ? setAllowReplaceAI : undefined}
           onRandomMatch={() =>
             withLoading('random', 'random', async () => {
               return gameSessionsService.createRandomMatch(gameType);
@@ -302,7 +313,7 @@ const GameModeScreen: React.FC<Props> = ({route, navigation}) => {
           }
           onPlayAi={() =>
             withLoading('ai', 'ai', async () => {
-              return gameSessionsService.createAiMatch(gameType);
+              return gameSessionsService.createAiMatch(gameType, 'medium', allowReplaceAI);
             })
           }
           onCreatePrivate={() => {
