@@ -60,10 +60,10 @@ export const gameSessionsService = {
       body: JSON.stringify({ code }),
     }).then((s: any) => ({ ...s, code: s.access_code ?? s.code })),
 
-  createAiMatch: (gameType: GameType, difficulty: 'easy' | 'medium' | 'hard' = 'medium') =>
+  createAiMatch: (gameType: GameType, difficulty: 'easy' | 'medium' | 'hard' = 'medium', allowReplaceAI: boolean = false) =>
     request(`/games/${gameType}/ai`, {
       method: 'POST',
-      body: JSON.stringify({ difficulty }),
+      body: JSON.stringify({ difficulty, allowReplaceAI }),
     }),
 };
 

@@ -53,6 +53,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
   const initialJoinCode = route.params?.joinCode;
   const teamMode = route.params?.teamMode; // 'hybrid' | 'full-multiplayer'
   const dbSessionId: string | undefined = route.params?.dbSessionId;
+  const allowReplaceAI: boolean = route.params?.allowReplaceAI || false;
   const [isSpectating, setIsSpectating] = useState(false);
   
   // Determine initial gameMode based on navigation params
@@ -297,6 +298,10 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
           setRoomName(data.roomName);
         }
       });
+      // Spectator state updates (hand-stripped game state)
+      socket.on('spectate_state_update', (data: any) => {
+        if (data.gameState) setGameState(data.gameState);
+      });
     }
 
     // Opponent joined
@@ -455,7 +460,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
     try {
       await ensureSocketConnected();
       const isTeams = teamMode === 'full-multiplayer';
-      const matchData = await socketService.findMatch(isTeams ? 'blot-teams' : 'blot', userId);
+      const matchData = await socketService.findMatch(isTeams ? 'blot-teams' : 'blot', userId, allowReplaceAI || undefined);
       console.log('Match found data:', matchData);
       setCurrentRoom({ roomId: matchData.roomId });
       if (isTeams) {
@@ -545,7 +550,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
     try {
       await ensureSocketConnected();
       const isTeams = teamMode === 'full-multiplayer';
-      const matchData = await socketService.findMatch(isTeams ? 'blot-teams' : 'blot', userId);
+      const matchData = await socketService.findMatch(isTeams ? 'blot-teams' : 'blot', userId, allowReplaceAI || undefined);
       if (isTeams) {
         updatePlayerPosition(matchData.position ?? 0);
         updatePlayerColor(matchData.team ?? 'white');
@@ -656,6 +661,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
   // Room name listener — registered after socket connects (inside mp setup)
 
   const handlePlayCard = (card: Card) => {
+    if (isSpectating) return;
     if (isLocalGame) {
       handleLocalPlayCard(card);
     } else {
@@ -1194,17 +1200,28 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
             </View>
 
             <View style={styles.handContainer}>
-              <Text style={styles.handLabel}>Your Hand:</Text>
-              <CardHandFan
-                cards={playerHand}
-                maxWidth={width - 32}
-                renderCard={(card, index) => renderCard(card, index)}
-              />
+              {isSpectating ? (
+                <View style={{ alignItems: 'center', paddingVertical: 16 }}>
+                  <Text style={[styles.handLabel, { fontSize: 16, color: '#f59e0b' }]}>👁️ Watching Game</Text>
+                  <Text style={[styles.handLabel, { fontSize: 12, opacity: 0.6, marginTop: 4 }]}>You are spectating this match</Text>
+                </View>
+              ) : (
+                <>
+                  <Text style={styles.handLabel}>Your Hand:</Text>
+                  <CardHandFan
+                    cards={playerHand}
+                    maxWidth={width - 32}
+                    renderCard={(card, index) => renderCard(card, index)}
+                  />
+                </>
+              )}
             </View>
 
-            <TouchableOpacity style={styles.resignButton} onPress={handleResign}>
-              <Text style={styles.resignButtonText}>Resign</Text>
-            </TouchableOpacity>
+            {!isSpectating && (
+              <TouchableOpacity style={styles.resignButton} onPress={handleResign}>
+                <Text style={styles.resignButtonText}>Resign</Text>
+              </TouchableOpacity>
+            )}
           </>
         )}
 
