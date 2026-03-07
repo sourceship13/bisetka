@@ -209,6 +209,21 @@ class ApiService {
   }
 
   /**
+   * Update avatar (authenticated)
+   * POST /api/auth/update-avatar
+   */
+  async updateAvatar(avatarUrl: string): Promise<{ message: string; user: User }> {
+    return this.request<{ message: string; user: User }>(
+      '/auth/update-avatar',
+      {
+        method: 'POST',
+        body: JSON.stringify({ avatarUrl }),
+      },
+      true
+    );
+  }
+
+  /**
    * Mark onboarding as completed for the authenticated user
    * POST /api/auth/onboarding-complete
    */
