@@ -139,7 +139,7 @@ const ProfileScreen = ({navigation}: any) => {
             <Text style={styles.infoValue}>{user?.email || 'Not set'}</Text>
           </View>
 
-          <View style={styles.infoRow}>
+          {/* <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Sign-in Method</Text>
             <Text style={styles.infoValue}>{providerLabel}</Text>
           </View>
@@ -147,7 +147,7 @@ const ProfileScreen = ({navigation}: any) => {
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>User ID</Text>
             <Text style={[styles.infoValue, styles.mono]}>{user?.id?.slice(0, 12)}…</Text>
-          </View>
+          </View> */}
         </View>
 
         {/* Stats */}
@@ -298,16 +298,18 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: spacing.lg,
     alignItems: 'center',
+    justifyContent: 'center',
+    flex:1,
+    minHeight:300
   },
   avatarWrap: {
     marginBottom: spacing.sm,
+    alignItems: 'center',
   },
   avatar: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-    borderWidth: 3,
-    borderColor: 'rgba(255,255,255,0.4)',
+    width: 140,
+    height: 180,
+    resizeMode: 'contain',
   },
   avatarFallback: {
     width: 90,
@@ -391,10 +393,10 @@ const styles = StyleSheet.create({
   statBox: {
     width: (width - spacing.md * 2 - 10) / 2,
     borderRadius: 14,
-    padding: spacing.md,
+    padding: 6,
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 85,
+    minHeight: 100,
   },
   statValue: {
     fontSize: 26,
@@ -408,7 +410,8 @@ const styles = StyleSheet.create({
   },
   pointsCard: {
     borderRadius: 16,
-    padding: spacing.lg,
+    minHeight: 60,
+    justifyContent: 'center',
   },
   pointsRow: {
     flexDirection: 'row',
