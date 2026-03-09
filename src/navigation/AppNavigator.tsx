@@ -232,7 +232,7 @@ const AppNavigator = () => {
                   component={OnboardingScreen}
                 />
               )}
-              <Stack.Screen name="Home" component={HomeDrawerScreen} />
+              <Stack.Screen name="Home" component={HomeScreen} />
               <Stack.Screen name="Blot" component={BlotScreen} />
               <Stack.Screen name="MultiplayerBlot" component={MultiplayerBlotScreen} />
               <Stack.Screen name="BaazarBlot" component={BaazarBlotScreen} />
