@@ -230,9 +230,21 @@ const NardiScreen = ({ navigation, route }: any) => {
           }
         } else if (routeMode === 'join-from-lobby' && dbSessionId) {
           socket.once('room_joined', (data: any) => {
+            socket.off('spectate_started');
             if (!cancelled) {
               onRoomAssigned(data);
               socket.emit('player_ready', {roomId: data.roomId, userId});
+            }
+          });
+          // Fallback: server may send spectate_started if game already in progress
+          socket.once('spectate_started', (data: any) => {
+            socket.off('room_joined');
+            if (!cancelled) {
+              setIsSpectating(true);
+              roomIdRef.current = data.roomId;
+              setRoomId(data.roomId);
+              if (data.gameState) setGameState(data.gameState);
+              setMpStatus('playing');
             }
           });
           socketService.joinRoomBySession(dbSessionId, userId);
