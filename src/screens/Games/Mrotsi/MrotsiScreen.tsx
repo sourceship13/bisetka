@@ -6,7 +6,7 @@ import GameToolbar from '../../../components/global/GameToolbar';
 import { aiMoveLogService } from '../../../services/aiMoveLog.service';
 import { v4 as uuidv4 } from 'uuid';
 import { useGameEndRefresh } from '../../../libs/hooks/useGameEndRefresh';
-import Dice3DSimple from '../../../components/Games/Dice3DSimple';
+import Dice3DReal from '../../../components/Games/Dice3DReal';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -363,16 +363,11 @@ const MrotsiScreen = ({navigation, route}: any) => {
             {/* Opponent's Dice Area */}
             <View style={styles.opponentDiceArea}>
               <Text style={styles.areaLabel}>Opponent</Text>
-              <View style={styles.dice3DContainer}>
-                {gameState.opponentDice.map((die, index) => (
-                  <Dice3DSimple
-                    key={`opp-${index}`}
-                    value={gameState.opponentRolled ? die : 1}
-                    isRolling={false}
-                    index={index}
-                  />
-                ))}
-              </View>
+              <Dice3DReal
+                finalValues={gameState.opponentDice.length === 5 ? gameState.opponentDice : [1, 1, 1, 1, 1]}
+                isRolling={false}
+                onRollComplete={() => {}}
+              />
               {gameState.opponentRolled && (
                 <Text style={styles.handNameText}>{getScoreName(gameState.opponentDice)}</Text>
               )}
@@ -384,16 +379,13 @@ const MrotsiScreen = ({navigation, route}: any) => {
             {/* Player's Dice Area */}
             <View style={styles.playerDiceArea}>
               <Text style={styles.areaLabel}>You</Text>
-              <View style={styles.dice3DContainer}>
-                {(isRolling ? rollingDice : gameState.playerDice).map((die, index) => (
-                  <Dice3DSimple
-                    key={`player-${index}`}
-                    value={die}
-                    isRolling={isRolling}
-                    index={index}
-                  />
-                ))}
-              </View>
+              <Dice3DReal
+                finalValues={(isRolling ? rollingDice : gameState.playerDice).length === 5 
+                  ? (isRolling ? rollingDice : gameState.playerDice) 
+                  : [1, 1, 1, 1, 1]}
+                isRolling={isRolling}
+                onRollComplete={() => {}}
+              />
               {gameState.playerRolled && !isRolling && (
                 <Text style={styles.handNameText}>{getScoreName(gameState.playerDice)}</Text>
               )}
