@@ -31,11 +31,39 @@ import { useGameEndRefresh } from '../../../libs/hooks/useGameEndRefresh';
 import InGameChat from '../../../components/InGameChat';
 import {apiConfig} from '../../../libs/utils/api.utils';
 
+/** Convert the server's compact string board to the client's ChessPiece object board */
+const serverBoardToClient = (board: any[][]): (import('../../../game/chessLogic').ChessPiece | null)[][] => {
+  const pieceMap: Record<string, { type: import('../../../game/chessLogic').PieceType; color: import('../../../game/chessLogic').PieceColor }> = {
+    'p': { type: 'pawn', color: 'black' },
+    'r': { type: 'rook', color: 'black' },
+    'n': { type: 'knight', color: 'black' },
+    'b': { type: 'bishop', color: 'black' },
+    'q': { type: 'queen', color: 'black' },
+    'k': { type: 'king', color: 'black' },
+    'P': { type: 'pawn', color: 'white' },
+    'R': { type: 'rook', color: 'white' },
+    'N': { type: 'knight', color: 'white' },
+    'B': { type: 'bishop', color: 'white' },
+    'Q': { type: 'queen', color: 'white' },
+    'K': { type: 'king', color: 'white' },
+  };
+  return board.map(row =>
+    row.map(cell => {
+      if (!cell) return null;
+      // Already an object (client format)
+      if (typeof cell === 'object' && cell.type) return cell;
+      const entry = pieceMap[cell as string];
+      return entry ? { ...entry, hasMoved: false } : null;
+    }),
+  );
+};
+
 const MultiplayerChessScreen = ({navigation, route}: any) => {
   const {userId, mode: routeMode, joinCode, dbSessionId} = route.params; // Get from auth context
   const { refreshOnGameEnd } = useGameEndRefresh(undefined, 'chess');
   const [mode, setMode] = useState<'menu' | 'matchmaking' | 'private' | 'game'>('menu');
   const [isSpectating, setIsSpectating] = useState(false);
+  const isSpectatingRef = React.useRef(false);
   const [gameState, setGameState] = useState<ChessGameState | null>(null);
   const [roomId, setRoomId] = useState<string>('');
   const roomIdRef = React.useRef<string>('');
@@ -196,6 +224,7 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
         const _sock = socketService.getSocket();
         if (_sock) {
           _sock.once('room_joined', (data: any) => {
+            _sock.off('spectate_started');
             roomIdRef.current = data.roomId;
             myColorRef.current = data.color ?? 'black';
             setRoomId(data.roomId);
@@ -203,6 +232,27 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
             setOpponentId(data.opponent?.id ?? '');
             setGameStatus('Joined! Waiting for game to start...');
             socketService.playerReady(data.roomId, userId);
+          });
+          // Fallback: server may send spectate_started if game already in progress
+          _sock.once('spectate_started', (data: any) => {
+            _sock.off('room_joined');
+            isSpectatingRef.current = true;
+            setIsSpectating(true);
+            roomIdRef.current = data.roomId;
+            setRoomId(data.roomId);
+            if (data.gameState?.board) {
+              const clientBoard = serverBoardToClient(data.gameState.board);
+              const initialGame = initializeChessGame('medium');
+              setGameState({
+                ...initialGame,
+                board: clientBoard,
+                currentPlayer: data.currentTurn || 'white',
+              });
+            } else {
+              setGameState(initializeChessGame('medium'));
+            }
+            setMode('game');
+            setGameStatus('Spectating');
           });
         }
         socketService.joinRoomBySession(dbSessionId, userId);
@@ -212,11 +262,18 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
         socketService
           .spectateRoom(dbSessionId, userId)
           .then((data: any) => {
+            isSpectatingRef.current = true;
             setIsSpectating(true);
             roomIdRef.current = data.roomId;
             setRoomId(data.roomId);
-            if (data.gameState) {
-              setGameState(data.gameState);
+            if (data.gameState?.board) {
+              const clientBoard = serverBoardToClient(data.gameState.board);
+              const initialGame = initializeChessGame('medium');
+              setGameState({
+                ...initialGame,
+                board: clientBoard,
+                currentPlayer: data.currentTurn || 'white',
+              });
             } else {
               setGameState(initializeChessGame('medium'));
             }
@@ -355,7 +412,7 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
 
     // If square already selected
     if (gameState.selectedSquare) {
-      const isValidMove = gameState.possibleMoves.some(
+      const isValidMove = (gameState.possibleMoves || []).some(
         m => m.row === row && m.col === col
       );
 
@@ -556,7 +613,7 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
                           const isSelected =
                             gameState.selectedSquare?.row === rowIndex &&
                             gameState.selectedSquare?.col === colIndex;
-                          const isPossibleMove = gameState.possibleMoves.some(
+                          const isPossibleMove = (gameState.possibleMoves || []).some(
                             m => m.row === rowIndex && m.col === colIndex,
                           );
                           return (

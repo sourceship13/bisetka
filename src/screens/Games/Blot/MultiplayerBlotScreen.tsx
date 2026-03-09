@@ -212,10 +212,21 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
           const socket = socketService.getSocket();
           if (socket) {
             socket.once('room_joined', (data: any) => {
+              socket.off('spectate_started');
               setCurrentRoom({ roomId: data.roomId });
               setPlayerColor(data.color ?? 'black');
               setOpponent(data.opponent);
               setIsMyTurn((data.color ?? 'black') === 'white');
+              setGameMode('game');
+            });
+            // Fallback: server may send spectate_started if game already in progress
+            socket.once('spectate_started', (data: any) => {
+              socket.off('room_joined');
+              setIsSpectating(true);
+              setCurrentRoom({ roomId: data.roomId });
+              if (data.gameState) setGameState(data.gameState);
+              setIsGameStarted(true);
+              isGameStartedRef.current = true;
               setGameMode('game');
             });
           }
