@@ -22,7 +22,7 @@ import InGameChat from '../../../components/InGameChat';
 import {BisetkaAlert} from '../../../utils/BisetkaAlert';
 import {useGameEndRefresh} from '../../../libs/hooks/useGameEndRefresh';
 import {apiConfig} from '../../../libs/utils/api.utils';
-import Dice3DReal from '../../../components/Games/Dice3DReal';
+import Dice3DSimple from '../../../components/Games/Dice3DSimple';
 
 const {width: SCREEN_WIDTH} = Dimensions.get('window');
 
@@ -621,11 +621,11 @@ const MultiplayerMrotsiScreen = ({navigation, route}: any) => {
         {/* Opponent section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Opponent</Text>
-          <Dice3DReal
-            finalValues={opponentDice && opponentDice.length === 5 ? opponentDice : [1, 1, 1, 1, 1]}
-            isRolling={opponentRolling}
-            onRollComplete={() => {}}
-          />
+          <View style={styles.diceRow}>
+            {(opponentDice && opponentDice.length === 5 ? opponentDice : [1, 1, 1, 1, 1]).map((d, i) => (
+              <Dice3DSimple key={i} value={d} isRolling={opponentRolling} index={i} />
+            ))}
+          </View>
           {opponentHasRolled && opponentDice && !opponentRolling ? (
             <Text style={styles.combinationText}>
               {getScoreName(opponentDice)} ({mySlot === 'player1' ? gameState?.player2RoundScore : gameState?.player1RoundScore} pts)
@@ -640,11 +640,11 @@ const MultiplayerMrotsiScreen = ({navigation, route}: any) => {
         {/* Player section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>You</Text>
-          <Dice3DReal
-            finalValues={myDice.length === 5 ? myDice : [1, 1, 1, 1, 1]}
-            isRolling={myRolling}
-            onRollComplete={() => {}}
-          />
+          <View style={styles.diceRow}>
+            {(myDice.length === 5 ? myDice : [1, 1, 1, 1, 1]).map((d, i) => (
+              <Dice3DSimple key={i} value={d} isRolling={myRolling} index={i} />
+            ))}
+          </View>
           {myDice.length > 0 && !myRolling && (
             <Text style={styles.combinationText}>
               {getScoreName(myDice)} ({calculateScore(myDice)} pts)
