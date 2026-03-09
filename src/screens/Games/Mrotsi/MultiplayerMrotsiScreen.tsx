@@ -22,7 +22,7 @@ import InGameChat from '../../../components/InGameChat';
 import {BisetkaAlert} from '../../../utils/BisetkaAlert';
 import {useGameEndRefresh} from '../../../libs/hooks/useGameEndRefresh';
 import {apiConfig} from '../../../libs/utils/api.utils';
-import Dice3DSimple from '../../../components/Games/Dice3DSimple';
+import Dice3DReal from '../../../components/Games/Dice3DReal';
 
 const {width: SCREEN_WIDTH} = Dimensions.get('window');
 
@@ -621,27 +621,11 @@ const MultiplayerMrotsiScreen = ({navigation, route}: any) => {
         {/* Opponent section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Opponent</Text>
-          <View style={styles.dice3DContainer}>
-            {opponentHasRolled && opponentDice ? (
-              opponentDice.map((diceValue, i) => (
-                <Dice3DSimple
-                  key={i}
-                  value={diceValue}
-                  isRolling={opponentRolling}
-                  index={i}
-                />
-              ))
-            ) : (
-              Array.from({length: 5}).map((_, i) => (
-                <Dice3DSimple
-                  key={i}
-                  value={1}
-                  isRolling={false}
-                  index={i}
-                />
-              ))
-            )}
-          </View>
+          <Dice3DReal
+            finalValues={opponentDice && opponentDice.length === 5 ? opponentDice : [1, 1, 1, 1, 1]}
+            isRolling={opponentRolling}
+            onRollComplete={() => {}}
+          />
           {opponentHasRolled && opponentDice && !opponentRolling ? (
             <Text style={styles.combinationText}>
               {getScoreName(opponentDice)} ({mySlot === 'player1' ? gameState?.player2RoundScore : gameState?.player1RoundScore} pts)
@@ -656,28 +640,11 @@ const MultiplayerMrotsiScreen = ({navigation, route}: any) => {
         {/* Player section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>You</Text>
-          <View style={styles.dice3DContainer}>
-            {myDice.length > 0 ? (
-              myDice.map((diceValue, i) => (
-                <Dice3DSimple
-                  key={i}
-                  value={diceValue}
-                  isRolling={myRolling}
-                  index={i}
-                  onRollComplete={i === 4 ? () => {} : undefined}
-                />
-              ))
-            ) : (
-              Array.from({length: 5}).map((_, i) => (
-                <Dice3DSimple
-                  key={i}
-                  value={1}
-                  isRolling={false}
-                  index={i}
-                />
-              ))
-            )}
-          </View>
+          <Dice3DReal
+            finalValues={myDice.length === 5 ? myDice : [1, 1, 1, 1, 1]}
+            isRolling={myRolling}
+            onRollComplete={() => {}}
+          />
           {myDice.length > 0 && !myRolling && (
             <Text style={styles.combinationText}>
               {getScoreName(myDice)} ({calculateScore(myDice)} pts)

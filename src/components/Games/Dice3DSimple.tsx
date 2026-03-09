@@ -11,99 +11,58 @@ interface Dice3DSimpleProps {
   onRollComplete?: () => void;
 }
 
-// Dice dot patterns for each face
+// Dice dot patterns for each face (percentage positions)
 const DOT_PATTERNS: { [key: number]: number[][] } = {
-  1: [[50, 50]], // center
-  2: [[25, 25], [75, 75]], // diagonal
-  3: [[25, 25], [50, 50], [75, 75]], // diagonal + center
-  4: [[25, 25], [75, 25], [25, 75], [75, 75]], // corners
-  5: [[25, 25], [75, 25], [50, 50], [25, 75], [75, 75]], // corners + center
-  6: [[25, 25], [75, 25], [25, 50], [75, 50], [25, 75], [75, 75]], // 2 columns
+  1: [[50, 50]],
+  2: [[25, 25], [75, 75]],
+  3: [[25, 25], [50, 50], [75, 75]],
+  4: [[25, 25], [75, 25], [25, 75], [75, 75]],
+  5: [[25, 25], [75, 25], [50, 50], [25, 75], [75, 75]],
+  6: [[25, 25], [75, 25], [25, 50], [75, 50], [25, 75], [75, 75]],
 };
 
 const Dice3DSimple: React.FC<Dice3DSimpleProps> = ({ value, isRolling, index, onRollComplete }) => {
-  const rotateX = useRef(new Animated.Value(0)).current;
-  const rotateY = useRef(new Animated.Value(0)).current;
   const rotateZ = useRef(new Animated.Value(0)).current;
   const translateY = useRef(new Animated.Value(0)).current;
   const translateX = useRef(new Animated.Value(0)).current;
   const scale = useRef(new Animated.Value(1)).current;
+  const displayValue = useRef(value);
 
-  // Map dice value to rotation angles (degrees)
-  const getRotationForValue = (val: number): { x: number; y: number; z: number } => {
-    const rotations = {
-      1: { x: 0, y: 0, z: 0 },          // top face
-      6: { x: 180, y: 0, z: 0 },        // bottom face
-      2: { x: -90, y: 0, z: 0 },        // front face
-      5: { x: 90, y: 0, z: 0 },         // back face
-      3: { x: 0, y: -90, z: 0 },        // left face
-      4: { x: 0, y: 90, z: 0 },         // right face
-    };
-    return rotations[val] || { x: 0, y: 0, z: 0 };
-  };
+  useEffect(() => {
+    displayValue.current = value;
+  }, [value]);
 
   useEffect(() => {
     if (isRolling) {
-      // Rolling animation: chaotic tumbling
-      const duration = 1800 + index * 100; // slightly staggered timing
-      const bounces = 5 + Math.floor(Math.random() * 3);
-      
-      // Random starting rotations for variety
-      const startRotX = Math.random() * 360;
-      const startRotY = Math.random() * 360;
-      const startRotZ = Math.random() * 360;
+      const duration = 1200 + index * 80;
 
       Animated.parallel([
-        // Tumbling rotation
+        // Spin
+        Animated.timing(rotateZ, {
+          toValue: 360 * (3 + Math.floor(Math.random() * 3)),
+          duration,
+          easing: Easing.bezier(0.25, 0.1, 0.25, 1),
+          useNativeDriver: true,
+        }),
+        // Bounce up then down
         Animated.sequence([
-          Animated.timing(rotateX, {
-            toValue: startRotX + 360 * bounces,
-            duration: duration,
-            easing: Easing.bezier(0.25, 0.1, 0.25, 1),
-            useNativeDriver: true,
-          }),
-        ]),
-        Animated.sequence([
-          Animated.timing(rotateY, {
-            toValue: startRotY + 360 * (bounces - 1),
-            duration: duration,
-            easing: Easing.bezier(0.25, 0.1, 0.25, 1),
-            useNativeDriver: true,
-          }),
-        ]),
-        Animated.sequence([
-          Animated.timing(rotateZ, {
-            toValue: startRotZ + 360 * (bounces + 1),
-            duration: duration,
-            easing: Easing.bezier(0.25, 0.1, 0.25, 1),
-            useNativeDriver: true,
-          }),
-        ]),
-        
-        // Bounce physics
-        Animated.sequence([
-          // Throw upward
           Animated.timing(translateY, {
-            toValue: -80 - Math.random() * 40,
+            toValue: -60 - Math.random() * 30,
             duration: duration * 0.3,
             easing: Easing.out(Easing.quad),
             useNativeDriver: true,
           }),
-          // Bounce down multiple times
-          ...Array.from({ length: bounces }).flatMap((_, i) => [
-            Animated.timing(translateY, {
-              toValue: 0,
-              duration: (duration * 0.7) / bounces,
-              easing: Easing.bounce,
-              useNativeDriver: true,
-            }),
-          ]),
+          Animated.timing(translateY, {
+            toValue: 0,
+            duration: duration * 0.7,
+            easing: Easing.bounce,
+            useNativeDriver: true,
+          }),
         ]),
-
-        // Horizontal movement (slight drift)
+        // Slight horizontal drift
         Animated.sequence([
           Animated.timing(translateX, {
-            toValue: (Math.random() - 0.5) * 40,
+            toValue: (Math.random() - 0.5) * 30,
             duration: duration * 0.6,
             easing: Easing.inOut(Easing.quad),
             useNativeDriver: true,
@@ -115,11 +74,10 @@ const Dice3DSimple: React.FC<Dice3DSimpleProps> = ({ value, isRolling, index, on
             useNativeDriver: true,
           }),
         ]),
-
-        // Subtle scale pulse
+        // Scale pulse
         Animated.sequence([
           Animated.timing(scale, {
-            toValue: 1.1,
+            toValue: 1.15,
             duration: duration * 0.15,
             easing: Easing.out(Easing.quad),
             useNativeDriver: true,
@@ -132,66 +90,48 @@ const Dice3DSimple: React.FC<Dice3DSimpleProps> = ({ value, isRolling, index, on
           }),
         ]),
       ]).start(() => {
-        // Settle to final value
-        const finalRot = getRotationForValue(value);
-        Animated.parallel([
-          Animated.spring(rotateX, {
-            toValue: finalRot.x,
-            tension: 40,
-            friction: 8,
-            useNativeDriver: true,
-          }),
-          Animated.spring(rotateY, {
-            toValue: finalRot.y,
-            tension: 40,
-            friction: 8,
-            useNativeDriver: true,
-          }),
-          Animated.spring(rotateZ, {
-            toValue: finalRot.z,
-            tension: 40,
-            friction: 8,
-            useNativeDriver: true,
-          }),
-        ]).start(() => {
+        // Settle with a spring
+        Animated.spring(rotateZ, {
+          toValue: 0,
+          tension: 40,
+          friction: 8,
+          useNativeDriver: true,
+        }).start(() => {
           if (index === 4 && onRollComplete) {
-            // Last dice finished
             onRollComplete();
           }
         });
       });
     } else {
-      // Not rolling - show stable value
-      const finalRot = getRotationForValue(value);
-      rotateX.setValue(finalRot.x);
-      rotateY.setValue(finalRot.y);
-      rotateZ.setValue(finalRot.z);
+      rotateZ.setValue(0);
       translateY.setValue(0);
       translateX.setValue(0);
       scale.setValue(1);
     }
   }, [isRolling, value]);
 
-  const rotateXInterp = rotateX.interpolate({
-    inputRange: [0, 360],
-    outputRange: ['0deg', '360deg'],
-  });
-
-  const rotateYInterp = rotateY.interpolate({
-    inputRange: [0, 360],
-    outputRange: ['0deg', '360deg'],
-  });
-
   const rotateZInterp = rotateZ.interpolate({
     inputRange: [0, 360],
     outputRange: ['0deg', '360deg'],
   });
 
-  // Render a 3D cube with dots on each face
-  const renderFace = (faceValue: number, faceStyle: any) => {
-    const dots = DOT_PATTERNS[faceValue] || [];
-    return (
-      <Animated.View style={[styles.face, faceStyle]}>
+  const dots = DOT_PATTERNS[value] || DOT_PATTERNS[1];
+
+  return (
+    <Animated.View
+      style={[
+        styles.container,
+        {
+          transform: [
+            { translateX },
+            { translateY },
+            { rotate: rotateZInterp },
+            { scale },
+          ],
+        },
+      ]}
+    >
+      <View style={styles.face}>
         {dots.map((pos, i) => (
           <View
             key={i}
@@ -204,44 +144,7 @@ const Dice3DSimple: React.FC<Dice3DSimpleProps> = ({ value, isRolling, index, on
             ]}
           />
         ))}
-      </Animated.View>
-    );
-  };
-
-  return (
-    <Animated.View
-      style={[
-        styles.container,
-        {
-          transform: [
-            { translateX },
-            { translateY },
-            { perspective: 1000 },
-            { rotateX: rotateXInterp },
-            { rotateY: rotateYInterp },
-            { rotateZ: rotateZInterp },
-            { scale },
-          ],
-        },
-      ]}
-    >
-      {/* Front face (2) */}
-      {renderFace(2, [styles.faceFront])}
-      
-      {/* Back face (5) */}
-      {renderFace(5, [styles.faceBack])}
-      
-      {/* Top face (1) */}
-      {renderFace(1, [styles.faceTop])}
-      
-      {/* Bottom face (6) */}
-      {renderFace(6, [styles.faceBottom])}
-      
-      {/* Left face (3) */}
-      {renderFace(3, [styles.faceLeft])}
-      
-      {/* Right face (4) */}
-      {renderFace(4, [styles.faceRight])}
+      </View>
     </Animated.View>
   );
 };
@@ -250,35 +153,14 @@ const styles = StyleSheet.create({
   container: {
     width: DICE_SIZE,
     height: DICE_SIZE,
-    position: 'relative',
   },
   face: {
-    position: 'absolute',
     width: DICE_SIZE,
     height: DICE_SIZE,
     backgroundColor: '#FFFACD',
     borderWidth: 2,
     borderColor: '#333',
     borderRadius: 8,
-    backfaceVisibility: 'hidden',
-  },
-  faceFront: {
-    transform: [{ translateZ: DICE_SIZE / 2 }],
-  },
-  faceBack: {
-    transform: [{ rotateY: '180deg' }, { translateZ: DICE_SIZE / 2 }],
-  },
-  faceTop: {
-    transform: [{ rotateX: '90deg' }, { translateZ: DICE_SIZE / 2 }],
-  },
-  faceBottom: {
-    transform: [{ rotateX: '-90deg' }, { translateZ: DICE_SIZE / 2 }],
-  },
-  faceLeft: {
-    transform: [{ rotateY: '-90deg' }, { translateZ: DICE_SIZE / 2 }],
-  },
-  faceRight: {
-    transform: [{ rotateY: '90deg' }, { translateZ: DICE_SIZE / 2 }],
   },
   dot: {
     position: 'absolute',
