@@ -157,7 +157,7 @@ const HomeDrawer: React.FC<HomeDrawerProps> = ({visible, onClose, onOpen, onNavi
   const avatarSource = resolveAvatar(user?.avatar_url);
 
   return (
-    <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+    <View style={{ flex: 1 }} pointerEvents="box-none">
       {/* Invisible edge swipe zone — always captures touches */}
       <View
         style={styles.edgeZone}
@@ -230,23 +230,13 @@ const HomeDrawer: React.FC<HomeDrawerProps> = ({visible, onClose, onOpen, onNavi
 
 const styles = StyleSheet.create({
   edgeZone: {
-    position: 'absolute',
-    top: 0,
-    bottom: 0,
-    left: 0,
-    width: EDGE_WIDTH,
-    zIndex: 10,
-    elevation: 10,
+    flex:1,
   },
   overlay: {
-    ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.55)',
   },
   drawer: {
-    position: 'absolute',
-    top: 0,
-    bottom: 0,
-    left: 0,
+flex:1,
     width: DRAWER_WIDTH,
     backgroundColor: colors.background.primary,
     shadowColor: '#000',
@@ -317,10 +307,6 @@ const styles = StyleSheet.create({
     fontWeight: '300',
   },
   footer: {
-    position: 'absolute',
-    bottom: 40,
-    left: 0,
-    right: 0,
     alignItems: 'center',
   },
   footerText: {

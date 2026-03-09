@@ -1,5 +1,5 @@
 import apiConfig from '../libs/utils/api.utils';
-import { getDeviceId } from '../libs/utils/deviceInfo';
+import { getDeviceId, getFullDeviceInfo } from '../libs/utils/deviceInfo';
 import tokenService from './token.service';
 import type { AuthResponse, User } from '../types/auth';
 
@@ -233,6 +233,23 @@ class ApiService {
       { method: 'POST' },
       true
     );
+  }
+
+  /**
+   * Upsert device data (authenticated)
+   * Collects full device + network info and sends to backend
+   * POST /api/devices/register
+   */
+  async upsertDeviceData(): Promise<void> {
+    try {
+      const fullInfo = await getFullDeviceInfo();
+      await this.request('/devices/register', {
+        method: 'POST',
+        body: JSON.stringify(fullInfo),
+      }, true);
+    } catch (error) {
+      console.warn('⚠️ Device data upsert failed:', error);
+    }
   }
 
   // ========== GAME ENDPOINTS ==========

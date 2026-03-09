@@ -181,6 +181,8 @@ const NardiScreen = ({ navigation, route }: any) => {
           if (mv?.type === 'roll_dice') {
             setGameState(prev => {
               if (!prev || prev.phase !== 'rolling') return prev;
+              // Skip if this is our own roll (already applied locally by handleRollDice)
+              if (prev.currentPlayer === myMpColorRef.current) return prev;
               const {die1, die2} = mv.dice;
               const movesRemaining = die1 === die2 ? 4 : 2;
               const ns: NardiGameState = {
@@ -196,10 +198,17 @@ const NardiScreen = ({ navigation, route }: any) => {
           } else if (mv?.type === 'move_piece') {
             setGameState(prev => {
               if (!prev) return prev;
+              // Skip if this is our own move (already applied locally by handleMove)
+              if (prev.currentPlayer === myMpColorRef.current) return prev;
               return applyMove(prev, {from: mv.from, to: mv.to});
             });
           } else if (mv?.type === 'end_turn') {
-            setGameState(prev => prev ? switchPlayer(prev) : prev);
+            setGameState(prev => {
+              if (!prev) return prev;
+              // Skip if this is our own end_turn (already applied locally by handleMove)
+              if (prev.currentPlayer === myMpColorRef.current) return prev;
+              return switchPlayer(prev);
+            });
           }
         });
         socket.on('game_ended', (data: any) => {
@@ -567,6 +576,19 @@ const NardiScreen = ({ navigation, route }: any) => {
     />
   );
 
+  const handleSaveRoomName = async (newName: string) => {
+    try {
+      setRoomName(newName);
+      if (roomIdRef.current) {
+        socketService.setRoomName(roomIdRef.current, newName);
+      }
+      BisetkaAlert.success('Success', 'Room name updated!');
+    } catch (error) {
+      console.error('Failed to update room name:', error);
+      BisetkaAlert.error('Error', 'Failed to update room name');
+    }
+  };
+
   const renderPoint = (pointNum: number) => {
     if (!gameState) return null;
     
@@ -606,21 +628,6 @@ const NardiScreen = ({ navigation, route }: any) => {
     if (pointNum === 1 && checkers > 0) {
       console.log('🎨 Rendering point 1:', { checkers, color, pos, CHECKER_SIZE, POINT_WIDTH });
     }
-
-  const handleSaveRoomName = async (newName: string) => {
-    try {
-      setRoomName(newName);
-      if (roomIdRef.current) {
-        socketService.setRoomName(roomIdRef.current, newName);
-      }
-      BisetkaAlert.success('Success', 'Room name updated!');
-    } catch (error) {
-      console.error('Failed to update room name:', error);
-      BisetkaAlert.error('Error', 'Failed to update room name');
-    }
-  };
-
-  // Room name listener — registered after socket connects (inside mp setup)
 
     return (
       <TouchableOpacity
