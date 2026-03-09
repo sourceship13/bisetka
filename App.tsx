@@ -1,9 +1,9 @@
-import React from 'react';
-import { View } from 'react-native';
+import React, { useEffect } from 'react';
+import BootSplash from 'react-native-bootsplash';
 import AppNavigator from './src/navigation/AppNavigator';
 import { AuthProvider } from './src/libs/hooks/useAuth';
 import { BisetkaAlertContainer } from './src/utils/BisetkaAlert';
-import 'react-native-gesture-handler';
+import {GestureHandlerRootView} from 'react-native-gesture-handler';
 import * as Sentry from '@sentry/react-native';
 import Config from 'react-native-config';
 
@@ -21,13 +21,17 @@ Sentry.init({
 });
 
 function App(): React.JSX.Element {
+  useEffect(() => {
+    BootSplash.hide({ fade: true });
+  }, []);
+
   return (
-    <AuthProvider>
-      <View style={{ flex: 1 }}>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <AuthProvider>
         <AppNavigator />
         <BisetkaAlertContainer />
-      </View>
-    </AuthProvider>
+      </AuthProvider>
+    </GestureHandlerRootView>
   );
 }
 

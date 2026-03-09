@@ -2,6 +2,8 @@
  * @format
  */
 
+import 'react-native-gesture-handler';
+
 // Firebase app must be imported first before any other Firebase modules
 import '@react-native-firebase/app';
 
