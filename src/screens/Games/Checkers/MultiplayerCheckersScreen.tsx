@@ -265,6 +265,7 @@ const MultiplayerCheckersScreen = ({navigation, route}: any) => {
         const _sock = socketService.getSocket();
         if (_sock) {
           _sock.once('room_joined', (data: any) => {
+            _sock.off('spectate_started');
             roomIdRef.current = data.roomId;
             mySocketColorRef.current = data.color ?? 'black';
             setRoomId(data.roomId);
@@ -272,6 +273,24 @@ const MultiplayerCheckersScreen = ({navigation, route}: any) => {
             setOpponentId(data.opponent?.id ?? '');
             setGameStatus('Joined! Waiting for game to start...');
             socketService.playerReady(data.roomId, userId);
+          });
+          // Fallback: server may send spectate_started if game already in progress
+          _sock.once('spectate_started', (data: any) => {
+            _sock.off('room_joined');
+            setIsSpectating(true);
+            roomIdRef.current = data.roomId;
+            setRoomId(data.roomId);
+            const board = data.gameState?.board
+              ? deserializeBoard(data.gameState.board)
+              : initializeBoard();
+            setGameState(prev => ({
+              ...prev,
+              board,
+              currentPlayer: data.gameState?.currentTurn === 'black' ? 'black' : 'red',
+            }));
+            if (data.gameState?.currentTurn) setServerTurn(data.gameState.currentTurn);
+            setMode('game');
+            setGameStatus('Spectating');
           });
         }
         socketService.joinRoomBySession(dbSessionId, userId);

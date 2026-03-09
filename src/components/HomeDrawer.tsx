@@ -256,9 +256,9 @@ const styles = StyleSheet.create({
     elevation: 20,
   },
   userHeader: {
-    paddingTop: 60,
-    paddingBottom: spacing.lg,
-    paddingHorizontal: spacing.md,
+    flex:1,
+
+
     borderBottomLeftRadius: 0,
     borderBottomRightRadius: 24,
   },
@@ -266,9 +266,9 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   avatar: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 128,
+    height: 128,
+    borderRadius: 64,
     borderWidth: 2,
     borderColor: 'rgba(255,255,255,0.4)',
   },
@@ -283,6 +283,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   menuList: {
+    flex:1,
     marginTop: spacing.lg,
     paddingHorizontal: spacing.md,
   },

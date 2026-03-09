@@ -88,6 +88,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
   const isPrivateCreate = mode === 'private-create';
   const isPrivateJoin   = mode === 'private-join';
   const isReplaceAI     = mode === 'replace-ai';
+  const isSpectate      = mode === 'spectate';
   const userId = session?.userId || session?.user?.id || 'guest-' + Math.random().toString(36).substr(2, 6);
   const rawName: any = session?.displayName || session?.user?.fullName;
   const displayName: string = typeof rawName === 'string' && rawName
@@ -299,29 +300,25 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
           setIsConnecting(false);
           setWaitingRoom(null);
           roomIdRef.current = data.roomId;
-          if (data.gameState) {
-            setCommunityCards(data.gameState.communityCards || []);
-            setPot(data.gameState.pot || 0);
-            setCurrentBet(data.gameState.currentBet || 0);
-            setGamePhase(data.gameState.phase || 'waiting');
-            setActivePlayerIndex(data.gameState.activeSeat ?? 0);
-          }
-          if (data.players) setPlayers(data.players);
+          applyServerState({
+            players: data.players,
+            communityCards: data.gameState?.communityCards,
+            pot: data.gameState?.pot,
+            currentBet: data.gameState?.currentBet,
+            phase: data.gameState?.phase || 'waiting',
+            activeSeat: data.gameState?.activeSeat,
+          });
 
           // Listen for ongoing spectator updates
           const _s = socketService.getSocket();
           if (_s) {
             _s.on('poker_spectate_update', (upd: any) => {
               if (!mounted) return;
-              setCommunityCards(upd.communityCards || []);
-              setPot(upd.pot || 0);
-              setCurrentBet(upd.currentBet || 0);
-              setGamePhase(upd.phase || 'waiting');
-              setActivePlayerIndex(upd.activeSeat ?? 0);
-              if (upd.players) setPlayers(upd.players);
+              applyServerState(upd);
             });
             _s.on('poker_spectate_hand_result', (res: any) => {
               if (!mounted) return;
+              applyServerState(res);
               BisetkaAlert.success(
                 `${res.winnerName} Won`,
                 `${res.winnerName} wins $${res.potAmount}!`
@@ -900,7 +897,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
 
   const renderPlayer = (player: Player, position: number) => {
     const myIdx = isMultiplayer ? mySeatRef.current : playerIndex;
-    const isCurrentPlayer = player.id === myIdx;
+    const isCurrentPlayer = !isSpectating && player.id === myIdx;
     const showCards = isCurrentPlayer || gamePhase === 'showdown';
     
     const positionStyle = position === 0 ? styles.position0 :
@@ -911,7 +908,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
                          styles.position5;
 
     return (
-      <View key={player.id} style={[styles.playerContainer, positionStyle]}>
+      <View key={`player-${player.id}-${position}`} style={[styles.playerContainer, positionStyle]}>
         {player.isDealer && (
           <View style={styles.dealerChip}>
             <Text style={styles.dealerChipText}>D</Text>
@@ -1108,10 +1105,15 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
 
         {/* Player overlays rendered OUTSIDE ImageBackground so they don't cause it to re-render */}
         <View style={StyleSheet.absoluteFill} pointerEvents="none">
-          {players
-            .map((player, seatIdx) => ({ player, seatIdx }))
-            .filter(({ seatIdx }) => seatIdx !== myPlayerIndex)
-            .map(({ player }, idx) => renderPlayer(player, idx + 1))}
+          {isSpectating
+            ? players
+                .map((player, seatIdx) => ({ player, seatIdx }))
+                .filter(({ player }) => player != null)
+                .map(({ player, seatIdx }) => renderPlayer(player, seatIdx))
+            : players
+                .map((player, seatIdx) => ({ player, seatIdx }))
+                .filter(({ player, seatIdx }) => seatIdx !== myPlayerIndex && player != null)
+                .map(({ player, seatIdx }, idx) => renderPlayer(player, idx + 1))}
         </View>
       </View>
 
