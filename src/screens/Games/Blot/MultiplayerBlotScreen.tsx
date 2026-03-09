@@ -299,9 +299,9 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
           setRoomName(data.roomName);
         }
       });
-      // Spectator state updates (hand-stripped game state)
+      // Spectator state updates (hand-stripped game state) — only apply for spectators
       socket.on('spectate_state_update', (data: any) => {
-        if (data.gameState) setGameState(data.gameState);
+        if (initialMode === 'spectate' && data.gameState) setGameState(data.gameState);
       });
     }
 
