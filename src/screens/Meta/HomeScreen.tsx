@@ -13,6 +13,7 @@ import { BisetkaAlert } from '../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import {useAuth} from '../../libs/hooks/useAuth';
+import apiService from '../../services/api.service';
 import pushNotificationService from '../../services/pushNotification.service';
 import {iOSUIKit} from 'react-native-typography';
 import {colors} from '../../theme';
@@ -109,8 +110,19 @@ const GAMES = [
 type GameConfig = (typeof GAMES)[number];
 
 const HomeScreen = ({navigation}: any) => {
-  const {user, signOut} = useAuth();
+  const {user, signOut, refreshUser} = useAuth();
   const drawerNav = useNavigation();
+
+  // Refresh profile data and upsert device info every time HomeScreen mounts
+  useEffect(() => {
+    refreshUser().catch(err =>
+      console.warn('Profile refresh failed:', err)
+    );
+
+    apiService.upsertDeviceData().catch(err =>
+      console.warn('Device data upsert failed:', err)
+    );
+  }, []);
 
   // Ensure push permission is granted and the FCM token is registered.
   //

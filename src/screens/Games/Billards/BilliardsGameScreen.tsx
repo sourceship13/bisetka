@@ -148,6 +148,145 @@ const createRack9Ball = (): Ball[] => {
 const dist = (a: Vec2, b: Vec2) => Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2);
 const len = (v: Vec2) => Math.sqrt(v.x * v.x + v.y * v.y);
 
+// ── Pre-computed shot types ──────────────────────────────────────────────────
+type FrameSnap = { x: number; y: number; p: boolean; r: number };
+
+/** Pure deterministic physics step — modifies balls array in place. */
+function physicsStep(balls: Ball[]): { anyMoving: boolean; pocketed: Ball[]; firstHit: Ball | null } {
+  let anyMoving = false;
+  let firstHit: Ball | null = null;
+
+  for (const ball of balls) {
+    if (ball.pocketed) continue;
+    ball.pos.x += ball.vel.x;
+    ball.pos.y += ball.vel.y;
+    const speed = Math.sqrt(ball.vel.x * ball.vel.x + ball.vel.y * ball.vel.y);
+    ball.rotation = (ball.rotation + (speed / (BALL_RADIUS * 2 * Math.PI)) * 360) % 360;
+    ball.vel.x *= FRICTION;
+    ball.vel.y *= FRICTION;
+    if (Math.abs(ball.vel.x) < MIN_SPEED && Math.abs(ball.vel.y) < MIN_SPEED) {
+      ball.vel.x = 0;
+      ball.vel.y = 0;
+      ball.rotation = 0;
+    } else {
+      anyMoving = true;
+    }
+    const r = BALL_RADIUS;
+    if (ball.pos.x - r < 0) { ball.pos.x = r; ball.vel.x = Math.abs(ball.vel.x) * 0.75; }
+    if (ball.pos.x + r > TABLE_WIDTH) { ball.pos.x = TABLE_WIDTH - r; ball.vel.x = -Math.abs(ball.vel.x) * 0.75; }
+    if (ball.pos.y - r < 0) { ball.pos.y = r; ball.vel.y = Math.abs(ball.vel.y) * 0.75; }
+    if (ball.pos.y + r > TABLE_HEIGHT) { ball.pos.y = TABLE_HEIGHT - r; ball.vel.y = -Math.abs(ball.vel.y) * 0.75; }
+  }
+
+  const active = balls.filter(b => !b.pocketed);
+  for (let i = 0; i < active.length; i++) {
+    for (let j = i + 1; j < active.length; j++) {
+      const a = active[i]!;
+      const b = active[j]!;
+      const dx = b.pos.x - a.pos.x;
+      const dy = b.pos.y - a.pos.y;
+      const d = Math.sqrt(dx * dx + dy * dy);
+      if (d < BALL_RADIUS * 2 && d > 0.01) {
+        const nx = dx / d;
+        const ny = dy / d;
+        const dvn = (a.vel.x - b.vel.x) * nx + (a.vel.y - b.vel.y) * ny;
+        if (dvn > 0) {
+          if ((a.type === 'cue' || b.type === 'cue') && !firstHit) {
+            firstHit = a.type === 'cue' ? {...b} : {...a};
+          }
+          a.vel.x -= dvn * nx;
+          a.vel.y -= dvn * ny;
+          b.vel.x += dvn * nx;
+          b.vel.y += dvn * ny;
+        }
+        const overlap = BALL_RADIUS * 2 - d;
+        a.pos.x -= (overlap / 2) * nx;
+        a.pos.y -= (overlap / 2) * ny;
+        b.pos.x += (overlap / 2) * nx;
+        b.pos.y += (overlap / 2) * ny;
+      }
+    }
+  }
+
+  const pocketed: Ball[] = [];
+  for (const ball of balls) {
+    if (ball.pocketed) continue;
+    for (const pocket of POCKETS) {
+      if (dist(ball.pos, pocket) < POCKET_RADIUS * 0.85) {
+        ball.pocketed = true;
+        ball.vel = {x: 0, y: 0};
+        pocketed.push({...ball});
+        break;
+      }
+    }
+  }
+
+  return { anyMoving, pocketed, firstHit };
+}
+
+/** Pre-compute entire shot to completion — returns frame snapshots + metadata. */
+function precomputeShot(
+  initialBalls: Ball[],
+  cueVelocity: Vec2,
+): { frames: FrameSnap[][]; shotPocketed: Ball[]; firstHit: Ball | null; cueScratch: boolean } {
+  const balls = initialBalls.map(b => ({...b, pos: {...b.pos}, vel: {...b.vel}}));
+  const cue = balls.find(b => b.type === 'cue' && !b.pocketed);
+  if (cue) cue.vel = {x: cueVelocity.x, y: cueVelocity.y};
+
+  const frames: FrameSnap[][] = [];
+  const shotPocketed: Ball[] = [];
+  let firstHit: Ball | null = null;
+  let cueScratch = false;
+
+  for (let step = 0; step < 6000; step++) {
+    const res = physicsStep(balls);
+    if (res.firstHit && !firstHit) firstHit = res.firstHit;
+    if (res.pocketed.length > 0) {
+      shotPocketed.push(...res.pocketed);
+      if (res.pocketed.some(p => p.type === 'cue')) cueScratch = true;
+    }
+    frames.push(balls.map(b => ({x: b.pos.x, y: b.pos.y, p: b.pocketed, r: b.rotation})));
+    if (!res.anyMoving) break;
+  }
+
+  return {frames, shotPocketed, firstHit, cueScratch};
+}
+
+/** Encode frames as a flat int array for compact socket transfer.
+ *  Positions are normalized to 0-10000 range so different screen sizes produce
+ *  identical results. Per ball per frame: [normX, normY, pocketed(0/1), rotation] */
+function encodeFrames(frames: FrameSnap[][]): number[] {
+  const flat: number[] = [];
+  for (const frame of frames) {
+    for (const snap of frame) {
+      flat.push(Math.round((snap.x / TABLE_WIDTH) * 10000));
+      flat.push(Math.round((snap.y / TABLE_HEIGHT) * 10000));
+      flat.push(snap.p ? 1 : 0);
+      flat.push(Math.round(snap.r));
+    }
+  }
+  return flat;
+}
+
+function decodeFrames(flat: number[], numBalls: number): FrameSnap[][] {
+  const stride = numBalls * 4;
+  const frames: FrameSnap[][] = [];
+  for (let i = 0; i < flat.length; i += stride) {
+    const frame: FrameSnap[] = [];
+    for (let j = 0; j < numBalls; j++) {
+      const base = i + j * 4;
+      frame.push({
+        x: (flat[base] / 10000) * TABLE_WIDTH,
+        y: (flat[base + 1] / 10000) * TABLE_HEIGHT,
+        p: flat[base + 2] === 1,
+        r: flat[base + 3],
+      });
+    }
+    frames.push(frame);
+  }
+  return frames;
+}
+
 // --- Confetti particle ---
 const CONFETTI_COLORS = ['#FFD700', '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FF69B4', '#87CEEB', '#DDA0DD', '#F0E68C', '#98FB98'];
 const NUM_CONFETTI = 50;
@@ -385,6 +524,32 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
   isMyTurnRef.current = isMyTurn;
   // Set to true when I fire the cue ball — cleared after move is sent
   const iAmShooterRef = useRef(false);
+  // Holds the authoritative move_made data received while simulation is running
+  const pendingMoveRef = useRef<any>(null);
+  // Timestamp accumulator for fixed-timestep physics
+  const lastTickRef = useRef(0);
+  // Pre-computed frame buffer for multiplayer sync
+  const frameBufferRef = useRef<FrameSnap[][]>([]);
+  const frameIndexRef = useRef(0);
+
+  // Helper: apply authoritative move data from the server (positions are normalized 0-1)
+  const applyMoveData = useCallback((move: any) => {
+    setBalls(move.balls.map((b: any) => ({
+      ...b,
+      pos: { x: b.pos.x * TABLE_WIDTH, y: b.pos.y * TABLE_HEIGHT },
+      vel: { x: 0, y: 0 },
+      rotation: b.rotation ?? 0,
+    })));
+    setPlayerTurn(move.playerTurn);
+    playerTurnRef.current = move.playerTurn;
+    if (move.playerType !== undefined) { setPlayerType(move.playerType); playerTypeRef.current = move.playerType; }
+    if (move.aiType !== undefined) { setAiType(move.aiType); aiTypeRef.current = move.aiType; }
+    const bih = move.ballInHand === true;
+    setBallInHand(bih);
+    ballInHandRef.current = bih;
+    setPocketedSolids(move.balls.filter((b: any) => b.pocketed && b.type === 'solid'));
+    setPocketedStripes(move.balls.filter((b: any) => b.pocketed && b.type === 'stripe'));
+  }, []);
 
   // AI move logging refs
   const billiardsGameIdRef = useRef<string>(uuidv4());
@@ -416,7 +581,7 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
         setMpStatus('searching');
 
         // Clean slate — remove any stale listeners
-        ['match_found','room_joined','opponent_joined','game_started','move_made','game_ended','opponent_disconnected','room_name_updated']
+        ['match_found','room_joined','opponent_joined','game_started','move_made','game_ended','opponent_disconnected','room_name_updated','billiards_shot']
           .forEach(ev => socket.off(ev));
 
         let resolvedRoomId: string | null = null;
@@ -452,34 +617,48 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
 
         socket.on('game_started', (data: any) => {
           if (cancelled) return;
-          setMyColor(data.myColor);
+          // Server sends a personalized event (myColor set) and a room-wide
+          // fallback (myColor null). Resolve color so the fallback doesn't
+          // overwrite the correct value.
+          const color = data.myColor
+            || (data.player1Id === userId ? 'white' : data.player2Id === userId ? 'black' : null);
+          if (!color) return;
+          setMyColor(color);
           // White shoots first — playerTurn=true means white's turn
           setPlayerTurn(true);
           playerTurnRef.current = true;
           setMpStatus('playing');
         });
 
+        // Opponent: receive shooter's pre-computed frames for frame-perfect sync
+        socket.on('billiards_shot', (data: any) => {
+          if (cancelled) return;
+          const { balls: shotBalls, frameData } = data;
+          if (!shotBalls || !frameData || !frameData.length) return;
+          // Decode the shooter's exact frames — no local physics computation
+          const decoded = decodeFrames(frameData, shotBalls.length);
+          frameBufferRef.current = decoded;
+          frameIndexRef.current = 0;
+          // Set balls to initial state — denormalize positions for local screen
+          setBalls(shotBalls.map((b: any) => ({
+            ...b,
+            pos: { x: b.pos.x * TABLE_WIDTH, y: b.pos.y * TABLE_HEIGHT },
+            vel: { x: 0, y: 0 },
+            rotation: b.rotation ?? 0,
+          })));
+          setIsMoving(true);
+        });
+
         socket.on('move_made', (data: any) => {
           if (cancelled) return;
           const move = data.move;
           if (!move || !move.balls) return;
-          // Apply the sender's final ball state
-          setBalls(move.balls.map((b: any) => ({
-            ...b,
-            pos: { ...b.pos },
-            vel: { x: 0, y: 0 }, // balls have stopped — no animation needed
-          })));
-          setPlayerTurn(move.playerTurn);
-          playerTurnRef.current = move.playerTurn;
-          if (move.playerType !== undefined) { setPlayerType(move.playerType); playerTypeRef.current = move.playerType; }
-          if (move.aiType !== undefined) { setAiType(move.aiType); aiTypeRef.current = move.aiType; }
-          const bih = move.ballInHand === true;
-          setBallInHand(bih);
-          ballInHandRef.current = bih;
-          // Rebuild pocketed lists from ball state
-          setPocketedSolids(move.balls.filter((b: any) => b.pocketed && b.type === 'solid'));
-          setPocketedStripes(move.balls.filter((b: any) => b.pocketed && b.type === 'stripe'));
-          // Note: game over is handled by game_ended event (uses winnerId for unambiguous result)
+          // Shooter receives their own move_made back — skip during animation
+          if (isMovingRef.current || iAmShooterRef.current) {
+            pendingMoveRef.current = move;
+            return;
+          }
+          applyMoveData(move);
         });
 
         socket.on('game_ended', (data: any) => {
@@ -517,7 +696,7 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
       cancelled = true;
       const socket = socketService.getSocket();
       if (socket) {
-        ['match_found','room_joined','opponent_joined','game_started','move_made','game_ended','opponent_disconnected','room_name_updated']
+        ['match_found','room_joined','opponent_joined','game_started','move_made','game_ended','opponent_disconnected','room_name_updated','billiards_shot']
           .forEach(ev => socket.off(ev));
         if (mode === 'random') socket.emit('cancel_matchmaking', { userId });
       }
@@ -625,6 +804,12 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
       // --- Settlement when all balls stop ---
       if (!anyMoving) {
         setIsMoving(false);
+
+        // In multiplayer, the opponent just watches the animation — skip game
+        // logic adjudication. The authoritative state will arrive via move_made.
+        if (isMultiplayerRef.current && !iAmShooterRef.current) {
+          return next;
+        }
 
         const wasPlayerTurn = playerTurnRef.current;
         const currentPlayerType = wasPlayerTurn ? playerTypeRef.current : aiTypeRef.current;
@@ -799,10 +984,80 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
     });
   }, [checkPockets, resolveBallCollisions, resolveWalls, variant]);
 
+  // Physics / animation loop.
+  // Multiplayer: play back pre-computed frames for identical ball positions.
+  // Single-player: real-time fixed-timestep with simulateStep.
+  const STEP_MS = 1000 / 60; // 16.67ms per physics step
   useEffect(() => {
     if (!isMoving) return;
-    const tick = () => {
-      simulateStep();
+    const frames = frameBufferRef.current;
+
+    if (frames.length > 0) {
+      // ── Multiplayer frame playback ──────────────────────────────────────
+      lastTickRef.current = performance.now();
+      let accumulator = 0;
+
+      const tick = (now: number) => {
+        const elapsed = now - lastTickRef.current;
+        lastTickRef.current = now;
+        accumulator += elapsed;
+        if (accumulator > 200) accumulator = 200;
+
+        let advanced = false;
+        while (accumulator >= STEP_MS && frameIndexRef.current < frames.length) {
+          frameIndexRef.current++;
+          accumulator -= STEP_MS;
+          advanced = true;
+        }
+
+        if (advanced) {
+          const idx = Math.min(frameIndexRef.current, frames.length) - 1;
+          const frame = frames[idx];
+          setBalls(prev => {
+            const next = prev.map((b, i) => ({
+              ...b,
+              pos: {x: frame[i].x, y: frame[i].y},
+              pocketed: frame[i].p,
+              rotation: frame[i].r,
+              vel: {x: 0, y: 0},
+            }));
+            // Update pocketed-balls display when a ball is newly pocketed
+            for (let i = 0; i < next.length; i++) {
+              if (frame[i].p && !prev[i].pocketed) {
+                if (prev[i].type === 'solid') setPocketedSolids(o => [...o, {...next[i]}]);
+                if (prev[i].type === 'stripe') setPocketedStripes(o => [...o, {...next[i]}]);
+              }
+            }
+            return next;
+          });
+        }
+
+        if (frameIndexRef.current >= frames.length) {
+          // Playback done — run one final simulateStep to trigger settlement logic
+          frameBufferRef.current = [];
+          frameIndexRef.current = 0;
+          simulateStep();
+          return;
+        }
+
+        animRef.current = requestAnimationFrame(tick);
+      };
+      animRef.current = requestAnimationFrame(tick);
+      return () => { if (animRef.current) cancelAnimationFrame(animRef.current); };
+    }
+
+    // ── Single-player real-time physics ─────────────────────────────────────
+    lastTickRef.current = performance.now();
+    let accumulator = 0;
+    const tick = (now: number) => {
+      const elapsed = now - lastTickRef.current;
+      lastTickRef.current = now;
+      accumulator += elapsed;
+      if (accumulator > 200) accumulator = 200;
+      while (accumulator >= STEP_MS) {
+        simulateStep();
+        accumulator -= STEP_MS;
+      }
       animRef.current = requestAnimationFrame(tick);
     };
     animRef.current = requestAnimationFrame(tick);
@@ -816,20 +1071,33 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
   useEffect(() => {
     if (isMoving) return;                   // only act when movement just stopped
     if (!isMultiplayer) return;
-    if (!iAmShooterRef.current) return;     // guard: was this MY shot?
-    iAmShooterRef.current = false;
-    if (!roomIdRef.current) return;
 
-    // All state refs have been committed after this render cycle
-    socketService.makeMove(roomIdRef.current, userId, {
-      balls: ballsRef.current,
-      playerTurn: playerTurnRef.current,    // whose turn it is AFTER this shot
-      playerType: playerTypeRef.current,
-      aiType: aiTypeRef.current,
-      ballInHand: ballInHandRef.current,
-      gameOver: gameOverRef.current,
-      winner: gameOverRef.current ? winnerRef.current : null,
-    } as any);
+    // Shooter: send authoritative final state to server
+    if (iAmShooterRef.current) {
+      iAmShooterRef.current = false;
+      if (roomIdRef.current) {
+        socketService.makeMove(roomIdRef.current, userId, {
+          balls: ballsRef.current.map(b => ({
+            ...b,
+            pos: { x: b.pos.x / TABLE_WIDTH, y: b.pos.y / TABLE_HEIGHT },
+            vel: { x: 0, y: 0 },
+          })),
+          playerTurn: playerTurnRef.current,    // whose turn it is AFTER this shot
+          playerType: playerTypeRef.current,
+          aiType: aiTypeRef.current,
+          ballInHand: ballInHandRef.current,
+          gameOver: gameOverRef.current,
+          winner: gameOverRef.current ? winnerRef.current : null,
+        } as any);
+      }
+    }
+
+    // Opponent: apply the authoritative move_made data that arrived during simulation
+    if (pendingMoveRef.current) {
+      const move = pendingMoveRef.current;
+      pendingMoveRef.current = null;
+      applyMoveData(move);
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isMoving]);
 
@@ -1042,16 +1310,43 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
           targetBall: undefined, // Player shot - no specific target tracked
         };
 
-        setBalls(prev => {
-          const next = prev.map(b => ({...b, pos: {...b.pos}, vel: {...b.vel}}));
-          const c = next.find(b => b.type === 'cue' && !b.pocketed);
-          if (c) {
-            c.vel = {x: Math.cos(angle) * force, y: Math.sin(angle) * force};
-          }
-          return next;
-        });
-        // Mark that I was the shooter — used to send multiplayer move on settle
         iAmShooterRef.current = true;
+
+        if (isMultiplayerRef.current && roomIdRef.current) {
+          // Multiplayer: pre-compute entire shot for frame-perfect sync
+          const result = precomputeShot(ballsRef.current, cueBallVelocity);
+          shotPocketedRef.current = result.shotPocketed;
+          firstHitRef.current = result.firstHit;
+          cueScratchRef.current = result.cueScratch;
+          frameBufferRef.current = result.frames;
+          frameIndexRef.current = 0;
+
+          // Encode and send pre-computed frames so opponent plays the EXACT same animation
+          const encoded = encodeFrames(result.frames);
+          const socket = socketService.getSocket();
+          if (socket) {
+            socket.emit('billiards_shot', {
+              roomId: roomIdRef.current,
+              velocity: cueBallVelocity,
+              frameData: encoded,
+              balls: ballsRef.current.map(b => ({
+                id: b.id, number: b.number,
+                pos: { x: b.pos.x / TABLE_WIDTH, y: b.pos.y / TABLE_HEIGHT },
+                color: b.color, stripe: b.stripe, pocketed: b.pocketed,
+                type: b.type, rotation: b.rotation,
+              })),
+            });
+          }
+        } else {
+          // Single-player: apply velocity directly, real-time physics drives simulation
+          setBalls(prev => {
+            const next = prev.map(b => ({...b, pos: {...b.pos}, vel: {...b.vel}}));
+            const c = next.find(b => b.type === 'cue' && !b.pocketed);
+            if (c) c.vel = cueBallVelocity;
+            return next;
+          });
+        }
+
         setIsMoving(true);
         setDragStart(null);
         dragStartRef.current = null;
@@ -1112,19 +1407,9 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
     shotPocketedRef.current = [];
     firstHitRef.current = null;
     cueScratchRef.current = false;
+    frameBufferRef.current = [];
+    frameIndexRef.current = 0;
   };
-
-  // Render the cue stick as a thin rotated View
-  const renderCueStick = () => {
-    if (!cueGeo) return null;
-    const {cueStartX, cueStartY, cueEndX, cueEndY} = cueGeo;
-    const dx = cueEndX - cueStartX;
-    const dy = cueEndY - cueStartY;
-    const length = Math.sqrt(dx * dx + dy * dy);
-    const angle = Math.atan2(dy, dx);
-    const midX = (cueStartX + cueEndX) / 2;
-    const midY = (cueStartY + cueEndY) / 2;
-    const deg = (angle * 180) / Math.PI;
 
   const handleSaveRoomName = async (newName: string) => {
     try {
@@ -1139,7 +1424,17 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
     }
   };
 
-  // Room name listener — registered after socket connects (inside mp setup)
+  // Render the cue stick as a thin rotated View
+  const renderCueStick = () => {
+    if (!cueGeo) return null;
+    const {cueStartX, cueStartY, cueEndX, cueEndY} = cueGeo;
+    const dx = cueEndX - cueStartX;
+    const dy = cueEndY - cueStartY;
+    const length = Math.sqrt(dx * dx + dy * dy);
+    const angle = Math.atan2(dy, dx);
+    const midX = (cueStartX + cueEndX) / 2;
+    const midY = (cueStartY + cueEndY) / 2;
+    const deg = (angle * 180) / Math.PI;
 
     return (
       <View
