@@ -8,11 +8,13 @@
 
 /* Begin PBXBuildFile section */
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
+		1ED6A5E934204541BF73135F /* Colors.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8965105A61FE4830B2B46863 /* Colors.xcassets */; };
 		5F8FD586C196EF95083AB61D /* libPods-bisetka-staging.a in Frameworks */ = {isa = PBXBuildFile; fileRef = C7FD9EC2E1F0D9352130D291 /* libPods-bisetka-staging.a */; };
 		761780ED2CA45674006654EE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 761780EC2CA45674006654EE /* AppDelegate.swift */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
 		8D2BDDB2C99882735576A8E1 /* libPods-bisetka.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 577E810BCF953891A00D54BD /* libPods-bisetka.a */; };
 		ABE3A04CE403D29D2BD2507F /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */; };
+		CF7DD47A0A484C50AC9DB721 /* BootSplash.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 4EAC1D16409C43598ECDE327 /* BootSplash.storyboard */; };
 		DE1D241E2F34272D0022EF51 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 761780EC2CA45674006654EE /* AppDelegate.swift */; };
 		DE1D24222F34272D0022EF51 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
 		DE1D24232F34272D0022EF51 /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
@@ -21,6 +23,8 @@
 		DE7D34062F4ABB9C00AEFA99 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = DE7D34032F4ABB9C00AEFA99 /* GoogleService-Info.plist */; };
 		DE7D34072F4ABB9C00AEFA99 /* GoogleService-Info-Staging.plist in Resources */ = {isa = PBXBuildFile; fileRef = DE7D34042F4ABB9C00AEFA99 /* GoogleService-Info-Staging.plist */; };
 		DE7D34082F4ABB9C00AEFA99 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = DE7D34032F4ABB9C00AEFA99 /* GoogleService-Info.plist */; };
+		AA1B2C3D4E5F6A7B8C9D0E1F /* BootSplash.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 4EAC1D16409C43598ECDE327 /* BootSplash.storyboard */; };
+		BB2C3D4E5F6A7B8C9D0E1F2A /* Colors.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8965105A61FE4830B2B46863 /* Colors.xcassets */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -30,9 +34,11 @@
 		13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = PrivacyInfo.xcprivacy; path = bisetka/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		1C7DCCE86888C0BC46BFCED5 /* Pods-bisetka-staging.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-bisetka-staging.release.xcconfig"; path = "Target Support Files/Pods-bisetka-staging/Pods-bisetka-staging.release.xcconfig"; sourceTree = "<group>"; };
 		29CDAABB8BBC31D89FA1DDC1 /* Pods-bisetka.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-bisetka.debug.xcconfig"; path = "Target Support Files/Pods-bisetka/Pods-bisetka.debug.xcconfig"; sourceTree = "<group>"; };
+		4EAC1D16409C43598ECDE327 /* BootSplash.storyboard */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = BootSplash.storyboard; path = bisetka/BootSplash.storyboard; sourceTree = "<group>"; };
 		577E810BCF953891A00D54BD /* libPods-bisetka.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-bisetka.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		761780EC2CA45674006654EE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = bisetka/AppDelegate.swift; sourceTree = "<group>"; };
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = bisetka/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		8965105A61FE4830B2B46863 /* Colors.xcassets */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = folder.assetcatalog; name = Colors.xcassets; path = bisetka/Colors.xcassets; sourceTree = "<group>"; };
 		A3D84C4C6884AEDF52338F63 /* Pods-bisetka.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-bisetka.release.xcconfig"; path = "Target Support Files/Pods-bisetka/Pods-bisetka.release.xcconfig"; sourceTree = "<group>"; };
 		C17DF88885F5EE9AC99E9DD7 /* Pods-bisetka-staging.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-bisetka-staging.debug.xcconfig"; path = "Target Support Files/Pods-bisetka-staging/Pods-bisetka-staging.debug.xcconfig"; sourceTree = "<group>"; };
 		C7FD9EC2E1F0D9352130D291 /* libPods-bisetka-staging.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-bisetka-staging.a"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -75,6 +81,8 @@
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */,
 				13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */,
+				4EAC1D16409C43598ECDE327 /* BootSplash.storyboard */,
+				8965105A61FE4830B2B46863 /* Colors.xcassets */,
 			);
 			name = bisetka;
 			sourceTree = "<group>";
@@ -222,6 +230,8 @@
 				ABE3A04CE403D29D2BD2507F /* PrivacyInfo.xcprivacy in Resources */,
 				DE7D34052F4ABB9C00AEFA99 /* GoogleService-Info-Staging.plist in Resources */,
 				DE7D34062F4ABB9C00AEFA99 /* GoogleService-Info.plist in Resources */,
+				CF7DD47A0A484C50AC9DB721 /* BootSplash.storyboard in Resources */,
+				1ED6A5E934204541BF73135F /* Colors.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -234,6 +244,8 @@
 				DE1D24242F34272D0022EF51 /* PrivacyInfo.xcprivacy in Resources */,
 				DE7D34072F4ABB9C00AEFA99 /* GoogleService-Info-Staging.plist in Resources */,
 				DE7D34082F4ABB9C00AEFA99 /* GoogleService-Info.plist in Resources */,
+				AA1B2C3D4E5F6A7B8C9D0E1F /* BootSplash.storyboard in Resources */,
+				BB2C3D4E5F6A7B8C9D0E1F2A /* Colors.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
