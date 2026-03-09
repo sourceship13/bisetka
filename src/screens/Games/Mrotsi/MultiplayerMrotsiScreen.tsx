@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useRef} from 'react';
+import React, {useState, useEffect, useRef, useMemo} from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,10 @@ import {
   TextInput,
   Modal,
   ScrollView,
+  Animated,
+  Easing,
+  Dimensions,
+  ImageBackground,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import GameToolbar from '../../../components/global/GameToolbar';
@@ -18,6 +22,9 @@ import InGameChat from '../../../components/InGameChat';
 import {BisetkaAlert} from '../../../utils/BisetkaAlert';
 import {useGameEndRefresh} from '../../../libs/hooks/useGameEndRefresh';
 import {apiConfig} from '../../../libs/utils/api.utils';
+import Dice3DSimple from '../../../components/Games/Dice3DSimple';
+
+const {width: SCREEN_WIDTH} = Dimensions.get('window');
 
 // ─── Score helpers (same logic as MrotsiScreen) ──────────────────────────────
 function calculateScore(dice: number[]): number {
@@ -52,6 +59,92 @@ function rollDice(): number[] {
 
 function getDiceEmoji(value: number): string {
   return ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'][value - 1] ?? '⚀';
+}
+
+// ── Dice physics animation (deterministic, pre-computed) ──────────────────────
+// Each frame: 5 dice × [normX (0-10000), normY (0-10000), face (1-6), rotation (0-359)]
+const DICE_AREA_W = 1.0; // normalized width
+const DICE_AREA_H = 0.35; // normalized height
+const NUM_ROLL_FRAMES = 18;
+const FRAME_MS = 60; // ms per frame
+
+/** Seed-based deterministic RNG (mulberry32) */
+function mulberry32(seed: number) {
+  return () => {
+    seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function precomputeDiceRoll(finalDice: number[], seed: number): number[] {
+  const rng = mulberry32(seed);
+  const flat: number[] = [];
+  // Generate 5 initial positions + velocities
+  const dice = finalDice.map(() => ({
+    x: 0.1 + rng() * 0.6,  // normalized 0-1 within area
+    y: 0.1 + rng() * 0.15,
+    vx: (rng() - 0.5) * 0.12,
+    vy: (rng() - 0.5) * 0.08,
+    rot: rng() * 360,
+    vr: (rng() - 0.5) * 80,
+  }));
+
+  for (let frame = 0; frame < NUM_ROLL_FRAMES; frame++) {
+    const isLast = frame >= NUM_ROLL_FRAMES - 2;
+    for (let i = 0; i < 5; i++) {
+      const d = dice[i];
+      if (!isLast) {
+        // Physics: move + bounce
+        d.x += d.vx;
+        d.y += d.vy;
+        d.rot = (d.rot + d.vr) % 360;
+        d.vx *= 0.88;
+        d.vy *= 0.88;
+        d.vr *= 0.85;
+        // Bounce off walls (dice are ~0.14 wide normalized)
+        if (d.x < 0.07) { d.x = 0.07; d.vx = Math.abs(d.vx); }
+        if (d.x > 0.93) { d.x = 0.93; d.vx = -Math.abs(d.vx); }
+        if (d.y < 0.07) { d.y = 0.07; d.vy = Math.abs(d.vy); }
+        if (d.y > 0.93) { d.y = 0.93; d.vy = -Math.abs(d.vy); }
+      } else {
+        // Settle into final grid positions
+        const spacing = 0.18;
+        const startX = 0.5 - (4 * spacing) / 2;
+        d.x = startX + i * spacing;
+        d.y = 0.5;
+        d.rot = 0;
+      }
+      const face = isLast ? finalDice[i] : Math.floor(rng() * 6) + 1;
+      flat.push(Math.round(d.x * 10000));
+      flat.push(Math.round(d.y * 10000));
+      flat.push(face);
+      flat.push(Math.round(((d.rot % 360) + 360) % 360));
+    }
+  }
+  return flat;
+}
+
+type DiceFrame = { x: number; y: number; face: number; rot: number }[];
+
+function decodeDiceFrames(flat: number[]): DiceFrame[] {
+  const frames: DiceFrame[] = [];
+  const stride = 5 * 4;
+  for (let i = 0; i < flat.length; i += stride) {
+    const frame: DiceFrame[number][] = [];
+    for (let j = 0; j < 5; j++) {
+      const b = i + j * 4;
+      frame.push({
+        x: flat[b] / 10000,
+        y: flat[b + 1] / 10000,
+        face: flat[b + 2],
+        rot: flat[b + 3],
+      });
+    }
+    frames.push(frame);
+  }
+  return frames;
 }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -108,6 +201,47 @@ const MultiplayerMrotsiScreen = ({navigation, route}: any) => {
   const [showRoomNameModal, setShowRoomNameModal] = useState(false);
   const roomNameRef = useRef(roomName);
   useEffect(() => { roomNameRef.current = roomName; }, [roomName]);
+
+  // Dice animation state
+  const [myRolling, setMyRolling] = useState(false);
+  const [opponentRolling, setOpponentRolling] = useState(false);
+  const myFramesRef = useRef<DiceFrame[]>([]);
+  const oppFramesRef = useRef<DiceFrame[]>([]);
+  const myFrameIdxRef = useRef(0);
+  const oppFrameIdxRef = useRef(0);
+  const [myAnimFrame, setMyAnimFrame] = useState<DiceFrame | null>(null);
+  const [oppAnimFrame, setOppAnimFrame] = useState<DiceFrame | null>(null);
+  const myAnimRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const oppAnimRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Dice area width relative to screen
+  const DICE_DISPLAY_W = SCREEN_WIDTH - 64;
+  const DICE_DISPLAY_H = 80;
+
+  const startPlayback = (
+    framesRef: React.MutableRefObject<DiceFrame[]>,
+    idxRef: React.MutableRefObject<number>,
+    animTimerRef: React.MutableRefObject<ReturnType<typeof setInterval> | null>,
+    setFrame: (f: DiceFrame | null) => void,
+    setRolling: (v: boolean) => void,
+    onDone?: () => void,
+  ) => {
+    if (animTimerRef.current) clearInterval(animTimerRef.current);
+    idxRef.current = 0;
+    setRolling(true);
+    animTimerRef.current = setInterval(() => {
+      if (idxRef.current >= framesRef.current.length) {
+        if (animTimerRef.current) clearInterval(animTimerRef.current);
+        animTimerRef.current = null;
+        setRolling(false);
+        setFrame(null);
+        onDone?.();
+        return;
+      }
+      setFrame(framesRef.current[idxRef.current]);
+      idxRef.current++;
+    }, FRAME_MS);
+  };
 
   // ─── Socket setup ───────────────────────────────────────────────────────────
   useEffect(() => {
@@ -166,6 +300,12 @@ const MultiplayerMrotsiScreen = ({navigation, route}: any) => {
 
         if (rolledBy === opponentSlot) {
           setOpponentHasRolled(true);
+          // Play opponent dice animation if frames were included
+          const moveData = data.move;
+          if (moveData?.diceFrames?.length) {
+            oppFramesRef.current = decodeDiceFrames(moveData.diceFrames);
+            startPlayback(oppFramesRef, oppFrameIdxRef, oppAnimRef, setOppAnimFrame, setOpponentRolling);
+          }
         }
 
         setGameState(gs);
@@ -290,14 +430,35 @@ const MultiplayerMrotsiScreen = ({navigation, route}: any) => {
   };
 
   const handleRollDice = () => {
-    if (hasRolled || !gameState) return;
+    if (hasRolled || !gameState || myRolling) return;
     const dice = rollDice();
     const score = calculateScore(dice);
     const combination = getScoreName(dice);
-    setMyDice(dice);
+
+    // Pre-compute deterministic animation using a random seed
+    const seed = Math.floor(Math.random() * 2147483647);
+    const encoded = precomputeDiceRoll(dice, seed);
+
+    // Play own animation
+    myFramesRef.current = decodeDiceFrames(encoded);
+    startPlayback(myFramesRef, myFrameIdxRef, myAnimRef, setMyAnimFrame, setMyRolling, () => {
+      setMyDice(dice);
+    });
+
     setHasRolled(true);
-    socketService.makeMove(roomIdRef.current, userId, {type: 'roll_dice', dice, score, combination});
+    socketService.makeMove(roomIdRef.current, userId, {
+      type: 'roll_dice', dice, score, combination,
+      diceFrames: encoded,
+    });
   };
+
+  // Clean up animation timers
+  useEffect(() => {
+    return () => {
+      if (myAnimRef.current) clearInterval(myAnimRef.current);
+      if (oppAnimRef.current) clearInterval(oppAnimRef.current);
+    };
+  }, []);
 
   // ─── Render helpers ─────────────────────────────────────────────────────────
   const myScore = mySlot === 'player1' ? gameState?.player1Score ?? 0 : gameState?.player2Score ?? 0;
@@ -322,6 +483,7 @@ const MultiplayerMrotsiScreen = ({navigation, route}: any) => {
   // Room name listener — registered after socket connects (inside mp setup)
 
     return (
+      <ImageBackground source={require('../../../../assets/blot/park-background.png')} style={styles.backgroundImage} resizeMode="cover">
       <SafeAreaView style={styles.container}>
         <GameToolbar title="Mrotsi Multiplayer" onBack={() => navigation.goBack()} backgroundColor="transparent" />
         <View style={styles.menuContainer}>
@@ -376,11 +538,13 @@ const MultiplayerMrotsiScreen = ({navigation, route}: any) => {
           gameType="Mrotsi"
         />
       </SafeAreaView>
+      </ImageBackground>
     );
   }
 
   if (screen === 'matchmaking') {
     return (
+      <ImageBackground source={require('../../../../assets/blot/park-background.png')} style={styles.backgroundImage} resizeMode="cover">
       <SafeAreaView style={styles.container}>
         <GameToolbar title="Mrotsi Multiplayer" onBack={() => navigation.goBack()} backgroundColor="transparent" />
         <View style={styles.menuContainer}>
@@ -394,11 +558,13 @@ const MultiplayerMrotsiScreen = ({navigation, route}: any) => {
           ) : null}
         </View>
       </SafeAreaView>
+      </ImageBackground>
     );
   }
 
   // ─── Game screen ─────────────────────────────────────────────────────────────
   return (
+    <ImageBackground source={require('../../../../assets/blot/park-background.png')} style={styles.backgroundImage} resizeMode="cover">
     <SafeAreaView style={styles.container}>
       <GameToolbar
         title={`Mrotsi — Round ${gameState?.currentRound ?? 1}/${gameState?.totalRounds ?? 5}`}
@@ -455,22 +621,34 @@ const MultiplayerMrotsiScreen = ({navigation, route}: any) => {
         {/* Opponent section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Opponent</Text>
-          <View style={styles.diceRow}>
-            {opponentHasRolled && opponentDice
-              ? opponentDice.map((d, i) => (
-                  <Text key={i} style={styles.diceEmoji}>{getDiceEmoji(d)}</Text>
-                ))
-              : Array.from({length: 5}).map((_, i) => (
-                  <Text key={i} style={[styles.diceEmoji, styles.diceHidden]}>🎲</Text>
-                ))}
+          <View style={styles.dice3DContainer}>
+            {opponentHasRolled && opponentDice ? (
+              opponentDice.map((diceValue, i) => (
+                <Dice3DSimple
+                  key={i}
+                  value={diceValue}
+                  isRolling={opponentRolling}
+                  index={i}
+                />
+              ))
+            ) : (
+              Array.from({length: 5}).map((_, i) => (
+                <Dice3DSimple
+                  key={i}
+                  value={1}
+                  isRolling={false}
+                  index={i}
+                />
+              ))
+            )}
           </View>
-          {opponentHasRolled && opponentDice ? (
+          {opponentHasRolled && opponentDice && !opponentRolling ? (
             <Text style={styles.combinationText}>
               {getScoreName(opponentDice)} ({mySlot === 'player1' ? gameState?.player2RoundScore : gameState?.player1RoundScore} pts)
             </Text>
           ) : (
             <Text style={styles.waitingText}>
-              {opponentHasRolled ? 'Rolled!' : 'Waiting to roll...'}
+              {opponentRolling ? 'Rolling...' : opponentHasRolled ? 'Rolled!' : 'Waiting to roll...'}
             </Text>
           )}
         </View>
@@ -478,26 +656,39 @@ const MultiplayerMrotsiScreen = ({navigation, route}: any) => {
         {/* Player section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>You</Text>
-          <View style={styles.diceRow}>
-            {myDice.length > 0
-              ? myDice.map((d, i) => (
-                  <Text key={i} style={styles.diceEmoji}>{getDiceEmoji(d)}</Text>
-                ))
-              : Array.from({length: 5}).map((_, i) => (
-                  <Text key={i} style={[styles.diceEmoji, styles.diceHidden]}>🎲</Text>
-                ))}
+          <View style={styles.dice3DContainer}>
+            {myDice.length > 0 ? (
+              myDice.map((diceValue, i) => (
+                <Dice3DSimple
+                  key={i}
+                  value={diceValue}
+                  isRolling={myRolling}
+                  index={i}
+                  onRollComplete={i === 4 ? () => {} : undefined}
+                />
+              ))
+            ) : (
+              Array.from({length: 5}).map((_, i) => (
+                <Dice3DSimple
+                  key={i}
+                  value={1}
+                  isRolling={false}
+                  index={i}
+                />
+              ))
+            )}
           </View>
-          {myDice.length > 0 && (
+          {myDice.length > 0 && !myRolling && (
             <Text style={styles.combinationText}>
               {getScoreName(myDice)} ({calculateScore(myDice)} pts)
             </Text>
           )}
 
           <TouchableOpacity
-            style={[styles.rollBtn, hasRolled && styles.rollBtnDisabled]}
+            style={[styles.rollBtn, (hasRolled || myRolling) && styles.rollBtnDisabled]}
             onPress={handleRollDice}
-            disabled={hasRolled}>
-            <Text style={styles.rollBtnText}>{hasRolled ? 'Rolled ✓' : '🎲 Roll Dice'}</Text>
+            disabled={hasRolled || myRolling}>
+            <Text style={styles.rollBtnText}>{myRolling ? '🎲 Rolling...' : hasRolled ? 'Rolled ✓' : '🎲 Roll Dice'}</Text>
           </TouchableOpacity>
 
           {hasRolled && !opponentHasRolled && (
@@ -539,12 +730,14 @@ const MultiplayerMrotsiScreen = ({navigation, route}: any) => {
         visible={screen === 'game' && !!roomIdRef.current}
       />
     </SafeAreaView>
+    </ImageBackground>
   );
 };
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  container: {flex: 1, backgroundColor: '#1A1A2E'},
+  backgroundImage: {flex: 1, width: '100%', height: '100%'},
+  container: {flex: 1, backgroundColor: 'transparent'},
   menuContainer: {flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24, gap: 16},
   title: {fontSize: 36, fontWeight: 'bold', color: '#F5A623'},
   subtitle: {fontSize: 14, color: '#aaa', marginBottom: 8},
@@ -576,7 +769,7 @@ const styles = StyleSheet.create({
   gameContent: {padding: 16, gap: 16},
   scoreBar: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around',
-    backgroundColor: '#16213E', borderRadius: 12, padding: 12,
+    backgroundColor: 'rgba(22,33,62,0.85)', borderRadius: 12, padding: 12,
   },
   scoreItem: {alignItems: 'center'},
   scoreLabel: {color: '#aaa', fontSize: 12},
@@ -584,17 +777,25 @@ const styles = StyleSheet.create({
   scoreSep: {color: '#555', fontSize: 16},
   // Round result
   roundResultBox: {
-    backgroundColor: '#0F3460', borderRadius: 12, padding: 12, alignItems: 'center',
+    backgroundColor: 'rgba(15,52,96,0.85)', borderRadius: 12, padding: 12, alignItems: 'center',
   },
   roundResultTitle: {color: '#aaa', fontSize: 12, marginBottom: 4},
   roundResultText: {color: '#eee', fontSize: 16, fontWeight: '600'},
   // Sections
   section: {
-    backgroundColor: '#16213E', borderRadius: 12, padding: 16, gap: 10, alignItems: 'center',
+    backgroundColor: 'rgba(22,33,62,0.85)', borderRadius: 12, padding: 16, gap: 10, alignItems: 'center',
   },
   sectionTitle: {color: '#aaa', fontSize: 13, alignSelf: 'flex-start'},
   // Dice
   diceRow: {flexDirection: 'row', gap: 8, justifyContent: 'center'},
+  dice3DContainer: {
+    flexDirection: 'row',
+    gap: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 20,
+    minHeight: 120,
+  },
   diceEmoji: {fontSize: 36},
   diceHidden: {opacity: 0.3},
   combinationText: {color: '#F5A623', fontSize: 14, fontWeight: '600'},
@@ -618,6 +819,18 @@ const styles = StyleSheet.create({
   winText: {color: '#4CAF50'},
   tieText: {color: '#FFC107'},
   loseText: {color: '#F44336'},
+  // Dice animation
+  diceAnimArea: {
+    width: SCREEN_WIDTH - 64, height: 80 + 56,
+    position: 'relative', alignSelf: 'center',
+  },
+  animDiceBox: {
+    position: 'absolute', width: 56, height: 56, borderRadius: 12,
+    backgroundColor: 'rgba(22,33,62,0.9)', justifyContent: 'center', alignItems: 'center',
+    shadowColor: '#000', shadowOffset: {width: 0, height: 2}, shadowOpacity: 0.4, shadowRadius: 4,
+    elevation: 4,
+  },
+  animDiceText: {fontSize: 32},
 });
 
 export default MultiplayerMrotsiScreen;
