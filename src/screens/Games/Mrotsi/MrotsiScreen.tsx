@@ -6,6 +6,7 @@ import GameToolbar from '../../../components/global/GameToolbar';
 import { aiMoveLogService } from '../../../services/aiMoveLog.service';
 import { v4 as uuidv4 } from 'uuid';
 import { useGameEndRefresh } from '../../../libs/hooks/useGameEndRefresh';
+import Dice3DSimple from '../../../components/Games/Dice3DSimple';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -362,19 +363,14 @@ const MrotsiScreen = ({navigation, route}: any) => {
             {/* Opponent's Dice Area */}
             <View style={styles.opponentDiceArea}>
               <Text style={styles.areaLabel}>Opponent</Text>
-              <View style={styles.diceRow}>
+              <View style={styles.dice3DContainer}>
                 {gameState.opponentDice.map((die, index) => (
-                  <View 
-                    key={`opp-${index}`} 
-                    style={[
-                      styles.diceBox,
-                      gameState.opponentRolled && styles.diceBoxRevealed
-                    ]}
-                  >
-                    <Text style={styles.diceValue}>
-                      {gameState.opponentRolled ? getDiceEmoji(die) : '?'}
-                    </Text>
-                  </View>
+                  <Dice3DSimple
+                    key={`opp-${index}`}
+                    value={gameState.opponentRolled ? die : 1}
+                    isRolling={false}
+                    index={index}
+                  />
                 ))}
               </View>
               {gameState.opponentRolled && (
@@ -388,33 +384,14 @@ const MrotsiScreen = ({navigation, route}: any) => {
             {/* Player's Dice Area */}
             <View style={styles.playerDiceArea}>
               <Text style={styles.areaLabel}>You</Text>
-              <View style={styles.diceRow}>
+              <View style={styles.dice3DContainer}>
                 {(isRolling ? rollingDice : gameState.playerDice).map((die, index) => (
-                  <Animated.View 
+                  <Dice3DSimple
                     key={`player-${index}`}
-                    style={[
-                      styles.diceBox,
-                      styles.playerDiceBox,
-                      {
-                        transform: [
-                          {
-                            scale: diceAnimations[index].interpolate({
-                              inputRange: [0, 1],
-                              outputRange: [1, 1.15],
-                            }),
-                          },
-                          {
-                            rotate: diceAnimations[index].interpolate({
-                              inputRange: [0, 1],
-                              outputRange: ['0deg', '360deg'],
-                            }),
-                          },
-                        ],
-                      },
-                    ]}
-                  >
-                    <Text style={styles.diceValue}>{getDiceEmoji(die)}</Text>
-                  </Animated.View>
+                    value={die}
+                    isRolling={isRolling}
+                    index={index}
+                  />
                 ))}
               </View>
               {gameState.playerRolled && !isRolling && (
@@ -591,6 +568,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     flexWrap: 'wrap',
+  },
+  dice3DContainer: {
+    flexDirection: 'row',
+    gap: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 20,
+    minHeight: 120,
   },
   diceBox: {
     width: 56,
