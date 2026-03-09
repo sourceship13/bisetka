@@ -1,6 +1,6 @@
 import React from 'react';
 import {View, Text, StyleSheet, Image, TouchableOpacity} from 'react-native';
-import {DrawerContentScrollView} from '@react-navigation/drawer';
+
 import LinearGradient from 'react-native-linear-gradient';
 import {useAuth} from '../libs/hooks/useAuth';
 import {colors, spacing} from '../theme';
@@ -49,9 +49,7 @@ const DrawerContent = (props: any) => {
       </LinearGradient>
 
       {/* Menu items */}
-      <DrawerContentScrollView
-        {...props}
-        contentContainerStyle={styles.menuList}>
+      <View style={styles.menuList}>
         {MENU_ITEMS.map(item => (
           <TouchableOpacity
             key={item.key}
@@ -74,7 +72,7 @@ const DrawerContent = (props: any) => {
             <Text style={styles.menuChevron}>›</Text>
           </TouchableOpacity>
         ))}
-      </DrawerContentScrollView>
+      </View>
 
       {/* Footer */}
       <View style={styles.footer}>
@@ -90,22 +88,28 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background.primary,
   },
   userHeader: {
-    paddingTop: 60,
-    paddingBottom: spacing.lg,
-    paddingHorizontal: spacing.md,
-    borderBottomRightRadius: 24,
+    flex:1,
+    paddingVertical: 40,
+    borderRadius:20,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   avatarWrap: {
-    marginBottom: spacing.sm,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    overflow: 'visible',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
   },
   avatar: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.4)',
+    width: 100,
+    height: 140,
+    resizeMode: 'contain',
   },
   drawerName: {
+    marginVertical:6,
     fontSize: 20,
     fontWeight: '800',
     color: '#fff',
@@ -116,7 +120,8 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   menuList: {
-    paddingTop: spacing.lg,
+    flex:3,
+    paddingTop: spacing.md,
     paddingHorizontal: spacing.md,
   },
   menuItem: {
