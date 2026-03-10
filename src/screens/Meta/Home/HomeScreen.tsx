@@ -10,18 +10,107 @@ import {
   Platform,
   ImageBackground,
 } from 'react-native';
-import { BisetkaAlert } from '../../utils/BisetkaAlert';
+import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
-import {useAuth} from '../../libs/hooks/useAuth';
-import apiService from '../../services/api.service';
-import pushNotificationService from '../../services/pushNotification.service';
+import {useAuth} from '../../../libs/hooks/useAuth';
+import apiService from '../../../services/api.service';
+import pushNotificationService from '../../../services/pushNotification.service';
 import {iOSUIKit} from 'react-native-typography';
-import {colors} from '../../theme';
-import packageJson from '../../../package.json';
+import {colors} from '../../../theme';
+import packageJson from '../../../../package.json';
 import {useNavigation, DrawerActions} from '@react-navigation/native';
 
-const bisetkaBackground = require('../../../assets/backgrounds/bisetka.png');
+const bisetkaBackground = require('../../../../assets/backgrounds/bisetka.png');
+
+const {width} = Dimensions.get('window');
+const CARD_WIDTH = (width - 42) / 2; // 2 columns with gap
+
+// Game configurations with PushBird-style colors
+const GAMES = [
+  {
+    id: 'blot',
+    name: 'Blot',
+    description: 'Classic card game',
+    icon: '🃏',
+    gradient: ['#6366f1', '#8b5cf6'],
+    gameType: 'blot',
+  },
+  {
+    id: 'baazar-blot',
+    name: 'Baazar Blot',
+    description: 'Fast variant',
+    icon: '⚡',
+    gradient: ['#ec4899', '#f472b6'],
+    gameType: 'baazar-blot',
+  },
+  {
+    id: 'checkers',
+    name: 'Checkers',
+    description: 'Quick matches',
+    icon: '🔴',
+    gradient: ['#f59e0b', '#fbbf24'],
+    gameType: 'checkers',
+  },
+  {
+    id: 'chess',
+    name: 'Chess',
+    description: 'Strategy',
+    icon: '♟️',
+    gradient: ['#3b82f6', '#60a5fa'],
+    gameType: 'chess',
+  },
+   {
+    id: 'poker',
+    name: 'Poker',
+    description: "Texas Hold'em",
+    icon: '♠️',
+    gradient: ['#10b981', '#34d399'],
+    gameType: 'poker',
+  },
+  {
+    id: 'nardi',
+    name: 'Nardi',
+    description: 'Backgammon',
+    icon: '🎲',
+    gradient: ['#8b5cf6', '#a78bfa'],
+    gameType: 'nardi',
+  },
+  {
+    id: 'billiards',
+    name: '8-Ball',
+    description: 'Pool',
+    icon: '🎱',
+    gradient: ['#06b6d4', '#22d3ee'],
+    gameType: 'billiards',
+  },
+  {
+    id: '9-ball',
+    name: '9-Ball',
+    description: 'Race to 9',
+    icon: '9️⃣',
+    gradient: ['#f59e0b', '#fbbf24'],
+    gameType: '9-ball',
+  },
+  {
+    id: 'mrotsi',
+    name: 'Mrotsi',
+    description: 'Dice game',
+    icon: '🎯',
+    gradient: ['#14b8a6', '#2dd4bf'],
+    gameType: 'mrotsi',
+  },
+  {
+    id: 'slots',
+    name: 'Slots',
+    description: 'Arcade',
+    icon: '🎰',
+    gradient: ['#ef4444', '#f87171'],
+    gameType: 'slots',
+  },
+] as const;
+
+type GameConfig = (typeof GAMES)[number];
 
 const HomeScreen = ({navigation}: any) => {
   const {user, signOut, refreshUser} = useAuth();
@@ -83,6 +172,42 @@ const HomeScreen = ({navigation}: any) => {
       console.warn('Push setup failed:', err)
     );
   }, []);
+
+  const handleGamePress = (game: GameConfig) => {
+    // Navigate to GameInfo screen first to show rules and points
+    navigation.navigate('GameInfo', {
+      gameType: game.gameType,
+      gradient: game.gradient as unknown as string[],
+    });
+  };
+
+  const renderGameCard = (game: GameConfig) => {
+    const isComingSoon: boolean = 'comingSoon' in game && (game as any).comingSoon === true;
+
+    return (
+      <TouchableOpacity
+        key={game.id}
+        activeOpacity={0.85}
+        disabled={isComingSoon}
+        onPress={() => handleGamePress(game)}
+        style={[styles.gameCardWrapper, isComingSoon && styles.cardDisabled]}>
+        <LinearGradient
+          colors={game.gradient as unknown as string[]}
+          start={{x: 0, y: 0}}
+          end={{x: 1, y: 1}}
+          style={styles.gameCard}>
+          <Text style={styles.gameIcon}>{game.icon}</Text>
+          <Text style={styles.gameName}>{game.name}</Text>
+          <Text style={styles.gameDescription}>{game.description}</Text>
+          {isComingSoon && (
+            <View style={styles.comingSoonBadge}>
+              <Text style={styles.comingSoonText}>Soon</Text>
+            </View>
+          )}
+        </LinearGradient>
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -184,18 +309,13 @@ const HomeScreen = ({navigation}: any) => {
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.activeRoomsGradient}>
-              {/* <View style={[styles.activeRoomsContent]}> */}
-                {/* <View style={styles.activeRoomsLeft}>
-                  <Text style={styles.activeRoomsIcon}>🎮</Text>
-                </View> */}
-                <View style={{flex:1, padding:10}}>
+                <View style={{flex:1, padding:10,}}>
                     <Text style={styles.activeRoomsTitle}>Active Rooms</Text>
                     <Text style={styles.activeRoomsSubtitle}>
                       Watch or join multiplayer games
                     </Text>
                   </View>
                 <Text style={styles.activeRoomsArrow}>→</Text>
-              {/* </View> */}
             </LinearGradient>
           </TouchableOpacity>
         </View>
@@ -362,8 +482,7 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   activeRoomsGradient: {
-    paddingVertical: 0,
-    paddingHorizontal: 0,
+
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -429,6 +548,63 @@ const styles = StyleSheet.create({
     fontSize: 24,
     color: '#fff',
     fontWeight: '700',
+  },
+  gamesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: 16,
+    gap: 10,
+  },
+  gameCardWrapper: {
+    width: CARD_WIDTH,
+    borderRadius: 20,
+    overflow: 'hidden',
+    shadowColor: '#6366f1',
+    shadowOffset: {width: 0, height: 4},
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  cardDisabled: {
+    opacity: 0.6,
+  },
+  gameCard: {
+    padding: 2,
+    minHeight: 130,
+    justifyContent: 'center',
+
+  },
+  gameIcon: {
+    fontSize: 36,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  gameName: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#fff',
+    marginBottom: 3,
+    margin:10,
+    textAlign: 'center',
+  },
+  gameDescription: {
+    fontSize: 18,
+    color: 'rgba(255,255,255,0.85)',
+    marginHorizontal:10
+  },
+  comingSoonBadge: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  comingSoonText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#fff',
   },
   footer: {
     marginTop: 0,
