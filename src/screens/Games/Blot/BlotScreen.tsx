@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useGameEndRefresh } from '../../../libs/hooks/useGameEndRefresh';
 import { gameResultService } from '../../../services/gameResult.service';
 import {
@@ -56,6 +56,7 @@ const BlotScreen = ({ navigation }: any) => {
     undefined,
   );
   const { refreshOnGameEnd } = useGameEndRefresh(undefined, 'blot');
+  const isPlayingCardRef = useRef(false);
 
   const handleSaveTheme = (theme: CardTheme) => {
     setCustomTheme(theme);
@@ -181,6 +182,12 @@ const BlotScreen = ({ navigation }: any) => {
   }, [gameState.phase, gameState.currentPlayer, gameState.currentTrick]);
 
   const playCard = (card: CardType) => {
+    // Guard against race condition: prevent double-taps
+    if (isPlayingCardRef.current) {
+      return;
+    }
+    isPlayingCardRef.current = true;
+
     const currentPlayer = gameState.players[gameState.currentPlayer];
 
     if (
@@ -191,6 +198,7 @@ const BlotScreen = ({ navigation }: any) => {
         gameState.trump,
       )
     ) {
+      isPlayingCardRef.current = false;
       BisetkaAlert.error(
         'Invalid Move',
         'You must follow suit or play trump if possible.',
@@ -232,6 +240,8 @@ const BlotScreen = ({ navigation }: any) => {
         currentTrick: updatedTrick,
         completedTricks,
       }));
+      // Reset flag so next trick can start
+      isPlayingCardRef.current = false;
 
       // Check if round is over (hands empty)
       if (updatedPlayers[0].hand.length === 0) {
@@ -269,6 +279,7 @@ const BlotScreen = ({ navigation }: any) => {
           const playerWon = newGameScore.team1 >= newGameScore.team2;
           // Delay transition to game-end so the 4th card remains visible
           setTimeout(() => {
+            isPlayingCardRef.current = false;
             setGameState(prev => ({
               ...prev,
               players: updatedPlayers,
@@ -295,6 +306,7 @@ const BlotScreen = ({ navigation }: any) => {
 
         // Start new round — delay so the 4th card remains visible first
         setTimeout(() => {
+          isPlayingCardRef.current = false;
           const newDealer = (gameState.dealer + 1) % 4;
           const { players: dealtPlayers, proposalCard } =
             dealCards(updatedPlayers);
@@ -324,6 +336,7 @@ const BlotScreen = ({ navigation }: any) => {
       // Next trick — winner leads
       const runningScore = calculateRunningScore(completedTricks, updatedPlayers, gameState.trump);
       setTimeout(() => {
+        isPlayingCardRef.current = false;
         setGameState(prev => ({
           ...prev,
           players: updatedPlayers,
@@ -343,10 +356,13 @@ const BlotScreen = ({ navigation }: any) => {
         currentPlayer: nextPlayer,
         currentTrick: updatedTrick,
       }));
+      // Reset flag after state update
+      isPlayingCardRef.current = false;
     }
   };
 
   const startNewGame = () => {
+    isPlayingCardRef.current = false;
     setGameState(initializeGame());
   };
 
