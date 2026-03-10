@@ -383,7 +383,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
       const aiIdx = activePlayerIndex; // Capture the index
       const timer = setTimeout(() => {
         simulateAIMove(aiIdx);
-      }, 1000);
+      }, isMultiplayer ? 1000 : 300);
       return () => clearTimeout(timer);
     }
   }, [activePlayerIndex, gamePhase, players.length]);
@@ -670,7 +670,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
         setTimeout(() => {
           console.log('Triggering AI move for player', nextIndex);
           simulateAIMove(nextIndex);
-        }, 1000);
+        }, isMultiplayer ? 1000 : 300);
       }
     }
   };
@@ -743,7 +743,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
     // Move to next player after a short delay to allow state updates
     setTimeout(() => {
       moveToNextPlayer(updatedPlayers);
-    }, 500);
+    }, isMultiplayer ? 500 : 200);
   };
 
   const advanceGamePhase = (currentPlayers: Player[]) => {
@@ -796,7 +796,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
     if (activeIdx !== playerIndex) {
       setTimeout(() => {
         simulateAIMove(activeIdx);
-      }, 1500);
+      }, isMultiplayer ? 1500 : 500);
     }
   };
 
