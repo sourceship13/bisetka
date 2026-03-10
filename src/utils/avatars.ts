@@ -9,14 +9,13 @@ export interface AvatarOption {
 
 const AVATARS: AvatarOption[] = [
   // Men
-  {key: 'man-base-gray', label: 'Classic', source: require('../../assets/avatars/men/white-base/man-base-gray.png'), category: 'men'},
-  {key: 'man-suited-gray', label: 'Suited', source: require('../../assets/avatars/men/white-base/man-suited-gray.png'), category: 'men'},
-  {key: 'man-curly-gray', label: 'Curly', source: require('../../assets/avatars/men/white-base/man-curly-gray.png'), category: 'men'},
-  {key: 'man-leather-jacket-gray', label: 'Leather Jacket', source: require('../../assets/avatars/men/white-base/man-leather-jacket-gray.png'), category: 'men'},
-  {key: 'man-bald-gray', label: 'Bald', source: require('../../assets/avatars/men/white-base/man-bald-gray.png'), category: 'men'},
-  {key: 'man-muscular-gray', label: 'Muscular', source: require('../../assets/avatars/men/white-base/man-muscular-gray.png'), category: 'men'},
-  {key: 'man-tattoo-gray', label: 'Tattoo', source: require('../../assets/avatars/men/white-base/man-tattoo-gray.png'), category: 'men'},
-  {key: 'man-older-gray', label: 'Older', source: require('../../assets/avatars/men/white-base/man-older-gray.png'), category: 'men'},
+  {key: 'man-suit-white', label: 'Suited', source: require('../../assets/avatars/men/white-base/man-suit-white.png'), category: 'men'},
+  {key: 'man-bald-white', label: 'Bald', source: require('../../assets/avatars/men/white-base/man-bald-white.png'), category: 'men'},
+  {key: 'man-muscle-white', label: 'Muscular', source: require('../../assets/avatars/men/white-base/man-muscle-white.png'), category: 'men'},
+  {key: 'man-tattoo-white', label: 'Tattoo', source: require('../../assets/avatars/men/white-base/man-tattoo-white.png'), category: 'men'},
+  {key: 'man-older-white', label: 'Older', source: require('../../assets/avatars/men/white-base/man-older-white.png'), category: 'men'},
+  {key: 'man-beard-white', label: 'Beard', source: require('../../assets/avatars/men/white-base/man-beard-white.png'), category: 'men'},
+  {key: 'man-jacket-white', label: 'Jacket', source: require('../../assets/avatars/men/white-base/man-jacket-white.png'), category: 'men'},
   // Women
   {key: 'woman-base-gray', label: 'Classic', source: require('../../assets/avatars/women/white-base/woman-base-gray.png'), category: 'women'},
   {key: 'woman-short-hair-gray', label: 'Short Hair', source: require('../../assets/avatars/women/white-base/woman-short-hair-gray.png'), category: 'women'},
