@@ -79,6 +79,8 @@
 			<string>com.nolimit.bisetka</string>
 		</dict>
 	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>Bisetka may need access to your camera for profile photos and in-game features.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Bisetka uses your microphone for voice chat with your opponent during games.</string>
 </dict>
