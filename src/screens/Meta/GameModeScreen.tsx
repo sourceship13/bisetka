@@ -131,6 +131,27 @@ const GameModeScreen: React.FC<Props> = ({route, navigation}) => {
       return;
     }
 
+    // Use navigation.reset instead of navigation.replace.
+    // replace does an in-place route swap that causes Fabric to unmount the
+    // current screen's views and mount the new screen's views in a single
+    // RCTMountingManager transaction.  RCTComponentViewRegistry asserts when
+    // recycled views are still marked as mounted ("Attempt to recycle a mounted
+    // view").  reset() rebuilds the entire navigation state, which
+    // react-native-screens handles by creating a fresh native stack — avoiding
+    // the view-recycling collision entirely.
+    const buildReset = (name: string, params?: object) => {
+      const state = navigation.getState();
+      const prevRoutes = (state?.routes || []).slice(0, -1).map(r => ({
+        name: r.name,
+        params: r.params,
+      })) as any[];
+      const routes = [...prevRoutes, {name, ...(params ? {params} : {})}];
+      return {
+        index: Math.max(0, routes.length - 1),
+        routes,
+      };
+    };
+
     // Build session data with team mode for team games
     const sessionData = {
       ...result,
@@ -142,10 +163,9 @@ const GameModeScreen: React.FC<Props> = ({route, navigation}) => {
     };
 
     // Navigate to the appropriate screen
-    // Use replace to avoid double back navigation
     switch (screenName) {
       case 'BilliardsGame':
-        navigation.replace('BilliardsGame', {session: sessionData});
+        navigation.reset(buildReset('BilliardsGame', {session: sessionData}));
         break;
       case 'PokerRoom': {
         const fn: any = user?.fullName;
@@ -156,87 +176,87 @@ const GameModeScreen: React.FC<Props> = ({route, navigation}) => {
             : (user as any)?.username || (user as any)?.email || 'Guest';
         // When allowReplaceAI is on, route as 'random' so it uses multiplayer socket path
         const pokerMode = (mode === 'ai' && allowReplaceAI) ? 'random' : mode;
-        navigation.replace('PokerRoom', {
+        navigation.reset(buildReset('PokerRoom', {
           session: { ...sessionData, userId: user?.id || 'guest', displayName: resolvedName },
           gameType: gameType as any,
           mode: pokerMode,
           joinCode: sessionData.code,
-        } as any);
+        }));
         break;
       }
       case 'Checkers':
-        navigation.replace('Checkers', {session: sessionData, mode: mode} as any);
+        navigation.reset(buildReset('Checkers', {session: sessionData, mode: mode}));
         break;
       case 'MultiplayerCheckers':
-        navigation.replace('MultiplayerCheckers' as any, {
+        navigation.reset(buildReset('MultiplayerCheckers', {
           userId: user?.id || 'guest',
           mode: mode,
           joinCode: sessionData.code,
-        });
+        }));
         break;
       case 'Mrotsi':
-        navigation.replace('Mrotsi', {session: sessionData, gameType: gameType, mode: mode} as any);
+        navigation.reset(buildReset('Mrotsi', {session: sessionData, gameType: gameType, mode: mode}));
         break;
       case 'Chess':
-        navigation.replace('Chess' as any);
+        navigation.reset(buildReset('Chess'));
         break;
       case 'MultiplayerChess':
-        navigation.replace('MultiplayerChess' as any, {
+        navigation.reset(buildReset('MultiplayerChess', {
           userId: user?.id || 'guest',
           mode: mode,
           joinCode: sessionData.code,
-        });
+        }));
         break;
       case 'MultiplayerMrotsi':
-        navigation.replace('MultiplayerMrotsi' as any, {
+        navigation.reset(buildReset('MultiplayerMrotsi', {
           userId: user?.id || 'guest',
           mode: mode,
           joinCode: sessionData.code,
-        });
+        }));
         break;
       case 'Nardi':
-        navigation.replace('Nardi' as any, {
+        navigation.reset(buildReset('Nardi', {
           session: sessionData,
           mode: mode,
-        });
+        }));
         break;
       case 'Blot':
         if (mode === 'ai' && !allowReplaceAI) {
-          navigation.replace('Blot' as any);
+          navigation.reset(buildReset('Blot'));
         } else {
-          navigation.replace('MultiplayerBlot' as any, {
+          navigation.reset(buildReset('MultiplayerBlot', {
             userId: user?.id || 'guest',
             mode: mode === 'ai' ? 'random' : mode,
             difficulty: sessionData.difficulty || 'medium',
             joinCode: sessionData.code,
             teamMode: teamMode,
             allowReplaceAI: allowReplaceAI || undefined,
-          });
+          }));
         }
         break;
       case 'BaazarBlot':
         if (mode === 'ai' && !allowReplaceAI) {
-          navigation.replace('BaazarBlot' as any, {
+          navigation.reset(buildReset('BaazarBlot', {
             userId: user?.id || 'guest',
             mode: mode,
             difficulty: sessionData.difficulty || 'medium',
-          });
+          }));
         } else {
-          navigation.replace('MultiplayerBaazarBlot' as any, {
+          navigation.reset(buildReset('MultiplayerBaazarBlot', {
             userId: user?.id || 'guest',
             mode: mode === 'ai' ? 'random' : mode,
             joinCode: sessionData.code,
             teamMode: teamMode,
             allowReplaceAI: allowReplaceAI || undefined,
-          });
+          }));
         }
         break;
       default:
         // Fallback to SessionStatus for games that need matchmaking UI
-        navigation.replace('SessionStatus', {
+        navigation.reset(buildReset('SessionStatus', {
           gameType,
           session: sessionData,
-        });
+        }));
     }
   };
 
@@ -261,15 +281,26 @@ const GameModeScreen: React.FC<Props> = ({route, navigation}) => {
     mode: SessionMode,
     action: () => Promise<any>,
   ) => {
+    let successResult: {mode: SessionMode; result: any} | null = null;
     try {
       setLoading(prev => ({...prev, [key]: true}));
       const result = await action();
-      handleSuccess(mode, result);
+      successResult = {mode, result};
     } catch (error: any) {
       const title = mode === 'private-join' ? 'Unable to join game' : 'Unable to start game';
       BisetkaAlert.error(title, error?.message || 'Unexpected error. Please try again.');
     } finally {
       setLoading(prev => ({...prev, [key]: false}));
+    }
+    // Navigate AFTER loading state is cleared — prevents setState on an
+    // unmounting screen which crashes Fabric's native view recycling.
+    // Use setTimeout so the async batching completes before unmounting!
+    if (successResult) {
+      setTimeout(() => {
+        if (successResult) {
+          handleSuccess(successResult.mode, successResult.result);
+        }
+      }, 10);
     }
   };
 
