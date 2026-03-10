@@ -20,6 +20,9 @@ import {iOSUIKit} from 'react-native-typography';
 import {colors} from '../../../theme';
 import packageJson from '../../../../package.json';
 import {useNavigation, DrawerActions} from '@react-navigation/native';
+import OnlinePlayersList from '../../../components/OnlinePlayersList';
+import { socketService } from '../../../services/SocketService';
+import tokenService from '../../../services/token.service';
 
 const bisetkaBackground = require('../../../../assets/backgrounds/bisetka.png');
 
@@ -173,6 +176,38 @@ const HomeScreen = ({navigation}: any) => {
     );
   }, []);
 
+  // Connect to Socket.IO for presence tracking
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const connectSocket = async () => {
+      try {
+        const token = await tokenService.getAccessToken() || 'temp-token';
+        if (!socketService.isConnected()) {
+          await socketService.connect(user.id, token);
+          console.log('✅ Socket connected for presence tracking');
+        }
+      } catch (error) {
+        console.warn('Failed to connect socket for presence:', error);
+      }
+    };
+
+    connectSocket();
+
+    // Heartbeat: Update presence every 5 minutes to stay online
+    const heartbeat = setInterval(() => {
+      if (socketService.isConnected()) {
+        socketService.getSocket()?.emit('presence_heartbeat', { userId: user.id });
+      }
+    }, 5 * 60 * 1000); // 5 minutes
+
+    return () => {
+      clearInterval(heartbeat);
+    };
+    // Note: We don't disconnect on unmount because the socket should remain 
+    // connected while the app is open to track online presence
+  }, [user?.id]);
+
   const handleGamePress = (game: GameConfig) => {
     // Navigate to GameInfo screen first to show rules and points
     navigation.navigate('GameInfo', {
@@ -319,7 +354,6 @@ const HomeScreen = ({navigation}: any) => {
             </LinearGradient>
           </TouchableOpacity>
         </View>
-
         {/* Section Title */}
         <TouchableOpacity 
           onPress={() => navigation.navigate('GameSelection')}
@@ -333,6 +367,15 @@ const HomeScreen = ({navigation}: any) => {
             <Text style={styles.sectionArrow}>→</Text>
           </View>
         </TouchableOpacity>
+
+        {/* Online Players */}
+        <View style={styles.onlinePlayersContainer}>
+          <View style={styles.onlinePlayersHeader}>
+            <Text style={styles.onlinePlayersTitle}>🟢 Online Players</Text>
+          </View>
+          <OnlinePlayersList maxPlayers={20} />
+        </View>
+       
 
         {/* Footer */}
         <View style={styles.footer}>
@@ -517,6 +560,23 @@ const styles = StyleSheet.create({
     fontSize: 24,
     color: '#fff',
     fontWeight: '700',
+  },
+  onlinePlayersContainer: {
+    marginHorizontal: 16,
+    marginTop: 16,
+    marginBottom: 12,
+  },
+  onlinePlayersHeader: {
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginBottom: 8,
+  },
+  onlinePlayersTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#fff',
   },
   sectionHeadWrapper: {
     marginHorizontal: 16,

@@ -20,6 +20,7 @@ import pushNotificationService from '../../services/pushNotification.service';
 import apiService from '../../services/api.service';
 import {colors} from '../../theme/colors';
 import {useAuth} from '../../libs/hooks/useAuth';
+import AVATARS, { resolveAvatar } from '../../utils/avatars';
 
 const BisetkaLogo = require('../../../assets/imgs/bisetka-logo.png');
 
@@ -33,6 +34,7 @@ interface Slide {
   gradient: [string, string];
   isNotificationSlide?: boolean;
   isUsernameSlide?: boolean;
+  isAvatarSlide?: boolean;
 }
 
 const BASE_SLIDES: Slide[] = [
@@ -80,6 +82,15 @@ const USERNAME_SLIDE: Slide = {
   isUsernameSlide: true,
 };
 
+const AVATAR_SLIDE: Slide = {
+  id: '6',
+  title: 'Pick Your Avatar',
+  description: 'Choose an avatar to represent you in the game.',
+  emoji: '🎭',
+  gradient: ['#fa709a', '#fee140'],
+  isAvatarSlide: true,
+};
+
 const ONBOARDING_COMPLETE_KEY = '@bisetka_onboarding_complete';
 
 const OnboardingScreen: React.FC<{navigation: any; route?: any}> = ({navigation}) => {
@@ -93,7 +104,9 @@ const OnboardingScreen: React.FC<{navigation: any; route?: any}> = ({navigation}
     user?.username?.includes('undefined') ||
     user?.username?.startsWith('user_')
   );
-  const slides = needsUsernameSelection ? [...BASE_SLIDES, USERNAME_SLIDE] : BASE_SLIDES;
+  const slides = needsUsernameSelection 
+    ? [...BASE_SLIDES, USERNAME_SLIDE, AVATAR_SLIDE] 
+    : BASE_SLIDES;
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [notificationStatus, setNotificationStatus] = useState<'pending' | 'granted' | 'denied' | 'blocked'>('pending');
@@ -104,6 +117,9 @@ const OnboardingScreen: React.FC<{navigation: any; route?: any}> = ({navigation}
   const [available, setAvailable] = useState<boolean | null>(null);
   const [usernameMessage, setUsernameMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  
+  // Avatar slide state
+  const [selectedAvatar, setSelectedAvatar] = useState<string | null>(null);
 
   const flatListRef = useRef<FlatList>(null);
   const scrollX = useRef(new Animated.Value(0)).current;
@@ -133,6 +149,12 @@ const OnboardingScreen: React.FC<{navigation: any; route?: any}> = ({navigation}
   }, [username, needsUsernameSelection]);
 
   const handleNext = () => {
+    // If on username slide, don't allow advancing without a valid username
+    const currentSlide = slides[currentIndex];
+    if (currentSlide?.isUsernameSlide && !available) {
+      return;
+    }
+    
     if (currentIndex < slides.length - 1) {
       flatListRef.current?.scrollToIndex({
         index: currentIndex + 1,
@@ -168,13 +190,17 @@ const OnboardingScreen: React.FC<{navigation: any; route?: any}> = ({navigation}
   const handleGetStarted = async () => {
     if (needsUsernameSelection) {
       if (!available) return;
+      if (!selectedAvatar) return; // Must select avatar
       try {
         setSubmitting(true);
+        // Update username
         const response = await apiService.updateUsername(username);
-        const updatedUser = {...response.user, needsUsernameSelection: false};
+        // Update avatar
+        await apiService.updateAvatar(selectedAvatar);
+        const updatedUser = {...response.user, needsUsernameSelection: false, avatar_url: selectedAvatar};
         setUser(updatedUser);
       } catch (error: any) {
-        setUsernameMessage(error.message || 'Failed to set username. Try again.');
+        setUsernameMessage(error.message || 'Failed to save profile. Try again.');
         setAvailable(false);
         setSubmitting(false);
         return;
@@ -307,6 +333,42 @@ const OnboardingScreen: React.FC<{navigation: any; route?: any}> = ({navigation}
             </Text>
           </View>
         )}
+
+        {/* Avatar selection on avatar slide */}
+        {item.isAvatarSlide && (
+          <View style={slideStyles.avatarContainer}>
+            <FlatList
+              data={AVATARS}
+              numColumns={3}
+              keyExtractor={(avatar) => avatar.key}
+              contentContainerStyle={slideStyles.avatarGrid}
+              renderItem={({item: avatar}) => (
+                <TouchableOpacity
+                  style={[
+                    slideStyles.avatarOption,
+                    selectedAvatar === avatar.key && slideStyles.avatarOptionSelected,
+                  ]}
+                  onPress={() => setSelectedAvatar(avatar.key)}
+                  activeOpacity={0.7}>
+                  <Image
+                    source={avatar.source}
+                    style={slideStyles.avatarImage}
+                  />
+                  {selectedAvatar === avatar.key && (
+                    <View style={slideStyles.avatarCheckmark}>
+                      <Text style={slideStyles.avatarCheckmarkText}>✓</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              )}
+            />
+            {!selectedAvatar && (
+              <Text style={slideStyles.avatarHint}>
+                Choose an avatar to continue
+              </Text>
+            )}
+          </View>
+        )}
       </View>
     </KeyboardAvoidingView>
   );
@@ -382,8 +444,8 @@ const OnboardingScreen: React.FC<{navigation: any; route?: any}> = ({navigation}
             <TouchableOpacity
               onPress={handleGetStarted}
               activeOpacity={0.8}
-              disabled={submitting || (needsUsernameSelection && !available)}
-              style={{opacity: submitting || (needsUsernameSelection && !available) ? 0.5 : 1}}>
+              disabled={submitting || (needsUsernameSelection && (!available || !selectedAvatar))}
+              style={{opacity: submitting || (needsUsernameSelection && (!available || !selectedAvatar)) ? 0.5 : 1}}>
               <LinearGradient
                 colors={[colors.primary, colors.primaryDark]}
                 style={slideStyles.button}>
@@ -392,7 +454,7 @@ const OnboardingScreen: React.FC<{navigation: any; route?: any}> = ({navigation}
                 ) : (
                   <>
                     <Text style={slideStyles.buttonText}>
-                      {needsUsernameSelection ? 'Set Username & Start' : 'Get Started'}
+                      {needsUsernameSelection ? 'Complete Profile' : 'Get Started'}
                     </Text>
                     <Text style={{fontSize: 18, color: '#fff'}}>→</Text>
                   </>
@@ -400,10 +462,14 @@ const OnboardingScreen: React.FC<{navigation: any; route?: any}> = ({navigation}
               </LinearGradient>
             </TouchableOpacity>
           ) : (
-            <TouchableOpacity onPress={handleNext} activeOpacity={0.8} style={{flex:1}}>
+            <TouchableOpacity 
+              onPress={handleNext} 
+              activeOpacity={0.8} 
+              style={{flex:1}}
+              disabled={slides[currentIndex]?.isUsernameSlide && !available}>
               <LinearGradient
                 colors={[colors.primary, colors.primaryDark]}
-                style={slideStyles.button}>
+                style={[slideStyles.button, slides[currentIndex]?.isUsernameSlide && !available && {opacity: 0.5}]}>
                 <Text style={slideStyles.buttonText}>Next</Text>
                 <Text style={{fontSize: 18, color: '#fff'}}>→</Text>
               </LinearGradient>
@@ -574,6 +640,58 @@ const slideStyles = StyleSheet.create({
     color: colors.text.tertiary,
     marginTop: 6,
     marginLeft: 4,
+  },
+  avatarContainer: {
+    marginTop: 28,
+    width: '100%',
+    alignItems: 'center',
+  },
+  avatarGrid: {
+    paddingHorizontal: 8,
+  },
+  avatarOption: {
+    width: (screenWidth - 80) / 3,
+    aspectRatio: 1,
+    margin: 6,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.25)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  avatarOptionSelected: {
+    borderColor: colors.primary,
+    borderWidth: 3,
+    backgroundColor: 'rgba(79,172,254,0.2)',
+  },
+  avatarImage: {
+    width: '80%',
+    height: '80%',
+    resizeMode: 'contain',
+  },
+  avatarCheckmark: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarCheckmarkText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  avatarHint: {
+    fontSize: 12,
+    color: colors.text.tertiary,
+    marginTop: 12,
+    textAlign: 'center',
   },
 });
 
