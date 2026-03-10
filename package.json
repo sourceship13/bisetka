@@ -8,7 +8,8 @@
     "ios:physical": "react-native run-ios --device 'Alpha iPhone'",
     "lint": "eslint .",
     "start": "react-native start",
-    "test": "jest"
+    "test": "jest",
+    "bootsplash:generate": "npx react-native-bootsplash generate --background=#0f0c29 --logo-width=88 assets/bootsplash/logo.png && node scripts/restore-bootsplash-fullscreen.js"
   },
   "dependencies": {
     "@invertase/react-native-apple-authentication": "^2.5.1",

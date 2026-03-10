@@ -8,7 +8,11 @@ const { withSentryConfig } = require('@sentry/react-native/metro');
  *
  * @type {import('@react-native/metro-config').MetroConfig}
  */
-const config = {};
+const config = {
+  server: {
+    experimentalDebuggerFrontend: false,
+  },
+};
 
 module.exports = withSentryConfig(
   mergeConfig(getDefaultConfig(__dirname), config),
