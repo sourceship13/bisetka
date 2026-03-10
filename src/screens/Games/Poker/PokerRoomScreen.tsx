@@ -1,5 +1,5 @@
 import React, {useState, useEffect, useRef, useCallback} from 'react';
-import {View, Text, StyleSheet, TouchableOpacity, ScrollView, ImageBackground, ActivityIndicator, Clipboard, TextInput} from 'react-native';
+import {View, Text, StyleSheet, TouchableOpacity, ScrollView, ImageBackground, ActivityIndicator, Clipboard, TextInput, Animated} from 'react-native';
 import { Snackbar } from 'react-native-paper';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -122,6 +122,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
   // In multiplayer, playerIndex is mySeat (assigned by server); in AI mode it's always 0
   const [playerIndex] = useState(0); // used only in AI mode; overridden in multiplayer via computed value below
   const [winSnackbar, setWinSnackbar] = useState<WinSnackbar>({visible: false, message: ''});
+  const [showConfetti, setShowConfetti] = useState(false);
   const [roomName, setRoomName] = useState('Multiplayer Poker');
   const [editingRoomName, setEditingRoomName] = useState(false);
   const [draftRoomName, setDraftRoomName] = useState('');
@@ -132,6 +133,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
   const myPlayerIndex = isMultiplayer ? mySeatRef.current : playerIndex;
   const lastResetTimeRef = useRef(0);
   const lastActivePlayerRef = useRef(-1);
+  const lastPhaseRef = useRef<GamePhase>('waiting');
   const aiMoveTriggeredRef = useRef(false);
   // Refs to hold current state for avoiding stale closures in AI moves
   const playersRef = useRef<Player[]>([]);
@@ -274,13 +276,19 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
         socketService.onPokerHandResult((data) => {
           if (!mounted) return;
           applyServerState(data);
-          if (data.isYourWin) {
-            setWinSnackbar({ visible: true, message: `🎉 You won $${data.potAmount}!` });
-          }
-          BisetkaAlert.success(
-            data.isYourWin ? '🎉 You Won!' : `${data.winnerName} Won`,
-            `${data.winnerName} wins $${data.potAmount}!`
-          );
+          
+          // Show winner notification for everyone with confetti
+          const winnerMessage = data.isYourWin 
+            ? `🎉 You won $${data.potAmount}!` 
+            : `${data.winnerName} wins $${data.potAmount}!`;
+          setWinSnackbar({ visible: true, message: winnerMessage });
+          setShowConfetti(true);
+          
+          // Auto-dismiss after 2 seconds
+          setTimeout(() => {
+            setWinSnackbar({visible: false, message: ''});
+            setShowConfetti(false);
+          }, 2000);
         });
 
         socketService.onPokerTurnTimeout((data) => {
@@ -365,8 +373,17 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
     if (gamePhase === 'waiting' || gamePhase === 'showdown') return;
     if (players.length === 0) return;
     
-    // Only reset if active player actually changed
-    if (lastActivePlayerRef.current === activePlayerIndex) {
+    // If phase changed, reset tracking so AI can be triggered in new betting round
+    const phaseChanged = lastPhaseRef.current !== gamePhase;
+    if (phaseChanged) {
+      console.log('Phase changed from', lastPhaseRef.current, 'to', gamePhase);
+      lastPhaseRef.current = gamePhase;
+      lastActivePlayerRef.current = -1; // Reset so AI triggers even if same player
+      aiMoveTriggeredRef.current = false;
+    }
+    
+    // Only reset if active player actually changed (unless phase just changed)
+    if (!phaseChanged && lastActivePlayerRef.current === activePlayerIndex) {
       return;
     }
     
@@ -377,13 +394,15 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
     lastActivePlayerRef.current = activePlayerIndex;
     aiMoveTriggeredRef.current = false;
     
-    // Trigger AI move if not human player - simulateAIMove now uses refs to avoid stale closures
-    if (activePlayerIndex !== playerIndex && !aiMoveTriggeredRef.current) {
+    // Trigger AI move if not human player
+    if (activePlayerIndex !== playerIndex && !aiMoveTriggeredRef.current && !isMultiplayer) {
       aiMoveTriggeredRef.current = true;
-      const aiIdx = activePlayerIndex; // Capture the index
+      const aiIdx = activePlayerIndex;
+      // Fast AI moves like multiplayer server (300-800ms)
+      const aiDelay = 300 + Math.random() * 500;
       const timer = setTimeout(() => {
         simulateAIMove(aiIdx);
-      }, isMultiplayer ? 1000 : 300);
+      }, aiDelay);
       return () => clearTimeout(timer);
     }
   }, [activePlayerIndex, gamePhase, players.length]);
@@ -639,18 +658,20 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
         }).catch((err: unknown) => console.warn('Failed to log poker hand:', err));
       }
       
-      if (winner.id === playerIndex) {
-        setWinSnackbar({visible: true, message: `🎉 You won $${pot}!`});
-      }
-      BisetkaAlert.success('Winner!', `${winner.name} wins $${pot}!`, [
-        {
-          text: 'Next Hand',
-          onPress: () => {
-            setPot(0);
-            startNewHand(updatedPlayers);
-          }
-        }
-      ]);
+      // Show winner notification for everyone with confetti
+      const winnerMessage = winner.id === playerIndex 
+        ? `🎉 You won $${pot}!` 
+        : `${winner.name} wins $${pot}!`;
+      setWinSnackbar({visible: true, message: winnerMessage});
+      setShowConfetti(true);
+      
+      // Auto-dismiss and start next hand after 2 seconds
+      setTimeout(() => {
+        setWinSnackbar({visible: false, message: ''});
+        setShowConfetti(false);
+        setPot(0);
+        startNewHand(updatedPlayers);
+      }, 2000);
       return;
     }
     
@@ -665,12 +686,13 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
       
       console.log('Next player active:', nextIndex, updatedPlayers[nextIndex].name);
       
-      // Simulate AI moves for other players
-      if (nextIndex !== playerIndex) {
+      // Trigger AI move for next player if AI
+      if (nextIndex !== playerIndex && !isMultiplayer) {
+        // Fast AI moves like multiplayer server (300-800ms)
+        const aiDelay = 300 + Math.random() * 500;
         setTimeout(() => {
-          console.log('Triggering AI move for player', nextIndex);
           simulateAIMove(nextIndex);
-        }, isMultiplayer ? 1000 : 300);
+        }, aiDelay);
       }
     }
   };
@@ -691,24 +713,23 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
     let potIncrease = 0;
     let aiAction: { playerId: number; action: string; amount?: number };
     
-    // AI is less likely to fold - only 8% chance
-    // More conservative play to reach showdown more often
-    if (random < 0.08) {
-      // Fold (8% chance)
+    // Realistic poker AI behavior like human players:
+    // 30% fold, 60% call/check, 10% raise
+    if (random < 0.30) {
+      // Fold (30% chance) - like normal poker players
       updatedPlayers[aiPlayerIndex].folded = true;
       updatedPlayers[aiPlayerIndex].hasActed = true;
-      updatedPlayers[aiPlayerIndex].cards = []; // Clear cards on fold
       aiAction = { playerId: aiPlayerIndex, action: 'fold' };
-    } else if (random < 0.75) {
-      // Call (67% chance)
+    } else if (random < 0.90) {
+      // Call/Check (60% chance)
       const callAmount = betAmount - aiPlayer.currentBet;
       updatedPlayers[aiPlayerIndex].chips -= callAmount;
       updatedPlayers[aiPlayerIndex].currentBet = betAmount;
       updatedPlayers[aiPlayerIndex].hasActed = true;
       potIncrease = callAmount;
-      aiAction = { playerId: aiPlayerIndex, action: 'call', amount: callAmount };
+      aiAction = { playerId: aiPlayerIndex, action: callAmount === 0 ? 'check' : 'call', amount: callAmount };
     } else {
-      // Raise (25% chance)
+      // Raise (10% chance)
       const raiseAmount = betAmount + 20;
       const totalAmount = raiseAmount - aiPlayer.currentBet;
       updatedPlayers[aiPlayerIndex].chips -= totalAmount;
@@ -740,10 +761,12 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
       setCurrentBet(newCurrentBet);
     }
     
-    // Move to next player after a short delay to allow state updates
-    setTimeout(() => {
+    // Move to next player immediately in single-player (state updates are synchronous)
+    if (isMultiplayer) {
+      setTimeout(() => moveToNextPlayer(updatedPlayers), 500);
+    } else {
       moveToNextPlayer(updatedPlayers);
-    }, isMultiplayer ? 500 : 200);
+    }
   };
 
   const advanceGamePhase = (currentPlayers: Player[]) => {
@@ -793,11 +816,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
     setActivePlayerIndex(activeIdx);
     setPlayers(updatedPlayers);
     
-    if (activeIdx !== playerIndex) {
-      setTimeout(() => {
-        simulateAIMove(activeIdx);
-      }, isMultiplayer ? 1500 : 500);
-    }
+    // Trigger AI move if needed (useEffect hook will handle this with proper timing)
   };
 
   const determineWinner = (currentPlayers: Player[]) => {
@@ -825,10 +844,19 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
         }).catch((err: unknown) => console.warn('Failed to log poker hand:', err));
       }
       
-      if (winner.id === playerIndex) {
-        setWinSnackbar({visible: true, message: `🎉 You won ${pot} chips!`});
-      }
-      BisetkaAlert.success('Winner!', `${winner.name} wins ${pot} chips!`);
+      // Show winner notification for everyone with confetti
+      const winnerMessage = winner.id === playerIndex 
+        ? `🎉 You won ${pot} chips!` 
+        : `${winner.name} wins ${pot} chips!`;
+      setWinSnackbar({visible: true, message: winnerMessage});
+      setShowConfetti(true);
+      
+      // Auto-dismiss after 2 seconds
+      setTimeout(() => {
+        setWinSnackbar({visible: false, message: ''});
+        setShowConfetti(false);
+      }, 2000);
+      
       const updatedPlayers = [...currentPlayers];
       const winnerIndex = updatedPlayers.findIndex(p => p.id === winner.id);
       updatedPlayers[winnerIndex].chips += pot;
@@ -857,16 +885,67 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
         }).catch((err: unknown) => console.warn('Failed to log poker hand:', err));
       }
       
-      if (randomWinner.id === playerIndex) {
-        setWinSnackbar({visible: true, message: `🎉 You won ${pot} chips at showdown!`});
-      }
-      BisetkaAlert.success('Winner!', `${randomWinner.name} wins ${pot} chips at showdown!`);
+      // Show winner notification for everyone with confetti
+      const winnerMessage = randomWinner.id === playerIndex 
+        ? `🎉 You won ${pot} chips at showdown!` 
+        : `${randomWinner.name} wins ${pot} chips at showdown!`;
+      setWinSnackbar({visible: true, message: winnerMessage});
+      setShowConfetti(true);
+      
+      // Auto-dismiss after 2 seconds
+      setTimeout(() => {
+        setWinSnackbar({visible: false, message: ''});
+        setShowConfetti(false);
+      }, 2000);
+      
       const updatedPlayers = [...currentPlayers];
       const winnerIndex = updatedPlayers.findIndex(p => p.id === randomWinner.id);
       updatedPlayers[winnerIndex].chips += pot;
       setPlayers(updatedPlayers);
       setPot(0);
     }
+  };
+
+  // Simple confetti animation component
+  const ConfettiPiece = ({ delay }: { delay: number }) => {
+    const animValue = useRef(new Animated.Value(0)).current;
+    const leftPosition = useRef(Math.random() * 100).current;
+
+    useEffect(() => {
+      Animated.timing(animValue, {
+        toValue: 1,
+        duration: 2000,
+        delay,
+        useNativeDriver: true,
+      }).start();
+    }, [animValue, delay]);
+
+    const translateY = animValue.interpolate({
+      inputRange: [0, 1],
+      outputRange: [-50, 800],
+    });
+
+    const rotate = animValue.interpolate({
+      inputRange: [0, 1],
+      outputRange: ['0deg', '360deg'],
+    });
+
+    const confettiEmojis = ['🎉', '🎊', '✨', '💫', '⭐', '🌟'];
+    const emoji = confettiEmojis[Math.floor(Math.random() * confettiEmojis.length)];
+
+    return (
+      <Animated.Text
+        style={{
+          position: 'absolute',
+          left: `${leftPosition}%`,
+          top: 0,
+          fontSize: 24,
+          transform: [{ translateY }, { rotate }],
+        }}
+      >
+        {emoji}
+      </Animated.Text>
+    );
   };
 
   const renderCard = (card: Card, hidden = false) => {
@@ -922,7 +1001,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
           {player.currentBet > 0 && (
             <Text style={styles.playerBet}>Bet: ${player.currentBet}</Text>
           )}
-          {player.isActive && gamePhase !== 'waiting' && gamePhase !== 'showdown' && (
+          {player.isActive && gamePhase !== 'waiting' && gamePhase !== 'showdown' && (isCurrentPlayer || isMultiplayer) && (
             <PlayerTurnTimer
               key={`turn-${activePlayerIndex}-${player.id}`}
               onExpire={() => {
@@ -1156,7 +1235,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
       <Snackbar
         visible={winSnackbar.visible}
         onDismiss={() => setWinSnackbar({visible: false, message: ''})}
-        duration={3500}
+        duration={2000}
         style={styles.winSnackbar}
         action={{
           label: 'Nice!',
@@ -1166,6 +1245,14 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
         <Text style={styles.winSnackbarText}>{winSnackbar.message}</Text>
       </Snackbar>
 
+      {/* Confetti animation */}
+      {showConfetti && (
+        <View style={StyleSheet.absoluteFill} pointerEvents="none">
+          {Array.from({ length: 20 }).map((_, i) => (
+            <ConfettiPiece key={i} delay={i * 100} />
+          ))}
+        </View>
+      )}
 
     </SafeAreaView>
     </ImageBackground>
