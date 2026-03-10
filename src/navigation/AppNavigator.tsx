@@ -5,7 +5,8 @@ import {createDrawerNavigator} from '@react-navigation/drawer';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import LoginScreen from '../screens/Meta/LoginScreen';
-import HomeScreen from '../screens/Meta/HomeScreen';
+import HomeScreen from '../screens/Meta/Home/HomeScreen';
+import GameSelectionScreen from '../screens/Meta/Home/GameSelectionScreen';
 import OnboardingScreen from '../screens/Meta/OnboardingScreen';
 import {ONBOARDING_COMPLETE_KEY} from '../screens/Meta/OnboardingScreen';
 import UsernameSelectionScreen from '../screens/Meta/UsernameSelectionScreen';
@@ -46,6 +47,7 @@ export type RootStackParamList = {
   UsernameSelection: undefined;
   Onboarding: undefined;
   Home: undefined;
+  GameSelection: undefined;
   Blot: undefined;
   MultiplayerBlot: { userId: string; mode?: 'ai' | 'menu' | 'private-create' | 'private-join' | 'random'; difficulty?: 'easy' | 'medium' | 'hard'; joinCode?: string };
   BaazarBlot: undefined;
@@ -104,6 +106,7 @@ const linking: LinkingOptions<RootStackParamList> = {
       UsernameSelection: 'username-selection',
       Onboarding: 'onboarding',
       Home: 'home',
+      GameSelection: 'game-selection',
       Blot: 'blot',
       MultiplayerBlot: {
         path: 'multiplayer-blot/:userId',
@@ -233,6 +236,7 @@ const AppNavigator = () => {
                 />
               )}
               <Stack.Screen name="Home" component={HomeDrawerScreen} />
+              <Stack.Screen name="GameSelection" component={GameSelectionScreen} />
               <Stack.Screen name="Blot" component={BlotScreen} />
               <Stack.Screen name="MultiplayerBlot" component={MultiplayerBlotScreen} />
               <Stack.Screen name="BaazarBlot" component={BaazarBlotScreen} />
