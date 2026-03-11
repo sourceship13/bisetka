@@ -8,8 +8,10 @@ import {
   ActivityIndicator,
   Modal,
   ImageBackground,
+  Image,
   Dimensions,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -112,6 +114,17 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
   const [showRoomNameModal, setShowRoomNameModal] = useState(false);
   const [showCustomization, setShowCustomization] = useState(false);
   const [customTheme, setCustomTheme] = useState<CardTheme | undefined>(undefined);
+  const [showBackground, setShowBackground] = useState(true);
+  const [showBlur, setShowBlur] = useState(true);
+
+  // Load saved theme from storage on mount
+  useEffect(() => {
+    AsyncStorage.getItem('blot_card_theme').then((stored) => {
+      if (stored) {
+        try { setCustomTheme(JSON.parse(stored)); } catch {}
+      }
+    });
+  }, []);
   const roomNameRef = useRef(roomName);
   useEffect(() => { roomNameRef.current = roomName; }, [roomName]);
 
@@ -675,8 +688,17 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
   };
 
   const handleSaveTheme = (theme: CardTheme) => {
-    setCustomTheme(theme);
-    console.log('Saved custom theme:', theme);
+    const urls = [theme.boardImage, theme.backgroundImage].filter(Boolean) as string[];
+    if (urls.length > 0) {
+      Promise.all(urls.map(url => Image.prefetch(url).catch(() => {})))
+        .then(() => {
+          setCustomTheme({...theme});
+          AsyncStorage.setItem('blot_card_theme', JSON.stringify(theme));
+        });
+    } else {
+      setCustomTheme({...theme});
+      AsyncStorage.setItem('blot_card_theme', JSON.stringify(theme));
+    }
   };
 
   // Room name listener — registered after socket connects (inside mp setup)
@@ -1050,8 +1072,9 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
               { width: TABLE_SIZE, height: TABLE_SIZE },
             ]}
           >
+            {showBackground ? (
             <ImageBackground
-              source={require('../../../../assets/blot/card-table.png')}
+              source={customTheme?.boardImage ? { uri: customTheme.boardImage } : require('../../../../assets/blot/card-table.png')}
               style={styles.cardTable}
               imageStyle={{ borderRadius: 16 }}
             >
@@ -1083,6 +1106,35 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
                 </View>
               )}
             </ImageBackground>
+            ) : (
+            <View style={styles.cardTable}>
+              <View style={styles.trickArea}>
+                <View style={[styles.cardPlaceholder, styles.trickSlotTop]} />
+                <View style={[styles.cardPlaceholder, styles.trickSlotBottom]} />
+              </View>
+              {localGameState.currentTrick.length > 0 && (
+                <View style={styles.trickArea}>
+                  {localGameState.currentTrick.map((card, idx) => {
+                    const isBottom = idx === localGameState.currentTrick.length - 1;
+                    return (
+                      <View
+                        key={idx}
+                        style={[
+                          styles.trickSlot,
+                          isBottom ? styles.trickSlotBottom : styles.trickSlotTop,
+                        ]}
+                      >
+                        <Text style={styles.trickPlayerName}>
+                          {isBottom ? 'You' : 'Computer'}
+                        </Text>
+                        {renderCard(card, idx, true)}
+                      </View>
+                    );
+                  })}
+                </View>
+              )}
+            </View>
+            )}
           </View>
         </View>
 
@@ -1206,8 +1258,9 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
                   { width: TABLE_SIZE, height: TABLE_SIZE },
                 ]}
               >
+                {showBackground ? (
                 <ImageBackground
-                  source={require('../../../../assets/blot/card-table.png')}
+                  source={customTheme?.boardImage ? { uri: customTheme.boardImage } : require('../../../../assets/blot/card-table.png')}
                   style={styles.cardTable}
                   imageStyle={{ borderRadius: 16 }}
                 >
@@ -1224,15 +1277,12 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
                       {gameState.currentTrick.map((card: any, index: number) => {
                         let slotStyle;
                         if (is4P) {
-                          // Position relative to this player: 0=me, 1=right opp, 2=partner top, 3=left opp
                           const rel = ((card.position as number) - playerPosition! + 4) % 4;
                           if (rel === 0) slotStyle = styles.trickSlotBottom;
                           else if (rel === 2) slotStyle = styles.trickSlotTop;
                           else if (rel === 1) slotStyle = styles.trickSlotRight;
                           else slotStyle = styles.trickSlotLeft;
                         } else if (card.seat) {
-                          // Seat-based positioning (handles CPU replacement correctly)
-                          // Seats around table: player1=0, cpuWhite=1, player2=2, cpuBlack=3
                           const SEAT_IDX: Record<string, number> = { player1: 0, cpuWhite: 1, player2: 2, cpuBlack: 3 };
                           const mySeat = myCpuRole
                             ? myCpuRole
@@ -1243,7 +1293,6 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
                           else if (rel === 2) slotStyle = styles.trickSlotTop;
                           else slotStyle = styles.trickSlotRight;
                         } else {
-                          // Fallback: 2+CPU mode without seat info
                           const isMyCard   = card.color === playerColor;
                           const isHumanCard = card.isHuman !== false;
                           if (isMyCard && isHumanCard)        slotStyle = styles.trickSlotBottom;
@@ -1260,6 +1309,52 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
                     </View>
                   )}
                 </ImageBackground>
+                ) : (
+                <View style={styles.cardTable}>
+                  <View style={styles.trickArea}>
+                    <View style={[styles.cardPlaceholder, styles.trickSlotTop]} />
+                    <View style={[styles.cardPlaceholder, styles.trickSlotBottom]} />
+                    <View style={[styles.cardPlaceholder, styles.trickSlotLeft]} />
+                    <View style={[styles.cardPlaceholder, styles.trickSlotRight]} />
+                  </View>
+                  {gameState?.currentTrick && gameState.currentTrick.length > 0 && (
+                    <View style={styles.trickArea}>
+                      {gameState.currentTrick.map((card: any, index: number) => {
+                        let slotStyle;
+                        if (is4P) {
+                          const rel = ((card.position as number) - playerPosition! + 4) % 4;
+                          if (rel === 0) slotStyle = styles.trickSlotBottom;
+                          else if (rel === 2) slotStyle = styles.trickSlotTop;
+                          else if (rel === 1) slotStyle = styles.trickSlotRight;
+                          else slotStyle = styles.trickSlotLeft;
+                        } else if (card.seat) {
+                          const SEAT_IDX: Record<string, number> = { player1: 0, cpuWhite: 1, player2: 2, cpuBlack: 3 };
+                          const mySeat = myCpuRole
+                            ? myCpuRole
+                            : (playerColor === 'white' ? 'player1' : 'player2');
+                          const rel = (SEAT_IDX[card.seat] - SEAT_IDX[mySeat] + 4) % 4;
+                          if (rel === 0) slotStyle = styles.trickSlotBottom;
+                          else if (rel === 1) slotStyle = styles.trickSlotLeft;
+                          else if (rel === 2) slotStyle = styles.trickSlotTop;
+                          else slotStyle = styles.trickSlotRight;
+                        } else {
+                          const isMyCard   = card.color === playerColor;
+                          const isHumanCard = card.isHuman !== false;
+                          if (isMyCard && isHumanCard)        slotStyle = styles.trickSlotBottom;
+                          else if (!isMyCard && isHumanCard)  slotStyle = styles.trickSlotTop;
+                          else if (isMyCard && !isHumanCard)  slotStyle = styles.trickSlotLeft;
+                          else                                slotStyle = styles.trickSlotRight;
+                        }
+                        return (
+                          <View key={index} style={[styles.trickSlot, slotStyle]}>
+                            {renderCard(card, index, true)}
+                          </View>
+                        );
+                      })}
+                    </View>
+                  )}
+                </View>
+                )}
               </View>
             </View>
 
@@ -1307,9 +1402,9 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
     <ImageBackground
       source={require('../../../../assets/blot/park-background.png')}
       style={styles.container}
-      blurRadius={3}>
+      blurRadius={showBlur ? 3 : 0}>
       <LinearGradient
-        colors={['rgba(15,15,35,0.7)', 'rgba(26,23,66,0.6)']}
+        colors={showBlur ? ['rgba(15,15,35,0.7)', 'rgba(26,23,66,0.6)'] : ['transparent', 'transparent']}
         style={styles.overlay}>
         <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right']}>
       {(gameMode === 'game' || gameMode === 'local') && (
@@ -1325,6 +1420,20 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
                 style={styles.editRoomButton}
               >
                 <Text style={styles.editRoomIcon}>🎨</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setShowBlur(!showBlur)}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                style={styles.editRoomButton}
+              >
+                <Text style={styles.editRoomIcon}>{showBlur ? '🌫️' : '✨'}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setShowBackground(!showBackground)}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                style={styles.editRoomButton}
+              >
+                <Text style={styles.editRoomIcon}>{showBackground ? '🖼️' : '🔲'}</Text>
               </TouchableOpacity>
               <RoomInfoDrawer roomId={currentRoom?.roomId ?? null} />
               <TouchableOpacity 
@@ -1423,12 +1532,14 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
       />
 
       {/* Card Customization Modal */}
-      <CardCustomizationModal
-        visible={showCustomization}
-        onClose={() => setShowCustomization(false)}
-        onSave={handleSaveTheme}
-        currentTheme={customTheme}
-      />
+      {showCustomization && (
+        <CardCustomizationModal
+          visible={showCustomization}
+          onClose={() => setShowCustomization(false)}
+          onSave={handleSaveTheme}
+          currentTheme={customTheme}
+        />
+      )}
         </SafeAreaView>
       </LinearGradient>
     </ImageBackground>
