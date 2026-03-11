@@ -55,6 +55,8 @@ const BlotScreen = ({ navigation }: any) => {
   const [customTheme, setCustomTheme] = useState<CardTheme | undefined>(
     undefined,
   );
+  const [showBackground, setShowBackground] = useState(true);
+  const [showBlur, setShowBlur] = useState(true);
   const { refreshOnGameEnd } = useGameEndRefresh(undefined, 'blot');
   const isPlayingCardRef = useRef(false);
 
@@ -486,10 +488,12 @@ const BlotScreen = ({ navigation }: any) => {
         </Text>
         <TouchableOpacity
           style={styles.newGameButton}
-          onPress={startNewGame}
+          onPress={() => setShowBackground(!showBackground)}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <Text style={styles.newGameButtonText}>New Game</Text>
+          <Text style={styles.newGameButtonText}>
+            {showBackground ? '🖼️ Hide Board' : '🖼️ Show Board'}
+          </Text>
         </TouchableOpacity>
       </View>
     );
@@ -559,10 +563,10 @@ const BlotScreen = ({ navigation }: any) => {
     <ImageBackground
       source={require('../../../../assets/blot/park-background.png')}
       style={styles.container}
-      blurRadius={3}
+      blurRadius={showBlur ? 3 : 0}
     >
       <LinearGradient
-        colors={['rgba(15,15,35,0.7)', 'rgba(26,23,66,0.6)']}
+        colors={showBlur ? ['rgba(15,15,35,0.7)', 'rgba(26,23,66,0.6)'] : ['transparent', 'transparent']}
         style={styles.overlay}
       >
         <SafeAreaView style={[styles.safeArea,]}>
@@ -581,10 +585,20 @@ const BlotScreen = ({ navigation }: any) => {
                   <Text style={styles.customizeText}>🎨</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  onPress={startNewGame}
+                  onPress={() => setShowBlur(!showBlur)}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
-                  <Text style={styles.newGameText}>New Game</Text>
+                  <Text style={styles.newGameText}>
+                    {showBlur ? '🌫️' : '✨'}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => setShowBackground(!showBackground)}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Text style={styles.newGameText}>
+                    {showBackground ? '🖼️' : '�'}
+                  </Text>
                 </TouchableOpacity>
               </View>
             }
@@ -654,13 +668,14 @@ const BlotScreen = ({ navigation }: any) => {
                     { width: TABLE_SIZE, height: TABLE_SIZE },
                   ]}
                 >
-                  <ImageBackground
-                    source={require('../../../../assets/blot/card-table.png')}
-                    style={styles.cardTable}
-                    imageStyle={{ borderRadius: 16 }}
-                  >
-                    {/* Card placement placeholders - always visible */}
-                    <View style={styles.trickArea}>
+                  {showBackground ? (
+                    <ImageBackground
+                      source={require('../../../../assets/blot/card-table.png')}
+                      style={styles.cardTable}
+                      imageStyle={{ borderRadius: 16 }}
+                    >
+                      {/* Card placement placeholders - always visible */}
+                      <View style={styles.trickArea}>
                       <View style={[styles.cardPlaceholder, styles.trickSlotTop]} />
                       <View style={[styles.cardPlaceholder, styles.trickSlotBottom]} />
                       <View style={[styles.cardPlaceholder, styles.trickSlotLeft]} />
@@ -703,7 +718,55 @@ const BlotScreen = ({ navigation }: any) => {
                           </View>
                         );
                       })()}
-                  </ImageBackground>
+                    </ImageBackground>
+                  ) : (
+                    <View style={styles.cardTable}>
+                      {/* Card placement placeholders - always visible */}
+                      <View style={styles.trickArea}>
+                        <View style={[styles.cardPlaceholder, styles.trickSlotTop]} />
+                        <View style={[styles.cardPlaceholder, styles.trickSlotBottom]} />
+                        <View style={[styles.cardPlaceholder, styles.trickSlotLeft]} />
+                        <View style={[styles.cardPlaceholder, styles.trickSlotRight]} />
+                      </View>
+                      
+                      {gameState.currentTrick.cards.length > 0 && (() => {
+                          const ledSuit = gameState.currentTrick.cards[0].card.suit;
+                          // Map player IDs to visual table positions
+                          // Player 0 = bottom, 1 = right, 2 = top, 3 = left
+                          const positionStyle: Record<number, object> = {
+                            0: styles.trickSlotBottom,
+                            1: styles.trickSlotRight,
+                            2: styles.trickSlotTop,
+                            3: styles.trickSlotLeft,
+                          };
+                          return (
+                            <View style={styles.trickArea}>
+                              {/* Led suit indicator in the center */}
+                              <View style={styles.ledSuitBadge}>
+                                <Text style={[styles.ledSuitIcon, { color: SUIT_COLOR[ledSuit] }]}>
+                                  {SUIT_ICON[ledSuit]}
+                                </Text>
+                                <Text style={styles.ledSuitLabel}>
+                                  Led: {SUIT_NAME[ledSuit]}
+                                </Text>
+                              </View>
+                              {/* Cards positioned at table edges */}
+                              {gameState.currentTrick.cards.map((cardPlay, idx) => (
+                                <View
+                                  key={idx}
+                                  style={[
+                                    styles.trickSlot,
+                                    positionStyle[cardPlay.playerId] ?? styles.trickSlotTop,
+                                  ]}
+                                >
+                                  {renderCard(cardPlay.card, idx, true)}
+                                </View>
+                              ))}
+                            </View>
+                          );
+                        })()}
+                    </View>
+                  )}
                 </View>
               </View>
 
