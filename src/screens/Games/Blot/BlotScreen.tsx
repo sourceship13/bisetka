@@ -510,12 +510,10 @@ const BlotScreen = ({ navigation }: any) => {
         </Text>
         <TouchableOpacity
           style={styles.newGameButton}
-          onPress={() => setShowBackground(!showBackground)}
+          onPress={startNewGame}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <Text style={styles.newGameButtonText}>
-            {showBackground ? '🖼️ Hide Board' : '🖼️ Show Board'}
-          </Text>
+          <Text style={styles.newGameButtonText}>🃏 New Game</Text>
         </TouchableOpacity>
       </View>
     );
