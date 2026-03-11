@@ -174,18 +174,23 @@ export const canPlayCard = (
   currentTrick: Trick,
   trump: Suit | null,
 ): boolean => {
+  // Safety check: if card is invalid, it cannot be played
+  if (!card || !card.suit || !card.rank) return false;
+
   if (currentTrick.cards.length === 0) return true;
 
+  // Filter out any undefined/null cards defensively
+  const validHand = hand.filter(c => c && c.suit && c.rank);
   const leadSuit = currentTrick.cards[0].card.suit;
-  const hasLead = hand.some(c => c.suit === leadSuit);
+  const hasLead = validHand.some(c => c.suit === leadSuit);
 
   if (leadSuit !== trump) {
     if (hasLead) return card.suit === leadSuit;
     // No lead suit — must over-trump if possible
-    const trumpCards = hand.filter(c => c.suit === trump);
+    const trumpCards = validHand.filter(c => c.suit === trump);
     if (trumpCards.length > 0) {
       const trumpsInTrick = currentTrick.cards
-        .filter(p => p.card.suit === trump)
+        .filter(p => p && p.card && p.card.suit === trump)
         .map(p => getCardStrength(p.card, trump));
       const bestTrump = trumpsInTrick.length > 0 ? Math.min(...trumpsInTrick) : 999;
       const canBeat = trumpCards.some(c => getCardStrength(c, trump) < bestTrump);
@@ -197,10 +202,10 @@ export const canPlayCard = (
 
   // Lead is trump: must follow trump AND over-trump if possible
   const trumpsInTrick = currentTrick.cards
-    .filter(p => p.card.suit === trump)
+    .filter(p => p && p.card && p.card.suit === trump)
     .map(p => getCardStrength(p.card, trump));
   const currentBest = trumpsInTrick.length > 0 ? Math.min(...trumpsInTrick) : 999;
-  const canBeat = hand.some(c => c.suit === trump && getCardStrength(c, trump) < currentBest);
+  const canBeat = validHand.some(c => c.suit === trump && getCardStrength(c, trump) < currentBest);
   if (canBeat) return card.suit === trump && getCardStrength(card, trump) < currentBest;
   return card.suit === trump;
 };
@@ -446,20 +451,37 @@ export const chooseAICard = (
   trump: Suit | null,
   players: Player[],
 ): CardType => {
-  const hand = player.hand;
+  // Filter out any invalid cards first
+  const hand = player.hand.filter(c => c && c.suit && c.rank);
+  
+  // Safety: if no valid cards, return first available card
+  if (hand.length === 0) {
+    console.warn('AI has no valid cards in hand');
+    return player.hand[0] || { suit: 'hearts', rank: 'A', id: 'fallback' };
+  }
+  
   const legal = hand.filter(c => canPlayCard(c, hand, currentTrick, trump));
+  
+  // If no legal moves, just play first card (shouldn't happen)
+  if (legal.length === 0) {
+    console.warn('AI has no legal cards, playing first card');
+    return hand[0];
+  }
+  
   if (legal.length === 1) return legal[0];
 
   const teammate = isTeammateWinning(currentTrick, player.id, players, trump);
 
   if (teammate) {
-    return legal.sort((a, b) => getCardPoints(a, trump) - getCardPoints(b, trump))[0];
+    const sorted = legal.sort((a, b) => getCardPoints(a, trump) - getCardPoints(b, trump));
+    return sorted[0] || legal[0];
   }
 
   if (currentTrick.cards.length === 0) {
     const nonTrump = legal.filter(c => c.suit !== trump);
     const pool = nonTrump.length > 0 ? nonTrump : legal;
-    return pool.sort((a, b) => getCardStrength(a, trump) - getCardStrength(b, trump))[0];
+    const sorted = pool.sort((a, b) => getCardStrength(a, trump) - getCardStrength(b, trump));
+    return sorted[0] || legal[0];
   }
 
   const leadSuit = currentTrick.cards[0].card.suit;
@@ -484,9 +506,12 @@ export const chooseAICard = (
   });
 
   if (winning.length > 0) {
-    return winning.sort((a, b) => getCardPoints(a, trump) - getCardPoints(b, trump))[0];
+    const sorted = winning.sort((a, b) => getCardPoints(a, trump) - getCardPoints(b, trump));
+    return sorted[0] || legal[0];
   }
-  return legal.sort((a, b) => getCardPoints(a, trump) - getCardPoints(b, trump))[0];
+  
+  const sorted = legal.sort((a, b) => getCardPoints(a, trump) - getCardPoints(b, trump));
+  return sorted[0] || legal[0];
 };
 
 /**
