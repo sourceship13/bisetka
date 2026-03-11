@@ -12,10 +12,6 @@ import {
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import {
-  generateCardBackground as apiGenerateBackground,
-  generateCardBack as apiGenerateCardBack,
-} from '../../services/cardImageGeneration.service';
-import {
   generateChessPieceSet,
   generateCheckersPieceSet,
   generateGameBoard,
@@ -25,6 +21,7 @@ import {
 } from '../../services/pieceImageGeneration.service';
 import { PRESET_THEMES, PRESET_CARD_BACKS, FONT_PREVIEWS } from '../../data/cardPresets';
 import { BisetkaAlert } from '../../utils/BisetkaAlert';
+import apiService from '../../services/api.service';
 
 // ─── Card types ───────────────────────────────────────────────────────────────
 
@@ -34,6 +31,7 @@ export interface CardTheme {
   id: string;
   name: string;
   backgroundImage?: string;
+  boardImage?: string;
   cardBackImage?: string;
   font: CardFont;
   createdAt: number;
@@ -108,10 +106,16 @@ const GameCustomizationModal: React.FC<CardCustomizationModalProps> = ({
   // ── Card state ────────────────────────────────────────────────────────────
   const [themeName,           setThemeName]           = useState(currentTheme?.name || '');
   const [backgroundPrompt,    setBackgroundPrompt]    = useState('');
+  const [boardBackgroundPrompt,    setBoardBackgroundPrompt]    = useState('');
   const [cardBackPrompt,      setCardBackPrompt]      = useState('');
   const [selectedFont,        setSelectedFont]        = useState<CardFont>(currentTheme?.font || 'classic');
-  const [generatedBackground, setGeneratedBackground] = useState<string | null>(currentTheme?.backgroundImage || null);
-  const [generatedCardBack,   setGeneratedCardBack]   = useState<string | null>(currentTheme?.cardBackImage   || null);
+  const [generatedBoardBg,    setGeneratedBoardBg]    = useState<string | null>(null);
+  const [savedBoardBg,        setSavedBoardBg]        = useState<string | null>(currentTheme?.boardImage || null);
+  const [generatedBackground, setGeneratedBackground] = useState<string | null>(null);
+  const [savedBackground,     setSavedBackground]     = useState<string | null>(currentTheme?.backgroundImage || null);
+  const [generatedCardBack,   setGeneratedCardBack]   = useState<string | null>(null);
+  const [savedCardBack,       setSavedCardBack]       = useState<string | null>(currentTheme?.cardBackImage   || null);
+  const [isGeneratingBoardBg, setIsGeneratingBoardBg] = useState(false);
   const [isGeneratingBg,      setIsGeneratingBg]      = useState(false);
   const [isGeneratingBack,    setIsGeneratingBack]    = useState(false);
 
@@ -134,37 +138,53 @@ const GameCustomizationModal: React.FC<CardCustomizationModalProps> = ({
     if (!backgroundPrompt.trim()) { BisetkaAlert.error('Error', 'Please enter a background theme prompt'); return; }
     setIsGeneratingBg(true);
     try {
-      const result = await apiGenerateBackground(backgroundPrompt);
+      const result = await apiService.generateCardFaceBackground(backgroundPrompt);
       setGeneratedBackground(result.url);
-      BisetkaAlert.success('Success', 'Background generated!');
     } catch {
       BisetkaAlert.error('Error', 'Failed to generate background. Please try again.');
     } finally { setIsGeneratingBg(false); }
+  };
+  
+  const generateBoardBackground = async () => {
+    if (!boardBackgroundPrompt.trim()) { BisetkaAlert.error('Error', 'Please enter a board background prompt'); return; }
+    setIsGeneratingBoardBg(true);
+    try {
+      const result = await apiService.generateBoardBackground(boardBackgroundPrompt);
+      setGeneratedBoardBg(result.url);
+    } catch {
+      BisetkaAlert.error('Error', 'Failed to generate board background. Please try again.');
+    } finally { setIsGeneratingBoardBg(false); }
   };
 
   const generateCardBack = async () => {
     if (!cardBackPrompt.trim()) { BisetkaAlert.error('Error', 'Please enter a card back design prompt'); return; }
     setIsGeneratingBack(true);
     try {
-      const result = await apiGenerateCardBack(cardBackPrompt);
+      const result = await apiService.generateCardBackDesign(cardBackPrompt);
       setGeneratedCardBack(result.url);
-      BisetkaAlert.success('Success', 'Card back generated!');
     } catch {
       BisetkaAlert.error('Error', 'Failed to generate card back. Please try again.');
     } finally { setIsGeneratingBack(false); }
   };
 
-  const handleSave = () => {
-    if (!themeName.trim()) { BisetkaAlert.error('Error', 'Please enter a theme name'); return; }
+  // Auto-save helper: pushes current state to the game immediately
+  const autoSave = (overrides: Partial<CardTheme> = {}) => {
     const theme: CardTheme = {
       id: currentTheme?.id || `theme_${Date.now()}`,
-      name: themeName,
-      backgroundImage: generatedBackground || undefined,
-      cardBackImage:   generatedCardBack   || undefined,
+      name: themeName || currentTheme?.name || 'Custom Theme',
+      backgroundImage: savedBackground || generatedBackground || undefined,
+      boardImage: savedBoardBg || generatedBoardBg || undefined,
+      cardBackImage: savedCardBack || generatedCardBack || undefined,
       font: selectedFont,
       createdAt: Date.now(),
+      ...overrides,
     };
     onSave(theme);
+  };
+
+  const handleSave = () => {
+    if (!themeName.trim()) { BisetkaAlert.error('Error', 'Please enter a theme name'); return; }
+    autoSave();
     onClose();
   };
 
@@ -269,18 +289,20 @@ const GameCustomizationModal: React.FC<CardCustomizationModalProps> = ({
                         setThemeName(preset.name);
                         setSelectedFont(preset.font);
                         if (preset.backgroundImage != null) {
-                          setGeneratedBackground(
+                          setSavedBackground(
                             typeof preset.backgroundImage === 'string'
                               ? preset.backgroundImage
                               : Image.resolveAssetSource(preset.backgroundImage).uri
                           );
+                          setGeneratedBackground(null);
                         }
                         if (preset.cardBackImage != null) {
-                          setGeneratedCardBack(
+                          setSavedCardBack(
                             typeof preset.cardBackImage === 'string'
                               ? preset.cardBackImage
                               : Image.resolveAssetSource(preset.cardBackImage).uri
                           );
+                          setGeneratedCardBack(null);
                         }
                       }}>
                       {preset.backgroundImage != null && (
@@ -311,6 +333,55 @@ const GameCustomizationModal: React.FC<CardCustomizationModalProps> = ({
 
               {/* Background Texture */}
               <View style={styles.section}>
+                <Text style={styles.label}>Board Image</Text>
+                <Text style={styles.sublabel}>Type in a description for the board image and we will generate a few options for you to pick from</Text>
+                <TextInput
+                  style={[styles.input, styles.textArea]}
+                  placeholder="e.g. Neon city lights at night, cyberpunk aesthetic"
+                  placeholderTextColor="#888"
+                  value={boardBackgroundPrompt}
+                  onChangeText={setBoardBackgroundPrompt}
+                  multiline
+                  numberOfLines={3}
+                />
+                <TouchableOpacity
+                  style={styles.generateButton}
+                  onPress={generateBoardBackground}
+                  disabled={isGeneratingBoardBg}>
+                  {isGeneratingBoardBg ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <Text style={styles.generateButtonText}>🎨 Generate Board Background</Text>
+                  )}
+                </TouchableOpacity>
+                {generatedBoardBg && (
+                  <View style={styles.preview}>
+                    <Image source={{ uri: generatedBoardBg }} style={styles.previewImage} />
+                    <Text style={styles.previewLabel}>Preview</Text>
+                    <View style={styles.previewActions}>
+                      <TouchableOpacity
+                        style={styles.acceptButton}
+                        onPress={() => { setSavedBoardBg(generatedBoardBg); setGeneratedBoardBg(null); autoSave({ boardImage: generatedBoardBg! }); }}>
+                        <Text style={styles.acceptButtonText}>✓ Use This</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.regenerateButton}
+                        onPress={generateBoardBackground}
+                        disabled={isGeneratingBoardBg}>
+                        <Text style={styles.regenerateButtonText}>↻ Regenerate</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                )}
+                {!generatedBoardBg && savedBoardBg && (
+                  <View style={styles.preview}>
+                    <Image source={{ uri: savedBoardBg }} style={styles.previewImage} />
+                    <Text style={styles.savedLabel}>✓ Saved</Text>
+                  </View>
+                )}
+              </View>
+
+               <View style={styles.section}>
                 <Text style={styles.label}>Card Face Background</Text>
                 <Text style={styles.sublabel}>This texture will appear on all 52 card faces</Text>
                 <TextInput
@@ -335,7 +406,26 @@ const GameCustomizationModal: React.FC<CardCustomizationModalProps> = ({
                 {generatedBackground && (
                   <View style={styles.preview}>
                     <Image source={{ uri: generatedBackground }} style={styles.previewImage} />
-                    <Text style={styles.previewLabel}>Card Face Background</Text>
+                    <Text style={styles.previewLabel}>Preview</Text>
+                    <View style={styles.previewActions}>
+                      <TouchableOpacity
+                        style={styles.acceptButton}
+                        onPress={() => { setSavedBackground(generatedBackground); setGeneratedBackground(null); autoSave({ backgroundImage: generatedBackground! }); }}>
+                        <Text style={styles.acceptButtonText}>✓ Use This</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.regenerateButton}
+                        onPress={generateBackground}
+                        disabled={isGeneratingBg}>
+                        <Text style={styles.regenerateButtonText}>↻ Regenerate</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                )}
+                {!generatedBackground && savedBackground && (
+                  <View style={styles.preview}>
+                    <Image source={{ uri: savedBackground }} style={styles.previewImage} />
+                    <Text style={styles.savedLabel}>✓ Saved</Text>
                   </View>
                 )}
               </View>
@@ -366,7 +456,26 @@ const GameCustomizationModal: React.FC<CardCustomizationModalProps> = ({
                 {generatedCardBack && (
                   <View style={styles.preview}>
                     <Image source={{ uri: generatedCardBack }} style={styles.previewImageBack} />
-                    <Text style={styles.previewLabel}>Face-Down Card</Text>
+                    <Text style={styles.previewLabel}>Preview</Text>
+                    <View style={styles.previewActions}>
+                      <TouchableOpacity
+                        style={styles.acceptButton}
+                        onPress={() => { setSavedCardBack(generatedCardBack); setGeneratedCardBack(null); autoSave({ cardBackImage: generatedCardBack! }); }}>
+                        <Text style={styles.acceptButtonText}>✓ Use This</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.regenerateButton}
+                        onPress={generateCardBack}
+                        disabled={isGeneratingBack}>
+                        <Text style={styles.regenerateButtonText}>↻ Regenerate</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                )}
+                {!generatedCardBack && savedCardBack && (
+                  <View style={styles.preview}>
+                    <Image source={{ uri: savedCardBack }} style={styles.previewImageBack} />
+                    <Text style={styles.savedLabel}>✓ Saved</Text>
                   </View>
                 )}
                 
@@ -378,7 +487,8 @@ const GameCustomizationModal: React.FC<CardCustomizationModalProps> = ({
                       key={back.id}
                       style={styles.cardBackPreset}
                       onPress={() => {
-                        setGeneratedCardBack(Image.resolveAssetSource(back.image).uri);
+                        setSavedCardBack(Image.resolveAssetSource(back.image).uri);
+                        setGeneratedCardBack(null);
                       }}>
                       <Image 
                         source={back.image} 
@@ -719,6 +829,42 @@ const styles = StyleSheet.create({
     color: '#aaa',
     marginTop: 8,
     textAlign: 'center',
+  },
+  savedLabel: {
+    fontSize: 13,
+    color: '#10b981',
+    marginTop: 8,
+    textAlign: 'center',
+    fontWeight: '700',
+  },
+  previewActions: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 12,
+  },
+  acceptButton: {
+    backgroundColor: '#10b981',
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+  },
+  acceptButtonText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  regenerateButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  regenerateButtonText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '700',
   },
   infoBox: {
     backgroundColor: 'rgba(99, 102, 241, 0.15)',
