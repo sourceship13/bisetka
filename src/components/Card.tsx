@@ -9,6 +9,8 @@ export interface CardType {
   suit: Suit;
   rank: Rank;
   id: string;
+  value: number;
+  trumpValue: number;
 }
 
 interface CardProps {
