@@ -81,12 +81,19 @@ export const getCardRank = getCardStrength;
 // Create and shuffle the 24-card Armenian Blot deck (9–Ace only)
 export const createDeck = (): CardType[] => {
   const suits: Suit[] = ['hearts', 'diamonds', 'clubs', 'spades'];
-  const ranks: Rank[] = ['9', '10', 'J', 'Q', 'K', 'A'];
+  const ranks: { rank: Rank; value: number; trumpValue: number }[] = [
+    { rank: '9',  value: 0,  trumpValue: 14 },
+    { rank: '10', value: 10, trumpValue: 10 },
+    { rank: 'J',  value: 2,  trumpValue: 20 },
+    { rank: 'Q',  value: 3,  trumpValue: 3  },
+    { rank: 'K',  value: 4,  trumpValue: 4  },
+    { rank: 'A',  value: 11, trumpValue: 11 },
+  ];
   const deck: CardType[] = [];
 
   suits.forEach(suit => {
-    ranks.forEach(rank => {
-      deck.push({ suit, rank, id: `${suit}-${rank}` });
+    ranks.forEach(({ rank, value, trumpValue }) => {
+      deck.push({ suit, rank, id: `${suit}-${rank}`, value, trumpValue });
     });
   });
 
