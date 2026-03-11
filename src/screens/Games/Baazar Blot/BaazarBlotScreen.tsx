@@ -52,6 +52,9 @@ const BaazarBlotScreen = ({ navigation }: any) => {
   const [customTheme, setCustomTheme] = useState<CardTheme | undefined>(undefined);
   const [pendingBidLevel, setPendingBidLevel] = useState<BidLevel>(9);
   const [pendingBidSuit, setPendingBidSuit] = useState<Suit | null>(null);
+  const [isResolvingTrick, setIsResolvingTrick] = useState(false);
+  const resolutionInProgressRef = useRef(false);
+  const resolutionStartTimeRef = useRef<number>(0);
   const dealtHandsRef = useRef<{ team: 1 | 2; hand: CardType[] }[]>([]);
 
   const { refreshOnGameEnd } = useGameEndRefresh(undefined, 'baazar_blot');
@@ -125,18 +128,27 @@ const BaazarBlotScreen = ({ navigation }: any) => {
   useEffect(() => {
     if (!gameState || gameState.phase !== 'playing') return;
     if (gameState.currentPlayer === 0) return;
+    if (isResolvingTrick) return; // Don't play during trick resolution
 
     const timer = setTimeout(() => {
       setGameState(prev => {
         if (!prev || prev.phase !== 'playing' || prev.currentPlayer === 0) return prev;
         const player = prev.players[prev.currentPlayer];
+        
+        // Ensure player has valid cards
+        if (!player.hand || player.hand.length === 0) return prev;
+        
         const card = chooseAICard(player, prev.currentTrick, prev.trump, prev.players);
+        
+        // Ensure AI selected a valid card
+        if (!card || !card.suit || !card.rank) return prev;
+        
         return applyCardPlay(prev, prev.currentPlayer, card, dealtHandsRef.current);
       });
     }, 700);
 
     return () => clearTimeout(timer);
-  }, [gameState?.phase, gameState?.currentPlayer, gameState?.currentTrick]);
+  }, [gameState?.phase, gameState?.currentPlayer, gameState?.currentTrick, isResolvingTrick]);
 
   const applyCardPlay = (
     prev: BaazarGameState,
@@ -144,16 +156,27 @@ const BaazarBlotScreen = ({ navigation }: any) => {
     card: CardType,
     originalHands: { team: 1 | 2; hand: CardType[] }[],
   ): BaazarGameState => {
-    const newPlayers = prev.players.map(p =>
-      p.id === playerId
-        ? { ...p, hand: p.hand.filter(c => !(c.suit === card.suit && c.rank === card.rank)) }
-        : p,
-    );
+    const newPlayers = prev.players.map(p => {
+      // Clean up hand for all players to remove any undefined cards
+      const cleanHand = p.hand.filter(c => c && c.suit && c.rank);
+      
+      if (p.id === playerId) {
+        // Remove the played card from this player's hand
+        return { 
+          ...p, 
+          hand: cleanHand.filter(c => !(c.suit === card.suit && c.rank === card.rank))
+        };
+      }
+      
+      return { ...p, hand: cleanHand };
+    });
     const newTrick = {
       cards: [...prev.currentTrick.cards, { playerId, card }],
       winner: null as number | null,
     };
 
+    // When 4th card is played, keep it visible but don't resolve yet
+    // The useEffect will handle the delay and resolution
     if (newTrick.cards.length < TOTAL_PLAYERS) {
       return {
         ...prev,
@@ -163,16 +186,32 @@ const BaazarBlotScreen = ({ navigation }: any) => {
       };
     }
 
+    // 4th card played - show all cards but don't resolve yet
+    return {
+      ...prev,
+      players: newPlayers,
+      currentTrick: newTrick,
+      currentPlayer: (playerId + 1) % TOTAL_PLAYERS, // Will be overwritten after delay
+    };
+  };
+
+  // Resolve completed trick after delay
+  const resolveTrick = useCallback((
+    prev: BaazarGameState,
+    originalHands: { team: 1 | 2; hand: CardType[] }[],
+  ): BaazarGameState => {
+    if (prev.currentTrick.cards.length < TOTAL_PLAYERS) return prev;
+
+    const newTrick = prev.currentTrick;
     const leadSuit = newTrick.cards[0].card.suit;
     const winnerId = determineTrickWinner(newTrick, prev.trump, leadSuit);
     const completedTrick = { ...newTrick, winner: winnerId };
     const newCompleted = [...prev.completedTricks, completedTrick];
-    const runningScore = calculateRunningScore(newCompleted, newPlayers, prev.trump);
+    const runningScore = calculateRunningScore(newCompleted, prev.players, prev.trump);
 
     if (newCompleted.length < 8) {
       return {
         ...prev,
-        players: newPlayers,
         currentTrick: { cards: [], winner: null },
         completedTricks: newCompleted,
         lastTrickWinner: winnerId,
@@ -182,7 +221,7 @@ const BaazarBlotScreen = ({ navigation }: any) => {
     }
 
     const result = calculateBaazarRound(
-      newCompleted, newPlayers, prev.trump,
+      newCompleted, prev.players, prev.trump,
       prev.takerTeam, prev.currentBid,
       prev.contracted, prev.recontracted, prev.kapuyt,
       prev.beloteTeam, originalHands,
@@ -210,7 +249,6 @@ const BaazarBlotScreen = ({ navigation }: any) => {
 
     return {
       ...prev,
-      players: newPlayers,
       currentTrick: { cards: [], winner: null },
       completedTricks: newCompleted,
       lastTrickWinner: winnerId,
@@ -220,7 +258,59 @@ const BaazarBlotScreen = ({ navigation }: any) => {
       phase: gameOver ? 'gameEnd' : 'roundEnd',
       roundMessage: result.message,
     };
-  };
+  }, [refreshOnGameEnd]);
+
+  // Auto-resolve trick after 2-second delay when 4 cards are played
+  useEffect(() => {
+    if (!gameState || gameState.phase !== 'playing') return;
+    
+    // Safety check: if we're truly stuck (4 cards on board for more than 5 seconds), force reset
+    if (resolutionInProgressRef.current && gameState.currentTrick.cards.length === TOTAL_PLAYERS) {
+      const elapsed = Date.now() - resolutionStartTimeRef.current;
+      if (elapsed > 5000) {
+        console.warn('Resolution stuck, forcing trick resolution');
+        // Force the resolution to happen immediately
+        setGameState(prev => {
+          if (!prev || prev.phase !== 'playing') return prev;
+          return resolveTrick(prev, dealtHandsRef.current);
+        });
+        setTimeout(() => {
+          setIsResolvingTrick(false);
+          resolutionInProgressRef.current = false;
+        }, 500);
+        return;
+      }
+    }
+    
+    if (gameState.currentTrick.cards.length !== TOTAL_PLAYERS) return;
+    
+    // Prevent multiple simultaneous resolutions
+    if (resolutionInProgressRef.current) return;
+    
+    // Mark as resolving to prevent AI from playing immediately
+    resolutionInProgressRef.current = true;
+    resolutionStartTimeRef.current = Date.now();
+    setIsResolvingTrick(true);
+
+    const resolveTimer = setTimeout(() => {
+      setGameState(prev => {
+        if (!prev || prev.phase !== 'playing') return prev;
+        if (prev.currentTrick.cards.length !== TOTAL_PLAYERS) return prev;
+        return resolveTrick(prev, dealtHandsRef.current);
+      });
+      
+      // Allow next trick to start after a brief pause to show empty board
+      setTimeout(() => {
+        setIsResolvingTrick(false);
+        resolutionInProgressRef.current = false;
+      }, 500);
+    }, 2000); // 2 second delay
+
+    return () => {
+      clearTimeout(resolveTimer);
+      // Don't reset state here - let the timer complete naturally
+    };
+  }, [gameState?.currentTrick.cards.length, gameState?.phase, resolveTrick]);
 
   const handleBid = useCallback(() => {
     if (!pendingBidSuit) return;
@@ -321,13 +411,16 @@ const BaazarBlotScreen = ({ navigation }: any) => {
   }, []);
 
   const handlePlayCard = useCallback((card: CardType) => {
+    // Don't allow playing during trick resolution
+    if (isResolvingTrick) return;
+    
     setGameState(prev => {
       if (!prev || prev.phase !== 'playing' || prev.currentPlayer !== 0) return prev;
       const player = prev.players[0];
       if (!canPlayCard(card, player.hand, prev.currentTrick, prev.trump)) return prev;
       return applyCardPlay(prev, 0, card, dealtHandsRef.current);
     });
-  }, []);
+  }, [isResolvingTrick]);
 
   const handleNewRound = useCallback(() => {
     setGameState(prev => {
@@ -552,7 +645,9 @@ const BaazarBlotScreen = ({ navigation }: any) => {
                       </Text>
                     </View>
                     {/* Cards positioned at table edges */}
-                    {gameState.currentTrick.cards.map((cardPlay, idx) => (
+                    {gameState.currentTrick.cards
+                      .filter(cardPlay => cardPlay && cardPlay.card && cardPlay.card.suit)
+                      .map((cardPlay, idx) => (
                       <View
                         key={idx}
                         style={[
@@ -573,7 +668,7 @@ const BaazarBlotScreen = ({ navigation }: any) => {
         <View style={styles.handContainer}>
           <Text style={styles.handLabel}>Your Hand:</Text>
           <CardHandFan
-            cards={myPlayer.hand}
+            cards={myPlayer.hand.filter(c => c && c.suit && c.rank)}
             renderCard={(card, idx) => {
               const legal = canPlayCard(
                 card,
@@ -581,16 +676,17 @@ const BaazarBlotScreen = ({ navigation }: any) => {
                 gameState.currentTrick,
                 trump,
               );
-              const isMyTurn = gameState.currentPlayer === 0;
+              const isMyTurn = gameState.currentPlayer === 0 && !isResolvingTrick;
+              const canPlay = legal && isMyTurn;
               return (
                 <TouchableOpacity
                   key={`${card.suit}-${card.rank}-${idx}`}
-                  onPress={() => isMyTurn && handlePlayCard(card)}
+                  onPress={() => canPlay && handlePlayCard(card)}
                   style={[
                     styles.cardWrapper,
-                    !legal || !isMyTurn ? styles.cardDimmed : styles.cardLegal,
+                    !canPlay ? styles.cardDimmed : styles.cardLegal,
                   ]}
-                  disabled={!legal || !isMyTurn}
+                  disabled={!canPlay}
                 >
                   <DynamicCard card={card} theme={customTheme} size="medium" />
                 </TouchableOpacity>
