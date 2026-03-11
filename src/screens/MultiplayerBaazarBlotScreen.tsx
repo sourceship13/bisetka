@@ -436,9 +436,10 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
     <ImageBackground
       source={require('../../assets/blot/park-background.png')}
       style={styles.bg}
+      blurRadius={3}
       resizeMode="cover">
       <LinearGradient
-        colors={['rgba(0,0,0,0.55)', 'rgba(0,40,0,0.72)']}
+        colors={['rgba(15,15,35,0.7)', 'rgba(26,23,66,0.6)']}
         style={StyleSheet.absoluteFill}
       />
       <SafeAreaView style={styles.safe}>
@@ -473,9 +474,10 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
     <ImageBackground
       source={require('../../assets/blot/park-background.png')}
       style={styles.bg}
+      blurRadius={3}
       resizeMode="cover">
       <LinearGradient
-        colors={['rgba(0,0,0,0.55)', 'rgba(0,40,0,0.72)']}
+        colors={['rgba(15,15,35,0.7)', 'rgba(26,23,66,0.6)']}
         style={StyleSheet.absoluteFill}
       />
       <SafeAreaView style={styles.safe}>
@@ -504,9 +506,10 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
     <ImageBackground
       source={require('../../assets/blot/park-background.png')}
       style={styles.bg}
+      blurRadius={3}
       resizeMode="cover">
       <LinearGradient
-        colors={['rgba(0,0,0,0.55)', 'rgba(0,40,0,0.72)']}
+        colors={['rgba(15,15,35,0.7)', 'rgba(26,23,66,0.6)']}
         style={StyleSheet.absoluteFill}
       />
       <SafeAreaView style={styles.safe}>
@@ -636,7 +639,7 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
           </Text>
         )}
 
-        <View style={styles.handSection}>
+        <View style={styles.handContainer}>
           {isSpectating ? (
             <View style={{ alignItems: 'center', paddingVertical: 16 }}>
               <Text style={[styles.handLabel, { fontSize: 16, color: '#f59e0b' }]}>👁️ Watching Game</Text>
@@ -662,10 +665,25 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
         </View>
 
         <View style={styles.scoreReminder}>
-          <Text style={styles.scoreReminderText}>
-            T1: {gameState?.gameScore.team1}{'  |  '}T2: {gameState?.gameScore.team2}
-            {'  |  '}Target: {gameState?.targetScore}
-          </Text>
+          <View style={styles.scoreBoard}>
+            <View style={styles.teamScore}>
+              <Text style={styles.teamLabel}>Team 1</Text>
+              <Text style={styles.score}>{gameState?.gameScore.team1}</Text>
+            </View>
+            {gameState?.trump && (
+              <View style={styles.trumpDisplay}>
+                <Text style={styles.trumpLabel}>Trump</Text>
+                <Text style={styles.trumpSuit}>
+                  {SUIT_ICON[gameState.trump]}
+                </Text>
+              </View>
+            )}
+            <View style={styles.teamScore}>
+              <Text style={styles.teamLabel}>Team 2</Text>
+              <Text style={styles.score}>{gameState?.gameScore.team2}</Text>
+            </View>
+          </View>
+          <Text style={styles.targetText}>Target: {gameState?.targetScore}</Text>
         </View>
       </View>
     );
@@ -710,82 +728,81 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
     const leftPos  = (myPosition + 3) % 4;
     const trump = gameState?.trump;
 
-    const rp = computeCurrentRoundPoints();
-    const biddingTeam = gameState?.bidderTeam;
-    const bid = gameState?.currentBid ?? 0;
-    const biddingTeamPoints = biddingTeam === 1 ? rp.team1 : rp.team2;
-    const onTrack = biddingTeamPoints >= bid;
+    const { width, height } = Dimensions.get('window');
+    const TABLE_SIZE = Math.min(width - 32, height * 0.4);
 
     return (
-      <View style={styles.playingLayout}>
-        {/* Score bar */}
-        <View style={styles.scoreBar}>
-          <Text style={styles.scoreBarText}>
-            {'🔵 T1: '}
-            {(gameState?.gameScore.team1 ?? 0) + rp.team1}
-            {'   🔴 T2: '}
-            {(gameState?.gameScore.team2 ?? 0) + rp.team2}
-            {'   🎯 '}
-            {gameState?.targetScore}
+      <>
+        <View style={styles.playArea}>
+          {/* Whose turn */}
+          <Text style={styles.currentPlayerText}>
+            {isMyTurn
+              ? `⭐ Your Turn (Team ${myTeam})`
+              : `⏳ ${currentPlayerLabel}'s Turn`
+            }
           </Text>
-          {trump && (
-            <View style={styles.trumpBadge}>
-              <Text style={styles.trumpBadgeText}>
-                {'Trump: '}
-                <Text style={{ color: SUIT_COLOR[trump] }}>{SUIT_ICON[trump]}</Text>
-                {'  Bid: '}
-                {gameState?.currentBid}
-                {gameState?.lastRoundResult && !gameState?.lastRoundResult.madeBid ? ' ❌' : ''}
-              </Text>
-            </View>
-          )}
-        </View>
 
-        {/* Whose turn */}
-        <View style={[styles.turnIndicator, { backgroundColor: isMyTurn ? 'rgba(46,125,50,0.6)' : 'rgba(26,26,58,0.6)' }]}>
-          {isMyTurn
-            ? <Text style={styles.yourTurnLabel}>⭐ Your turn – tap a card to play</Text>
-            : <Text style={styles.waitingText}>⏳ Waiting for {currentPlayerLabel}…</Text>
-          }
-        </View>
+          {/* Card table */}
+          <View style={[styles.tableContainer, { width: TABLE_SIZE, height: TABLE_SIZE }]}>
+            <ImageBackground
+              source={require('../../assets/blot/card-table.png')}
+              style={styles.cardTable}
+              imageStyle={{ borderRadius: 16 }}>
+              
+              {/* Card placement placeholders - always visible */}
+              <View style={styles.trickArea}>
+                <View style={[styles.cardPlaceholder, styles.trickSlotTop]} />
+                <View style={[styles.cardPlaceholder, styles.trickSlotBottom]} />
+                <View style={[styles.cardPlaceholder, styles.trickSlotLeft]} />
+                <View style={[styles.cardPlaceholder, styles.trickSlotRight]} />
+              </View>
 
-        {/* Card table */}
-        <View style={styles.tableWrapper}>
-          <ImageBackground
-            source={require('../../assets/blot/card-table.png')}
-            style={styles.tableImage}
-            imageStyle={styles.tableImageStyle}>
-            <View style={styles.trickArea}>
-              <View style={[styles.trickSlot, styles.trickSlotTop]}>
-                <Text style={styles.trickPlayerName}>{playerLabelForPos(topPos)}</Text>
-                {trickCardForPlayer(topPos) && (
-                  <DynamicCard card={trickCardForPlayer(topPos)!} theme={customTheme} size="small" />
-                )}
-              </View>
-              <View style={[styles.trickSlot, styles.trickSlotLeft]}>
-                <Text style={styles.trickPlayerName}>{playerLabelForPos(leftPos)}</Text>
-                {trickCardForPlayer(leftPos) && (
-                  <DynamicCard card={trickCardForPlayer(leftPos)!} theme={customTheme} size="small" />
-                )}
-              </View>
-              <View style={[styles.trickSlot, styles.trickSlotRight]}>
-                <Text style={styles.trickPlayerName}>{playerLabelForPos(rightPos)}</Text>
-                {trickCardForPlayer(rightPos) && (
-                  <DynamicCard card={trickCardForPlayer(rightPos)!} theme={customTheme} size="small" />
-                )}
-              </View>
-              <View style={[styles.trickSlot, styles.trickSlotBottom]}>
-                {trickCardForPlayer(myPosition) && (
-                  <DynamicCard card={trickCardForPlayer(myPosition)!} theme={customTheme} size="small" />
-                )}
-                <Text style={styles.trickPlayerName}>{isSpectating ? playerLabelForPos(myPosition) : `You (T${myTeam})`}</Text>
-              </View>
-            </View>
-          </ImageBackground>
+              {/* Trick cards and led suit indicator */}
+              {gameState?.currentTrick && gameState.currentTrick.length > 0 && (() => {
+                const ledSuit = gameState.currentTrick[0].card.suit;
+                // Map player positions to visual table positions relative to myPosition
+                const positionStyle: Record<number, object> = {
+                  0: styles.trickSlotBottom,  // myPosition
+                  1: styles.trickSlotRight,   // (myPosition + 1) % 4
+                  2: styles.trickSlotTop,     // (myPosition + 2) % 4
+                  3: styles.trickSlotLeft,    // (myPosition + 3) % 4
+                };
+                
+                return (
+                  <View style={styles.trickArea}>
+                    {/* Led suit indicator in the center */}
+                    <View style={styles.ledSuitBadge}>
+                      <Text style={[styles.ledSuitIcon, { color: SUIT_COLOR[ledSuit] }]}>
+                        {SUIT_ICON[ledSuit]}
+                      </Text>
+                      <Text style={styles.ledSuitLabel}>
+                        Led
+                      </Text>
+                    </View>
+                    
+                    {/* Cards positioned at table edges */}
+                    {gameState.currentTrick.map((tc, idx) => {
+                      const relativePos = (tc.playerPosition - myPosition + 4) % 4;
+                      return (
+                        <View
+                          key={idx}
+                          style={[
+                            styles.trickSlot,
+                            positionStyle[relativePos] ?? styles.trickSlotTop,
+                          ]}>
+                          <DynamicCard card={tc.card} theme={customTheme} size="small" />
+                        </View>
+                      );
+                    })}
+                  </View>
+                );
+              })()}
+            </ImageBackground>
+          </View>
         </View>
 
         {/* Player's hand */}
-        <View style={styles.handSection}>
+        <View style={styles.handContainer}>
           {isSpectating ? (
             <View style={{ alignItems: 'center', paddingVertical: 16 }}>
               <Text style={[styles.handLabel, { fontSize: 16, color: '#f59e0b' }]}>👁️ Watching Game</Text>
@@ -813,18 +830,18 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
                       }}
                       style={[
                         styles.cardWrapper,
-                    !isMyTurn ? styles.cardDimmed : styles.cardLegal,
-                    selectedCard === card && styles.selectedCard,
-                  ]}>
-                  <DynamicCard card={card} theme={customTheme} size="medium" />
-                </TouchableOpacity>
-              );
-            }}
-          />
+                        !isMyTurn ? styles.cardDimmed : styles.cardLegal,
+                        selectedCard === card && styles.selectedCard,
+                      ]}>
+                      <DynamicCard card={card} theme={customTheme} size="medium" />
+                    </TouchableOpacity>
+                  );
+                }}
+              />
             </>
           )}
         </View>
-      </View>
+      </>
     );
   };
 
@@ -842,9 +859,10 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
         <ImageBackground
           source={require('../../assets/blot/park-background.png')}
           style={styles.bg}
+          blurRadius={3}
           resizeMode="cover">
           <LinearGradient
-            colors={['rgba(0,0,0,0.55)', 'rgba(0,40,0,0.72)']}
+            colors={['rgba(15,15,35,0.7)', 'rgba(26,23,66,0.6)']}
             style={StyleSheet.absoluteFill}
           />
           <SafeAreaView style={styles.safe}>
@@ -871,9 +889,10 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
       <ImageBackground
         source={require('../../assets/blot/park-background.png')}
         style={styles.bg}
+        blurRadius={3}
         resizeMode="cover">
         <LinearGradient
-          colors={['rgba(0,0,0,0.55)', 'rgba(0,40,0,0.72)']}
+          colors={['rgba(15,15,35,0.7)', 'rgba(26,23,66,0.6)']}
           style={StyleSheet.absoluteFill}
         />
         <SafeAreaView style={styles.safe}>
@@ -917,6 +936,44 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
               );
             })}
           </View>
+
+          {/* Score Board - always visible when in game */}
+          {gameState && gameState.phase === 'playing' && (() => {
+            const rp = computeCurrentRoundPoints();
+            const trump = gameState.trump;
+            return (
+              <View style={styles.scoreBoard}>
+                <View style={styles.teamScore}>
+                  <Text style={styles.teamLabel}>Team 1</Text>
+                  <Text style={styles.score}>{gameState.gameScore.team1 ?? 0}</Text>
+                  {gameState.phase === 'playing' && (
+                    <Text style={styles.roundScore}>
+                      {rp.team1} this round
+                    </Text>
+                  )}
+                </View>
+                {trump && (
+                  <View style={styles.trumpDisplay}>
+                    <Text style={styles.trumpLabel}>Trump</Text>
+                    <Text style={styles.trumpSuit}>{SUIT_ICON[trump]}</Text>
+                    <Text style={styles.bidInfo}>
+                      Bid: {gameState.currentBid}
+                      {gameState.lastRoundResult && !gameState.lastRoundResult.madeBid ? ' ❌' : ''}
+                    </Text>
+                  </View>
+                )}
+                <View style={styles.teamScore}>
+                  <Text style={styles.teamLabel}>Team 2</Text>
+                  <Text style={styles.score}>{gameState.gameScore.team2 ?? 0}</Text>
+                  {gameState.phase === 'playing' && (
+                    <Text style={styles.roundScore}>
+                      {rp.team2} this round
+                    </Text>
+                  )}
+                </View>
+              </View>
+            );
+          })()}
 
           <View style={styles.body}>
             {gameState.phase === 'bidding' && renderBiddingPhase()}
@@ -1198,14 +1255,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     textAlign: 'center',
   },
-  handSection: {
-    backgroundColor: 'rgba(0,0,0,0.35)',
-    paddingVertical: 12,
-    minHeight: 110,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 8,
-  },
   handLabel: {
     color: '#FFD700',
     fontSize: 13,
@@ -1221,43 +1270,166 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
   scoreReminder: { alignItems: 'center', marginTop: 12 },
-  scoreReminderText: { color: 'rgba(255,255,255,0.6)', fontSize: 13 },
-
-  // ── Playing phase ──────────────────────────────────────────────────────
-  playingLayout: { flex: 1, maxHeight: 620 },
-  scoreBar: {
+  scoreBoard: {
     flexDirection: 'row',
+    justifyContent: 'space-around',
+    backgroundColor: 'transparent',
+    marginVertical: 12,
+  },
+  teamScore: {
+    flex: 1,
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    backgroundColor: 'rgba(0,0,0,0.45)',
   },
-  scoreBarText: { color: '#fff', fontSize: 13, fontWeight: '600' },
-  trumpBadge: {
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+  teamLabel: {
+    fontSize: 14,
+    color: '#fff',
+    fontWeight: '600',
+    marginBottom: 4,
   },
-  trumpBadgeText: { color: '#fff', fontSize: 12, fontWeight: '600' },
-  turnIndicator: {
+  score: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#FFD700',
+  },
+  roundScore: {
+    fontSize: 12,
+    color: '#90EE90',
+  },
+  trumpDisplay: {
+    flex: 1,
+    maxWidth: 70,
+    maxHeight: 98,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    marginBottom: 2,
+    backgroundColor: 'rgba(26, 92, 63, 0.9)',
+    padding: 12,
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
   },
-  tableWrapper: { flex: 1, marginHorizontal: 8, marginVertical: 4 },
-  tableImage: { flex: 1, borderRadius: 16, overflow: 'hidden' },
-  tableImageStyle: { borderRadius: 16 },
-  trickArea: { flex: 1, position: 'relative' },
+  trumpLabel: {
+    fontSize: 12,
+    color: '#fff',
+    marginBottom: 4,
+  },
+  trumpSuit: {
+    fontSize: 32,
+  },
+  bidInfo: {
+    fontSize: 10,
+    color: '#fff',
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  targetText: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.6)',
+    textAlign: 'center',
+    marginTop: 8,
+  },
+
+  // ── Playing phase ──────────────────────────────────────────────────────
+  playArea: { 
+    flex: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 8,
+  },
+  currentPlayerText: {
+    color: '#FFD700',
+    fontSize: 14,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: 12,
+    paddingHorizontal: 16,
+  },
+  tableContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  cardTable: { 
+    width: '100%',
+    height: '100%',
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  trickArea: { 
+    flex: 1, 
+    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cardPlaceholder: {
+    width: 90,
+    height: 120,
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.3)',
+    borderStyle: 'dashed',
+    borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+  },
+  ledSuitBadge: {
+    position: 'absolute',
+    alignSelf: 'center',
+    top: '50%',
+    marginTop: -30,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 12,
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  ledSuitIcon: {
+    fontSize: 28,
+    marginBottom: 4,
+  },
+  ledSuitLabel: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: '600',
+  },
   trickSlot: { position: 'absolute', alignItems: 'center' },
-  trickSlotTop: { top: 10, left: 0, right: 0, alignItems: 'center' },
-  trickSlotBottom: { bottom: 10, left: 0, right: 0, alignItems: 'center' },
-  trickSlotLeft: { left: 10, top: '35%' },
-  trickSlotRight: { right: 10, top: '35%' },
+  trickSlotTop: { 
+    top: 25,
+    left: '50%',
+    marginLeft: -45,
+  },
+  trickSlotBottom: { 
+    bottom: 25,
+    left: '50%',
+    marginLeft: -45,
+  },
+  trickSlotLeft: { 
+    left: 35,
+    top: '50%',
+    marginTop: -60,
+    transform: [{ rotate: '90deg' }],
+  },
+  trickSlotRight: { 
+    right: 35,
+    top: '50%',
+    marginTop: -60,
+    transform: [{ rotate: '90deg' }],
+  },
   trickPlayerName: { color: '#fff', fontSize: 11, fontWeight: '600', marginBottom: 3 },
+  handContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    paddingVertical: 12,
+    minHeight: 110,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 8,
+  },
   cardWrapper: { borderRadius: 6 },
   cardLegal: { opacity: 1, transform: [{ translateY: -4 }] },
   cardDimmed: { opacity: 0.45 },

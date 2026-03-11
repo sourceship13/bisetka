@@ -469,12 +469,25 @@ const BaazarBlotScreen = ({ navigation }: any) => {
           </Text>
         )}
 
-        <View style={styles.scoreReminder}>
-          <Text style={styles.scoreReminderText}>
-            T1: {gameState.gameScore.team1}{'  |  '}T2: {gameState.gameScore.team2}
-            {'  |  '}Target: {gameState.targetScore}
-          </Text>
+        <View style={styles.scoreBoard}>
+          <View style={styles.teamScore}>
+            <Text style={styles.teamLabel}>Team 1</Text>
+            <Text style={styles.score}>{gameState.gameScore.team1}</Text>
+          </View>
+          {gameState.trump && (
+            <View style={styles.trumpDisplay}>
+              <Text style={styles.trumpLabel}>Trump</Text>
+              <Text style={styles.trumpSuit}>
+                {SUIT_ICON[gameState.trump]}
+              </Text>
+            </View>
+          )}
+          <View style={styles.teamScore}>
+            <Text style={styles.teamLabel}>Team 2</Text>
+            <Text style={styles.score}>{gameState.gameScore.team2}</Text>
+          </View>
         </View>
+        <Text style={styles.targetText}>Target: {gameState.targetScore}</Text>
       </View>
     );
   };
@@ -484,78 +497,89 @@ const BaazarBlotScreen = ({ navigation }: any) => {
     if (!gameState) return null;
     const myPlayer = gameState.players[0];
     const { trump } = gameState;
+    const { width, height } = Dimensions.get('window');
+    const TABLE_SIZE = Math.min(width - 32, height * 0.5);
 
     return (
-      <View style={styles.playingLayout}>
-        <View style={styles.scoreBar}>
-          <Text style={styles.scoreBarText}>
-            {'🔵 T1: '}
-            {gameState.gameScore.team1 + gameState.scores.team1}
-            {'   🔴 T2: '}
-            {gameState.gameScore.team2 + gameState.scores.team2}
-            {'   🎯 '}
-            {gameState.targetScore}
+      <>
+        <View style={styles.playArea}>
+          <Text style={styles.currentPlayerText}>
+            {gameState.currentPlayer === 0
+              ? '★ Your Turn (Team 1)'
+              : `${playerName(gameState.currentPlayer)}'s Turn (Team ${
+                  gameState.players[gameState.currentPlayer].team
+                })`}
           </Text>
-          {trump && (
-            <View style={styles.trumpBadge}>
-              <Text style={styles.trumpBadgeText}>
-                {'Trump: '}
-                <Text style={{ color: suitColor(trump) }}>{SUIT_ICON[trump]}</Text>
-                {'  Bid: '}
-                {gameState.currentBid}
-                {gameState.contracted ? '×2' : ''}
-                {gameState.recontracted ? '×2' : ''}
-              </Text>
-            </View>
-          )}
+
+          <View
+            style={[
+              styles.tableContainer,
+              { width: TABLE_SIZE, height: TABLE_SIZE },
+            ]}
+          >
+            <ImageBackground
+              source={require('../../../../assets/blot/card-table.png')}
+              style={styles.cardTable}
+              imageStyle={{ borderRadius: 16 }}
+            >
+              {/* Card placement placeholders - always visible */}
+              <View style={styles.trickArea}>
+                <View style={[styles.cardPlaceholder, styles.trickSlotTop]} />
+                <View style={[styles.cardPlaceholder, styles.trickSlotBottom]} />
+                <View style={[styles.cardPlaceholder, styles.trickSlotLeft]} />
+                <View style={[styles.cardPlaceholder, styles.trickSlotRight]} />
+              </View>
+
+              {gameState.currentTrick.cards.length > 0 && (() => {
+                const ledSuit = gameState.currentTrick.cards[0].card.suit;
+                // Map player IDs to visual table positions
+                // Player 0 = bottom, 1 = right, 2 = top, 3 = left
+                const positionStyle: Record<number, object> = {
+                  0: styles.trickSlotBottom,
+                  1: styles.trickSlotRight,
+                  2: styles.trickSlotTop,
+                  3: styles.trickSlotLeft,
+                };
+                return (
+                  <View style={styles.trickArea}>
+                    {/* Led suit indicator in the center */}
+                    <View style={styles.ledSuitBadge}>
+                      <Text style={[styles.ledSuitIcon, { color: SUIT_COLOR[ledSuit] }]}>
+                        {SUIT_ICON[ledSuit]}
+                      </Text>
+                      <Text style={styles.ledSuitLabel}>
+                        Led: {SUIT_NAME[ledSuit]}
+                      </Text>
+                    </View>
+                    {/* Cards positioned at table edges */}
+                    {gameState.currentTrick.cards.map((cardPlay, idx) => (
+                      <View
+                        key={idx}
+                        style={[
+                          styles.trickSlot,
+                          positionStyle[cardPlay.playerId] ?? styles.trickSlotTop,
+                        ]}
+                      >
+                        <DynamicCard card={cardPlay.card} theme={customTheme} size="small" />
+                      </View>
+                    ))}
+                  </View>
+                );
+              })()}
+            </ImageBackground>
+          </View>
         </View>
 
-        <View style={styles.tableWrapper}>
-          <ImageBackground
-            source={require('../../../../assets/blot/card-table.png')}
-            style={styles.tableImage}
-            imageStyle={styles.tableImageStyle}>
-            <View style={styles.trickArea}>
-              <View style={[styles.trickSlot, styles.trickSlotTop]}>
-                <Text style={styles.trickPlayerName}>{playerName(2)}</Text>
-                {trickCardForPlayer(2) && (
-                  <DynamicCard card={trickCardForPlayer(2)!} theme={customTheme} size="small" />
-                )}
-              </View>
-              <View style={[styles.trickSlot, styles.trickSlotLeft]}>
-                <Text style={styles.trickPlayerName}>{playerName(3)}</Text>
-                {trickCardForPlayer(3) && (
-                  <DynamicCard card={trickCardForPlayer(3)!} theme={customTheme} size="small" />
-                )}
-              </View>
-              <View style={[styles.trickSlot, styles.trickSlotRight]}>
-                <Text style={styles.trickPlayerName}>{playerName(1)}</Text>
-                {trickCardForPlayer(1) && (
-                  <DynamicCard card={trickCardForPlayer(1)!} theme={customTheme} size="small" />
-                )}
-              </View>
-              <View style={[styles.trickSlot, styles.trickSlotBottom]}>
-                {trickCardForPlayer(0) && (
-                  <DynamicCard card={trickCardForPlayer(0)!} theme={customTheme} size="small" />
-                )}
-                <Text style={styles.trickPlayerName}>{playerName(0)}</Text>
-              </View>
-            </View>
-          </ImageBackground>
-        </View>
-
-        <View style={styles.handSection}>
-          {gameState.currentPlayer === 0 ? (
-            <Text style={styles.handLabel}>Your turn ↓</Text>
-          ) : (
-            <Text style={styles.handLabelWait}>Waiting…</Text>
-          )}
+        <View style={styles.handContainer}>
+          <Text style={styles.handLabel}>Your Hand:</Text>
           <CardHandFan
             cards={myPlayer.hand}
-            maxWidth={SW - 32}
             renderCard={(card, idx) => {
               const legal = canPlayCard(
-                card, myPlayer.hand, gameState.currentTrick, trump,
+                card,
+                myPlayer.hand,
+                gameState.currentTrick,
+                trump,
               );
               const isMyTurn = gameState.currentPlayer === 0;
               return (
@@ -565,14 +589,16 @@ const BaazarBlotScreen = ({ navigation }: any) => {
                   style={[
                     styles.cardWrapper,
                     !legal || !isMyTurn ? styles.cardDimmed : styles.cardLegal,
-                  ]}>
+                  ]}
+                  disabled={!legal || !isMyTurn}
+                >
                   <DynamicCard card={card} theme={customTheme} size="medium" />
                 </TouchableOpacity>
               );
             }}
           />
         </View>
-      </View>
+      </>
     );
   };
 
@@ -658,7 +684,7 @@ const BaazarBlotScreen = ({ navigation }: any) => {
     if (!gameState) return renderSetup();
     switch (gameState.phase) {
       case 'bidding':  return renderBidding();
-      case 'playing':  return <View style={{justifyContent: 'center', flex:1}}>{renderPlaying()}</View>;
+      case 'playing':  return renderPlaying();
       case 'roundEnd': return renderRoundEnd();
       case 'gameEnd':  return renderGameEnd();
       default:         return renderSetup();
@@ -669,9 +695,10 @@ const BaazarBlotScreen = ({ navigation }: any) => {
     <ImageBackground
       source={require('../../../../assets/blot/park-background.png')}
       style={styles.bg}
+      blurRadius={3}
       resizeMode="cover">
       <LinearGradient
-        colors={['rgba(0,0,0,0.55)', 'rgba(0,40,0,0.72)']}
+        colors={['rgba(15,15,35,0.7)', 'rgba(26,23,66,0.6)']}
         style={StyleSheet.absoluteFill}
       />
       <SafeAreaView style={styles.safe}>
@@ -685,6 +712,36 @@ const BaazarBlotScreen = ({ navigation }: any) => {
             </TouchableOpacity>
           }
         />
+        
+        {gameState && (
+          <View style={styles.scoreBoard}>
+            <View style={styles.teamScore}>
+              <Text style={styles.teamLabel}>Team 1</Text>
+              <Text style={styles.score}>{gameState.gameScore.team1 || 0}</Text>
+              {gameState.phase === 'playing' && (
+                <Text style={styles.roundScore}>
+                  {gameState.scores?.team1 || 0} this round
+                </Text>
+              )}
+            </View>
+            {gameState.trump && (
+              <View style={styles.trumpDisplay}>
+                <Text style={styles.trumpLabel}>Trump</Text>
+                <Text style={styles.trumpSuit}>{SUIT_ICON[gameState.trump]}</Text>
+              </View>
+            )}
+            <View style={styles.teamScore}>
+              <Text style={styles.teamLabel}>Team 2</Text>
+              <Text style={styles.score}>{gameState.gameScore.team2 || 0}</Text>
+              {gameState.phase === 'playing' && (
+                <Text style={styles.roundScore}>
+                  {gameState.scores?.team2 || 0} this round
+                </Text>
+              )}
+            </View>
+          </View>
+        )}
+        
         <View style={styles.body}>{renderContent()}</View>
       </SafeAreaView>
 
@@ -834,55 +891,180 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     marginTop: 20,
   },
-  scoreReminder: { position: 'absolute', bottom: 16, alignItems: 'center' },
-  scoreReminderText: { color: 'rgba(255,255,255,0.6)', fontSize: 13 },
-  playingLayout: { flex: 1, maxHeight:600},
-  scoreBar: {
+  scoreBoard: {
     flexDirection: 'row',
+    justifyContent: 'space-around',
+    backgroundColor: 'transparent',
+    marginVertical: 12,
+  },
+  teamScore: {
+    flex: 1,
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    backgroundColor: 'rgba(0,0,0,0.4)',
   },
-  scoreBarText: { color: '#fff', fontSize: 13, fontWeight: '600' },
-  trumpBadge: {
-    backgroundColor: 'rgba(255,255,255,0.12)',
+  teamLabel: {
+    fontSize: 14,
+    color: '#fff',
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  score: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#FFD700',
+  },
+  roundScore: {
+    fontSize: 12,
+    color: '#90EE90',
+  },
+  trumpDisplay: {
+    flex: 1,
+    maxWidth: 70,
+    maxHeight: 98,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(26, 92, 63, 0.9)',
+    padding: 12,
     borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
   },
-  trumpBadgeText: { color: '#fff', fontSize: 12, fontWeight: '600' },
-  tableWrapper: { flex: 1, marginHorizontal: 8, marginVertical: 4 },
-  tableImage: { flex: 1, borderRadius: 16, overflow: 'hidden' },
-  tableImageStyle: { borderRadius: 16 },
-  trickArea: { flex: 1, position: 'relative' },
-  trickSlot: { position: 'absolute', alignItems: 'center' },
-  trickSlotTop: { top: 10, left: 0, right: 0, alignItems: 'center' },
-  trickSlotBottom: { bottom: 10, left: 0, right: 0, alignItems: 'center' },
-  trickSlotLeft: { left: 10, top: '35%' },
-  trickSlotRight: { right: 10, top: '35%' },
-  trickPlayerName: { color: '#fff', fontSize: 11, fontWeight: '600', marginBottom: 3 },
-  handSection: {
-    backgroundColor: 'rgba(0,0,0,0.35)',
-    paddingVertical: 12,
-    minHeight: 120,
+  trumpLabel: {
+    fontSize: 12,
+    color: '#fff',
+    marginBottom: 4,
+  },
+  trumpSuit: {
+    fontSize: 32,
+  },
+  bidInfo: {
+    fontSize: 10,
+    color: '#fff',
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  targetText: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.6)',
+    textAlign: 'center',
+    marginTop: 8,
+  },
+  playArea: {
+    flex: 2,
+    padding: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  handLabel: {
-    color: '#FFD700',
-    fontSize: 13,
-    fontWeight: '700',
-    textAlign: 'center',
-    marginBottom: 8,
+  tableContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.5,
+    shadowRadius: 16,
+    elevation: 12,
   },
-  handLabelWait: {
-    color: 'rgba(255,255,255,0.5)',
-    fontSize: 13,
+  cardTable: {
+    width: '100%',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  currentPlayerText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#FFD700',
     textAlign: 'center',
-    marginBottom: 8,
-    fontStyle: 'italic',
+    marginBottom: 16,
+    textShadowColor: 'rgba(0,0,0,0.8)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
+  },
+  trickArea: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ledSuitBadge: {
+    position: 'absolute',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.25)',
+  },
+  ledSuitIcon: {
+    fontSize: 22,
+    lineHeight: 26,
+  },
+  ledSuitLabel: {
+    fontSize: 11,
+    color: '#ccc',
+    fontWeight: '600',
+    marginTop: 1,
+    letterSpacing: 0.5,
+  },
+  cardPlaceholder: {
+    position: 'absolute',
+    width: 90,
+    height: 120,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.6)',
+    borderRadius: 12,
+    borderStyle: 'dashed',
+  },
+  trickSlot: {
+    position: 'absolute',
+    alignItems: 'center',
+  },
+  trickSlotTop: {
+    top: 25,
+    left: '50%',
+    marginLeft: -45,
+    alignItems: 'center',
+  },
+  trickSlotBottom: {
+    bottom: 25,
+    left: '50%',
+    marginLeft: -45,
+    alignItems: 'center',
+  },
+  trickSlotLeft: {
+    left: 35,
+    top: '50%',
+    marginTop: -60,
+    transform: [{ rotate: '90deg' }],
+  },
+  trickSlotRight: {
+    right: 35,
+    top: '50%',
+    marginTop: -60,
+    transform: [{ rotate: '90deg' }],
+  },
+  handContainer: {
+    flex: 1,
+    backgroundColor: 'transparent',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+  },
+  handLabel: {
+    fontSize: 16,
+    color: '#fff',
+    fontWeight: '600',
+    marginBottom: 12,
+    textAlign: 'center',
   },
   cardWrapper: { borderRadius: 6 },
   cardLegal: { opacity: 1, transform: [{ translateY: -4 }] },
