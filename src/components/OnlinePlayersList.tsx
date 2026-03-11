@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import onlineUsersService, { OnlineUser } from '../services/onlineUsers.service';
 import { resolveAvatar } from '../utils/avatars';
+import { useAuth } from '../libs/hooks/useAuth';
 
 interface OnlinePlayersListProps {
   onPlayerPress?: (user: OnlineUser) => void;
@@ -20,6 +21,7 @@ const OnlinePlayersList: React.FC<OnlinePlayersListProps> = ({
   onPlayerPress,
   maxPlayers = 50,
 }) => {
+  const { user: currentUser } = useAuth();
   const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -27,7 +29,18 @@ const OnlinePlayersList: React.FC<OnlinePlayersListProps> = ({
   const loadOnlineUsers = async () => {
     try {
       const response = await onlineUsersService.getOnlineUsers(maxPlayers);
-      setOnlineUsers(response.users);
+      let users = response.users;
+      // Always include the current logged-in user in the list
+      if (currentUser && !users.some(u => u.id === currentUser.id)) {
+        users = [{
+          id: currentUser.id,
+          username: currentUser.username || 'Me',
+          avatar_url: currentUser.avatar_url || undefined,
+          last_seen: new Date().toISOString(),
+          is_online: true,
+        }, ...users];
+      }
+      setOnlineUsers(users);
     } catch (error) {
       console.error('Failed to load online users:', error);
       // Set empty array on error to prevent crash
@@ -65,10 +78,13 @@ const OnlinePlayersList: React.FC<OnlinePlayersListProps> = ({
         activeOpacity={0.7}>
         <View style={styles.avatarContainer}>
           {avatarSource ? (
-            <Image
-              source={avatarSource}
-              style={styles.avatar}
-            />
+            <View style={styles.avatarClip}>
+              <Image
+                source={avatarSource}
+                style={styles.avatar}
+                resizeMode="cover"
+              />
+            </View>
           ) : (
             <View style={styles.avatarPlaceholder}>
               <Text style={styles.avatarText}>
@@ -131,15 +147,23 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   avatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 90,
+    height: 160,
+    position: 'absolute',
+    top: 25,
+    left: -10,
+  },
+  avatarClip: {
+    width: 85,
+    height: 85,
+    borderRadius: 42.5,
+    overflow: 'hidden',
     backgroundColor: '#e1e1e1',
   },
   avatarPlaceholder: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 85,
+    height: 85,
+    borderRadius: 42.5,
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
     alignItems: 'center',
     justifyContent: 'center',
