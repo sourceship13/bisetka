@@ -194,12 +194,12 @@ const HomeScreen = ({navigation}: any) => {
 
     connectSocket();
 
-    // Heartbeat: Update presence every 5 minutes to stay online
+    // Heartbeat: Update presence every 1 minute to stay online
     const heartbeat = setInterval(() => {
       if (socketService.isConnected()) {
         socketService.getSocket()?.emit('presence_heartbeat', { userId: user.id });
       }
-    }, 5 * 60 * 1000); // 5 minutes
+    }, 60 * 1000); // 1 minute
 
     return () => {
       clearInterval(heartbeat);
