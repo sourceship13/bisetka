@@ -26,6 +26,8 @@ import GameToolbar from '../../../components/global/GameToolbar';
 import RoomNameModal from '../../../components/RoomNameModal';
 import RoomInfoDrawer from '../../../components/RoomInfoDrawer';
 import {apiConfig} from '../../../libs/utils/api.utils';
+import CardCustomizationModal from '../../../components/global/GameCustomizationModal';
+import type { CardTheme } from '../../../components/global/GameCustomizationModal';
 
 interface GameState {
   deck: Card[];
@@ -108,6 +110,8 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
   const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
   const [roomName, setRoomName] = useState('Multiplayer Blot');
   const [showRoomNameModal, setShowRoomNameModal] = useState(false);
+  const [showCustomization, setShowCustomization] = useState(false);
+  const [customTheme, setCustomTheme] = useState<CardTheme | undefined>(undefined);
   const roomNameRef = useRef(roomName);
   useEffect(() => { roomNameRef.current = roomName; }, [roomName]);
 
@@ -670,6 +674,11 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
     }
   };
 
+  const handleSaveTheme = (theme: CardTheme) => {
+    setCustomTheme(theme);
+    console.log('Saved custom theme:', theme);
+  };
+
   // Room name listener — registered after socket connects (inside mp setup)
 
   const handlePlayCard = (card: Card) => {
@@ -867,7 +876,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
     );
   };
 
-  const renderCard = (card: Card, index: number) => {
+  const renderCard = (card: Card, index: number, isTrickCard = false) => {
     const suitSymbol = {
       hearts: '♥️',
       diamonds: '♦️',
@@ -886,20 +895,49 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
       console.log(`renderCard - isMyTurn: ${isMyTurn}, canPlay: ${canPlay}, isLocalGame: ${isLocalGame}`);
     }
 
+    // Font configurations
+    const fontStyles: Record<string, any> = {
+      classic:  { fontWeight: '700' as const, letterSpacing: 0    },
+      modern:   { fontWeight: '600' as const, letterSpacing: 0.5  },
+      bold:     { fontWeight: '900' as const, letterSpacing: -0.5 },
+      elegant:  { fontWeight: '300' as const, letterSpacing: 1    },
+      playful:  { fontWeight: '800' as const, letterSpacing: 0    },
+    };
+
+    const selectedFont = customTheme?.font || 'classic';
+    const fontStyle = fontStyles[selectedFont];
+
+    const cardContent = (
+      <>
+        <Text style={[styles.cardRank, { color: suitColor }, fontStyle]}>{card.rank}</Text>
+        <Text style={[styles.cardSuit, fontStyle]}>{suitSymbol[card.suit]}</Text>
+        <Text style={[styles.cardValue, fontStyle]}>{card.value}</Text>
+      </>
+    );
+
     return (
       <TouchableOpacity
         key={index}
         style={[
-          styles.card,
+          isTrickCard ? styles.trickCard : styles.card,
           selectedCard === card && styles.selectedCard,
           !canPlay && styles.disabledCard,
         ]}
         onPress={() => handlePlayCard(card)}
         disabled={!canPlay}
       >
-        <Text style={[styles.cardRank, { color: suitColor }]}>{card.rank}</Text>
-        <Text style={styles.cardSuit}>{suitSymbol[card.suit]}</Text>
-        <Text style={styles.cardValue}>{card.value}</Text>
+        {customTheme?.backgroundImage ? (
+          <ImageBackground
+            source={{ uri: customTheme.backgroundImage }}
+            style={styles.cardImageBackground}
+            imageStyle={{ borderRadius: isTrickCard ? 12 : 8 }}
+            resizeMode="cover"
+          >
+            {cardContent}
+          </ImageBackground>
+        ) : (
+          cardContent
+        )}
       </TouchableOpacity>
     );
   };
@@ -1017,6 +1055,12 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
               style={styles.cardTable}
               imageStyle={{ borderRadius: 16 }}
             >
+              {/* Card placement placeholders - always visible */}
+              <View style={styles.trickArea}>
+                <View style={[styles.cardPlaceholder, styles.trickSlotTop]} />
+                <View style={[styles.cardPlaceholder, styles.trickSlotBottom]} />
+              </View>
+              
               {localGameState.currentTrick.length > 0 && (
                 <View style={styles.trickArea}>
                   {localGameState.currentTrick.map((card, idx) => {
@@ -1032,7 +1076,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
                         <Text style={styles.trickPlayerName}>
                           {isBottom ? 'You' : 'Computer'}
                         </Text>
-                        {renderCard(card, idx)}
+                        {renderCard(card, idx, true)}
                       </View>
                     );
                   })}
@@ -1167,6 +1211,14 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
                   style={styles.cardTable}
                   imageStyle={{ borderRadius: 16 }}
                 >
+                  {/* Card placement placeholders - always visible */}
+                  <View style={styles.trickArea}>
+                    <View style={[styles.cardPlaceholder, styles.trickSlotTop]} />
+                    <View style={[styles.cardPlaceholder, styles.trickSlotBottom]} />
+                    <View style={[styles.cardPlaceholder, styles.trickSlotLeft]} />
+                    <View style={[styles.cardPlaceholder, styles.trickSlotRight]} />
+                  </View>
+                  
                   {gameState?.currentTrick && gameState.currentTrick.length > 0 && (
                     <View style={styles.trickArea}>
                       {gameState.currentTrick.map((card: any, index: number) => {
@@ -1201,7 +1253,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
                         }
                         return (
                           <View key={index} style={[styles.trickSlot, slotStyle]}>
-                            {renderCard(card, index)}
+                            {renderCard(card, index, true)}
                           </View>
                         );
                       })}
@@ -1267,6 +1319,13 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
           backgroundColor="transparent"
           rightElement={
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <TouchableOpacity
+                onPress={() => setShowCustomization(true)}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                style={styles.editRoomButton}
+              >
+                <Text style={styles.editRoomIcon}>🎨</Text>
+              </TouchableOpacity>
               <RoomInfoDrawer roomId={currentRoom?.roomId ?? null} />
               <TouchableOpacity 
                 onPress={() => setShowRoomNameModal(true)}
@@ -1361,6 +1420,14 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
         currentName={roomName}
         onSave={handleSaveRoomName}
         gameType="Blot"
+      />
+
+      {/* Card Customization Modal */}
+      <CardCustomizationModal
+        visible={showCustomization}
+        onClose={() => setShowCustomization(false)}
+        onSave={handleSaveTheme}
+        currentTheme={customTheme}
       />
         </SafeAreaView>
       </LinearGradient>
@@ -1564,6 +1631,18 @@ const styles = StyleSheet.create({
     padding: 8,
     marginHorizontal: 5,
   },
+  trickCard: {
+    width: 90,
+    height: 120,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#ddd',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 8,
+    marginHorizontal: 0,
+  },
   selectedCard: {
     borderColor: '#007AFF',
     backgroundColor: '#E3F2FD',
@@ -1581,6 +1660,13 @@ const styles = StyleSheet.create({
   cardValue: {
     fontSize: 12,
     color: '#666',
+  },
+  cardImageBackground: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 8,
   },
   readyContainer: {
     flex: 1,
@@ -1730,31 +1816,43 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  cardPlaceholder: {
+    position: 'absolute',
+    width: 90,
+    height: 120,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.6)',
+    borderRadius: 12,
+    borderStyle: 'dashed',
+  },
   trickSlot: {
     position: 'absolute',
     alignItems: 'center',
   },
   trickSlotTop: {
-    top: 14,
-    left: 0,
-    right: 0,
+    top: 25,
+    left: '50%',
+    marginLeft: -45,
     alignItems: 'center',
   },
   trickSlotBottom: {
-    bottom: 14,
-    left: 0,
-    right: 0,
+    bottom: 25,
+    left: '50%',
+    marginLeft: -45,
     alignItems: 'center',
   },
   trickSlotLeft: {
-    left: 14,
+    left: 35,
     top: '50%',
-    marginTop: -75,
+    marginTop: -60,
+    transform: [{ rotate: '90deg' }],
   },
   trickSlotRight: {
-    right: 14,
+    right: 35,
     top: '50%',
-    marginTop: -75,
+    marginTop: -60,
+    transform: [{ rotate: '90deg' }],
   },
   trickPlayerName: {
     fontSize: 12,
