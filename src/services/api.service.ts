@@ -308,6 +308,59 @@ class ApiService {
       return this.request('/slots/games', { method: 'GET' });
     },
   };
+
+  // ========== IMAGE GENERATION ENDPOINTS ==========
+
+  /**
+   * Generate a board background image via AI
+   * POST /api/images/board-background
+   */
+  async generateBoardBackground(
+    prompt: string,
+  ): Promise<{ url: string; revisedPrompt?: string }> {
+    return this.request<{ url: string; revisedPrompt?: string }>(
+      '/images/board-background',
+      {
+        method: 'POST',
+        body: JSON.stringify({ prompt }),
+      },
+      true,
+    );
+  }
+
+  /**
+   * Generate a card face background image via AI
+   * POST /api/images/card-face
+   */
+  async generateCardFaceBackground(
+    prompt: string,
+  ): Promise<{ url: string }> {
+    return this.request<{ url: string }>(
+      '/images/card-face',
+      {
+        method: 'POST',
+        body: JSON.stringify({ prompt }),
+      },
+      true,
+    );
+  }
+
+  /**
+   * Generate a card back design via AI
+   * POST /api/images/card-back
+   */
+  async generateCardBackDesign(
+    prompt: string,
+  ): Promise<{ url: string }> {
+    return this.request<{ url: string }>(
+      '/images/card-back',
+      {
+        method: 'POST',
+        body: JSON.stringify({ prompt }),
+      },
+      true,
+    );
+  }
 }
 
 // ========== EXPORT ==========

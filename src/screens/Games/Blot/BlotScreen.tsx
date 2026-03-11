@@ -7,8 +7,10 @@ import {
   StyleSheet,
   TouchableOpacity,
   ImageBackground,
+  Image,
   Dimensions,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
@@ -55,15 +57,35 @@ const BlotScreen = ({ navigation }: any) => {
   const [customTheme, setCustomTheme] = useState<CardTheme | undefined>(
     undefined,
   );
+
+  // Load saved theme from storage on mount
+  useEffect(() => {
+    AsyncStorage.getItem('blot_card_theme').then((stored) => {
+      if (stored) {
+        try { setCustomTheme(JSON.parse(stored)); } catch {}
+      }
+    });
+  }, []);
+
+  const handleSaveTheme = (theme: CardTheme) => {
+    // Prefetch remote images before applying theme to avoid UI freeze
+    const urls = [theme.boardImage, theme.backgroundImage].filter(Boolean) as string[];
+    if (urls.length > 0) {
+      Promise.all(urls.map(url => Image.prefetch(url).catch(() => {})))
+        .then(() => {
+          setCustomTheme({...theme});
+          AsyncStorage.setItem('blot_card_theme', JSON.stringify(theme));
+        });
+    } else {
+      setCustomTheme({...theme});
+      AsyncStorage.setItem('blot_card_theme', JSON.stringify(theme));
+    }
+  };
+
   const [showBackground, setShowBackground] = useState(true);
   const [showBlur, setShowBlur] = useState(true);
   const { refreshOnGameEnd } = useGameEndRefresh(undefined, 'blot');
   const isPlayingCardRef = useRef(false);
-
-  const handleSaveTheme = (theme: CardTheme) => {
-    setCustomTheme(theme);
-    console.log('Saved custom theme:', theme);
-  };
 
   // ------------------------------------------------------------------
   // Bidding logic
@@ -670,7 +692,7 @@ const BlotScreen = ({ navigation }: any) => {
                 >
                   {showBackground ? (
                     <ImageBackground
-                      source={require('../../../../assets/blot/card-table.png')}
+                      source={customTheme?.boardImage ? { uri: customTheme.boardImage } : require('../../../../assets/blot/card-table.png')}
                       style={styles.cardTable}
                       imageStyle={{ borderRadius: 16 }}
                     >
@@ -799,12 +821,14 @@ const BlotScreen = ({ navigation }: any) => {
         </SafeAreaView>
       </LinearGradient>
 
-      <CardCustomizationModal
-        visible={showCustomization}
-        onClose={() => setShowCustomization(false)}
-        onSave={handleSaveTheme}
-        currentTheme={customTheme}
-      />
+      {showCustomization && (
+        <CardCustomizationModal
+          visible={showCustomization}
+          onClose={() => setShowCustomization(false)}
+          onSave={handleSaveTheme}
+          currentTheme={customTheme}
+        />
+      )}
     </ImageBackground>
   );
 };
@@ -959,6 +983,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 8,
     marginHorizontal: 0,
+    overflow: 'hidden',
   },
   // Led suit indicator
   ledSuitBadge: {
@@ -1040,6 +1065,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 8,
     marginHorizontal: 5,
+    overflow: 'hidden',
   },
   selectedCard: {
     borderColor: '#007AFF',
