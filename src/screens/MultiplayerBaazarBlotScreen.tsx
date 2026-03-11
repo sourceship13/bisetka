@@ -98,6 +98,11 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
   const [showCustomization, setShowCustomization] = useState(false);
   const [customTheme, setCustomTheme] = useState<CardTheme | undefined>(undefined);
   const [roomName, setRoomName] = useState('Multiplayer Baazar Blot');
+  const [displayTrick, setDisplayTrick] = useState<{ playerPosition: number; card: CardType }[]>([]);
+  const trickCompleteTimeRef = useRef<number>(0);
+  const resolutionInProgressRef = useRef(false);
+  const resolutionStartTimeRef = useRef<number>(0);
+  const [isShowingCompletedTrick, setIsShowingCompletedTrick] = useState(false);
   const [showRoomNameModal, setShowRoomNameModal] = useState(false);
   const roomIdRef = useRef<string | null>(null);
   useEffect(() => { roomIdRef.current = roomId; }, [roomId]);
@@ -348,6 +353,57 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
       }
     };
   }, [userId, navigation]);
+
+  // Delay trick clearing to show all 4 cards for 2 seconds
+  useEffect(() => {
+    if (!gameState?.currentTrick) return;
+
+    // Safety check: if we're showing a completed trick for more than 5 seconds, force clear
+    if (resolutionInProgressRef.current && isShowingCompletedTrick) {
+      const elapsed = Date.now() - resolutionStartTimeRef.current;
+      if (elapsed > 5000) {
+        console.warn('Display stuck, forcing clear');
+        setDisplayTrick([]);
+        setTimeout(() => {
+          setIsShowingCompletedTrick(false);
+          resolutionInProgressRef.current = false;
+        }, 500);
+        return;
+      }
+    }
+
+    // When trick is complete (4 cards), save it and delay clearing
+    if (gameState.currentTrick.length === 4 && !isShowingCompletedTrick && !resolutionInProgressRef.current) {
+      setDisplayTrick(gameState.currentTrick);
+      setIsShowingCompletedTrick(true);
+      resolutionInProgressRef.current = true;
+      resolutionStartTimeRef.current = Date.now();
+      trickCompleteTimeRef.current = Date.now();
+    }
+    // When trick is cleared by server (0 cards), wait for delay before updating display
+    else if (gameState.currentTrick.length === 0 && isShowingCompletedTrick && resolutionInProgressRef.current) {
+      const elapsed = Date.now() - trickCompleteTimeRef.current;
+      const remainingDelay = Math.max(0, 2000 - elapsed); // 2 second total delay
+
+      const clearTimer = setTimeout(() => {
+        setDisplayTrick([]);
+        // Add brief pause after clearing before allowing new cards
+        setTimeout(() => {
+          setIsShowingCompletedTrick(false);
+          resolutionInProgressRef.current = false;
+        }, 500);
+      }, remainingDelay);
+      
+      return () => {
+        clearTimeout(clearTimer);
+        // Don't reset state here - let the timer complete naturally
+      };
+    }
+    // Normal case: sync display with server (but not during completed trick display)
+    else if (!isShowingCompletedTrick && gameState.currentTrick.length < 4) {
+      setDisplayTrick(gameState.currentTrick);
+    }
+  }, [gameState?.currentTrick, displayTrick.length, isShowingCompletedTrick]);
 
   const handleFindMatch = async () => {
     const connected = await ensureSocketConnected();
@@ -758,8 +814,8 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
               </View>
 
               {/* Trick cards and led suit indicator */}
-              {gameState?.currentTrick && gameState.currentTrick.length > 0 && (() => {
-                const ledSuit = gameState.currentTrick[0].card.suit;
+              {displayTrick && displayTrick.length > 0 && (() => {
+                const ledSuit = displayTrick[0].card.suit;
                 // Map player positions to visual table positions relative to myPosition
                 const positionStyle: Record<number, object> = {
                   0: styles.trickSlotBottom,  // myPosition
@@ -781,7 +837,7 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
                     </View>
                     
                     {/* Cards positioned at table edges */}
-                    {gameState.currentTrick.map((tc, idx) => {
+                    {displayTrick.map((tc, idx) => {
                       const relativePos = (tc.playerPosition - myPosition + 4) % 4;
                       return (
                         <View
