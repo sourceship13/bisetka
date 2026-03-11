@@ -82,7 +82,7 @@ const OnlinePlayersList: React.FC<OnlinePlayersListProps> = ({
               <Image
                 source={avatarSource}
                 style={styles.avatar}
-                resizeMode="cover"
+                resizeMode="contain"
               />
             </View>
           ) : (
@@ -147,11 +147,8 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   avatar: {
-    width: 90,
-    height: 160,
-    position: 'absolute',
-    top: 25,
-    left: -10,
+    width: 85,
+    height: 85,
   },
   avatarClip: {
     width: 85,
