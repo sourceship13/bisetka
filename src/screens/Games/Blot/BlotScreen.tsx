@@ -495,6 +495,62 @@ const BlotScreen = ({ navigation }: any) => {
     );
   };
 
+  const renderCard = (card: CardType, index: number, isTrickCard = false, onPress?: () => void, isPlayable?: boolean) => {
+    const suitSymbol = {
+      hearts: '♥️',
+      diamonds: '♦️',
+      clubs: '♣️',
+      spades: '♠️',
+    };
+
+    const suitColor = card.suit === 'hearts' || card.suit === 'diamonds' ? '#ff0000' : '#000000';
+
+    // Font configurations
+    const fontStyles: Record<string, any> = {
+      classic:  { fontWeight: '700' as const, letterSpacing: 0    },
+      modern:   { fontWeight: '600' as const, letterSpacing: 0.5  },
+      bold:     { fontWeight: '900' as const, letterSpacing: -0.5 },
+      elegant:  { fontWeight: '300' as const, letterSpacing: 1    },
+      playful:  { fontWeight: '800' as const, letterSpacing: 0    },
+    };
+
+    const selectedFont = customTheme?.font || 'classic';
+    const fontStyle = fontStyles[selectedFont];
+
+    const cardContent = (
+      <>
+        <Text style={[styles.cardRank, { color: suitColor }, fontStyle]}>{card.rank}</Text>
+        <Text style={[styles.cardSuit, fontStyle]}>{suitSymbol[card.suit]}</Text>
+        <Text style={[styles.cardValue, fontStyle]}>{card.value}</Text>
+      </>
+    );
+
+    return (
+      <TouchableOpacity
+        key={index}
+        style={[
+          isTrickCard ? styles.trickCard : styles.card,
+          !isPlayable && styles.disabledCard,
+        ]}
+        onPress={onPress}
+        disabled={!onPress || !isPlayable}
+      >
+        {customTheme?.backgroundImage ? (
+          <ImageBackground
+            source={{ uri: customTheme.backgroundImage }}
+            style={styles.cardImageBackground}
+            imageStyle={{ borderRadius: isTrickCard ? 12 : 8 }}
+            resizeMode="cover"
+          >
+            {cardContent}
+          </ImageBackground>
+        ) : (
+          cardContent
+        )}
+      </TouchableOpacity>
+    );
+  };
+
   const currentPlayer = gameState.players[gameState.currentPlayer];
   const { width, height } = Dimensions.get('window');
   const TABLE_SIZE = Math.min(width - 32, height * 0.5);
@@ -603,6 +659,14 @@ const BlotScreen = ({ navigation }: any) => {
                     style={styles.cardTable}
                     imageStyle={{ borderRadius: 16 }}
                   >
+                    {/* Card placement placeholders - always visible */}
+                    <View style={styles.trickArea}>
+                      <View style={[styles.cardPlaceholder, styles.trickSlotTop]} />
+                      <View style={[styles.cardPlaceholder, styles.trickSlotBottom]} />
+                      <View style={[styles.cardPlaceholder, styles.trickSlotLeft]} />
+                      <View style={[styles.cardPlaceholder, styles.trickSlotRight]} />
+                    </View>
+                    
                     {gameState.currentTrick.cards.length > 0 && (() => {
                         const ledSuit = gameState.currentTrick.cards[0].card.suit;
                         // Map player IDs to visual table positions
@@ -633,14 +697,7 @@ const BlotScreen = ({ navigation }: any) => {
                                   positionStyle[cardPlay.playerId] ?? styles.trickSlotTop,
                                 ]}
                               >
-                                <Text style={styles.trickPlayerName}>
-                                  {gameState.players[cardPlay.playerId].name}
-                                </Text>
-                                <DynamicCard
-                                  card={cardPlay.card}
-                                  size="medium"
-                                  theme={customTheme}
-                                />
+                                {renderCard(cardPlay.card, idx, true)}
                               </View>
                             ))}
                           </View>
@@ -664,15 +721,12 @@ const BlotScreen = ({ navigation }: any) => {
                         gameState.currentTrick,
                         gameState.trump,
                       );
-                    return (
-                      <DynamicCard
-                        key={card.id}
-                        card={card}
-                        onPress={isMyTurn ? () => playCard(card) : undefined}
-                        isPlayable={playable}
-                        size="large"
-                        theme={customTheme}
-                      />
+                    return renderCard(
+                      card,
+                      index,
+                      false,
+                      isMyTurn ? () => playCard(card) : undefined,
+                      playable
                     );
                   }}
                 />
@@ -832,8 +886,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   trickCard: {
+    width: 90,
+    height: 120,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#ddd',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    margin: 4,
+    padding: 8,
+    marginHorizontal: 0,
   },
   // Led suit indicator
   ledSuitBadge: {
@@ -858,37 +920,88 @@ const styles = StyleSheet.create({
     marginTop: 1,
     letterSpacing: 0.5,
   },
+  // Card placement placeholder style
+  cardPlaceholder: {
+    position: 'absolute',
+    width: 90,
+    height: 120,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.6)',
+    borderRadius: 12,
+    borderStyle: 'dashed',
+  },
   // Absolute card slots for each player position on the table
   trickSlot: {
     position: 'absolute',
     alignItems: 'center',
   },
   trickSlotTop: {
-    top: 14,
-    left: 0,
-    right: 0,
+    top: 25,
+    left: '50%',
+    marginLeft: -45,
     alignItems: 'center',
   },
   trickSlotBottom: {
-    bottom: 14,
-    left: 0,
-    right: 0,
+    bottom: 25,
+    left: '50%',
+    marginLeft: -45,
     alignItems: 'center',
   },
   trickSlotLeft: {
-    left: 14,
+    left: 35,
     top: '50%',
-    marginTop: -75,
+    marginTop: -60,
+    transform: [{ rotate: '90deg' }],
   },
   trickSlotRight: {
-    right: 14,
+    right: 35,
     top: '50%',
-    marginTop: -75,
+    marginTop: -60,
+    transform: [{ rotate: '90deg' }],
   },
   trickPlayerName: {
     fontSize: 12,
     color: '#fff',
     marginBottom: 6,
+    fontWeight: '600',
+  },
+  card: {
+    width: 80,
+    height: 110,
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: '#ddd',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 8,
+    marginHorizontal: 5,
+  },
+  selectedCard: {
+    borderColor: '#007AFF',
+    backgroundColor: '#E3F2FD',
+  },
+  disabledCard: {
+    opacity: 0.5,
+  },
+  cardRank: {
+    fontSize: 24,
+    fontWeight: 'bold',
+  },
+  cardSuit: {
+    fontSize: 32,
+  },
+  cardValue: {
+    fontSize: 12,
+    color: '#666',
+  },
+  cardImageBackground: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 8,
   },
   handContainer: {
     flex: 1,
