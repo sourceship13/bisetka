@@ -379,6 +379,20 @@ const GameCustomizationModal: React.FC<CardCustomizationModalProps> = ({
                     <Text style={styles.savedLabel}>✓ Saved</Text>
                   </View>
                 )}
+                <Text style={[styles.label, { marginTop: 16 }]}>Or use the default:</Text>
+                <TouchableOpacity
+                  style={[styles.presetCard, { flexDirection: 'row', alignItems: 'center', width: 'auto' }]}
+                  onPress={() => { setSavedBoardBg(null); setGeneratedBoardBg(null); autoSave({ boardImage: undefined }); }}>
+                  <Image
+                    source={require('../../../assets/blot/card-table.png')}
+                    style={{ width: 60, height: 60, borderRadius: 8, marginRight: 12 }}
+                    resizeMode="cover"
+                  />
+                  <View>
+                    <Text style={styles.presetName}>Default Board</Text>
+                    <Text style={styles.presetDesc}>Classic green card table</Text>
+                  </View>
+                </TouchableOpacity>
               </View>
 
                <View style={styles.section}>
