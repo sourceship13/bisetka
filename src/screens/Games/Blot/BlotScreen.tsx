@@ -520,58 +520,15 @@ const BlotScreen = ({ navigation }: any) => {
   };
 
   const renderCard = (card: CardType, index: number, isTrickCard = false, onPress?: () => void, isPlayable?: boolean) => {
-    const suitSymbol = {
-      hearts: '♥️',
-      diamonds: '♦️',
-      clubs: '♣️',
-      spades: '♠️',
-    };
-
-    const suitColor = card.suit === 'hearts' || card.suit === 'diamonds' ? '#ff0000' : '#000000';
-
-    // Font configurations
-    const fontStyles: Record<string, any> = {
-      classic:  { fontWeight: '700' as const, letterSpacing: 0    },
-      modern:   { fontWeight: '600' as const, letterSpacing: 0.5  },
-      bold:     { fontWeight: '900' as const, letterSpacing: -0.5 },
-      elegant:  { fontWeight: '300' as const, letterSpacing: 1    },
-      playful:  { fontWeight: '800' as const, letterSpacing: 0    },
-    };
-
-    const selectedFont = customTheme?.font || 'classic';
-    const fontStyle = fontStyles[selectedFont];
-
-    const cardContent = (
-      <>
-        <Text style={[styles.cardRank, { color: suitColor }, fontStyle]}>{card.rank}</Text>
-        <Text style={[styles.cardSuit, fontStyle]}>{suitSymbol[card.suit]}</Text>
-        <Text style={[styles.cardValue, fontStyle]}>{card.value}</Text>
-      </>
-    );
-
     return (
-      <TouchableOpacity
+      <DynamicCard
         key={index}
-        style={[
-          isTrickCard ? styles.trickCard : styles.card,
-          !isPlayable && styles.disabledCard,
-        ]}
+        card={card}
         onPress={onPress}
-        disabled={!onPress || !isPlayable}
-      >
-        {customTheme?.backgroundImage ? (
-          <ImageBackground
-            source={{ uri: customTheme.backgroundImage }}
-            style={styles.cardImageBackground}
-            imageStyle={{ borderRadius: isTrickCard ? 12 : 8 }}
-            resizeMode="cover"
-          >
-            {cardContent}
-          </ImageBackground>
-        ) : (
-          cardContent
-        )}
-      </TouchableOpacity>
+        isPlayable={isPlayable}
+        size={isTrickCard ? 'small' : 'medium'}
+        theme={customTheme}
+      />
     );
   };
 
