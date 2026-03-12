@@ -156,6 +156,8 @@ const styles = StyleSheet.create({
     borderRadius: 42.5,
     overflow: 'hidden',
     backgroundColor: '#e1e1e1',
+    borderWidth: 3,
+    borderColor: '#000',
   },
   avatarPlaceholder: {
     width: 85,
