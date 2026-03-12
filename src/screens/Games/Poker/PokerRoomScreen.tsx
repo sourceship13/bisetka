@@ -4,6 +4,9 @@ import { Snackbar } from 'react-native-paper';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import GameToolbar from '../../../components/global/GameToolbar';
+import DynamicCard from '../../../components/DynamicCard';
+import type { CardTheme } from '../../../components/DynamicCard';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {RootStackParamList} from '../../../navigation/AppNavigator';
@@ -128,6 +131,14 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
   const [draftRoomName, setDraftRoomName] = useState('');
   const roomNameRef = useRef(roomName);
   useEffect(() => { roomNameRef.current = roomName; }, [roomName]);
+
+  // Card theme (shared with Blot/Baazar)
+  const [customTheme, setCustomTheme] = useState<CardTheme | undefined>(undefined);
+  useEffect(() => {
+    AsyncStorage.getItem('blot_card_theme').then(saved => {
+      if (saved) setCustomTheme(JSON.parse(saved));
+    }).catch(() => {});
+  }, []);
 
   // Effective seat index for the human player
   const myPlayerIndex = isMultiplayer ? mySeatRef.current : playerIndex;
@@ -949,28 +960,13 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
   };
 
   const renderCard = (card: Card, hidden = false) => {
-    if (hidden) {
-      return (
-        <View style={[styles.card, styles.cardHidden]}>
-          <Text style={styles.cardText}>🂠</Text>
-        </View>
-      );
-    }
-
-    const suitSymbols = {
-      hearts: '♥️',
-      diamonds: '♦️',
-      clubs: '♣️',
-      spades: '♠️',
-    };
-
-    const isRed = card.suit === 'hearts' || card.suit === 'diamonds';
-
     return (
-      <View style={[styles.card, isRed ? styles.cardRed : styles.cardBlack]}>
-        <Text style={styles.cardRank}>{card.rank}</Text>
-        <Text style={styles.cardSuit}>{suitSymbols[card.suit]}</Text>
-      </View>
+      <DynamicCard
+        card={card}
+        faceDown={hidden}
+        size="small"
+        theme={customTheme}
+      />
     );
   };
 
