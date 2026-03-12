@@ -257,7 +257,8 @@ const HomeScreen = ({navigation}: any) => {
             showsVerticalScrollIndicator={false}>
         {/* Header */}
         <LinearGradient
-          colors={['#6366f1', '#8b5cf6']}
+          // colors={['#6366f1', '#8b5cf6']}
+          colors={['rgba(0, 0, 0, 0.6)', 'rgba(0, 0, 0, 0.6)']}
           start={{x: 0, y: 0}}
           end={{x: 1, y: 0}}
           style={styles.header}>
@@ -279,7 +280,8 @@ const HomeScreen = ({navigation}: any) => {
         <View style={styles.quickRow}>
           <View style={styles.balanceWrap}>
             <LinearGradient
-              colors={['#10b981', '#34d399']}
+              // colors={['#10b981', '#34d399']}
+              colors={['rgba(0, 0, 0, 0.6)', 'rgba(0, 0, 0, 0.6)']}
               start={{x: 0, y: 0}}
               end={{x: 1, y: 1}}
               style={styles.balanceGrad}>
@@ -295,7 +297,8 @@ const HomeScreen = ({navigation}: any) => {
               onPress={() => navigation.navigate('GlobalChat')}
               style={styles.actionBtn}>
               <LinearGradient
-                colors={['#6366f1', '#8b5cf6']}
+                // colors={['#6366f1', '#8b5cf6']}
+                colors={['rgba(0, 0, 0, 0.6)', 'rgba(0, 0, 0, 0.6)']}
                 style={styles.actionGrad}>
                 <Text style={styles.actionIcon}>🌍</Text>
               </LinearGradient>
@@ -305,7 +308,8 @@ const HomeScreen = ({navigation}: any) => {
               onPress={() => navigation.navigate('DMList')}
               style={styles.actionBtn}>
               <LinearGradient
-                colors={['#ec4899', '#f472b6']}
+                // colors={['#ec4899', '#f472b6']}
+                colors={['rgba(0, 0, 0, 0.6)', 'rgba(0, 0, 0, 0.6)']}
                 style={styles.actionGrad}>
                 <Text style={styles.actionIcon}>💬</Text>
               </LinearGradient>
@@ -315,7 +319,8 @@ const HomeScreen = ({navigation}: any) => {
               onPress={() => navigation.navigate('Leaderboard')}
               style={styles.actionBtn}>
               <LinearGradient
-                colors={['#f59e0b', '#fbbf24']}
+                // colors={['#f59e0b', '#fbbf24']}
+                colors={['rgba(0, 0, 0, 0.6)', 'rgba(0, 0, 0, 0.6)']}
                 style={styles.actionGrad}>
                 <Text style={styles.actionIcon}>🏆</Text>
               </LinearGradient>
@@ -325,7 +330,8 @@ const HomeScreen = ({navigation}: any) => {
               onPress={() => navigation.navigate('ChatRoomsList')}
               style={styles.actionBtn}>
               <LinearGradient
-                colors={['#14b8a6', '#2dd4bf']}
+                // colors={['#14b8a6', '#2dd4bf']}
+                colors={['rgba(0, 0, 0, 0.6)', 'rgba(0, 0, 0, 0.6)']}
                 style={styles.actionGrad}>
                 <Text style={styles.actionIcon}>🏠</Text>
               </LinearGradient>
@@ -340,7 +346,9 @@ const HomeScreen = ({navigation}: any) => {
             style={styles.activeRoomsButton}
             activeOpacity={0.85}>
             <LinearGradient
-              colors={['#ec4899', '#f472b6']}
+              // colors={['#ec4899', '#f472b6']}
+                            colors={['rgba(0, 0, 0, 0.6)', 'rgba(0, 0, 0, 0.6)']}
+
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.activeRoomsGradient}>
