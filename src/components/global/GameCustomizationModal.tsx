@@ -102,7 +102,8 @@ const GameCustomizationModal: React.FC<CardCustomizationModalProps> = ({
   onSavePieceSet,
 }) => {
   const hasPiecesTab = Boolean(gameType);
-  const [activeTab, setActiveTab] = useState<'cards' | 'pieces'>('cards');
+  const [activeTab,  setActiveTab]  = useState<'cards' | 'pieces'>('cards');
+  const [aiProvider, setAiProvider] = useState<'openai' | 'fal'>('openai');
   // ── Card state ────────────────────────────────────────────────────────────
   const [themeName,           setThemeName]           = useState(currentTheme?.name || '');
   const [backgroundPrompt,    setBackgroundPrompt]    = useState('');
@@ -138,7 +139,7 @@ const GameCustomizationModal: React.FC<CardCustomizationModalProps> = ({
     if (!backgroundPrompt.trim()) { BisetkaAlert.error('Error', 'Please enter a background theme prompt'); return; }
     setIsGeneratingBg(true);
     try {
-      const result = await apiService.generateCardFaceBackground(backgroundPrompt);
+      const result = await apiService.generateCardFaceBackground(backgroundPrompt, aiProvider);
       setGeneratedBackground(result.url);
     } catch {
       BisetkaAlert.error('Error', 'Failed to generate background. Please try again.');
@@ -149,7 +150,7 @@ const GameCustomizationModal: React.FC<CardCustomizationModalProps> = ({
     if (!boardBackgroundPrompt.trim()) { BisetkaAlert.error('Error', 'Please enter a board background prompt'); return; }
     setIsGeneratingBoardBg(true);
     try {
-      const result = await apiService.generateBoardBackground(boardBackgroundPrompt);
+      const result = await apiService.generateBoardBackground(boardBackgroundPrompt, aiProvider);
       setGeneratedBoardBg(result.url);
     } catch {
       BisetkaAlert.error('Error', 'Failed to generate board background. Please try again.');
@@ -160,7 +161,7 @@ const GameCustomizationModal: React.FC<CardCustomizationModalProps> = ({
     if (!cardBackPrompt.trim()) { BisetkaAlert.error('Error', 'Please enter a card back design prompt'); return; }
     setIsGeneratingBack(true);
     try {
-      const result = await apiService.generateCardBackDesign(cardBackPrompt);
+      const result = await apiService.generateCardBackDesign(cardBackPrompt, aiProvider);
       setGeneratedCardBack(result.url);
     } catch {
       BisetkaAlert.error('Error', 'Failed to generate card back. Please try again.');
@@ -252,6 +253,20 @@ const GameCustomizationModal: React.FC<CardCustomizationModalProps> = ({
               </Text>
               <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
                 <Text style={styles.closeButton}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* AI Provider Toggle */}
+            <View style={styles.providerRow}>
+              <TouchableOpacity
+                style={[styles.providerOption, aiProvider === 'openai' && styles.providerOptionActive]}
+                onPress={() => setAiProvider('openai')}>
+                <Text style={[styles.providerOptionText, aiProvider === 'openai' && styles.providerOptionTextActive]}>OpenAI DALL·E</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.providerOption, aiProvider === 'fal' && styles.providerOptionActive]}
+                onPress={() => setAiProvider('fal')}>
+                <Text style={[styles.providerOptionText, aiProvider === 'fal' && styles.providerOptionTextActive]}>fal.ai Flux</Text>
               </TouchableOpacity>
             </View>
 
@@ -682,9 +697,9 @@ const GameCustomizationModal: React.FC<CardCustomizationModalProps> = ({
                 style={styles.saveButton}
                 onPress={handleSavePieces}
                 disabled={pieceCount === 0}>
-                <LinearGradient colors={['#10b981', '#34d399']} style={styles.saveButtonGradient}>
+                <View style={styles.saveButtonGradient}>
                   <Text style={styles.saveButtonText}>💾 Save Piece Set</Text>
-                </LinearGradient>
+                </View>
               </TouchableOpacity>
               <View style={{ height: 40 }} />
             </ScrollView>
@@ -830,13 +845,14 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   saveButtonGradient: {
-    padding: 18,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   saveButtonText: {
     fontSize: 18,
     fontWeight: '800',
     color: '#fff',
+    marginVertical: 14,
   },
   previewLabel: {
     fontSize: 13,
@@ -1079,6 +1095,31 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 14,
     fontWeight: '700',
+  },
+  providerRow: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255, 255, 255, 0.07)',
+    borderRadius: 12,
+    padding: 4,
+    marginHorizontal: 20,
+    marginBottom: 12,
+  },
+  providerOption: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderRadius: 10,
+  },
+  providerOptionActive: {
+    backgroundColor: '#6366f1',
+  },
+  providerOptionText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.4)',
+  },
+  providerOptionTextActive: {
+    color: '#fff',
   },
 });
 
