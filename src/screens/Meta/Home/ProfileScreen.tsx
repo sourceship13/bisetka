@@ -13,12 +13,12 @@ import {
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
-import {useAuth} from '../../libs/hooks/useAuth';
-import {colors, spacing} from '../../theme';
+import {useAuth} from '../../../libs/hooks/useAuth';
+import {colors, spacing} from '../../../theme';
 import Config from 'react-native-config';
-import AVATARS, {resolveAvatar} from '../../utils/avatars';
-import type {AvatarOption} from '../../utils/avatars';
-import apiService from '../../services/api.service';
+import AVATARS, {resolveAvatar} from '../../../utils/avatars';
+import type {AvatarOption} from '../../../utils/avatars';
+import apiService from '../../../services/api.service';
 
 const {width} = Dimensions.get('window');
 const API_URL = Config.API_URL || 'http://localhost:3000';

@@ -10,6 +10,7 @@ import {
   ImageBackground,
   Image,
   Dimensions,
+  Animated,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
@@ -34,7 +35,7 @@ import apiService from '../../../services/api.service';
 import CardCustomizationModal from '../../../components/global/GameCustomizationModal';
 import type { CardTheme } from '../../../components/global/GameCustomizationModal';
 import ExpandableView from '../../../components/global/ExpandableView';
-import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
+import ReAnimated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 
 interface GameState {
   deck: Card[];
@@ -144,6 +145,20 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
   const trickCountRef = useRef(0);
   const lastPlayerCardRef = useRef<Card | null>(null);
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // Player positions (circular around table)
+  const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+  const playerPositions = Array.from({ length: 4 }, (_, i) => {
+    const centerX = screenWidth / 2;
+    const centerY = screenHeight * 0.45;
+    const radius = Math.min(screenWidth, screenHeight) * 0.25;
+    const angle = (i / 4) * Math.PI * 2;
+    return {
+      x: centerX + radius * Math.cos(angle),
+      y: centerY + radius * Math.sin(angle),
+    };
+  });
+
   // Helper: set playerColor and keep ref in sync
   const updatePlayerColor = (color: 'white' | 'black') => {
     playerColorRef.current = color;
@@ -175,7 +190,6 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
     spades: '#ecf0f1',
   };
 
-  // Handle computer's turn when it needs to lead a trick (e.g., after winning a trick)
   useEffect(() => {
     if (!isLocalGame || !localGameState || localGameState.status !== 'active') return;
     
@@ -947,7 +961,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
     );
   };
 
-  const renderCard = (card: Card, index: number, isTrickCard = false) => {
+  const renderCard = (card: Card, index: number, isTrickCard = false, playerIndex?: number) => {
     const canPlay = isLocalGame
       ? (localGameState?.currentTurn === 'player')
       : isMyTurn && !moveInFlightRef.current;
@@ -955,6 +969,16 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
     if (index === 0) {
       console.log(`renderCard - isMyTurn: ${isMyTurn}, canPlay: ${canPlay}, isLocalGame: ${isLocalGame}`);
     }
+
+    let animatedOpacity: any = undefined;
+
+    const cardContent = (
+      <DynamicCard
+        card={card as any}
+        size={isTrickCard ? 'small' : 'medium'}
+        theme={customTheme}
+      />
+    );
 
     return (
       <TouchableOpacity
@@ -967,11 +991,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
         onPress={() => handlePlayCard(card)}
         disabled={!canPlay}
       >
-        <DynamicCard
-          card={card}
-          size={isTrickCard ? 'small' : 'medium'}
-          theme={customTheme}
-        />
+        {cardContent}
       </TouchableOpacity>
     );
   };
@@ -1153,9 +1173,9 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
         <View style={styles.handContainer}>
           <Text style={styles.handLabel}>Your Hand:</Text>
           <CardHandFan
-            cards={localGameState.playerHand}
+            cards={localGameState.playerHand as any}
             maxWidth={width - 32}
-            renderCard={(card, index) => renderCard(card, index)}
+            renderCard={(card, index) => renderCard(card as any, index)}
           />
         </View>
 
@@ -1380,9 +1400,9 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
                 <>
                   <Text style={styles.handLabel}>Your Hand:</Text>
                   <CardHandFan
-                    cards={playerHand}
+                    cards={playerHand as any}
                     maxWidth={width - 32}
-                    renderCard={(card, index) => renderCard(card, index)}
+                    renderCard={(card, index) => renderCard(card as any, index)}
                   />
                 </>
               )}
@@ -1431,7 +1451,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 style={styles.editRoomButton}
               >
-                <Animated.Text style={[styles.editRoomIcon, chevronStyle]}>⌄</Animated.Text>
+                <ReAnimated.Text style={[styles.editRoomIcon, chevronStyle]}>⌄</ReAnimated.Text>
               </TouchableOpacity>
             }
           />
