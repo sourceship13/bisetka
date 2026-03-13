@@ -30,6 +30,7 @@ import RoomNameModal from '../../../components/RoomNameModal';
 import RoomInfoDrawer from '../../../components/RoomInfoDrawer';
 import type { RoomInfoDrawerHandle } from '../../../components/RoomInfoDrawer';
 import {apiConfig} from '../../../libs/utils/api.utils';
+import apiService from '../../../services/api.service';
 import CardCustomizationModal from '../../../components/global/GameCustomizationModal';
 import type { CardTheme } from '../../../components/global/GameCustomizationModal';
 import ExpandableView from '../../../components/global/ExpandableView';
@@ -255,6 +256,9 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
               setIsGameStarted(true);
               isGameStartedRef.current = true;
               setGameMode('game');
+              if (data.roomTheme) {
+                handleSaveTheme(data.roomTheme);
+              }
             });
           }
           socketService.joinRoomBySession(dbSessionId, userId);
@@ -270,6 +274,9 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
             setIsGameStarted(true);
             isGameStartedRef.current = true;
             setGameMode('game');
+            if (data.roomTheme) {
+              handleSaveTheme(data.roomTheme);
+            }
           } catch (err: any) {
             BisetkaAlert.error('Error', err.message || 'Could not connect to this game.');
             setGameMode('menu');
@@ -342,6 +349,23 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
         if (initialMode === 'spectate' && data.gameState) setGameState(data.gameState);
       });
     }
+
+    // Room theme broadcast from any player in the room
+    socketService.onRoomThemeUpdated((data) => {
+      if (data.roomId === roomIdRef.current) {
+        const theme = data.theme;
+        const urls = [theme?.boardImage, theme?.backgroundImage].filter(Boolean) as string[];
+        if (urls.length > 0) {
+          Promise.all(urls.map((url: string) => Image.prefetch(url).catch(() => {}))).then(() => {
+            setCustomTheme({ ...theme });
+            AsyncStorage.setItem('blot_card_theme', JSON.stringify(theme));
+          });
+        } else {
+          setCustomTheme({ ...theme });
+          AsyncStorage.setItem('blot_card_theme', JSON.stringify(theme));
+        }
+      }
+    });
 
     // Opponent joined
     socketService.onOpponentJoined((data: any) => {
@@ -698,16 +722,31 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
   };
 
   const handleSaveTheme = (theme: CardTheme) => {
+    const applyTheme = () => {
+      setCustomTheme({ ...theme });
+      AsyncStorage.setItem('blot_card_theme', JSON.stringify(theme));
+      // Broadcast to all players/spectators in the room
+      const roomId = roomIdRef.current;
+      if (roomId) {
+        socketService.setRoomTheme(roomId, theme);
+      }
+      // Log for IAP analytics (fire-and-forget)
+      apiService.logThemeApplied({
+        gameType: 'blot',
+        roomId: roomId ?? undefined,
+        themeName: theme.name,
+        backgroundImageUrl: theme.backgroundImage,
+        boardImageUrl: theme.boardImage,
+        cardBackImageUrl: theme.cardBackImage,
+        fontFamily: theme.font,
+        source: 'generated',
+      });
+    };
     const urls = [theme.boardImage, theme.backgroundImage].filter(Boolean) as string[];
     if (urls.length > 0) {
-      Promise.all(urls.map(url => Image.prefetch(url).catch(() => {})))
-        .then(() => {
-          setCustomTheme({...theme});
-          AsyncStorage.setItem('blot_card_theme', JSON.stringify(theme));
-        });
+      Promise.all(urls.map(url => Image.prefetch(url).catch(() => {}))).then(applyTheme);
     } else {
-      setCustomTheme({...theme});
-      AsyncStorage.setItem('blot_card_theme', JSON.stringify(theme));
+      applyTheme();
     }
   };
 

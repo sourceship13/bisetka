@@ -17,6 +17,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { socketService } from '../services/SocketService';
 import tokenService from '../services/token.service';
+import apiService from '../services/api.service';
 import DynamicCard from '../components/DynamicCard';
 import { CardType } from '../components/Card';
 import InGameChat from '../components/InGameChat';
@@ -206,7 +207,8 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
       socket.on('baazar_game_started', (data: { 
         roomId?: string;
         players: GamePlayer[]; 
-        gameState: BaazarGameState 
+        gameState: BaazarGameState;
+        roomTheme?: any;
       }) => {
         console.log('🚀 Baazar game started:', data);
         setGameState(data.gameState);
@@ -217,6 +219,11 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
         // Set roomId if we missed baazar_match_found
         if (data.roomId) {
           setRoomId(prev => prev || data.roomId!);
+        }
+
+        // Apply existing room theme for reconnecting players
+        if (data.roomTheme) {
+          handleSaveTheme(data.roomTheme);
         }
 
         // If myPosition wasn't set (missed baazar_match_found), derive it from userId
@@ -341,12 +348,32 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
           if (data.players) setPlayers(data.players);
           setGameMode('game');
           setIsConnecting(false);
+          if (data.roomTheme) {
+            handleSaveTheme(data.roomTheme);
+          }
         });
         socket.emit('spectate_room', { dbSessionId, userId, displayName: route.params?.session?.displayName });
       }
     };
 
     setupSocketListeners();
+
+    // Room theme broadcast from any player in the room
+    socketService.onRoomThemeUpdated((data) => {
+      if (data.roomId === roomIdRef.current) {
+        const theme = data.theme;
+        const urls = [theme?.boardImage, theme?.backgroundImage].filter(Boolean) as string[];
+        if (urls.length > 0) {
+          Promise.all(urls.map((url: string) => Image.prefetch(url).catch(() => {}))).then(() => {
+            setCustomTheme({ ...theme });
+            AsyncStorage.setItem('baazar_card_theme', JSON.stringify(theme));
+          });
+        } else {
+          setCustomTheme({ ...theme });
+          AsyncStorage.setItem('baazar_card_theme', JSON.stringify(theme));
+        }
+      }
+    });
 
     return () => {
       const socket = socketService.getSocket();
@@ -361,6 +388,7 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
         socket.off('baazar_player_replaced_ai');
         socket.off('error');
       }
+      socketService.offRoomThemeUpdated();
     };
   }, [userId, navigation]);
 
@@ -508,16 +536,29 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
   }, []);
 
   const handleSaveTheme = (theme: CardTheme) => {
+    const applyTheme = () => {
+      setCustomTheme({ ...theme });
+      AsyncStorage.setItem('baazar_card_theme', JSON.stringify(theme));
+      const currentRoomId = roomIdRef.current;
+      if (currentRoomId) {
+        socketService.setRoomTheme(currentRoomId, theme);
+      }
+      apiService.logThemeApplied({
+        gameType: 'baazar-blot',
+        roomId: currentRoomId ?? undefined,
+        themeName: theme.name,
+        backgroundImageUrl: theme.backgroundImage,
+        boardImageUrl: theme.boardImage,
+        cardBackImageUrl: theme.cardBackImage,
+        fontFamily: theme.font,
+        source: 'generated',
+      });
+    };
     const urls = [theme.boardImage, theme.backgroundImage].filter(Boolean) as string[];
     if (urls.length > 0) {
-      Promise.all(urls.map(url => Image.prefetch(url).catch(() => {})))
-        .then(() => {
-          setCustomTheme({...theme});
-          AsyncStorage.setItem('baazar_card_theme', JSON.stringify(theme));
-        });
+      Promise.all(urls.map(url => Image.prefetch(url).catch(() => {}))).then(applyTheme);
     } else {
-      setCustomTheme({...theme});
-      AsyncStorage.setItem('baazar_card_theme', JSON.stringify(theme));
+      applyTheme();
     }
   };
 
@@ -1524,12 +1565,15 @@ const styles = StyleSheet.create({
   cardTable: { 
     width: '100%',
     height: '100%',
-    borderRadius: 16,
-    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   trickArea: { 
-    flex: 1, 
     position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1537,11 +1581,11 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: 90,
     height: 120,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
     borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.3)',
+    borderColor: 'rgba(255, 255, 255, 0.6)',
+    borderRadius: 12,
     borderStyle: 'dashed',
-    borderRadius: 8,
-    backgroundColor: 'rgba(255,255,255,0.05)',
   },
   ledSuitBadge: {
     position: 'absolute',
