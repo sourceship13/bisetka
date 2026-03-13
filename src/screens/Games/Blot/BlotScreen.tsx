@@ -111,6 +111,28 @@ const BlotScreen = ({ navigation }: any) => {
   };
   const { refreshOnGameEnd } = useGameEndRefresh(undefined, 'blot');
   const isPlayingCardRef = useRef(false);
+  const [isResolvingTrick, setIsResolvingTrick] = useState(false);
+  const resolutionInProgressRef = useRef(false);
+  
+  // ─── Card Animation States ────────────────────────────────────────────
+  const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+  const [cardPlayAnimation, setCardPlayAnimation] = useState<Animated.Value | null>(null);
+  const trickTransitionOpacity = useRef(new Animated.Value(1)).current;
+  const roundTransitionOpacity = useRef(new Animated.Value(1)).current;
+  const trickCardAnimations = useRef<Map<string, Animated.Value>>(new Map()).current;
+  const trumpRevealScale = useRef(new Animated.Value(0.8)).current;
+  
+  // Player positions (circular around table)
+  const playerPositions = Array.from({ length: 4 }, (_, i) => {
+    const centerX = screenWidth / 2;
+    const centerY = screenHeight * 0.45;
+    const radius = Math.min(screenWidth, screenHeight) * 0.25;
+    const angle = (i / 4) * Math.PI * 2;
+    return {
+      x: centerX + radius * Math.cos(angle),
+      y: centerY + radius * Math.sin(angle),
+    };
+  });
 
   // ------------------------------------------------------------------
   // Bidding logic
@@ -215,6 +237,7 @@ const BlotScreen = ({ navigation }: any) => {
   // ------------------------------------------------------------------
   useEffect(() => {
     if (gameState.phase !== 'playing' || gameState.currentPlayer === 0) return;
+    if (isResolvingTrick) return;
     const timer = setTimeout(() => {
       const aiPlayer = gameState.players[gameState.currentPlayer];
       if (aiPlayer.hand.length === 0) return;
@@ -228,338 +251,270 @@ const BlotScreen = ({ navigation }: any) => {
     }, 700);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gameState.phase, gameState.currentPlayer, gameState.currentTrick]);
+  }, [gameState.phase, gameState.currentPlayer, gameState.currentTrick, isResolvingTrick]);
 
-  const playCard = (card: CardType) => {
-    // Guard against race condition: prevent double-taps
-    if (isPlayingCardRef.current) {
-      return;
-    }
-    isPlayingCardRef.current = true;
+  const TABLE_SIZE = Math.min(screenWidth - 32, screenHeight * 0.5);
 
-    const currentPlayer = gameState.players[gameState.currentPlayer];
+  // ------------------------------------------------------------------
+  // Trick resolution (called after delay so players see all 4 cards)
+  // ------------------------------------------------------------------
+  const resolveTrick = useCallback(() => {
+    setGameState(prev => {
+      if (prev.currentTrick.cards.length < TOTAL_PLAYERS) return prev;
 
-    if (
-      !canPlayCard(
-        card,
-        currentPlayer.hand,
-        gameState.currentTrick,
-        gameState.trump,
-      )
-    ) {
-      isPlayingCardRef.current = false;
-      BisetkaAlert.error(
-        'Invalid Move',
-        'You must follow suit or play trump if possible.',
-      );
-      return;
-    }
+      const leadSuit = prev.currentTrick.cards[0].card.suit;
+      const winnerId = determineTrickWinner(prev.currentTrick, prev.trump, leadSuit);
+      const completedTrick = { ...prev.currentTrick, winner: winnerId };
+      const newCompleted = [...prev.completedTricks, completedTrick];
+      const runningScore = calculateRunningScore(newCompleted, prev.players, prev.trump);
 
-    // Remove card from hand
-    const updatedHand = currentPlayer.hand.filter(c => c.id !== card.id);
-    const updatedPlayers = gameState.players.map(p =>
-      p.id === currentPlayer.id ? { ...p, hand: updatedHand } : p,
-    );
-
-    // Add card to current trick
-    const updatedTrick = {
-      ...gameState.currentTrick,
-      cards: [
-        ...gameState.currentTrick.cards,
-        { playerId: currentPlayer.id, card },
-      ],
-    };
-
-    // Check if trick is complete (all 4 players played)
-    if (updatedTrick.cards.length === 4) {
-      const leadSuit = updatedTrick.cards[0].card.suit;
-      const winner = determineTrickWinner(
-        updatedTrick,
-        gameState.trump,
-        leadSuit,
-      );
-      updatedTrick.winner = winner;
-
-      const completedTricks = [...gameState.completedTricks, updatedTrick];
-
-      // Show the completed trick (all 4 cards) before processing the result
-      setGameState(prev => ({
-        ...prev,
-        players: updatedPlayers,
-        currentTrick: updatedTrick,
-        completedTricks,
-      }));
-      // Reset flag so next trick can start
-      isPlayingCardRef.current = false;
-
-      // Check if round is over (hands empty)
-      if (updatedPlayers[0].hand.length === 0) {
-        const roundResult = calculateRoundScore(
-          completedTricks,
-          updatedPlayers,
-          gameState.trump,
-          gameState.takerTeam,
-          gameState.beloteTeam,
-        );
-        const roundScore = {
-          team1: roundResult.team1,
-          team2: roundResult.team2,
+      if (newCompleted.length < 6) { // 24-card deck / 4 players = 6 tricks per round
+        return {
+          ...prev,
+          currentTrick: { cards: [], winner: null },
+          completedTricks: newCompleted,
+          lastTrickWinner: winnerId,
+          currentPlayer: winnerId,
+          scores: runningScore,
         };
-        const newGameScore = {
-          team1: (gameState.gameScore.team1 || 0) + roundResult.team1,
-          team2: (gameState.gameScore.team2 || 0) + roundResult.team2,
-        };
-
-        // Build round summary message
-        let msg = '';
-        if (roundResult.capot) {
-          const capotTeam = roundResult.team1 === 250 ? 'Team 1' : 'Team 2';
-          msg = `CAPOT! ${capotTeam} wins all tricks — 250 pts!`;
-        } else if (roundResult.takerFell) {
-          const takerName = gameState.takerTeam === 1 ? 'Team 1' : 'Team 2';
-          msg = `${takerName} fell! Scored less than 82 — opponent gets 162 pts.`;
-        } else {
-          if (roundResult.beloteBonus > 0) msg = 'Belote! +20 bonus. ';
-          msg += `Round: Team 1 +${roundResult.team1} | Team 2 +${roundResult.team2}`;
-        }
-
-        // Game ends at 101 points
-        if (newGameScore.team1 >= 101 || newGameScore.team2 >= 101) {
-          const playerWon = newGameScore.team1 >= newGameScore.team2;
-          // Delay transition to game-end so the 4th card remains visible
-          setTimeout(() => {
-            isPlayingCardRef.current = false;
-            setGameState(prev => ({
-              ...prev,
-              players: updatedPlayers,
-              completedTricks,
-              scores: roundScore,
-              gameScore: newGameScore,
-              phase: 'gameEnd',
-              roundMessage: msg,
-            }));
-            // Record result to backend so DB trigger awards points
-            gameResultService
-              .recordGameResult({
-                gameType: 'blot',
-                gameMode: 'ai',
-                result: playerWon ? 'win' : 'loss',
-                playerScore: newGameScore.team1,
-                opponentScore: newGameScore.team2,
-              })
-              .then(() => refreshOnGameEnd())
-              .catch(() => refreshOnGameEnd());
-          }, 1500);
-          return;
-        }
-
-        // Start new round — delay so the 4th card remains visible first
-        setTimeout(() => {
-          isPlayingCardRef.current = false;
-          const newDealer = (gameState.dealer + 1) % 4;
-          const { players: dealtPlayers, proposalCard } =
-            dealCards(updatedPlayers);
-          setGameState(prev => ({
-            ...prev,
-            players: dealtPlayers,
-            dealer: newDealer,
-            currentPlayer: (newDealer + 1) % 4,
-            trump: null,
-            proposalCard,
-            takerTeam: null,
-            beloteTeam: null,
-            bidRound: 1,
-            bidPassCount: 0,
-            currentTrick: { cards: [], winner: null },
-            completedTricks: [],
-            scores: { team1: 0, team2: 0 },
-            gameScore: newGameScore,
-            phase: 'bidding',
-            lastTrickWinner: winner,
-            roundMessage: msg,
-          }));
-        }, 1500);
-        return;
       }
 
-      // Next trick — winner leads
-      const runningScore = calculateRunningScore(completedTricks, updatedPlayers, gameState.trump);
-      setTimeout(() => {
-        isPlayingCardRef.current = false;
-        setGameState(prev => ({
+      // All 8 tricks done — calculate final round score
+      const result = calculateRoundScore(
+        newCompleted, prev.players, prev.trump, prev.takerTeam, prev.beloteTeam,
+      );
+      const newGameScore = {
+        team1: prev.gameScore.team1 + result.team1,
+        team2: prev.gameScore.team2 + result.team2,
+      };
+      const TARGET_SCORE = 101;
+      const gameOver = newGameScore.team1 >= TARGET_SCORE || newGameScore.team2 >= TARGET_SCORE;
+
+      const makeMsg = () => {
+        if (result.capot) return `Capot! ${result.team1 > result.team2 ? 'Team 1' : 'Team 2'} won all tricks!`;
+        if (result.takerFell) return `${prev.takerTeam === 2 ? 'Team 1' : 'Team 2'} wins — ${prev.takerTeam === 1 ? 'Team 1' : 'Team 2'} fell!`;
+        return `Team 1: ${result.team1}  Team 2: ${result.team2}`;
+      };
+
+      if (gameOver) {
+        const winTeam = newGameScore.team1 >= TARGET_SCORE ? 1 : 2;
+        gameResultService.recordGameResult({
+          gameType: 'blot',
+          result: winTeam === 1 ? 'win' : 'loss',
+          score: newGameScore.team1,
+          opponentScore: newGameScore.team2,
+        } as any).catch(() => {});
+        refreshOnGameEnd?.();
+        return {
           ...prev,
-          players: updatedPlayers,
-          currentPlayer: winner,
           currentTrick: { cards: [], winner: null },
-          completedTricks,
+          completedTricks: newCompleted,
+          lastTrickWinner: winnerId,
+          currentPlayer: winnerId,
           scores: runningScore,
-          lastTrickWinner: winner,
-        }));
-      }, 1200);
-    } else {
-      // Next player's turn
-      const nextPlayer = (gameState.currentPlayer + 1) % 4;
-      setGameState(prev => ({
+          gameScore: newGameScore,
+          phase: 'gameEnd',
+          roundMessage: makeMsg(),
+        };
+      }
+
+      // Start a new round
+      const { players: dealt, proposalCard } = dealCards(prev.players);
+      const newDealer = (prev.dealer + 1) % TOTAL_PLAYERS;
+      return {
         ...prev,
-        players: updatedPlayers,
-        currentPlayer: nextPlayer,
-        currentTrick: updatedTrick,
-      }));
-      // Reset flag after state update
-      isPlayingCardRef.current = false;
+        players: dealt,
+        proposalCard,
+        trump: null,
+        takerTeam: null,
+        beloteTeam: null,
+        bidRound: 1,
+        bidPassCount: 0,
+        currentTrick: { cards: [], winner: null },
+        completedTricks: [],
+        scores: { team1: 0, team2: 0 },
+        gameScore: newGameScore,
+        phase: 'bidding',
+        dealer: newDealer,
+        currentPlayer: (newDealer + 1) % TOTAL_PLAYERS,
+        roundMessage: makeMsg(),
+      };
+    });
+  }, [refreshOnGameEnd]);
+
+  // Auto-resolve trick 1.5s after all 4 cards are played
+  useEffect(() => {
+    if (gameState.phase !== 'playing') return;
+    if (gameState.currentTrick.cards.length !== TOTAL_PLAYERS) return;
+    if (resolutionInProgressRef.current) return;
+
+    resolutionInProgressRef.current = true;
+    setIsResolvingTrick(true);
+
+    const timer = setTimeout(() => {
+      resolveTrick();
+      setTimeout(() => {
+        setIsResolvingTrick(false);
+        resolutionInProgressRef.current = false;
+      }, 300);
+    }, 1500);
+
+    return () => clearTimeout(timer);
+  }, [gameState.currentTrick.cards.length, gameState.phase, resolveTrick]);
+
+  // ------------------------------------------------------------------
+  // Card play — only adds the card; resolution handled by useEffect above
+  // ------------------------------------------------------------------
+  const playCard = (card: CardType) => {
+    // Debounce only for the human player to prevent double-taps;
+    // AI calls must never be blocked.
+    if (gameState.currentPlayer === 0) {
+      if (isPlayingCardRef.current) return;
+      isPlayingCardRef.current = true;
+      setTimeout(() => { isPlayingCardRef.current = false; }, 800);
     }
+
+    setGameState(prev => {
+      if (prev.phase !== 'playing') return prev;
+      const playerId = prev.currentPlayer;
+
+      const newPlayers = prev.players.map(p =>
+        p.id === playerId
+          ? { ...p, hand: p.hand.filter(c => !(c.suit === card.suit && c.rank === card.rank)) }
+          : p,
+      );
+      const newTrick = {
+        cards: [...prev.currentTrick.cards, { playerId, card }],
+        winner: null as number | null,
+      };
+
+      // Always just add the card; resolution useEffect handles the 4th card after a delay
+      return {
+        ...prev,
+        players: newPlayers,
+        currentTrick: newTrick,
+        // Only advance currentPlayer for non-final cards; winner determines next player after resolution
+        ...(newTrick.cards.length < TOTAL_PLAYERS && { currentPlayer: (playerId + 1) % TOTAL_PLAYERS }),
+      };
+    });
   };
 
-  const startNewGame = () => {
-    isPlayingCardRef.current = false;
-    setGameState(initializeGame());
+  // ------------------------------------------------------------------
+  // Render helpers
+  // ------------------------------------------------------------------
+  const renderCard = (
+    card: CardType,
+    index: number,
+    isTrickCard = false,
+    onPress?: () => void,
+    playable = true,
+  ) => {
+    const baseStyle = isTrickCard ? styles.trickCard : styles.card;
+    const cardContent = (
+      <DynamicCard card={card as any} size={isTrickCard ? 'small' : 'medium'} theme={customTheme} />
+    );
+    if (!onPress) {
+      return <View style={baseStyle}>{cardContent}</View>;
+    }
+    return (
+      <TouchableOpacity
+        style={[baseStyle, !playable && styles.disabledCard]}
+        onPress={playable ? onPress : undefined}
+        disabled={!playable}
+      >
+        {cardContent}
+      </TouchableOpacity>
+    );
   };
-
-  const SUIT_SYM: Record<Suit, string> = {
-    hearts: '♥',
-    diamonds: '♦',
-    clubs: '♣',
-    spades: '♠',
-  };
-  const SUIT_COLOR: Record<Suit, string> = {
-    hearts: '#DC143C',
-    diamonds: '#DC143C',
-    clubs: '#1a1a1a',
-    spades: '#1a1a1a',
-  };
-  const isHumanBidTurn =
-    gameState.phase === 'bidding' && gameState.currentPlayer === 0;
 
   const renderTrumpSelection = () => {
-    const proposed = gameState.proposalCard;
-    const proposedSuit = proposed?.suit as Suit | undefined;
+    const isHumanTurn = gameState.currentPlayer === 0;
+    const proposedSuit = gameState.proposalCard?.suit;
+
+    if (gameState.bidRound === 1) {
+      return (
+        <View style={styles.trumpSelection}>
+          <Text style={styles.trumpTitle}>Trump Bidding</Text>
+          {proposedSuit && (
+            <View style={styles.proposalRow}>
+              <Text style={styles.proposalLabel}>Proposed:</Text>
+              <Text style={[styles.proposalSuit, { color: SUIT_COLOR[proposedSuit] }]}>
+                {SUIT_ICON[proposedSuit]}
+              </Text>
+              <Text style={styles.proposalLabel}>{SUIT_NAME[proposedSuit]}</Text>
+            </View>
+          )}
+          <Text style={styles.bidRoundLabel}>
+            {isHumanTurn
+              ? 'Accept the proposed suit or pass'
+              : `${gameState.players[gameState.currentPlayer]?.name ?? 'AI'} is deciding…`}
+          </Text>
+          {isHumanTurn && proposedSuit ? (
+            <View style={styles.bidButtons}>
+              <TouchableOpacity style={[styles.bidBtn, styles.bidBtnTake]} onPress={() => acceptTrump(proposedSuit)}>
+                <Text style={styles.bidBtnText}>Take {SUIT_ICON[proposedSuit]}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.bidBtn, styles.bidBtnPass]} onPress={passBid}>
+                <Text style={styles.bidBtnText}>Pass</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <Text style={styles.waitingText}>Waiting for players to bid…</Text>
+          )}
+        </View>
+      );
+    }
+
+    // Round 2: player chooses any suit
     return (
       <View style={styles.trumpSelection}>
-        {/* Proposal card */}
-        {proposed && (
-          <View style={styles.proposalRow}>
-            <Text style={styles.proposalLabel}>Proposed trump:</Text>
-            <Text
-              style={[
-                styles.proposalSuit,
-                { color: SUIT_COLOR[proposedSuit!] },
-              ]}
-            >
-              {SUIT_SYM[proposedSuit!]} {proposedSuit?.toUpperCase()}
-            </Text>
-          </View>
-        )}
+        <Text style={styles.trumpTitle}>Choose Trump</Text>
         <Text style={styles.bidRoundLabel}>
-          {gameState.bidRound === 1
-            ? 'Round 1: Accept proposed suit or pass'
-            : 'Round 2: Declare any suit or pass'}
+          {isHumanTurn
+            ? 'No one took. Choose a trump suit or pass.'
+            : `${gameState.players[gameState.currentPlayer]?.name ?? 'AI'} is deciding…`}
         </Text>
-        {isHumanBidTurn ? (
+        {isHumanTurn ? (
           <>
-            {gameState.bidRound === 1 && proposedSuit ? (
-              // Round 1: Take or Pass
-              <View style={styles.bidButtons}>
-                <TouchableOpacity
-                  style={[styles.bidBtn, styles.bidBtnTake]}
-                  onPress={() => acceptTrump(proposedSuit!)}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                >
-                  <Text style={styles.bidBtnText}>
-                    ✓ Take {SUIT_SYM[proposedSuit!]}
-                  </Text>
+            <View style={styles.suitButtons}>
+              {(['hearts', 'diamonds', 'clubs', 'spades'] as Suit[]).map(suit => (
+                <TouchableOpacity key={suit} style={styles.suitButton} onPress={() => acceptTrump(suit)}>
+                  <Text style={[styles.suitButtonText, { color: SUIT_COLOR[suit] }]}>{SUIT_ICON[suit]}</Text>
+                  <Text style={styles.suitButtonLabel}>{SUIT_NAME[suit]}</Text>
                 </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.bidBtn, styles.bidBtnPass]}
-                  onPress={passBid}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                >
-                  <Text style={styles.bidBtnText}>✗ Pass</Text>
-                </TouchableOpacity>
-              </View>
-            ) : (
-              // Round 2: pick any suit or pass
-              <>
-                <Text style={styles.trumpTitle}>Choose any trump suit:</Text>
-                <View style={styles.suitButtons}>
-                  {(['hearts', 'diamonds', 'clubs', 'spades'] as Suit[]).map(
-                    suit => (
-                      <TouchableOpacity
-                        key={suit}
-                        style={styles.suitButton}
-                        onPress={() => acceptTrump(suit)}
-                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                      >
-                        <Text
-                          style={[
-                            styles.suitButtonText,
-                            { color: SUIT_COLOR[suit] },
-                          ]}
-                        >
-                          {SUIT_SYM[suit]}
-                        </Text>
-                        <Text style={styles.suitButtonLabel}>{suit}</Text>
-                      </TouchableOpacity>
-                    ),
-                  )}
-                </View>
-                <TouchableOpacity
-                  style={[styles.bidBtn, styles.bidBtnPass, { marginTop: 16 }]}
-                  onPress={passBid}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                >
-                  <Text style={styles.bidBtnText}>✗ Pass (force redeal)</Text>
-                </TouchableOpacity>
-              </>
-            )}
+              ))}
+            </View>
+            <TouchableOpacity
+              style={[styles.bidBtn, styles.bidBtnPass, { marginTop: 16 }]}
+              onPress={passBid}
+            >
+              <Text style={styles.bidBtnText}>Pass (Redeal)</Text>
+            </TouchableOpacity>
           </>
         ) : (
-          <Text style={styles.waitingText}>
-            Waiting for {gameState.players[gameState.currentPlayer]?.name} to
-            bid…
-          </Text>
+          <Text style={styles.waitingText}>Waiting for players to bid…</Text>
         )}
       </View>
     );
   };
 
   const renderGameEnd = () => {
-    const winner =
-      (gameState.gameScore.team1 || 0) >= 101 ? 'Team 1' : 'Team 2';
+    const winner = gameState.gameScore.team1 > gameState.gameScore.team2 ? 1 : 2;
     return (
       <View style={styles.gameEndContainer}>
         <Text style={styles.gameEndTitle}>Game Over!</Text>
-        <Text style={styles.gameEndWinner}>{winner} Wins!</Text>
-        <Text style={styles.gameEndScore}>
-          Final Score: {gameState.gameScore.team1 || 0} -{' '}
-          {gameState.gameScore.team2 || 0}
+        <Text style={styles.gameEndWinner}>
+          {winner === 1 ? '🏆 Team 1 Wins!' : '🏆 Team 2 Wins!'}
         </Text>
-        <TouchableOpacity
-          style={styles.newGameButton}
-          onPress={startNewGame}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Text style={styles.newGameButtonText}>🃏 New Game</Text>
+        <Text style={styles.gameEndScore}>
+          Team 1: {gameState.gameScore.team1} — Team 2: {gameState.gameScore.team2}
+        </Text>
+        <TouchableOpacity style={styles.newGameButton} onPress={() => setGameState(initializeGame())}>
+          <Text style={styles.newGameButtonText}>New Game</Text>
         </TouchableOpacity>
       </View>
     );
   };
-
-  const renderCard = (card: CardType, index: number, isTrickCard = false, onPress?: () => void, isPlayable?: boolean) => {
-    return (
-      <DynamicCard
-        key={index}
-        card={card}
-        onPress={onPress}
-        isPlayable={isPlayable}
-        size={isTrickCard ? 'small' : 'medium'}
-        theme={customTheme}
-      />
-    );
-  };
-
-  const currentPlayer = gameState.players[gameState.currentPlayer];
-  const { width, height } = Dimensions.get('window');
-  const TABLE_SIZE = Math.min(width - 32, height * 0.5);
 
   return (
     <ImageBackground

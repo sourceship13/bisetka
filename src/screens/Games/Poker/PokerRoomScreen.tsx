@@ -1,5 +1,5 @@
 import React, {useState, useEffect, useRef, useCallback} from 'react';
-import {View, Text, StyleSheet, TouchableOpacity, ScrollView, ImageBackground, ActivityIndicator, Clipboard, TextInput, Animated} from 'react-native';
+import {View, Text, StyleSheet, TouchableOpacity, ScrollView, ImageBackground, ActivityIndicator, Clipboard, TextInput, Dimensions, Animated} from 'react-native';
 import { Snackbar } from 'react-native-paper';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -480,6 +480,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
     setCurrentBet(10);
     setGamePhase('preflop');
     setActivePlayerIndex(firstPlayerIndex);
+    
   };
 
   const createDeck = (): Card[] => {
@@ -503,115 +504,84 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
   };
 
   const handleFold = () => {
-    if (isSpectating) return;
+    const myIdx = myPlayerIndex;
     if (isMultiplayer) {
-      socketService.sendPokerAction(tableIdRef.current!, 'fold');
+      if (tableIdRef.current) socketService.sendPokerAction(tableIdRef.current, 'fold');
       return;
     }
+    const updatedPlayers = [...playersRef.current];
+    updatedPlayers[myIdx].folded = true;
+    updatedPlayers[myIdx].isActive = false;
+    updatedPlayers[myIdx].hasActed = true;
     lastPlayerActionRef.current = { action: 'fold', amount: 0 };
-    const updatedPlayers = [...players];
-    updatedPlayers[playerIndex].folded = true;
-    updatedPlayers[playerIndex].isActive = false;
-    updatedPlayers[playerIndex].hasActed = true;
-    updatedPlayers[playerIndex].cards = []; // Clear cards on fold
+    setPlayers(updatedPlayers);
+    moveToNextPlayer(updatedPlayers);
+  };
+
+  const handleCheck = () => {
+    const myIdx = myPlayerIndex;
+    if (isMultiplayer) {
+      if (tableIdRef.current) socketService.sendPokerAction(tableIdRef.current, 'check');
+      return;
+    }
+    const updatedPlayers = [...playersRef.current];
+    updatedPlayers[myIdx].isActive = false;
+    updatedPlayers[myIdx].hasActed = true;
+    lastPlayerActionRef.current = { action: 'check', amount: 0 };
     setPlayers(updatedPlayers);
     moveToNextPlayer(updatedPlayers);
   };
 
   const handleCall = () => {
-    if (isSpectating) return;
+    const myIdx = myPlayerIndex;
     if (isMultiplayer) {
-      socketService.sendPokerAction(tableIdRef.current!, 'call');
+      const callAmt = currentBet - (playersRef.current[myIdx]?.currentBet ?? 0);
+      if (tableIdRef.current) socketService.sendPokerAction(tableIdRef.current, 'call', callAmt);
       return;
     }
-    const player = players[playerIndex];
-    const callAmount = currentBet - player.currentBet;
-    
-    if (player.chips < callAmount) {
-      BisetkaAlert.warning('Not enough chips', 'You don\'t have enough chips for this action.');
-      return;
-    }
-
+    const updatedPlayers = [...playersRef.current];
+    const callAmount = currentBet - updatedPlayers[myIdx].currentBet;
+    updatedPlayers[myIdx].chips -= callAmount;
+    updatedPlayers[myIdx].currentBet = currentBet;
+    updatedPlayers[myIdx].isActive = false;
+    updatedPlayers[myIdx].hasActed = true;
     lastPlayerActionRef.current = { action: 'call', amount: callAmount };
-    const updatedPlayers = [...players];
-    updatedPlayers[playerIndex].chips -= callAmount;
-    updatedPlayers[playerIndex].currentBet = currentBet;
-    updatedPlayers[playerIndex].isActive = false;
-    updatedPlayers[playerIndex].hasActed = true;
-    
+    setPot(prev => prev + callAmount);
     setPlayers(updatedPlayers);
-    setPot(pot + callAmount);
     moveToNextPlayer(updatedPlayers);
   };
 
   const handleRaise = () => {
-    if (isSpectating) return;
+    const myIdx = myPlayerIndex;
+    const raiseToAmount = currentBet + 20;
     if (isMultiplayer) {
-      socketService.sendPokerAction(tableIdRef.current!, 'raise', currentBet + 20);
+      if (tableIdRef.current) socketService.sendPokerAction(tableIdRef.current, 'raise', raiseToAmount);
       return;
     }
-    const raiseAmount = currentBet + 20; // Simple raise by 20
-    const player = players[playerIndex];
-    const totalAmount = raiseAmount - player.currentBet;
-    
-    if (player.chips < totalAmount) {
-      BisetkaAlert.warning('Not enough chips', 'You don\'t have enough chips for this action.');
-      return;
-    }
-
-    lastPlayerActionRef.current = { action: 'raise', amount: totalAmount };
-    const updatedPlayers = [...players];
-    updatedPlayers[playerIndex].chips -= totalAmount;
-    updatedPlayers[playerIndex].currentBet = raiseAmount;
-    updatedPlayers[playerIndex].isActive = false;
-    updatedPlayers[playerIndex].hasActed = true;
-    
-    // Reset hasActed for all other players since there's a new bet to match
+    const updatedPlayers = [...playersRef.current];
+    const totalCost = raiseToAmount - updatedPlayers[myIdx].currentBet;
+    updatedPlayers[myIdx].chips -= totalCost;
+    updatedPlayers[myIdx].currentBet = raiseToAmount;
+    updatedPlayers[myIdx].isActive = false;
+    updatedPlayers[myIdx].hasActed = true;
     for (let i = 0; i < updatedPlayers.length; i++) {
-      if (i !== playerIndex && !updatedPlayers[i].folded) {
-        updatedPlayers[i].hasActed = false;
-      }
+      if (i !== myIdx && !updatedPlayers[i].folded) updatedPlayers[i].hasActed = false;
     }
-    
-    setPlayers(updatedPlayers);
-    setPot(pot + totalAmount);
-    setCurrentBet(raiseAmount);
-    moveToNextPlayer(updatedPlayers);
-  };
-
-  const handleCheck = () => {
-    if (isSpectating) return;
-    if (isMultiplayer) {
-      socketService.sendPokerAction(tableIdRef.current!, 'check');
-      return;
-    }
-    if (players[playerIndex].currentBet < currentBet) {
-      BisetkaAlert.warning('Cannot check', 'You must call or raise');
-      return;
-    }
-
-    lastPlayerActionRef.current = { action: 'check', amount: 0 };
-    const updatedPlayers = [...players];
-    updatedPlayers[playerIndex].isActive = false;
-    updatedPlayers[playerIndex].hasActed = true;
+    lastPlayerActionRef.current = { action: 'raise', amount: totalCost };
+    setPot(prev => prev + totalCost);
+    setCurrentBet(raiseToAmount);
     setPlayers(updatedPlayers);
     moveToNextPlayer(updatedPlayers);
   };
 
-  const handleSaveRoomName = async (newName: string) => {
-    try {
-      setRoomName(newName);
-      if (tableIdRef.current) {
-        socketService.setRoomName(tableIdRef.current, newName);
-      }
-      BisetkaAlert.success('Success', 'Room name updated!');
-    } catch (error) {
-      console.error('Failed to update room name:', error);
-      BisetkaAlert.error('Error', 'Failed to update room name');
+  const handleSaveRoomName = (name: string) => {
+    setRoomName(name);
+    setEditingRoomName(false);
+    if (isMultiplayer && tableIdRef.current) {
+      const sock = socketService.getSocket();
+      if (sock) sock.emit('update_room_name', { roomId: tableIdRef.current, roomName: name });
     }
   };
-
-  // Room name listener — registered after socket connects (inside mp setup)
 
   const moveToNextPlayer = (currentPlayers: Player[]) => {
     // Find next active player who hasn't folded
@@ -959,10 +929,10 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
     );
   };
 
-  const renderCard = (card: Card, hidden = false) => {
+  const renderCard = (card: Card, hidden = false, _playerIndex?: number, _cardIndex?: number) => {
     return (
       <DynamicCard
-        card={card}
+        card={card as any}
         faceDown={hidden}
         size="small"
         theme={customTheme}
@@ -1013,7 +983,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
         {!player.folded && (
           <View style={styles.playerCards}>
             {player.cards.map((card, idx) => (
-              <View key={idx}>{renderCard(card, !showCards)}</View>
+              <View key={idx}>{renderCard(card, !showCards, position, idx)}</View>
             ))}
           </View>
         )}
@@ -1170,9 +1140,9 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
           {/* Community cards in center */}
           <View style={styles.communityCardsContainer}>
             <Text style={styles.communityTitle}>Community Cards</Text>
-            <View style={styles.communityCards}>
+            <View style={{ flexDirection: 'row' }}>
               {communityCards.map((card, idx) => (
-                <View key={idx}>{renderCard(card)}</View>
+                <View key={idx}>{renderCard(card, false)}</View>
               ))}
             </View>
           </View>
