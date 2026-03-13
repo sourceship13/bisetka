@@ -8,7 +8,15 @@ import {
   TouchableOpacity,
   ImageBackground,
   Dimensions,
+  Animated,
+  ScrollView,
+  Image,
 } from 'react-native';
+import ReAnimated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
+import ExpandableView from '../../../components/global/ExpandableView';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAuth } from '../../../libs/hooks/useAuth';
+import { resolveAvatar } from '../../../utils/avatars';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import GameToolbar from '../../../components/global/GameToolbar';
@@ -59,7 +67,48 @@ const BaazarBlotScreen = ({ navigation }: any) => {
 
   const { refreshOnGameEnd } = useGameEndRefresh(undefined, 'baazar_blot');
 
-  const handleSaveTheme = (theme: CardTheme) => setCustomTheme(theme);
+  // Load saved theme from storage on mount
+  useEffect(() => {
+    AsyncStorage.getItem('baazar_card_theme').then((stored) => {
+      if (stored) {
+        try { setCustomTheme(JSON.parse(stored)); } catch {}
+      }
+    });
+  }, []);
+
+  const handleSaveTheme = (theme: CardTheme) => {
+    const urls = [theme.boardImage, theme.backgroundImage].filter(Boolean) as string[];
+    if (urls.length > 0) {
+      Promise.all(urls.map(url => Image.prefetch(url).catch(() => {})))
+        .then(() => {
+          setCustomTheme({...theme});
+          AsyncStorage.setItem('baazar_card_theme', JSON.stringify(theme));
+        });
+    } else {
+      setCustomTheme({...theme});
+      AsyncStorage.setItem('baazar_card_theme', JSON.stringify(theme));
+    }
+  };
+
+  const [showBackground, setShowBackground] = useState(true);
+  const [showBlur, setShowBlur] = useState(true);
+  const [showPanel, setShowPanel] = useState(false);
+  const panelAnim = useRef(new Animated.Value(0)).current;
+  const toolbarExpanded = useSharedValue(false);
+  const { user: currentUser } = useAuth();
+  const chevronStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: withTiming(toolbarExpanded.value ? '180deg' : '0deg', { duration: 250 }) }],
+  }));
+  const togglePanel = () => {
+    const toValue = showPanel ? 0 : 1;
+    setShowPanel(!showPanel);
+    Animated.spring(panelAnim, {
+      toValue,
+      useNativeDriver: true,
+      speed: 20,
+      bounciness: 4,
+    }).start();
+  };
 
   const startGame = useCallback((target: GameTarget) => {
     const gs = initializeBaazarGame(target);
@@ -610,58 +659,73 @@ const BaazarBlotScreen = ({ navigation }: any) => {
               { width: TABLE_SIZE, height: TABLE_SIZE },
             ]}
           >
-            <ImageBackground
-              source={require('../../../../assets/blot/card-table.png')}
-              style={styles.cardTable}
-              imageStyle={{ borderRadius: 16 }}
-            >
-              {/* Card placement placeholders - always visible */}
-              <View style={styles.trickArea}>
-                <View style={[styles.cardPlaceholder, styles.trickSlotTop]} />
-                <View style={[styles.cardPlaceholder, styles.trickSlotBottom]} />
-                <View style={[styles.cardPlaceholder, styles.trickSlotLeft]} />
-                <View style={[styles.cardPlaceholder, styles.trickSlotRight]} />
-              </View>
-
-              {gameState.currentTrick.cards.length > 0 && (() => {
-                const ledSuit = gameState.currentTrick.cards[0].card.suit;
-                // Map player IDs to visual table positions
-                // Player 0 = bottom, 1 = right, 2 = top, 3 = left
-                const positionStyle: Record<number, object> = {
-                  0: styles.trickSlotBottom,
-                  1: styles.trickSlotRight,
-                  2: styles.trickSlotTop,
-                  3: styles.trickSlotLeft,
-                };
-                return (
-                  <View style={styles.trickArea}>
-                    {/* Led suit indicator in the center */}
-                    <View style={styles.ledSuitBadge}>
-                      <Text style={[styles.ledSuitIcon, { color: SUIT_COLOR[ledSuit] }]}>
-                        {SUIT_ICON[ledSuit]}
-                      </Text>
-                      <Text style={styles.ledSuitLabel}>
-                        Led: {SUIT_NAME[ledSuit]}
-                      </Text>
-                    </View>
-                    {/* Cards positioned at table edges */}
-                    {gameState.currentTrick.cards
-                      .filter(cardPlay => cardPlay && cardPlay.card && cardPlay.card.suit)
-                      .map((cardPlay, idx) => (
-                      <View
-                        key={idx}
-                        style={[
-                          styles.trickSlot,
-                          positionStyle[cardPlay.playerId] ?? styles.trickSlotTop,
-                        ]}
-                      >
-                        <DynamicCard card={cardPlay.card} theme={customTheme} size="small" />
+            {showBackground ? (
+              <ImageBackground
+                source={customTheme?.boardImage ? { uri: customTheme.boardImage } : require('../../../../assets/blot/card-table.png')}
+                style={styles.cardTable}
+                imageStyle={{ borderRadius: 16 }}
+              >
+                <View style={styles.trickArea}>
+                  <View style={[styles.cardPlaceholder, styles.trickSlotTop]} />
+                  <View style={[styles.cardPlaceholder, styles.trickSlotBottom]} />
+                  <View style={[styles.cardPlaceholder, styles.trickSlotLeft]} />
+                  <View style={[styles.cardPlaceholder, styles.trickSlotRight]} />
+                </View>
+                {gameState.currentTrick.cards.length > 0 && (() => {
+                  const ledSuit = gameState.currentTrick.cards[0].card.suit;
+                  const positionStyle: Record<number, object> = {
+                    0: styles.trickSlotBottom, 1: styles.trickSlotRight,
+                    2: styles.trickSlotTop, 3: styles.trickSlotLeft,
+                  };
+                  return (
+                    <View style={styles.trickArea}>
+                      <View style={styles.ledSuitBadge}>
+                        <Text style={[styles.ledSuitIcon, { color: SUIT_COLOR[ledSuit] }]}>{SUIT_ICON[ledSuit]}</Text>
+                        <Text style={styles.ledSuitLabel}>Led: {SUIT_NAME[ledSuit]}</Text>
                       </View>
-                    ))}
-                  </View>
-                );
-              })()}
-            </ImageBackground>
+                      {gameState.currentTrick.cards
+                        .filter(cardPlay => cardPlay && cardPlay.card && cardPlay.card.suit)
+                        .map((cardPlay, idx) => (
+                        <View key={idx} style={[styles.trickSlot, positionStyle[cardPlay.playerId] ?? styles.trickSlotTop]}>
+                          <DynamicCard card={cardPlay.card} theme={customTheme} size="small" />
+                        </View>
+                      ))}
+                    </View>
+                  );
+                })()}
+              </ImageBackground>
+            ) : (
+              <View style={styles.cardTable}>
+                <View style={styles.trickArea}>
+                  <View style={[styles.cardPlaceholder, styles.trickSlotTop]} />
+                  <View style={[styles.cardPlaceholder, styles.trickSlotBottom]} />
+                  <View style={[styles.cardPlaceholder, styles.trickSlotLeft]} />
+                  <View style={[styles.cardPlaceholder, styles.trickSlotRight]} />
+                </View>
+                {gameState.currentTrick.cards.length > 0 && (() => {
+                  const ledSuit = gameState.currentTrick.cards[0].card.suit;
+                  const positionStyle: Record<number, object> = {
+                    0: styles.trickSlotBottom, 1: styles.trickSlotRight,
+                    2: styles.trickSlotTop, 3: styles.trickSlotLeft,
+                  };
+                  return (
+                    <View style={styles.trickArea}>
+                      <View style={styles.ledSuitBadge}>
+                        <Text style={[styles.ledSuitIcon, { color: SUIT_COLOR[ledSuit] }]}>{SUIT_ICON[ledSuit]}</Text>
+                        <Text style={styles.ledSuitLabel}>Led: {SUIT_NAME[ledSuit]}</Text>
+                      </View>
+                      {gameState.currentTrick.cards
+                        .filter(cardPlay => cardPlay && cardPlay.card && cardPlay.card.suit)
+                        .map((cardPlay, idx) => (
+                        <View key={idx} style={[styles.trickSlot, positionStyle[cardPlay.playerId] ?? styles.trickSlotTop]}>
+                          <DynamicCard card={cardPlay.card} theme={customTheme} size="small" />
+                        </View>
+                      ))}
+                    </View>
+                  );
+                })()}
+              </View>
+            )}
           </View>
         </View>
 
@@ -791,24 +855,62 @@ const BaazarBlotScreen = ({ navigation }: any) => {
     <ImageBackground
       source={require('../../../../assets/blot/park-background.png')}
       style={styles.bg}
-      blurRadius={3}
+      blurRadius={showBlur ? 3 : 0}
       resizeMode="cover">
       <LinearGradient
-        colors={['rgba(15,15,35,0.7)', 'rgba(26,23,66,0.6)']}
+        colors={showBlur ? ['rgba(15,15,35,0.7)', 'rgba(26,23,66,0.6)'] : ['transparent', 'transparent']}
         style={StyleSheet.absoluteFill}
       />
       <SafeAreaView style={styles.safe}>
-        <GameToolbar
-          title="Bazaar Blot"
-          onBack={() => navigation.goBack()}
-          backgroundColor="transparent"
-          rightElement={
-            <TouchableOpacity onPress={() => setShowCustomization(true)}>
-              <Text style={{ color: '#FFD700', fontSize: 13, fontWeight: '700' }}>🎨 Cards</Text>
-            </TouchableOpacity>
-          }
-        />
-        
+        <View>
+          <GameToolbar
+            title="Bazaar Blot"
+            onBack={() => navigation.goBack()}
+            backgroundColor="transparent"
+            rightElement={
+              <TouchableOpacity
+                onPress={() => { toolbarExpanded.value = !toolbarExpanded.value; }}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                style={styles.editRoomButton}
+              >
+                <ReAnimated.Text style={[styles.editRoomIcon, chevronStyle]}>⌄</ReAnimated.Text>
+              </TouchableOpacity>
+            }
+          />
+          <ExpandableView isExpanded={toolbarExpanded} viewKey="baazarToolbarControls" duration={300}>
+            <View style={styles.toolbarControls}>
+              <TouchableOpacity
+                onPress={() => setShowCustomization(true)}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                style={styles.editRoomButton}
+              >
+                <Text style={styles.editRoomIcon}>🎨</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setShowBlur(!showBlur)}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                style={styles.editRoomButton}
+              >
+                <Text style={styles.editRoomIcon}>{showBlur ? '🌫️' : '✨'}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setShowBackground(!showBackground)}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                style={styles.editRoomButton}
+              >
+                <Text style={styles.editRoomIcon}>{showBackground ? '🖼️' : '🔲'}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={togglePanel}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                style={styles.editRoomButton}
+              >
+                <Text style={styles.editRoomIcon}>👥</Text>
+              </TouchableOpacity>
+            </View>
+          </ExpandableView>
+        </View>
+
         {gameState && (
           <View style={styles.scoreBoard}>
             <View style={styles.teamScore}>
@@ -847,6 +949,71 @@ const BaazarBlotScreen = ({ navigation }: any) => {
         onSave={handleSaveTheme}
         currentTheme={customTheme}
       />
+
+      {/* Players side panel */}
+      {showPanel && (
+        <TouchableOpacity
+          style={styles.panelBackdrop}
+          activeOpacity={1}
+          onPress={togglePanel}
+        />
+      )}
+      <Animated.View
+        style={[
+          styles.sidePanel,
+          {
+            transform: [
+              {
+                translateX: panelAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [280, 0],
+                }),
+              },
+            ],
+          },
+        ]}
+        pointerEvents={showPanel ? 'auto' : 'none'}
+      >
+        <View style={styles.panelHeader}>
+          <Text style={styles.panelTitle}>Players</Text>
+          <TouchableOpacity onPress={togglePanel} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+            <Text style={styles.panelClose}>✕</Text>
+          </TouchableOpacity>
+        </View>
+        <ScrollView style={styles.panelContent}>
+          <Text style={styles.panelSectionTitle}>🎮 In Game</Text>
+          {gameState?.players.map((player, idx) => {
+            const isCurrentTurn = gameState.currentPlayer === idx;
+            const isYou = idx === 0;
+            const avatarSource = isYou ? resolveAvatar(currentUser?.avatar_url ?? null) : null;
+            const initials = player.name.split(' ').map((w: string) => w[0]).join('').toUpperCase().slice(0, 2);
+            const teamColor = player.team === 1 ? '#4caf50' : '#e91e63';
+            return (
+              <View key={idx} style={[styles.panelPlayerRow, isCurrentTurn && styles.panelPlayerRowActive]}>
+                <View style={styles.panelAvatarClip}>
+                  {avatarSource ? (
+                    <Image source={avatarSource} style={styles.panelAvatar} resizeMode="contain" />
+                  ) : (
+                    <View style={styles.panelAvatarPlaceholder}>
+                      <Text style={styles.panelAvatarInitials}>{initials}</Text>
+                    </View>
+                  )}
+                  {isCurrentTurn && <View style={styles.panelTurnDot} />}
+                </View>
+                <View style={styles.panelPlayerInfo}>
+                  <Text style={styles.panelPlayerName}>
+                    {isYou ? (currentUser?.username ?? 'You') : player.name}
+                    {isYou ? ' (You)' : ' (AI)'}
+                  </Text>
+                  <View style={[styles.panelTeamBadge, { backgroundColor: teamColor + '33', borderColor: teamColor }]}>
+                    <Text style={[styles.panelTeamText, { color: teamColor }]}>Team {player.team}</Text>
+                  </View>
+                </View>
+              </View>
+            );
+          })}
+        </ScrollView>
+      </Animated.View>
     </ImageBackground>
   );
 };
@@ -1209,6 +1376,43 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   primaryBtnText: { fontSize: 17, fontWeight: 'bold', color: '#0A3622' },
+  editRoomButton: { padding: 6, borderRadius: 8 },
+  editRoomIcon: { fontSize: 22, color: '#FFD700' },
+  toolbarControls: {
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    paddingHorizontal: 3,
+    flexWrap: 'wrap',
+    alignSelf: 'flex-end',
+  },
+  panelBackdrop: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.45)' },
+  sidePanel: {
+    position: 'absolute', top: 0, right: 0, bottom: 0, width: 270,
+    backgroundColor: 'rgba(12,12,30,0.97)', borderLeftWidth: 1, borderLeftColor: 'rgba(255,255,255,0.12)',
+    shadowColor: '#000', shadowOffset: { width: -4, height: 0 }, shadowOpacity: 0.5, shadowRadius: 12, elevation: 20,
+  },
+  panelHeader: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 18, paddingTop: 56, paddingBottom: 14,
+    borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.1)',
+  },
+  panelTitle: { fontSize: 18, fontWeight: '700', color: '#fff' },
+  panelClose: { fontSize: 18, color: 'rgba(255,255,255,0.6)', fontWeight: '600' },
+  panelContent: { padding: 16 },
+  panelSectionTitle: { fontSize: 13, fontWeight: '700', color: 'rgba(255,255,255,0.5)', letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 12 },
+  panelPlayerRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 14, padding: 8, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.04)' },
+  panelPlayerRowActive: { backgroundColor: 'rgba(255,215,0,0.08)', borderWidth: 1, borderColor: 'rgba(255,215,0,0.3)' },
+  panelAvatarClip: { width: 50, height: 50, borderRadius: 25, overflow: 'hidden', backgroundColor: '#1e1e40', borderWidth: 2, borderColor: 'rgba(255,255,255,0.2)' },
+  panelAvatar: { width: 50, height: 50 },
+  panelAvatarPlaceholder: { width: 50, height: 50, alignItems: 'center', justifyContent: 'center', backgroundColor: '#2a2a55' },
+  panelAvatarInitials: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  panelTurnDot: { position: 'absolute', bottom: 2, right: 2, width: 12, height: 12, borderRadius: 6, backgroundColor: '#FFD700', borderWidth: 2, borderColor: 'rgba(12,12,30,0.97)' },
+  panelPlayerInfo: { flex: 1, gap: 5 },
+  panelPlayerName: { fontSize: 14, fontWeight: '600', color: '#fff' },
+  panelTeamBadge: { alignSelf: 'flex-start', borderRadius: 6, borderWidth: 1, paddingHorizontal: 8, paddingVertical: 2 },
+  panelTeamText: { fontSize: 11, fontWeight: '700' },
 });
 
 export default BaazarBlotScreen;
