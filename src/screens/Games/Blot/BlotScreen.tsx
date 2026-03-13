@@ -9,8 +9,12 @@ import {
   ImageBackground,
   Image,
   Dimensions,
+  Animated,
+  ScrollView,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAuth } from '../../../libs/hooks/useAuth';
+import { resolveAvatar } from '../../../utils/avatars';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
@@ -84,6 +88,20 @@ const BlotScreen = ({ navigation }: any) => {
 
   const [showBackground, setShowBackground] = useState(true);
   const [showBlur, setShowBlur] = useState(true);
+  const [showPanel, setShowPanel] = useState(false);
+  const panelAnim = useRef(new Animated.Value(0)).current;
+  const { user: currentUser } = useAuth();
+
+  const togglePanel = () => {
+    const toValue = showPanel ? 0 : 1;
+    setShowPanel(!showPanel);
+    Animated.spring(panelAnim, {
+      toValue,
+      useNativeDriver: true,
+      speed: 20,
+      bounciness: 4,
+    }).start();
+  };
   const { refreshOnGameEnd } = useGameEndRefresh(undefined, 'blot');
   const isPlayingCardRef = useRef(false);
 
@@ -574,8 +592,14 @@ const BlotScreen = ({ navigation }: any) => {
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
                   <Text style={styles.newGameText}>
-                    {showBackground ? '🖼️' : '�'}
+                    {showBackground ? '🖼️' : '🔲'}
                   </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={togglePanel}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Text style={styles.newGameText}>👥</Text>
                 </TouchableOpacity>
               </View>
             }
@@ -784,6 +808,92 @@ const BlotScreen = ({ navigation }: any) => {
           currentTheme={customTheme}
         />
       )}
+
+      {/* Players side panel */}
+      {showPanel && (
+        <TouchableOpacity
+          style={styles.panelBackdrop}
+          activeOpacity={1}
+          onPress={togglePanel}
+        />
+      )}
+      <Animated.View
+        style={[
+          styles.sidePanel,
+          {
+            transform: [
+              {
+                translateX: panelAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [280, 0],
+                }),
+              },
+            ],
+          },
+        ]}
+        pointerEvents={showPanel ? 'auto' : 'none'}
+      >
+        <View style={styles.panelHeader}>
+          <Text style={styles.panelTitle}>Players</Text>
+          <TouchableOpacity
+            onPress={togglePanel}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Text style={styles.panelClose}>✕</Text>
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView contentContainerStyle={styles.panelContent} showsVerticalScrollIndicator={false}>
+          <Text style={styles.panelSectionTitle}>🎮 In Game</Text>
+          {gameState.players.map((player, idx) => {
+            const isYou = idx === 0;
+            const avatarSource = isYou ? resolveAvatar(currentUser?.avatar_url ?? null) : null;
+            const isCurrentTurn = gameState.currentPlayer === idx;
+            const teamColor = player.team === 1 ? '#4ade80' : '#60a5fa';
+            const initials = player.name
+              .split(' ')
+              .map((w: string) => w[0])
+              .join('')
+              .toUpperCase()
+              .slice(0, 2);
+            return (
+              <View
+                key={idx}
+                style={[styles.panelPlayerRow, isCurrentTurn && styles.panelPlayerRowActive]}
+              >
+                <View style={styles.panelAvatarClip}>
+                  {avatarSource ? (
+                    <Image
+                      source={avatarSource}
+                      style={styles.panelAvatar}
+                      resizeMode="contain"
+                    />
+                  ) : (
+                    <View style={styles.panelAvatarPlaceholder}>
+                      <Text style={styles.panelAvatarInitials}>{initials}</Text>
+                    </View>
+                  )}
+                  {isCurrentTurn && <View style={styles.panelTurnDot} />}
+                </View>
+                <View style={styles.panelPlayerInfo}>
+                  <Text style={styles.panelPlayerName}>
+                    {isYou ? (currentUser?.username ?? 'You') : player.name}
+                    {isYou ? ' (You)' : ' (AI)'}
+                  </Text>
+                  <View style={[styles.panelTeamBadge, { backgroundColor: teamColor + '33', borderColor: teamColor }]}>
+                    <Text style={[styles.panelTeamText, { color: teamColor }]}>
+                      Team {player.team}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            );
+          })}
+
+          <Text style={[styles.panelSectionTitle, { marginTop: 20 }]}>👁 Spectating</Text>
+          <Text style={styles.panelEmptyText}>No spectators</Text>
+        </ScrollView>
+      </Animated.View>
     </ImageBackground>
   );
 };
@@ -1208,6 +1318,137 @@ const styles = StyleSheet.create({
     fontSize: 13,
     textAlign: 'center',
     fontWeight: '600',
+  },
+  // Side panel
+  panelBackdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+  },
+  sidePanel: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    width: 270,
+    backgroundColor: 'rgba(12,12,30,0.97)',
+    borderLeftWidth: 1,
+    borderLeftColor: 'rgba(255,255,255,0.12)',
+    shadowColor: '#000',
+    shadowOffset: { width: -4, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 12,
+    elevation: 20,
+  },
+  panelHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 18,
+    paddingTop: 56,
+    paddingBottom: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.1)',
+  },
+  panelTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  panelClose: {
+    fontSize: 18,
+    color: 'rgba(255,255,255,0.6)',
+    fontWeight: '600',
+  },
+  panelContent: {
+    padding: 16,
+  },
+  panelSectionTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: 'rgba(255,255,255,0.5)',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    marginBottom: 12,
+  },
+  panelPlayerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 14,
+    padding: 8,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+  },
+  panelPlayerRowActive: {
+    backgroundColor: 'rgba(255,215,0,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,215,0,0.3)',
+  },
+  panelAvatarClip: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    overflow: 'hidden',
+    backgroundColor: '#1e1e40',
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  panelAvatar: {
+    width: 50,
+    height: 50,
+  },
+  panelAvatarPlaceholder: {
+    width: 50,
+    height: 50,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#2a2a55',
+  },
+  panelAvatarInitials: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  panelTurnDot: {
+    position: 'absolute',
+    bottom: 2,
+    right: 2,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#FFD700',
+    borderWidth: 2,
+    borderColor: 'rgba(12,12,30,0.97)',
+  },
+  panelPlayerInfo: {
+    flex: 1,
+    gap: 5,
+  },
+  panelPlayerName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  panelTeamBadge: {
+    alignSelf: 'flex-start',
+    borderRadius: 6,
+    borderWidth: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  panelTeamText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  panelEmptyText: {
+    color: 'rgba(255,255,255,0.35)',
+    fontSize: 13,
+    fontStyle: 'italic',
+    marginLeft: 4,
   },
 });
 
