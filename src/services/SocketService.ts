@@ -511,6 +511,28 @@ class SocketService {
   }
 
   // ─────────────────────────────────────────────────────────────────────────
+  // ROOM THEME  (broadcast card/board theme to all players + spectators)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Tells the server to store the theme and broadcast it to every client in the room.
+   */
+  setRoomTheme(roomId: string, theme: any): void {
+    this.socket?.emit('set_room_theme', { roomId, theme });
+  }
+
+  /**
+   * Listen for theme changes pushed by the server.
+   */
+  onRoomThemeUpdated(handler: (data: { roomId: string; theme: any }) => void): void {
+    this.socket?.on('room_theme_updated', handler);
+  }
+
+  offRoomThemeUpdated(): void {
+    this.socket?.off('room_theme_updated');
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
   // VOICE CHAT SIGNALING  (relayed through the backend game socket)
   // ─────────────────────────────────────────────────────────────────────────
 
