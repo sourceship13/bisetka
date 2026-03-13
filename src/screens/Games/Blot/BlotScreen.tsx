@@ -956,19 +956,19 @@ const styles = StyleSheet.create({
   editRoomButton: {
     padding: 6,
     borderRadius: 8,
-    backgroundColor: 'rgba(255,255,255,0.1)',
   },
   editRoomIcon: {
     fontSize: 22,
     color: '#FFD700',
   },
   toolbarControls: {
+    backgroundColor: 'rgba(255,255,255,0.1)',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 16,
-    paddingBottom: 10,
+    justifyContent: 'flex-end',
+    paddingHorizontal: 3,
     flexWrap: 'wrap',
+    alignSelf: 'flex-end',
   },
   scoreBoard: {
     flex: 1,
