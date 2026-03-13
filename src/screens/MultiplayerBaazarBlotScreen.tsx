@@ -7,7 +7,11 @@ import {
   ActivityIndicator,
   ImageBackground,
   Dimensions,
+  Image,
 } from 'react-native';
+import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
+import ExpandableView from '../components/global/ExpandableView';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { BisetkaAlert } from '../utils/BisetkaAlert';
 import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -97,6 +101,12 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
   const [pendingBidSuit, setPendingBidSuit] = useState<string>('hearts'); // pre-select hearts so Make Bid is always ready
   const [showCustomization, setShowCustomization] = useState(false);
   const [customTheme, setCustomTheme] = useState<CardTheme | undefined>(undefined);
+  const [showBackground, setShowBackground] = useState(true);
+  const [showBlur, setShowBlur] = useState(true);
+  const toolbarExpanded = useSharedValue(false);
+  const chevronStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: withTiming(toolbarExpanded.value ? '180deg' : '0deg', { duration: 250 }) }],
+  }));
   const [roomName, setRoomName] = useState('Multiplayer Baazar Blot');
   const [displayTrick, setDisplayTrick] = useState<{ playerPosition: number; card: CardType }[]>([]);
   const trickCompleteTimeRef = useRef<number>(0);
@@ -488,6 +498,29 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
     }
   };
 
+  // Load saved theme on mount
+  useEffect(() => {
+    AsyncStorage.getItem('baazar_card_theme').then((stored) => {
+      if (stored) {
+        try { setCustomTheme(JSON.parse(stored)); } catch {}
+      }
+    });
+  }, []);
+
+  const handleSaveTheme = (theme: CardTheme) => {
+    const urls = [theme.boardImage, theme.backgroundImage].filter(Boolean) as string[];
+    if (urls.length > 0) {
+      Promise.all(urls.map(url => Image.prefetch(url).catch(() => {})))
+        .then(() => {
+          setCustomTheme({...theme});
+          AsyncStorage.setItem('baazar_card_theme', JSON.stringify(theme));
+        });
+    } else {
+      setCustomTheme({...theme});
+      AsyncStorage.setItem('baazar_card_theme', JSON.stringify(theme));
+    }
+  };
+
   const renderMenu = () => (
     <ImageBackground
       source={require('../../assets/blot/park-background.png')}
@@ -800,60 +833,74 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
 
           {/* Card table */}
           <View style={[styles.tableContainer, { width: TABLE_SIZE, height: TABLE_SIZE }]}>
-            <ImageBackground
-              source={require('../../assets/blot/card-table.png')}
-              style={styles.cardTable}
-              imageStyle={{ borderRadius: 16 }}>
-              
-              {/* Card placement placeholders - always visible */}
-              <View style={styles.trickArea}>
-                <View style={[styles.cardPlaceholder, styles.trickSlotTop]} />
-                <View style={[styles.cardPlaceholder, styles.trickSlotBottom]} />
-                <View style={[styles.cardPlaceholder, styles.trickSlotLeft]} />
-                <View style={[styles.cardPlaceholder, styles.trickSlotRight]} />
-              </View>
-
-              {/* Trick cards and led suit indicator */}
-              {displayTrick && displayTrick.length > 0 && (() => {
-                const ledSuit = displayTrick[0].card.suit;
-                // Map player positions to visual table positions relative to myPosition
-                const positionStyle: Record<number, object> = {
-                  0: styles.trickSlotBottom,  // myPosition
-                  1: styles.trickSlotRight,   // (myPosition + 1) % 4
-                  2: styles.trickSlotTop,     // (myPosition + 2) % 4
-                  3: styles.trickSlotLeft,    // (myPosition + 3) % 4
-                };
-                
-                return (
-                  <View style={styles.trickArea}>
-                    {/* Led suit indicator in the center */}
-                    <View style={styles.ledSuitBadge}>
-                      <Text style={[styles.ledSuitIcon, { color: SUIT_COLOR[ledSuit] }]}>
-                        {SUIT_ICON[ledSuit]}
-                      </Text>
-                      <Text style={styles.ledSuitLabel}>
-                        Led
-                      </Text>
+            {showBackground ? (
+              <ImageBackground
+                source={customTheme?.boardImage ? { uri: customTheme.boardImage } : require('../../assets/blot/card-table.png')}
+                style={styles.cardTable}
+                imageStyle={{ borderRadius: 16 }}>
+                <View style={styles.trickArea}>
+                  <View style={[styles.cardPlaceholder, styles.trickSlotTop]} />
+                  <View style={[styles.cardPlaceholder, styles.trickSlotBottom]} />
+                  <View style={[styles.cardPlaceholder, styles.trickSlotLeft]} />
+                  <View style={[styles.cardPlaceholder, styles.trickSlotRight]} />
+                </View>
+                {displayTrick && displayTrick.length > 0 && (() => {
+                  const ledSuit = displayTrick[0].card.suit;
+                  const positionStyle: Record<number, object> = {
+                    0: styles.trickSlotBottom, 1: styles.trickSlotRight,
+                    2: styles.trickSlotTop, 3: styles.trickSlotLeft,
+                  };
+                  return (
+                    <View style={styles.trickArea}>
+                      <View style={styles.ledSuitBadge}>
+                        <Text style={[styles.ledSuitIcon, { color: SUIT_COLOR[ledSuit] }]}>{SUIT_ICON[ledSuit]}</Text>
+                        <Text style={styles.ledSuitLabel}>Led</Text>
+                      </View>
+                      {displayTrick.map((tc, idx) => {
+                        const relativePos = (tc.playerPosition - myPosition + 4) % 4;
+                        return (
+                          <View key={idx} style={[styles.trickSlot, positionStyle[relativePos] ?? styles.trickSlotTop]}>
+                            <DynamicCard card={tc.card} theme={customTheme} size="small" />
+                          </View>
+                        );
+                      })}
                     </View>
-                    
-                    {/* Cards positioned at table edges */}
-                    {displayTrick.map((tc, idx) => {
-                      const relativePos = (tc.playerPosition - myPosition + 4) % 4;
-                      return (
-                        <View
-                          key={idx}
-                          style={[
-                            styles.trickSlot,
-                            positionStyle[relativePos] ?? styles.trickSlotTop,
-                          ]}>
-                          <DynamicCard card={tc.card} theme={customTheme} size="small" />
-                        </View>
-                      );
-                    })}
-                  </View>
-                );
-              })()}
-            </ImageBackground>
+                  );
+                })()}
+              </ImageBackground>
+            ) : (
+              <View style={styles.cardTable}>
+                <View style={styles.trickArea}>
+                  <View style={[styles.cardPlaceholder, styles.trickSlotTop]} />
+                  <View style={[styles.cardPlaceholder, styles.trickSlotBottom]} />
+                  <View style={[styles.cardPlaceholder, styles.trickSlotLeft]} />
+                  <View style={[styles.cardPlaceholder, styles.trickSlotRight]} />
+                </View>
+                {displayTrick && displayTrick.length > 0 && (() => {
+                  const ledSuit = displayTrick[0].card.suit;
+                  const positionStyle: Record<number, object> = {
+                    0: styles.trickSlotBottom, 1: styles.trickSlotRight,
+                    2: styles.trickSlotTop, 3: styles.trickSlotLeft,
+                  };
+                  return (
+                    <View style={styles.trickArea}>
+                      <View style={styles.ledSuitBadge}>
+                        <Text style={[styles.ledSuitIcon, { color: SUIT_COLOR[ledSuit] }]}>{SUIT_ICON[ledSuit]}</Text>
+                        <Text style={styles.ledSuitLabel}>Led</Text>
+                      </View>
+                      {displayTrick.map((tc, idx) => {
+                        const relativePos = (tc.playerPosition - myPosition + 4) % 4;
+                        return (
+                          <View key={idx} style={[styles.trickSlot, positionStyle[relativePos] ?? styles.trickSlotTop]}>
+                            <DynamicCard card={tc.card} theme={customTheme} size="small" />
+                          </View>
+                        );
+                      })}
+                    </View>
+                  );
+                })()}
+              </View>
+            )}
           </View>
         </View>
 
@@ -915,23 +962,54 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
         <ImageBackground
           source={require('../../assets/blot/park-background.png')}
           style={styles.bg}
-          blurRadius={3}
+          blurRadius={showBlur ? 3 : 0}
           resizeMode="cover">
           <LinearGradient
-            colors={['rgba(15,15,35,0.7)', 'rgba(26,23,66,0.6)']}
+            colors={showBlur ? ['rgba(15,15,35,0.7)', 'rgba(26,23,66,0.6)'] : ['transparent', 'transparent']}
             style={StyleSheet.absoluteFill}
           />
           <SafeAreaView style={styles.safe}>
-            <GameToolbar
-              title="Bazaar Blot"
-              onBack={() => navigation.goBack()}
-              backgroundColor="transparent"
-              rightElement={
-                <TouchableOpacity onPress={() => setShowCustomization(true)}>
-                  <Text style={{ color: '#FFD700', fontSize: 13, fontWeight: '700' }}>🎨 Cards</Text>
-                </TouchableOpacity>
-              }
-            />
+            <View>
+              <GameToolbar
+                title="Bazaar Blot"
+                onBack={() => navigation.goBack()}
+                backgroundColor="transparent"
+                rightElement={
+                  <TouchableOpacity
+                    onPress={() => { toolbarExpanded.value = !toolbarExpanded.value; }}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    style={styles.editRoomButton}
+                  >
+                    <Animated.Text style={[styles.editRoomIcon, chevronStyle]}>⌄</Animated.Text>
+                  </TouchableOpacity>
+                }
+              />
+              <ExpandableView isExpanded={toolbarExpanded} viewKey="baazarMpToolbarControls" duration={300}>
+                <View style={styles.toolbarControls}>
+                  <TouchableOpacity
+                    onPress={() => setShowCustomization(true)}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    style={styles.editRoomButton}
+                  >
+                    <Text style={styles.editRoomIcon}>🎨</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => setShowBlur(!showBlur)}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    style={styles.editRoomButton}
+                  >
+                    <Text style={styles.editRoomIcon}>{showBlur ? '🌫️' : '✨'}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => setShowBackground(!showBackground)}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    style={styles.editRoomButton}
+                  >
+                    <Text style={styles.editRoomIcon}>{showBackground ? '🖼️' : '🔲'}</Text>
+                  </TouchableOpacity>
+                </View>
+              </ExpandableView>
+            </View>
             <View style={styles.centeredSection}>
               <ActivityIndicator size="large" color="#FFD700" />
               <Text style={styles.waitingText}>Waiting for game to start…</Text>
@@ -945,34 +1023,66 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
       <ImageBackground
         source={require('../../assets/blot/park-background.png')}
         style={styles.bg}
-        blurRadius={3}
+        blurRadius={showBlur ? 3 : 0}
         resizeMode="cover">
         <LinearGradient
-          colors={['rgba(15,15,35,0.7)', 'rgba(26,23,66,0.6)']}
+          colors={showBlur ? ['rgba(15,15,35,0.7)', 'rgba(26,23,66,0.6)'] : ['transparent', 'transparent']}
           style={StyleSheet.absoluteFill}
         />
         <SafeAreaView style={styles.safe}>
-          <GameToolbar
-            title={roomName}
-            onBack={() => navigation.goBack()}
-            backgroundColor="transparent"
-            rightElement={
-              <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
-                <RoomInfoDrawer roomId={roomId} />
+          <View>
+            <GameToolbar
+              title={roomName}
+              onBack={() => navigation.goBack()}
+              backgroundColor="transparent"
+              rightElement={
+                <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+                  <RoomInfoDrawer roomId={roomId} />
+                  <TouchableOpacity
+                    onPress={() => { toolbarExpanded.value = !toolbarExpanded.value; }}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    style={styles.editRoomButton}
+                  >
+                    <Animated.Text style={[styles.editRoomIcon, chevronStyle]}>⌄</Animated.Text>
+                  </TouchableOpacity>
+                </View>
+              }
+            />
+            <ExpandableView isExpanded={toolbarExpanded} viewKey="baazarMpToolbarControls" duration={300}>
+              <View style={styles.toolbarControls}>
+                <TouchableOpacity
+                  onPress={() => setShowCustomization(true)}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  style={styles.editRoomButton}
+                >
+                  <Text style={styles.editRoomIcon}>🎨</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => setShowBlur(!showBlur)}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  style={styles.editRoomButton}
+                >
+                  <Text style={styles.editRoomIcon}>{showBlur ? '🌫️' : '✨'}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => setShowBackground(!showBackground)}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  style={styles.editRoomButton}
+                >
+                  <Text style={styles.editRoomIcon}>{showBackground ? '🖼️' : '🔲'}</Text>
+                </TouchableOpacity>
                 <TouchableOpacity
                   onPress={() => setShowRoomNameModal(true)}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                  style={{ padding: 8, borderRadius: 8, backgroundColor: 'rgba(255, 255, 255, 0.1)' }}>
-                  <Text style={{ fontSize: 18 }}>✏️</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => setShowCustomization(true)}>
-                  <Text style={{ color: '#FFD700', fontSize: 13, fontWeight: '700' }}>🎨 Cards</Text>
+                  style={styles.editRoomButton}
+                >
+                  <Text style={styles.editRoomIcon}>✏️</Text>
                 </TouchableOpacity>
               </View>
-            }
-          />
+            </ExpandableView>
+          </View>
 
-          {/* Players strip */}
+          {/* Players strip */}}
           <View style={styles.playersStrip}>
             {players.filter(p => p != null).map((player, idx) => {
               const hasPassed = gameState.passedPlayers?.includes(player.position);
@@ -1063,7 +1173,7 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
       <CardCustomizationModal
         visible={showCustomization}
         onClose={() => setShowCustomization(false)}
-        onSave={(theme: CardTheme) => setCustomTheme(theme)}
+        onSave={handleSaveTheme}
         currentTheme={customTheme}
       />
     </>
@@ -1076,7 +1186,7 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
       <CardCustomizationModal
         visible={showCustomization}
         onClose={() => setShowCustomization(false)}
-        onSave={(theme: CardTheme) => setCustomTheme(theme)}
+        onSave={handleSaveTheme}
         currentTheme={customTheme}
       />
     </>
@@ -1490,6 +1600,17 @@ const styles = StyleSheet.create({
   cardLegal: { opacity: 1, transform: [{ translateY: -4 }] },
   cardDimmed: { opacity: 0.45 },
   selectedCard: { transform: [{ translateY: -10 }] },
+  editRoomButton: { padding: 6, borderRadius: 8 },
+  editRoomIcon: { fontSize: 22, color: '#FFD700' },
+  toolbarControls: {
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    paddingHorizontal: 3,
+    flexWrap: 'wrap',
+    alignSelf: 'flex-end',
+  },
 });
 
 export default MultiplayerBaazarBlotScreen;
