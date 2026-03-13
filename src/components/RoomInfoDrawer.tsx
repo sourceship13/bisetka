@@ -5,11 +5,13 @@ import {
   StyleSheet,
   TouchableOpacity,
   Modal,
-  FlatList,
+  ScrollView,
   Animated,
   Dimensions,
+  Image,
 } from 'react-native';
 import { socketService } from '../services/SocketService';
+import { resolveAvatar } from '../utils/avatars';
 
 interface Player {
   userId: string | null;
@@ -17,11 +19,13 @@ interface Player {
   isAI: boolean;
   position?: number;
   team?: number;
+  avatarUrl?: string | null;
 }
 
 interface Spectator {
   userId: string;
   displayName: string;
+  avatarUrl?: string | null;
 }
 
 interface RoomInfo {
@@ -81,33 +85,71 @@ const RoomInfoDrawer: React.FC<RoomInfoDrawerProps> = ({ roomId }) => {
   const playerCount = info?.playerCount ?? 0;
   const spectatorCount = info?.spectatorCount ?? 0;
 
-  const renderPlayer = ({ item }: { item: Player }) => (
-    <View style={styles.listItem}>
-      <Text style={styles.listIcon}>{item.isAI ? '🤖' : '👤'}</Text>
-      <View style={styles.listInfo}>
-        <Text style={styles.listName}>{item.displayName}</Text>
-        {item.team != null && (
-          <Text style={styles.listSub}>Team {item.team}</Text>
-        )}
-      </View>
-    </View>
-  );
+  const getInitials = (name: string) =>
+    name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
 
-  const renderSpectator = ({ item }: { item: Spectator }) => (
-    <View style={styles.listItem}>
-      <Text style={styles.listIcon}>👁️</Text>
-      <View style={styles.listInfo}>
-        <Text style={styles.listName}>{item.displayName}</Text>
+  const renderPlayerItem = (item: Player, index: number) => {
+    const avatarSource = item.avatarUrl ? resolveAvatar(item.avatarUrl) : null;
+    const initials = item.isAI ? '🤖' : getInitials(item.displayName);
+    const teamColor = item.team === 1 || item.team === 0 ? '#4ade80' : '#60a5fa';
+    return (
+      <View key={`p-${item.userId ?? index}`} style={styles.playerRow}>
+        <View style={styles.avatarClip}>
+          {!item.isAI && avatarSource ? (
+            <Image source={avatarSource} style={styles.avatar} resizeMode="contain" />
+          ) : (
+            <View style={styles.avatarPlaceholder}>
+              <Text style={styles.avatarInitials}>{initials}</Text>
+            </View>
+          )}
+        </View>
+        <View style={styles.playerInfo}>
+          <Text style={styles.playerName} numberOfLines={1}>{item.displayName}</Text>
+          <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
+            {item.isAI && (
+              <View style={[styles.badge, { backgroundColor: 'rgba(148,163,184,0.15)', borderColor: '#94a3b8' }]}>
+                <Text style={[styles.badgeText, { color: '#94a3b8' }]}>AI</Text>
+              </View>
+            )}
+            {item.team != null && (
+              <View style={[styles.badge, { backgroundColor: teamColor + '22', borderColor: teamColor }]}>
+                <Text style={[styles.badgeText, { color: teamColor }]}>Team {item.team}</Text>
+              </View>
+            )}
+          </View>
+        </View>
       </View>
-    </View>
-  );
+    );
+  };
+
+  const renderSpectatorItem = (item: Spectator, index: number) => {
+    const avatarSource = item.avatarUrl ? resolveAvatar(item.avatarUrl) : null;
+    const initials = getInitials(item.displayName);
+    return (
+      <View key={`s-${item.userId}-${index}`} style={styles.playerRow}>
+        <View style={[styles.avatarClip, { borderColor: 'rgba(148,163,184,0.4)' }]}>
+          {avatarSource ? (
+            <Image source={avatarSource} style={styles.avatar} resizeMode="contain" />
+          ) : (
+            <View style={[styles.avatarPlaceholder, { backgroundColor: '#1e2a3a' }]}>
+              <Text style={styles.avatarInitials}>{initials}</Text>
+            </View>
+          )}
+        </View>
+        <View style={styles.playerInfo}>
+          <Text style={styles.playerName} numberOfLines={1}>{item.displayName}</Text>
+          <Text style={styles.spectatorLabel}>👁 Spectating</Text>
+        </View>
+      </View>
+    );
+  };
 
   return (
     <>
       {/* Counter pill — always visible */}
       <TouchableOpacity style={styles.pill} onPress={open} activeOpacity={0.75}>
         <Text style={styles.pillText}>
-          👤 {playerCount}  👁️ {spectatorCount}
+          � {playerCount}  👁 {spectatorCount}
         </Text>
       </TouchableOpacity>
 
@@ -127,35 +169,26 @@ const RoomInfoDrawer: React.FC<RoomInfoDrawerProps> = ({ roomId }) => {
             styles.drawer,
             { transform: [{ translateX: slideAnim }] },
           ]}>
-          <Text style={styles.drawerTitle}>Room Info</Text>
+          <View style={styles.drawerHeader}>
+            <Text style={styles.drawerTitle}>Players</Text>
+            <TouchableOpacity onPress={close} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <Text style={styles.closeBtn}>✕</Text>
+            </TouchableOpacity>
+          </View>
 
-          {/* Players section */}
-          <Text style={styles.sectionTitle}>
-            Players ({playerCount})
-          </Text>
-          <FlatList
-            data={info?.players ?? []}
-            keyExtractor={(item, i) => `p-${item.userId ?? i}`}
-            renderItem={renderPlayer}
-            style={styles.list}
-            scrollEnabled={false}
-          />
+          <ScrollView showsVerticalScrollIndicator={false}>
+            {/* Players section */}
+            <Text style={styles.sectionTitle}>🎮 In Game ({playerCount})</Text>
+            {(info?.players ?? []).map((item, i) => renderPlayerItem(item, i))}
+            {playerCount === 0 && <Text style={styles.emptyText}>No players yet</Text>}
 
-          {/* Spectators section */}
-          <Text style={[styles.sectionTitle, { marginTop: 16 }]}>
-            Spectators ({spectatorCount})
-          </Text>
-          {spectatorCount === 0 ? (
-            <Text style={styles.emptyText}>No spectators</Text>
-          ) : (
-            <FlatList
-              data={info?.spectators ?? []}
-              keyExtractor={(item, i) => `s-${item.userId}-${i}`}
-              renderItem={renderSpectator}
-              style={styles.list}
-              scrollEnabled={false}
-            />
-          )}
+            {/* Spectators section */}
+            <Text style={[styles.sectionTitle, { marginTop: 20 }]}>👁 Spectating ({spectatorCount})</Text>
+            {spectatorCount === 0
+              ? <Text style={styles.emptyText}>No spectators</Text>
+              : (info?.spectators ?? []).map((item, i) => renderSpectatorItem(item, i))
+            }
+          </ScrollView>
         </Animated.View>
       </Modal>
     </>
@@ -186,57 +219,109 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     width: DRAWER_WIDTH,
-    backgroundColor: '#1a1a2e',
-    paddingTop: 60,
-    paddingHorizontal: 20,
+    backgroundColor: 'rgba(12,12,30,0.97)',
+    paddingHorizontal: 18,
     borderLeftWidth: 1,
-    borderLeftColor: 'rgba(255,255,255,0.08)',
+    borderLeftColor: 'rgba(255,255,255,0.12)',
+    shadowColor: '#000',
+    shadowOffset: { width: -4, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 12,
+    elevation: 20,
+  },
+  drawerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: 56,
+    paddingBottom: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.1)',
+    marginBottom: 16,
   },
   drawerTitle: {
     color: '#fff',
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '700',
-    marginBottom: 20,
+  },
+  closeBtn: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 18,
+    fontWeight: '600',
   },
   sectionTitle: {
-    color: '#94a3b8',
-    fontSize: 13,
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 12,
     fontWeight: '700',
     textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: 8,
+    letterSpacing: 0.8,
+    marginBottom: 10,
   },
-  list: {
-    flexGrow: 0,
-  },
-  listItem: {
+  playerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 8,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(255,255,255,0.06)',
+    gap: 12,
+    marginBottom: 12,
+    padding: 8,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.04)',
   },
-  listIcon: {
-    fontSize: 18,
-    marginRight: 10,
+  avatarClip: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    overflow: 'hidden',
+    backgroundColor: '#1e1e40',
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.2)',
+    flexShrink: 0,
   },
-  listInfo: {
-    flex: 1,
+  avatar: {
+    width: 48,
+    height: 48,
   },
-  listName: {
-    color: '#e2e8f0',
+  avatarPlaceholder: {
+    width: 48,
+    height: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#2a2a55',
+  },
+  avatarInitials: {
+    color: '#fff',
     fontSize: 15,
-    fontWeight: '500',
+    fontWeight: '700',
   },
-  listSub: {
+  playerInfo: {
+    flex: 1,
+    gap: 4,
+  },
+  playerName: {
+    color: '#e2e8f0',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  badge: {
+    alignSelf: 'flex-start',
+    borderRadius: 5,
+    borderWidth: 1,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+  },
+  badgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  spectatorLabel: {
     color: '#64748b',
     fontSize: 12,
-    marginTop: 1,
   },
   emptyText: {
-    color: '#475569',
-    fontSize: 14,
+    color: 'rgba(255,255,255,0.3)',
+    fontSize: 13,
     fontStyle: 'italic',
+    marginLeft: 4,
+    marginBottom: 8,
   },
 });
 
