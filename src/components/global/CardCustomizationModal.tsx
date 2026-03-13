@@ -156,11 +156,17 @@ const CardCustomizationModal: React.FC<CardCustomizationModalProps> = ({
 
   const handleSave = () => {
     if (!themeName.trim()) { BisetkaAlert.error('Error', 'Please enter a theme name'); return; }
+    
+    // Warn if card back not set (helpful for customization)
+    if (!generatedCardBack) {
+      BisetkaAlert.info('Info', 'Tip: Consider adding a card back design for a complete custom deck!');
+    }
+    
     const theme: CardTheme = {
       id: currentTheme?.id || `theme_${Date.now()}`,
       name: themeName,
       backgroundImage: generatedBackground || undefined,
-      cardBackImage:   generatedCardBack   || undefined,
+      cardBackImage: generatedCardBack || undefined, // Can be undefined - will use default
       font: selectedFont,
       createdAt: Date.now(),
     };
@@ -919,6 +925,13 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 14,
     fontWeight: '700',
+  },
+  previewImageBack: {
+    width: 80,
+    height: 110,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
 });
 

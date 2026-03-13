@@ -9,14 +9,14 @@ import {
   Dimensions,
   Platform,
 } from 'react-native';
-import { BisetkaAlert } from '../../utils/BisetkaAlert';
+import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../../navigation/AppNavigator';
-import { colors } from '../../theme';
-import apiConfig from '../../libs/utils/api.utils';
-import tokenService from '../../services/token.service';
+import { RootStackParamList } from '../../../navigation/AppNavigator';
+import { colors } from '../../../theme';
+import apiConfig from '../../../libs/utils/api.utils';
+import tokenService from '../../../services/token.service';
 import { BACKGROUND_ANIMATION_DURATION } from '@sentry/react-native/dist/js/feedback/FeedbackWidgetManager';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'GameInfo'>;

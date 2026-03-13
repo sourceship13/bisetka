@@ -11,11 +11,11 @@ import {
   Platform,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
-import {useAuth} from '../../libs/hooks/useAuth';
-import {colors, spacing} from '../../theme';
+import {useAuth} from '../../../libs/hooks/useAuth';
+import {colors, spacing} from '../../../theme';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DeviceInfo from 'react-native-device-info';
-import packageJson from '../../../package.json';
+import packageJson from '../../../../package.json';
 
 const SOUND_KEY = '@bisetka_sound_enabled';
 const HAPTIC_KEY = '@bisetka_haptic_enabled';

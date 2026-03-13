@@ -201,6 +201,9 @@ export const canPlayCard = (
   }
 
   // Lead is trump: must follow trump AND over-trump if possible
+  const hasTrump = validHand.some(c => c.suit === trump);
+  if (!hasTrump) return true; // No trump cards — free to play anything
+
   const trumpsInTrick = currentTrick.cards
     .filter(p => p && p.card && p.card.suit === trump)
     .map(p => getCardStrength(p.card, trump));

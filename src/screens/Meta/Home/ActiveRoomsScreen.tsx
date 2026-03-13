@@ -12,12 +12,12 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
-import GameToolbar from '../../components/global/GameToolbar';
-import { BisetkaAlert } from '../../utils/BisetkaAlert';
-import { useAuth } from '../../libs/hooks/useAuth';
-import { apiConfig } from '../../libs/utils/api.utils';
-import tokenService from '../../services/token.service';
-import { socketService } from '../../services/SocketService';
+import GameToolbar from '../../../components/global/GameToolbar';
+import { BisetkaAlert } from '../../../utils/BisetkaAlert';
+import { useAuth } from '../../../libs/hooks/useAuth';
+import { apiConfig } from '../../../libs/utils/api.utils';
+import tokenService from '../../../services/token.service';
+import { socketService } from '../../../services/SocketService';
 
 // Game type to multiplayer screen name mapping
 const GAME_SCREENS: Record<string, string> = {
