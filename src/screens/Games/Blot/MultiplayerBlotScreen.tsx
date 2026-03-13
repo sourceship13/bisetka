@@ -28,9 +28,12 @@ import InGameChat from '../../../components/InGameChat';
 import GameToolbar from '../../../components/global/GameToolbar';
 import RoomNameModal from '../../../components/RoomNameModal';
 import RoomInfoDrawer from '../../../components/RoomInfoDrawer';
+import type { RoomInfoDrawerHandle } from '../../../components/RoomInfoDrawer';
 import {apiConfig} from '../../../libs/utils/api.utils';
 import CardCustomizationModal from '../../../components/global/GameCustomizationModal';
 import type { CardTheme } from '../../../components/global/GameCustomizationModal';
+import ExpandableView from '../../../components/global/ExpandableView';
+import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 
 interface GameState {
   deck: Card[];
@@ -117,6 +120,12 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
   const [customTheme, setCustomTheme] = useState<CardTheme | undefined>(undefined);
   const [showBackground, setShowBackground] = useState(true);
   const [showBlur, setShowBlur] = useState(true);
+  const toolbarExpanded = useSharedValue(false);
+  const roomInfoRef = useRef<RoomInfoDrawerHandle>(null);
+
+  const chevronStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: withTiming(toolbarExpanded.value ? '180deg' : '0deg', { duration: 250 }) }],
+  }));
 
   // Load saved theme from storage on mount
   useEffect(() => {
@@ -1372,12 +1381,23 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
         style={styles.overlay}>
         <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right']}>
       {(gameMode === 'game' || gameMode === 'local') && (
-        <GameToolbar
-          title={roomName}
-          onBack={() => navigation.goBack()}
-          backgroundColor="transparent"
-          rightElement={
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        <View>
+          <GameToolbar
+            title={roomName}
+            onBack={() => navigation.goBack()}
+            backgroundColor="transparent"
+            rightElement={
+              <TouchableOpacity
+                onPress={() => { toolbarExpanded.value = !toolbarExpanded.value; }}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                style={styles.editRoomButton}
+              >
+                <Animated.Text style={[styles.editRoomIcon, chevronStyle]}>⌄</Animated.Text>
+              </TouchableOpacity>
+            }
+          />
+          <ExpandableView isExpanded={toolbarExpanded} viewKey="toolbarControls" duration={300}>
+            <View style={styles.toolbarControls}>
               <TouchableOpacity
                 onPress={() => setShowCustomization(true)}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
@@ -1399,8 +1419,14 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
               >
                 <Text style={styles.editRoomIcon}>{showBackground ? '🖼️' : '🔲'}</Text>
               </TouchableOpacity>
-              <RoomInfoDrawer roomId={currentRoom?.roomId ?? null} />
-              <TouchableOpacity 
+              <TouchableOpacity
+                onPress={() => roomInfoRef.current?.open()}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                style={styles.editRoomButton}
+              >
+                <Text style={styles.editRoomIcon}>👥</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
                 onPress={() => setShowRoomNameModal(true)}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 style={styles.editRoomButton}
@@ -1408,14 +1434,34 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
                 <Text style={styles.editRoomIcon}>✏️</Text>
               </TouchableOpacity>
             </View>
-          }
-        />
+          </ExpandableView>
+        </View>
       )}
       {gameMode === 'menu' && renderMenu()}
       {gameMode === 'matchmaking' && renderMatchmaking()}
       {gameMode === 'private' && renderPrivateRoom()}
       {gameMode === 'local' && renderLocalGame()}
       {gameMode === 'game' && renderGame()}
+
+      {/* Room info drawer — triggered imperatively via roomInfoRef */}
+      <RoomInfoDrawer
+        ref={roomInfoRef}
+        roomId={currentRoom?.roomId ?? null}
+        hidePill
+        staticPlayers={isLocalGame ? [
+          {
+            userId: userId,
+            displayName: route.params?.session?.displayName || route.params?.session?.username || 'You',
+            isAI: false,
+            avatarUrl: route.params?.session?.avatar_url ?? null,
+          },
+          {
+            userId: null,
+            displayName: 'CPU Opponent',
+            isAI: true,
+          },
+        ] : undefined}
+      />
 
       {/* Join Room Modal */}
       <Modal
@@ -1989,6 +2035,14 @@ const styles = StyleSheet.create({
   },
   editRoomIcon: {
     fontSize: 18,
+  },
+  toolbarControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingBottom: 10,
+    flexWrap: 'wrap',
   },
 });
 
