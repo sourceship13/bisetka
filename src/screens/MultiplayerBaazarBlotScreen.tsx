@@ -1529,11 +1529,12 @@ const styles = StyleSheet.create({
   },
   trickArea: { 
     flex: 1, 
-    position: 'relative',
+    position: 'absolute',
     alignItems: 'center',
     justifyContent: 'center',
   },
   cardPlaceholder: {
+    position: 'absolute',
     width: 90,
     height: 120,
     borderWidth: 2,

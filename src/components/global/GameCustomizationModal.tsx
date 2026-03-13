@@ -25,7 +25,17 @@ import apiService from '../../services/api.service';
 
 // ─── Card types ───────────────────────────────────────────────────────────────
 
-export type CardFont = 'classic' | 'modern' | 'bold' | 'elegant' | 'playful';
+export type CardFont =
+  | 'Inter_18pt-Regular'
+  | 'Cinzel-Bold'
+  | 'BebasNeue-Regular'
+  | 'PlayfairDisplaySC-Bold'
+  | 'EBGaramond-Bold'
+  | 'CrimsonText-Bold'
+  | 'Fredoka-Bold'
+  | 'JetBrainsMono-Bold'
+  | 'SpaceMono-Regular'
+  | 'RobotoMono-Regular';
 
 export interface CardTheme {
   id: string;
@@ -65,11 +75,16 @@ interface CardCustomizationModalProps {
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const FONTS: { id: CardFont; name: string; description: string }[] = [
-  { id: 'classic', name: 'Classic',  description: 'Traditional bold serif, casino-style' },
-  { id: 'modern',  name: 'Modern',   description: 'Clean sans-serif, contemporary' },
-  { id: 'bold',    name: 'Bold',     description: 'Heavy weight, strong presence' },
-  { id: 'elegant', name: 'Elegant',  description: 'Thin refined, sophisticated' },
-  { id: 'playful', name: 'Playful',  description: 'Fun rounded, casual vibe' },
+  { id: 'Inter_18pt-Regular',     name: 'Inter',          description: 'Clean modern sans-serif' },
+  { id: 'Cinzel-Bold',            name: 'Cinzel',         description: 'Elegant Roman display' },
+  { id: 'BebasNeue-Regular',      name: 'Bebas Neue',     description: 'Bold all-caps condensed' },
+  { id: 'PlayfairDisplaySC-Bold', name: 'Playfair SC',    description: 'Luxury serif small-caps' },
+  { id: 'EBGaramond-Bold',        name: 'EB Garamond',    description: 'Classical book serif' },
+  { id: 'CrimsonText-Bold',       name: 'Crimson Text',   description: 'Traditional newsprint serif' },
+  { id: 'Fredoka-Bold',           name: 'Fredoka',        description: 'Playful rounded sans' },
+  { id: 'JetBrainsMono-Bold',     name: 'JetBrains Mono', description: 'Technical monospace' },
+  { id: 'SpaceMono-Regular',      name: 'Space Mono',     description: 'Retro digital mono' },
+  { id: 'RobotoMono-Regular',     name: 'Roboto Mono',    description: 'Clean technical mono' },
 ];
 
 const PRESET_PROMPTS: Record<GameType, Array<{ name: string; prompt: string; description: string }>> = {
@@ -109,7 +124,7 @@ const GameCustomizationModal: React.FC<CardCustomizationModalProps> = ({
   const [backgroundPrompt,    setBackgroundPrompt]    = useState('');
   const [boardBackgroundPrompt,    setBoardBackgroundPrompt]    = useState('');
   const [cardBackPrompt,      setCardBackPrompt]      = useState('');
-  const [selectedFont,        setSelectedFont]        = useState<CardFont>(currentTheme?.font || 'classic');
+  const [selectedFont,        setSelectedFont]        = useState<CardFont>(currentTheme?.font || 'Inter_18pt-Regular');
   const [generatedBoardBg,    setGeneratedBoardBg]    = useState<string | null>(null);
   const [savedBoardBg,        setSavedBoardBg]        = useState<string | null>(currentTheme?.boardImage || null);
   const [generatedBackground, setGeneratedBackground] = useState<string | null>(null);
@@ -533,7 +548,7 @@ const GameCustomizationModal: React.FC<CardCustomizationModalProps> = ({
               {/* Font Selection */}
               <View style={styles.section}>
                 <Text style={styles.label}>Rank Number Font</Text>
-                <Text style={styles.sublabel}>Choose the font style for card numbers</Text>
+                <Text style={styles.sublabel}>Choose from the custom fonts installed in the app</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.presetsScroll}>
                   {FONTS.map((font) => {
                     const preview = FONT_PREVIEWS[font.id];
@@ -546,7 +561,7 @@ const GameCustomizationModal: React.FC<CardCustomizationModalProps> = ({
                         ]}
                         onPress={() => setSelectedFont(font.id)}>
                         <View style={styles.fontPreview}>
-                          <Text style={[styles.fontSample, preview.style]}>{preview.sample}</Text>
+                          <Text style={[styles.fontSample, preview?.style]}>{preview?.sample ?? 'Aa'}</Text>
                         </View>
                         <Text style={styles.presetName}>{font.name}</Text>
                         <Text style={styles.presetDesc}>{font.description}</Text>
