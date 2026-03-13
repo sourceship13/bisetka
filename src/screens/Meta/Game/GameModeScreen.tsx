@@ -1,16 +1,16 @@
 import React, {useState} from 'react';
 import {StyleSheet, StatusBar} from 'react-native';
-import { BisetkaAlert } from '../../utils/BisetkaAlert';
+import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import GameModeSelector from '../../components/global/GameModeSelector';
-import TeamModeSelector, { TeamMode } from '../../components/TeamModeSelector';
-import {GAME_LABELS, gameSessionsService} from '../../services/gameSessions.service';
+import GameModeSelector from '../../../components/global/GameModeSelector';
+import TeamModeSelector, { TeamMode } from '../../../components/TeamModeSelector';
+import {GAME_LABELS, gameSessionsService} from '../../../services/gameSessions.service';
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
-import {RootStackParamList} from '../../navigation/AppNavigator';
-import {colors} from '../../theme';
-import {useAuth} from '../../libs/hooks/useAuth';
-import {socketService} from '../../services/SocketService';
-import tokenService from '../../services/token.service';
+import {RootStackParamList} from '../../../navigation/AppNavigator';
+import {colors} from '../../../theme';
+import {useAuth} from '../../../libs/hooks/useAuth';
+import {socketService} from '../../../services/SocketService';
+import tokenService from '../../../services/token.service';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'GameMode'>;
 

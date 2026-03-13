@@ -110,6 +110,20 @@ const BaazarBlotScreen = ({ navigation }: any) => {
     }).start();
   };
 
+  const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+
+  // Player positions (circular around table)
+  const playerPositions = Array.from({ length: 4 }, (_, i) => {
+    const centerX = screenWidth / 2;
+    const centerY = screenHeight * 0.45;
+    const radius = Math.min(screenWidth, screenHeight) * 0.25;
+    const angle = (i / 4) * Math.PI * 2;
+    return {
+      x: centerX + radius * Math.cos(angle),
+      y: centerY + radius * Math.sin(angle),
+    };
+  });
+
   const startGame = useCallback((target: GameTarget) => {
     const gs = initializeBaazarGame(target);
     dealtHandsRef.current = gs.players.map(p => ({ team: p.team, hand: [...p.hand] }));
@@ -118,6 +132,14 @@ const BaazarBlotScreen = ({ navigation }: any) => {
     setPendingBidSuit(null);
   }, []);
 
+
+
+
+
+  // Trigger animations on phase change
+
+
+  
   // AI bidding
   useEffect(() => {
     if (!gameState || gameState.phase !== 'bidding') return;
