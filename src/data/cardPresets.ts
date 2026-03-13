@@ -25,7 +25,7 @@ export const PRESET_THEMES: PresetTheme[] = [
     description: 'Clean geometric shapes, blue gradient',
     backgroundImage: require('../../assets/cards/presets/modern-background.png'),
     cardBackImage: require('../../assets/cards/presets/modern-back.png'),
-    font: 'modern',
+    font: 'Inter_18pt-Regular' as CardFont,
   },
   {
     presetId: 'retro-8bit',
@@ -33,7 +33,7 @@ export const PRESET_THEMES: PresetTheme[] = [
     description: 'Pixel art style, vibrant colors',
     backgroundImage: require('../../assets/cards/presets/retro-background.png'),
     cardBackImage: require('../../assets/cards/presets/back-geometric.png'),
-    font: 'bold',
+    font: 'SpaceMono-Regular' as CardFont,
   },
 ];
 
@@ -61,24 +61,14 @@ export const PRESET_CARD_BACKS: PresetCardBack[] = [
 
 // Font previews with styled examples
 export const FONT_PREVIEWS: Record<CardFont, { sample: string; style: any }> = {
-  classic: {
-    sample: 'K♠',
-    style: { fontWeight: '700' as const, letterSpacing: 0 },
-  },
-  modern: {
-    sample: 'A♥',
-    style: { fontWeight: '600' as const, letterSpacing: 1 },
-  },
-  bold: {
-    sample: 'Q♦',
-    style: { fontWeight: '900' as const, letterSpacing: -0.5 },
-  },
-  elegant: {
-    sample: 'J♣',
-    style: { fontWeight: '300' as const, letterSpacing: 2 },
-  },
-  playful: {
-    sample: '10♥',
-    style: { fontWeight: '800' as const, letterSpacing: 0 },
-  },
+  'Inter_18pt-Regular':     { sample: 'K♠', style: { fontFamily: 'Inter_18pt-Regular' } },
+  'Cinzel-Bold':            { sample: 'K♠', style: { fontFamily: 'Cinzel-Bold' } },
+  'BebasNeue-Regular':      { sample: 'K♠', style: { fontFamily: 'BebasNeue-Regular' } },
+  'PlayfairDisplaySC-Bold': { sample: 'K♠', style: { fontFamily: 'PlayfairDisplaySC-Bold' } },
+  'EBGaramond-Bold':        { sample: 'K♠', style: { fontFamily: 'EBGaramond-Bold' } },
+  'CrimsonText-Bold':       { sample: 'K♠', style: { fontFamily: 'CrimsonText-Bold' } },
+  'Fredoka-Bold':           { sample: 'K♠', style: { fontFamily: 'Fredoka-Bold' } },
+  'JetBrainsMono-Bold':     { sample: 'K♠', style: { fontFamily: 'JetBrainsMono-Bold' } },
+  'SpaceMono-Regular':      { sample: 'K♠', style: { fontFamily: 'SpaceMono-Regular' } },
+  'RobotoMono-Regular':     { sample: 'K♠', style: { fontFamily: 'RobotoMono-Regular' } },
 };

@@ -3,7 +3,7 @@ import {View, Text, StyleSheet, TouchableOpacity, ImageBackground} from 'react-n
 
 export type Suit = 'hearts' | 'diamonds' | 'clubs' | 'spades';
 export type Rank = '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' | '10' | 'J' | 'Q' | 'K' | 'A';
-export type CardFont = 'classic' | 'modern' | 'bold' | 'elegant' | 'playful';
+export type CardFont = string;
 
 export interface CardType {
   suit: Suit;
@@ -50,24 +50,15 @@ const DynamicCard: React.FC<CardProps> = ({
   const isRed = card.suit === 'hearts' || card.suit === 'diamonds';
   const suitColor = isRed ? '#DC143C' : '#1a1a1a';
 
+  // Apply the font family from the theme (fonts are linked natively via react-native.config.js)
+  const cardFontStyle = theme?.font ? { fontFamily: theme.font } : {};
+
   const suitSymbols: Record<Suit, string> = {
     hearts: '♥️',
     diamonds: '♦️',
     clubs: '♣️',
     spades: '♠️',
   };
-
-  // Font configurations
-  const fontStyles: Record<CardFont, any> = {
-    classic:  { fontWeight: '700' as const, letterSpacing: 0    },
-    modern:   { fontWeight: '600' as const, letterSpacing: 0.5  },
-    bold:     { fontWeight: '900' as const, letterSpacing: -0.5 },
-    elegant:  { fontWeight: '300' as const, letterSpacing: 1    },
-    playful:  { fontWeight: '800' as const, letterSpacing: 0    },
-  };
-
-  const selectedFont = theme?.font || 'classic';
-  const fontStyle = fontStyles[selectedFont];
 
   // FACE DOWN
   if (faceDown) {
@@ -94,13 +85,13 @@ const DynamicCard: React.FC<CardProps> = ({
   // FACE UP - Simple BlotScreen-style layout
   const cardContent = (
     <>
-      <Text style={[styles.cardRank, { fontSize: cardSize.rankSize, color: suitColor }, fontStyle]}>
+      <Text style={[styles.cardRank, { fontSize: cardSize.rankSize, color: suitColor }, cardFontStyle]}>
         {card.rank}
       </Text>
-      <Text style={[styles.cardSuit, { fontSize: cardSize.suitSize }, fontStyle]}>
+      <Text style={[styles.cardSuit, { fontSize: cardSize.suitSize }, cardFontStyle]}>
         {suitSymbols[card.suit]}
       </Text>
-      <Text style={[styles.cardValue, { fontSize: cardSize.valueSize, color: '#666' }, fontStyle]}>
+      <Text style={[styles.cardValue, { fontSize: cardSize.valueSize, color: '#666' }, cardFontStyle]}>
         {card.value}
       </Text>
     </>
