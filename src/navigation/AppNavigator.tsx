@@ -37,6 +37,7 @@ import ChatRoomScreen from '../screens/Global Chat/ChatRoomScreen';
 import ProfileScreen from '../screens/Meta/ProfileScreen';
 import SettingsScreen from '../screens/Meta/SettingsScreen';
 import StoreScreen from '../screens/Meta/StoreScreen';
+import FontTestScreen from '../screens/Meta/FontTestScreen';
 import DrawerContent from '../components/DrawerContent';
 import {useAuth} from '../libs/hooks/useAuth';
 import {ActivityIndicator, View, StyleSheet, Dimensions} from 'react-native';
@@ -75,6 +76,7 @@ export type RootStackParamList = {
   Profile: undefined;
   Settings: undefined;
   Store: undefined;
+  FontTest: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -264,6 +266,7 @@ const AppNavigator = () => {
               <Stack.Screen name="Profile" component={ProfileScreen} />
               <Stack.Screen name="Settings" component={SettingsScreen} />
               <Stack.Screen name="Store" component={StoreScreen} />
+              <Stack.Screen name="FontTest" component={FontTestScreen} />
             </>
           )}
         </Stack.Navigator>
