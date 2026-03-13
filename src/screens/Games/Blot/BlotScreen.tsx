@@ -12,6 +12,8 @@ import {
   Animated,
   ScrollView,
 } from 'react-native';
+import ReAnimated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
+import ExpandableView from '../../../components/global/ExpandableView';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../../../libs/hooks/useAuth';
 import { resolveAvatar } from '../../../utils/avatars';
@@ -90,6 +92,11 @@ const BlotScreen = ({ navigation }: any) => {
   const [showBlur, setShowBlur] = useState(true);
   const [showPanel, setShowPanel] = useState(false);
   const panelAnim = useRef(new Animated.Value(0)).current;
+  const toolbarExpanded = useSharedValue(false);
+
+  const chevronStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: withTiming(toolbarExpanded.value ? '180deg' : '0deg', { duration: 250 }) }],
+  }));
   const { user: currentUser } = useAuth();
 
   const togglePanel = () => {
@@ -565,45 +572,54 @@ const BlotScreen = ({ navigation }: any) => {
         style={styles.overlay}
       >
         <SafeAreaView style={[styles.safeArea,]}>
-          <GameToolbar
-            title="🃏 Blot"
-            onBack={() => navigation.goBack()}
-            backgroundColor="transparent"
-            rightElement={
-              <View
-                style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}
-              >
+          <View>
+            <GameToolbar
+              title="🃏 Blot"
+              onBack={() => navigation.goBack()}
+              backgroundColor="transparent"
+              rightElement={
+                <TouchableOpacity
+                  onPress={() => { toolbarExpanded.value = !toolbarExpanded.value; }}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  style={styles.editRoomButton}
+                >
+                  <ReAnimated.Text style={[styles.editRoomIcon, chevronStyle]}>⌄</ReAnimated.Text>
+                </TouchableOpacity>
+              }
+            />
+            <ExpandableView isExpanded={toolbarExpanded} viewKey="blotToolbarControls" duration={300}>
+              <View style={styles.toolbarControls}>
                 <TouchableOpacity
                   onPress={() => setShowCustomization(true)}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  style={styles.editRoomButton}
                 >
-                  <Text style={styles.customizeText}>🎨</Text>
+                  <Text style={styles.editRoomIcon}>🎨</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={() => setShowBlur(!showBlur)}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  style={styles.editRoomButton}
                 >
-                  <Text style={styles.newGameText}>
-                    {showBlur ? '🌫️' : '✨'}
-                  </Text>
+                  <Text style={styles.editRoomIcon}>{showBlur ? '🌫️' : '✨'}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={() => setShowBackground(!showBackground)}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  style={styles.editRoomButton}
                 >
-                  <Text style={styles.newGameText}>
-                    {showBackground ? '🖼️' : '🔲'}
-                  </Text>
+                  <Text style={styles.editRoomIcon}>{showBackground ? '🖼️' : '🔲'}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={togglePanel}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  style={styles.editRoomButton}
                 >
-                  <Text style={styles.newGameText}>👥</Text>
+                  <Text style={styles.editRoomIcon}>👥</Text>
                 </TouchableOpacity>
               </View>
-            }
-          />
+            </ExpandableView>
+          </View>
 
           <View style={styles.scoreBoard}>
             <View style={styles.teamScore}>
@@ -936,6 +952,23 @@ const styles = StyleSheet.create({
   customizeText: {
     fontSize: 22,
     color: '#FFD700',
+  },
+  editRoomButton: {
+    padding: 6,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+  },
+  editRoomIcon: {
+    fontSize: 22,
+    color: '#FFD700',
+  },
+  toolbarControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingBottom: 10,
+    flexWrap: 'wrap',
   },
   scoreBoard: {
     flex: 1,

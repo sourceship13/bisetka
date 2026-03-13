@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useImperativeHandle, forwardRef } from 'react';
 import {
   View,
   Text,
@@ -36,14 +36,20 @@ interface RoomInfo {
   spectators: Spectator[];
 }
 
+export interface RoomInfoDrawerHandle {
+  open: () => void;
+}
+
 interface RoomInfoDrawerProps {
   roomId: string | null;
+  hidePill?: boolean;
+  staticPlayers?: Player[];
 }
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const DRAWER_WIDTH = SCREEN_WIDTH * 0.72;
 
-const RoomInfoDrawer: React.FC<RoomInfoDrawerProps> = ({ roomId }) => {
+const RoomInfoDrawer = forwardRef<RoomInfoDrawerHandle, RoomInfoDrawerProps>(({ roomId, hidePill = false, staticPlayers }, ref) => {
   const [info, setInfo] = useState<RoomInfo | null>(null);
   const [visible, setVisible] = useState(false);
   const [slideAnim] = useState(new Animated.Value(DRAWER_WIDTH));
@@ -74,6 +80,8 @@ const RoomInfoDrawer: React.FC<RoomInfoDrawerProps> = ({ roomId }) => {
     }).start();
   }, [slideAnim]);
 
+  useImperativeHandle(ref, () => ({ open }), [open]);
+
   const close = useCallback(() => {
     Animated.timing(slideAnim, {
       toValue: DRAWER_WIDTH,
@@ -82,7 +90,9 @@ const RoomInfoDrawer: React.FC<RoomInfoDrawerProps> = ({ roomId }) => {
     }).start(() => setVisible(false));
   }, [slideAnim]);
 
-  const playerCount = info?.playerCount ?? 0;
+  // For local/AI games, staticPlayers overrides socket data
+  const resolvedPlayers = staticPlayers ?? info?.players ?? [];
+  const playerCount = staticPlayers ? staticPlayers.filter(p => !p.isAI).length : (info?.playerCount ?? 0);
   const spectatorCount = info?.spectatorCount ?? 0;
 
   const getInitials = (name: string) =>
@@ -146,12 +156,14 @@ const RoomInfoDrawer: React.FC<RoomInfoDrawerProps> = ({ roomId }) => {
 
   return (
     <>
-      {/* Counter pill — always visible */}
-      <TouchableOpacity style={styles.pill} onPress={open} activeOpacity={0.75}>
-        <Text style={styles.pillText}>
-          � {playerCount}  👁 {spectatorCount}
-        </Text>
-      </TouchableOpacity>
+      {/* Counter pill — hidden when caller provides its own trigger */}
+      {!hidePill && (
+        <TouchableOpacity style={styles.pill} onPress={open} activeOpacity={0.75}>
+          <Text style={styles.pillText}>
+            👥 {playerCount}  👁 {spectatorCount}
+          </Text>
+        </TouchableOpacity>
+      )}
 
       {/* Drawer modal */}
       <Modal
@@ -179,8 +191,8 @@ const RoomInfoDrawer: React.FC<RoomInfoDrawerProps> = ({ roomId }) => {
           <ScrollView showsVerticalScrollIndicator={false}>
             {/* Players section */}
             <Text style={styles.sectionTitle}>🎮 In Game ({playerCount})</Text>
-            {(info?.players ?? []).map((item, i) => renderPlayerItem(item, i))}
-            {playerCount === 0 && <Text style={styles.emptyText}>No players yet</Text>}
+            {resolvedPlayers.map((item, i) => renderPlayerItem(item, i))}
+            {resolvedPlayers.length === 0 && <Text style={styles.emptyText}>No players yet</Text>}
 
             {/* Spectators section */}
             <Text style={[styles.sectionTitle, { marginTop: 20 }]}>👁 Spectating ({spectatorCount})</Text>
@@ -193,7 +205,7 @@ const RoomInfoDrawer: React.FC<RoomInfoDrawerProps> = ({ roomId }) => {
       </Modal>
     </>
   );
-};
+});
 
 const styles = StyleSheet.create({
   pill: {
