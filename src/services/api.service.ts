@@ -317,12 +317,13 @@ class ApiService {
    */
   async generateBoardBackground(
     prompt: string,
+    provider?: 'openai' | 'fal',
   ): Promise<{ url: string; revisedPrompt?: string }> {
     return this.request<{ url: string; revisedPrompt?: string }>(
       '/images/board-background',
       {
         method: 'POST',
-        body: JSON.stringify({ prompt }),
+        body: JSON.stringify({ prompt, provider }),
       },
       true,
     );
@@ -334,12 +335,13 @@ class ApiService {
    */
   async generateCardFaceBackground(
     prompt: string,
+    provider?: 'openai' | 'fal',
   ): Promise<{ url: string }> {
     return this.request<{ url: string }>(
       '/images/card-face',
       {
         method: 'POST',
-        body: JSON.stringify({ prompt }),
+        body: JSON.stringify({ prompt, provider }),
       },
       true,
     );
@@ -351,12 +353,13 @@ class ApiService {
    */
   async generateCardBackDesign(
     prompt: string,
+    provider?: 'openai' | 'fal',
   ): Promise<{ url: string }> {
     return this.request<{ url: string }>(
       '/images/card-back',
       {
         method: 'POST',
-        body: JSON.stringify({ prompt }),
+        body: JSON.stringify({ prompt, provider }),
       },
       true,
     );
