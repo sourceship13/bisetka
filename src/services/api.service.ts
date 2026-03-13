@@ -364,6 +364,38 @@ class ApiService {
       true,
     );
   }
+
+  /**
+   * Log a theme being applied — fire-and-forget for IAP analytics.
+   * POST /api/images/log-theme
+   */
+  async logThemeApplied(data: {
+    gameType: string;
+    roomId?: string;
+    themeName?: string;
+    backgroundImageUrl?: string;
+    boardImageUrl?: string;
+    cardBackImageUrl?: string;
+    fontFamily?: string;
+    backgroundPrompt?: string;
+    boardPrompt?: string;
+    cardBackPrompt?: string;
+    aiProvider?: string;
+    source?: 'preset' | 'generated';
+  }): Promise<void> {
+    try {
+      await this.request(
+        '/images/log-theme',
+        {
+          method: 'POST',
+          body: JSON.stringify({ source: 'generated', ...data }),
+        },
+        true,
+      );
+    } catch {
+      // Non-fatal — logging should never crash the game
+    }
+  }
 }
 
 // ========== EXPORT ==========
