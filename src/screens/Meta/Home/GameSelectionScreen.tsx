@@ -125,7 +125,8 @@ const GameSelectionScreen = ({ navigation }: any) => {
         style={[styles.gameCardWrapper, isComingSoon && styles.cardDisabled]}
       >
         <LinearGradient
-          colors={game.gradient as unknown as string[]}
+          // colors={game.gradient as unknown as string[]}
+          colors={['rgba(0,0,0,0.5)', 'rgba(0,0,0,0.8)']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.gameCard}
@@ -158,7 +159,7 @@ const GameSelectionScreen = ({ navigation }: any) => {
         <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
           {/* Header */}
           <LinearGradient
-            colors={['#6366f1', '#8b5cf6']}
+            colors={['rgba(0,0,0,0.5)', 'rgba(0,0,0,0.8)']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={styles.header}
