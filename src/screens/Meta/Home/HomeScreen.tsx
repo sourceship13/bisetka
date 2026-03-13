@@ -339,6 +339,26 @@ const HomeScreen = ({navigation}: any) => {
           </View>
         </View>
 
+        {/* Font Test Button (dev utility) */}
+        <View style={styles.activeRoomsContainer}>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('FontTest')}
+            style={styles.activeRoomsButton}
+            activeOpacity={0.85}>
+            <LinearGradient
+              colors={['rgba(99, 102, 241, 0.7)', 'rgba(139, 92, 246, 0.7)']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.activeRoomsGradient}>
+              <View style={{flex:1, padding:10}}>
+                <Text style={styles.activeRoomsTitle}>🔤 Font Test</Text>
+                <Text style={styles.activeRoomsSubtitle}>Browse all installed fonts</Text>
+              </View>
+              <Text style={styles.activeRoomsArrow}>→</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+
         {/* Active Rooms Button */}
         <View style={styles.activeRoomsContainer}>
           <TouchableOpacity
