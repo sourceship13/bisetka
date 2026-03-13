@@ -13,7 +13,8 @@ import chatService, { Chat } from '../../services/chat.service';
 import { useAuth } from '../../libs/hooks/useAuth';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/AppNavigator';
-import {colors, spacing, typography} from '../../theme';
+import { colors, spacing, typography } from '../../theme';
+import GameToolbar from '../../components/global/GameToolbar';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'DMList'>;
 
@@ -41,11 +42,17 @@ const DMListScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   const handleChatPress = (chat: Chat) => {
-    navigation.navigate('DMChat', { chatId: chat.id, chatName: chat.name || 'Direct Message' });
+    navigation.navigate('DMChat', {
+      chatId: chat.id,
+      chatName: chat.name || 'Direct Message',
+    });
   };
 
   const renderChat = ({ item }: { item: Chat }) => (
-    <TouchableOpacity style={styles.chatCard} onPress={() => handleChatPress(item)}>
+    <TouchableOpacity
+      style={styles.chatCard}
+      onPress={() => handleChatPress(item)}
+    >
       <View style={styles.chatInfo}>
         <Text style={styles.chatName}>{item.name || 'Direct Message'}</Text>
         {item.last_message_preview && (
@@ -74,20 +81,28 @@ const DMListScreen: React.FC<Props> = ({ navigation }) => {
     <SafeAreaView style={styles.container}>
       <LinearGradient
         colors={colors.gradients.primary}
-        start={{x: 0, y: 0}}
-        end={{x: 1, y: 0}}
-        style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Text style={styles.backText}>← Back</Text>
-        </TouchableOpacity>
-        <Text style={styles.title}>💬 Messages</Text>
-        <View style={styles.placeholder} />
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={styles.header}
+      >
+        <View style={{margin:10, flexDirection: 'row', alignItems: 'center'}}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={styles.backButton}
+          >
+            <Text style={styles.backText}>← Back</Text>
+          </TouchableOpacity>
+          <Text style={styles.title}>💬 Messages</Text>
+          <View style={styles.placeholder} />
+        </View>
       </LinearGradient>
 
       {chats.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyText}>No conversations yet</Text>
-          <Text style={styles.emptySubtext}>Start a game and chat with other players</Text>
+          <Text style={styles.emptySubtext}>
+            Start a game and chat with other players
+          </Text>
         </View>
       ) : (
         <FlatList
@@ -110,23 +125,25 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+    borderRadius: 12,
   },
   backButton: {
     padding: spacing.sm,
+    flex: 1,
   },
   backText: {
     color: colors.text.primary,
     fontSize: typography.fontSize.md,
   },
   title: {
+    flex: 2,
     fontSize: typography.fontSize.xl,
     fontWeight: typography.fontWeight.bold,
     color: colors.text.primary,
+    textAlign: 'center',
   },
   placeholder: {
-    width: 40,
+    flex: 1,
   },
   listContent: {
     paddingVertical: spacing.sm,
