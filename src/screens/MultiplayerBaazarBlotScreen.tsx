@@ -26,6 +26,7 @@ import RoomNameModal from '../components/RoomNameModal';
 import CardCustomizationModal from '../components/global/GameCustomizationModal';
 import RoomInfoDrawer from '../components/RoomInfoDrawer';
 import CardHandFan from '../components/CardHandFan';
+import { RiffleDealAnimation } from '../components/RiffleDealAnimation';
 import type { CardTheme } from '../components/global/GameCustomizationModal';
 
 const { width: SW } = Dimensions.get('window');
@@ -115,8 +116,21 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
   const resolutionStartTimeRef = useRef<number>(0);
   const [isShowingCompletedTrick, setIsShowingCompletedTrick] = useState(false);
   const [showRoomNameModal, setShowRoomNameModal] = useState(false);
+  const [showDealAnimation, setShowDealAnimation] = useState(false);
+  const showDealAnimationRef = useRef(false);
+  const pendingGameStateRef = useRef<(BaazarGameState & { currentPlayer: number }) | null>(null);
+  const prevPhaseRef = useRef<string | null>(null);
   const roomIdRef = useRef<string | null>(null);
   useEffect(() => { roomIdRef.current = roomId; }, [roomId]);
+
+  // Trigger deal animation when bidding phase ends and playing begins
+  useEffect(() => {
+    if (gameState?.phase === 'playing' && prevPhaseRef.current === 'bidding') {
+      showDealAnimationRef.current = true;
+      setShowDealAnimation(true);
+    }
+    prevPhaseRef.current = gameState?.phase ?? null;
+  }, [gameState?.phase]);
 
   // Ensure socket is connected before operations
   const ensureSocketConnected = async (): Promise<boolean> => {
@@ -261,8 +275,14 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
         currentPlayer: number;
       }) => {
         console.log('🃏 Card played by pos:', data.playerPosition, 'currentPlayer now:', data.currentPlayer, 'myPosition:', myPosition, 'myHand length:', data.gameState?.playerHands?.[myPosition]?.length);
-        setGameState({ ...data.gameState, currentPlayer: data.currentPlayer });
-        setSelectedCard(null);
+        const nextState = { ...data.gameState, currentPlayer: data.currentPlayer };
+        if (showDealAnimationRef.current) {
+          // Buffer during deal animation — applied in onComplete
+          pendingGameStateRef.current = nextState;
+        } else {
+          setGameState(nextState);
+          setSelectedCard(null);
+        }
       });
 
       socket.on('baazar_game_ended', (data: { 
@@ -1123,7 +1143,7 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
             </ExpandableView>
           </View>
 
-          {/* Players strip */}}
+          {/* Players strip */}
           <View style={styles.playersStrip}>
             {players.filter(p => p != null).map((player, idx) => {
               const hasPassed = gameState.passedPlayers?.includes(player.position);
@@ -1196,8 +1216,30 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
           />
         </SafeAreaView>
 
-        {/* Room Name Editor Modal */}
-        <RoomNameModal
+      <RiffleDealAnimation
+        visible={showDealAnimation}
+        playerPositions={[
+          { x: 0, y: SW * 0.6 },
+          { x: SW * 0.34, y: 0 },
+          { x: 0, y: -SW * 0.6 },
+          { x: -SW * 0.34, y: 0 },
+        ]}
+        dealerPosition={{ x: SW / 2, y: Dimensions.get('window').height / 2 }}
+        cardsPerPlayer={8}
+        theme={customTheme as any}
+        onComplete={() => {
+          showDealAnimationRef.current = false;
+          setShowDealAnimation(false);
+          if (pendingGameStateRef.current !== null) {
+            setGameState(pendingGameStateRef.current);
+            pendingGameStateRef.current = null;
+            setSelectedCard(null);
+          }
+        }}
+      />
+
+      {/* Room Name Editor Modal */}
+      <RoomNameModal
           visible={showRoomNameModal}
           onClose={() => setShowRoomNameModal(false)}
           currentName={roomName}
