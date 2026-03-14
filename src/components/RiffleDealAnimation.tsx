@@ -84,9 +84,29 @@ export const RiffleDealAnimation: React.FC<RiffleDealAnimationProps> = ({
       setIsPlaying(true);
       playRiffleDealAnimation();
     }
-  }, [visible]);
+  }, [visible, isPlaying]);
 
   const playRiffleDealAnimation = () => {
+    // Reset all values to initial state so every run starts clean
+    leftDeckAnimations.forEach((anim) => {
+      anim.translateX.setValue(-40);
+      anim.translateY.setValue(0);
+      anim.rotateZ.setValue(-15);
+      anim.opacity.setValue(1);
+    });
+    rightDeckAnimations.forEach((anim) => {
+      anim.translateX.setValue(40);
+      anim.translateY.setValue(0);
+      anim.rotateZ.setValue(15);
+      anim.opacity.setValue(1);
+    });
+    dealCardAnimations.forEach((anim) => {
+      anim.translateX.setValue(0);
+      anim.translateY.setValue(0);
+      anim.rotateZ.setValue(0);
+      anim.opacity.setValue(0);
+    });
+
     const animations: Animated.CompositeAnimation[] = [];
 
     // Phase 1: Riffle Shuffle (0-600ms)
@@ -265,10 +285,9 @@ export const RiffleDealAnimation: React.FC<RiffleDealAnimationProps> = ({
     );
 
     // Run sequence
-    Animated.sequence(animations).start(() => {
-      console.log('[RiffleDealAnimation] Sequence completed');
+    Animated.sequence(animations).start(({ finished }) => {
       setIsPlaying(false);
-      onComplete?.();
+      if (finished) onComplete?.();
     });
   };
 
