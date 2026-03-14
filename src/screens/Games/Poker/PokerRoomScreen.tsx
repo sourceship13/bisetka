@@ -1021,7 +1021,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
             Bet: ${player.currentBet}
           </Text>
         </View>
-        {!player.folded && (
+        {!player.folded && !showRiffleDealAnimation && (
           <View style={styles.playerCards}>
             {player.cards.map((card, idx) => (
               <View key={idx}>{renderCard(card, !showCards, position, idx)}</View>
@@ -1178,17 +1178,15 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
           style={styles.pokerTable}
           resizeMode="contain"
         >
-          {/* Community cards in center - hidden during riffle animation */}
-          {!showRiffleDealAnimation && (
-            <View style={styles.communityCardsContainer}>
-              <Text style={styles.communityTitle}>Community Cards</Text>
-              <View style={{ flexDirection: 'row' }}>
-                {communityCards.map((card, idx) => (
-                  <View key={idx}>{renderCard(card, false)}</View>
-                ))}
-              </View>
+          {/* Community cards in center */}
+          <View style={styles.communityCardsContainer}>
+            <Text style={styles.communityTitle}>Community Cards</Text>
+            <View style={{ flexDirection: 'row' }}>
+              {communityCards.map((card, idx) => (
+                <View key={idx}>{renderCard(card, false)}</View>
+              ))}
             </View>
-          )}
+          </View>
         </ImageBackground>
 
         {/* Player overlays rendered OUTSIDE ImageBackground so they don't cause it to re-render */}
