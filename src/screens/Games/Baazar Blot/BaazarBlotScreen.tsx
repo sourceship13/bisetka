@@ -24,6 +24,7 @@ import { CardType, Suit } from '../../../components/Card';
 import DynamicCard from '../../../components/DynamicCard';
 import CardCustomizationModal from '../../../components/global/GameCustomizationModal';
 import CardHandFan from '../../../components/CardHandFan';
+import { RiffleDealAnimation } from '../../../components/RiffleDealAnimation';
 import type { CardTheme } from '../../../components/global/GameCustomizationModal';
 import {
   BaazarGameState,
@@ -61,9 +62,11 @@ const BaazarBlotScreen = ({ navigation }: any) => {
   const [pendingBidLevel, setPendingBidLevel] = useState<BidLevel>(9);
   const [pendingBidSuit, setPendingBidSuit] = useState<Suit | null>(null);
   const [isResolvingTrick, setIsResolvingTrick] = useState(false);
+  const [showDealAnimation, setShowDealAnimation] = useState(false);
   const resolutionInProgressRef = useRef(false);
   const resolutionStartTimeRef = useRef<number>(0);
   const dealtHandsRef = useRef<{ team: 1 | 2; hand: CardType[] }[]>([]);
+  const prevPhaseRef = useRef<string | null>(null);
 
   const { refreshOnGameEnd } = useGameEndRefresh(undefined, 'baazar_blot');
 
@@ -124,6 +127,16 @@ const BaazarBlotScreen = ({ navigation }: any) => {
     };
   });
 
+  // Relative offsets from deck center for RiffleDealAnimation
+  const dealerCenterX = screenWidth / 2;
+  const dealerCenterY = screenHeight / 2;
+  const dealAnimPlayerPositions = [
+    { x: 0, y: screenHeight * 0.28 },          // Player 0 – bottom (you)
+    { x: screenWidth * 0.34, y: 0 },           // Player 1 – right
+    { x: 0, y: -screenHeight * 0.28 },         // Player 2 – top (opponent)
+    { x: -screenWidth * 0.34, y: 0 },          // Player 3 – left
+  ];
+
   const startGame = useCallback((target: GameTarget) => {
     const gs = initializeBaazarGame(target);
     dealtHandsRef.current = gs.players.map(p => ({ team: p.team, hand: [...p.hand] }));
@@ -137,9 +150,13 @@ const BaazarBlotScreen = ({ navigation }: any) => {
 
 
   // Trigger animations on phase change
+  useEffect(() => {
+    if (gameState?.phase === 'playing' && prevPhaseRef.current === 'bidding') {
+      setShowDealAnimation(true);
+    }
+    prevPhaseRef.current = gameState?.phase ?? null;
+  }, [gameState?.phase]);
 
-
-  
   // AI bidding
   useEffect(() => {
     if (!gameState || gameState.phase !== 'bidding') return;
@@ -200,6 +217,7 @@ const BaazarBlotScreen = ({ navigation }: any) => {
     if (!gameState || gameState.phase !== 'playing') return;
     if (gameState.currentPlayer === 0) return;
     if (isResolvingTrick) return; // Don't play during trick resolution
+    if (showDealAnimation) return; // Don't play during deal animation
 
     const timer = setTimeout(() => {
       setGameState(prev => {
@@ -219,7 +237,7 @@ const BaazarBlotScreen = ({ navigation }: any) => {
     }, 700);
 
     return () => clearTimeout(timer);
-  }, [gameState?.phase, gameState?.currentPlayer, gameState?.currentTrick, isResolvingTrick]);
+  }, [gameState?.phase, gameState?.currentPlayer, gameState?.currentTrick, isResolvingTrick, showDealAnimation]);
 
   const applyCardPlay = (
     prev: BaazarGameState,
@@ -964,6 +982,15 @@ const BaazarBlotScreen = ({ navigation }: any) => {
         
         <View style={styles.body}>{renderContent()}</View>
       </SafeAreaView>
+
+      <RiffleDealAnimation
+        visible={showDealAnimation}
+        playerPositions={dealAnimPlayerPositions}
+        dealerPosition={{ x: dealerCenterX, y: dealerCenterY }}
+        cardsPerPlayer={8}
+        theme={customTheme as any}
+        onComplete={() => setShowDealAnimation(false)}
+      />
 
       <CardCustomizationModal
         visible={showCustomization}

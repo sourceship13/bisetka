@@ -63,6 +63,7 @@ const BlotScreen = ({ navigation }: any) => {
   const [showCustomization, setShowCustomization] = useState(false);
   const [showRiffleDealAnimation, setShowRiffleDealAnimation] = useState(false);
   const isRoundTransitioningRef = useRef(false);
+  const prevPhaseRef = useRef<string | null>(null);
   const [customTheme, setCustomTheme] = useState<CardTheme | undefined>(
     undefined,
   );
@@ -73,6 +74,15 @@ const BlotScreen = ({ navigation }: any) => {
     const t = setTimeout(() => setShowRiffleDealAnimation(true), 300);
     return () => clearTimeout(t);
   }, []);
+
+  // Trigger deal animation when bidding transitions to playing
+  useEffect(() => {
+    if (gameState.phase === 'playing' && prevPhaseRef.current === 'bidding') {
+      isRoundTransitioningRef.current = true;
+      setShowRiffleDealAnimation(true);
+    }
+    prevPhaseRef.current = gameState.phase;
+  }, [gameState.phase]);
 
   // Load saved theme from storage on mount
   useEffect(() => {
