@@ -7,6 +7,7 @@ interface RiffleDealAnimationProps {
   visible: boolean;
   playerPositions: Array<{ x: number; y: number }>;
   dealerPosition?: { x: number; y: number };
+  cardsPerPlayer?: number; // Number of cards to deal to each player (default: 2)
   onComplete?: () => void;
   theme?: CardTheme;
 }
@@ -15,12 +16,13 @@ interface RiffleDealAnimationProps {
  * Riffle Shuffle + Deal Animation
  * 1. Shows two deck halves fanning and interleaving (riffle shuffle)
  * 2. Combines into single deck at center
- * 3. Deals 2 cards to each player in circular order
+ * 3. Deals cards to each player in circular order (default 2, configurable)
  */
 export const RiffleDealAnimation: React.FC<RiffleDealAnimationProps> = ({
   visible,
   playerPositions,
   dealerPosition,
+  cardsPerPlayer = 2,
   onComplete,
   theme,
 }) => {
@@ -41,11 +43,11 @@ export const RiffleDealAnimation: React.FC<RiffleDealAnimationProps> = ({
   } | null>(null);
 
   // Initialize animations once
-  // Deal 2 cards to each player (circular dealing pattern)
+  // Deal cards to each player (circular dealing pattern)
   if (!animationsRef.current) {
-    // Create animations for dealing (2 rounds of dealing)
+    // Create animations for dealing (cardsPerPlayer rounds of dealing)
     const dealingAnimations = [];
-    for (let round = 0; round < 2; round++) {
+    for (let round = 0; round < cardsPerPlayer; round++) {
       for (let playerIdx = 0; playerIdx < playerPositions.length; playerIdx++) {
         dealingAnimations.push({
           translateX: new Animated.Value(0),
@@ -53,7 +55,7 @@ export const RiffleDealAnimation: React.FC<RiffleDealAnimationProps> = ({
           rotateZ: new Animated.Value(0),
           opacity: new Animated.Value(0),
           playerIdx, // Track which player this card goes to
-          round,     // Track which round (1st or 2nd card)
+          round,     // Track which round (card number)
         });
       }
     }
