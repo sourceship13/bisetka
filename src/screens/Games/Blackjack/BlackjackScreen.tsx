@@ -9,6 +9,7 @@ import {
   Dimensions,
   ScrollView,
   SafeAreaView,
+  Animated,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../../../libs/hooks/useAuth';
@@ -16,9 +17,12 @@ import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import GameToolbar from '../../../components/global/GameToolbar';
 import DynamicCard from '../../../components/DynamicCard';
 import CardCustomizationModal from '../../../components/global/GameCustomizationModal';
-import type { CardTheme } from '../../../components/DynamicCard';
+import type { CardTheme } from '../../../components/global/GameCustomizationModal';
 import { gameResultService } from '../../../services/gameResult.service';
 import { useGameEndRefresh } from '../../../libs/hooks/useGameEndRefresh';
+import ReAnimated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
+import ExpandableView from '../../../components/global/ExpandableView';
+import LinearGradient from 'react-native-linear-gradient';
 
 interface Card {
   suit: 'hearts' | 'diamonds' | 'clubs' | 'spades';
@@ -49,6 +53,14 @@ const BlackjackScreen = ({ navigation }: any) => {
   const { user: currentUser } = useAuth();
   const { refreshOnGameEnd } = useGameEndRefresh(undefined, 'blackjack');
 
+  const [showBlur, setShowBlur] = useState(true);
+  const [showBackground, setShowBackground] = useState(true);
+  const toolbarExpanded = useSharedValue(false);
+
+  const chevronStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: withTiming(toolbarExpanded.value ? '180deg' : '0deg', { duration: 250 }) }],
+  }));
+
   // Game State
   const [gameState, setGameState] = useState<GameState>({
     playerHand: { cards: [], value: 0, isBust: false, isBlackjack: false },
@@ -78,8 +90,17 @@ const BlackjackScreen = ({ navigation }: any) => {
   }, []);
 
   const handleSaveTheme = (theme: CardTheme) => {
-    setCustomTheme(theme);
-    AsyncStorage.setItem('blot_card_theme', JSON.stringify(theme));
+    const urls = [theme.boardImage, theme.backgroundImage].filter(Boolean) as string[];
+    if (urls.length > 0) {
+      Promise.all(urls.map(url => Image.prefetch(url).catch(() => {})))
+        .then(() => {
+          setCustomTheme({...theme});
+          AsyncStorage.setItem('blot_card_theme', JSON.stringify(theme));
+        });
+    } else {
+      setCustomTheme({...theme});
+      AsyncStorage.setItem('blot_card_theme', JSON.stringify(theme));
+    }
   };
 
   // ─── Game Logic ────────────────────────────────────────────────────────────
@@ -198,7 +219,7 @@ const BlackjackScreen = ({ navigation }: any) => {
 
     const newDeck = createDoubleDeck();
     const playerCards = [newDeck.pop()!, newDeck.pop()!];
-    const dealerCards = [newDeck.pop()!];
+    const dealerCards = [newDeck.pop()!, newDeck.pop()!];
 
     const playerHand = createHand(playerCards);
     const dealerHand = createHand(dealerCards);
@@ -410,31 +431,70 @@ const BlackjackScreen = ({ navigation }: any) => {
 
     return (
       <View key={key || card.id} style={styles.cardWrapper}>
-        <DynamicCard card={card} faceDown={faceDown} size="medium" theme={customTheme} />
+        <DynamicCard card={card as any} faceDown={faceDown} size="medium" theme={customTheme as any} />
       </View>
     );
   };
 
   return (
-    <ImageBackground source={require('../../../../assets/blot/park-background.png')} style={styles.container}>
+    <ImageBackground
+      source={customTheme?.backgroundImage ? { uri: customTheme.backgroundImage } : require('../../../../assets/blot/park-background.png')}
+      style={styles.container}
+      blurRadius={showBlur ? 3 : 0}
+    >
+      <LinearGradient
+        colors={showBlur ? ['rgba(15,15,35,0.7)', 'rgba(26,23,66,0.6)'] : ['transparent', 'transparent']}
+        style={styles.overlay}
+      >
       <SafeAreaView style={styles.safeArea}>
-        <GameToolbar
-          title="🎰 Blackjack (Double Deck)"
-          onBack={() => navigation.goBack()}
-          backgroundColor="transparent"
-          rightElement={
-            <TouchableOpacity onPress={() => setShowCustomization(true)}>
-              <Text style={styles.customizeButton}>🎨</Text>
-            </TouchableOpacity>
-          }
-        />
+        <View>
+          <GameToolbar
+            title="🎰 Blackjack"
+            onBack={() => navigation.goBack()}
+            backgroundColor="transparent"
+            rightElement={
+              <TouchableOpacity
+                onPress={() => { toolbarExpanded.value = !toolbarExpanded.value; }}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                style={styles.editRoomButton}
+              >
+                <ReAnimated.Text style={[styles.editRoomIcon, chevronStyle]}>⌄</ReAnimated.Text>
+              </TouchableOpacity>
+            }
+          />
+          <ExpandableView isExpanded={toolbarExpanded} viewKey="blackjackToolbarControls" duration={300}>
+            <View style={styles.toolbarControls}>
+              <TouchableOpacity
+                onPress={() => setShowCustomization(true)}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                style={styles.editRoomButton}
+              >
+                <Text style={styles.editRoomIcon}>🎨</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setShowBlur(!showBlur)}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                style={styles.editRoomButton}
+              >
+                <Text style={styles.editRoomIcon}>{showBlur ? '🌫️' : '✨'}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setShowBackground(!showBackground)}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                style={styles.editRoomButton}
+              >
+                <Text style={styles.editRoomIcon}>{showBackground ? '🖼️' : '🔲'}</Text>
+              </TouchableOpacity>
+            </View>
+          </ExpandableView>
+        </View>
 
         {/* Customization Modal */}
         <CardCustomizationModal
           visible={showCustomization}
           onClose={() => setShowCustomization(false)}
           onSave={handleSaveTheme}
-          currentTheme={customTheme}
+          currentTheme={customTheme as any}
         />
 
         {/* Game Area */}
@@ -445,38 +505,40 @@ const BlackjackScreen = ({ navigation }: any) => {
             <Text style={styles.balanceAmount}>${gameState.balance}</Text>
           </View>
 
-          {/* Dealer Section */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>🎲 Dealer</Text>
-            <View style={styles.handContainer}>
-              {gameState.dealerHand.cards.map((card, idx) => 
-                renderCard(card, gameState.gameStatus === 'playing', `dealer_${idx}`)
-              )}
-              {gameState.gameStatus === 'playing' && gameState.dealerHand.cards.length === 1 && (
-                <View style={styles.cardWrapper}>
-                  <DynamicCard card={undefined as any} faceDown={true} size="medium" theme={customTheme} />
-                </View>
+          {/* Card Table */}
+          <ImageBackground
+            source={showBackground ? (customTheme?.boardImage ? { uri: customTheme.boardImage } : require('../../../../assets/blot/card-table.png')) : undefined}
+            style={styles.cardTable}
+            imageStyle={styles.cardTableImage}
+            resizeMode="cover">
+            {/* Dealer Section */}
+            <View style={styles.tableSection}>
+              <Text style={styles.sectionTitle}>🎲 Dealer</Text>
+              <View style={styles.handContainer}>
+                {gameState.dealerHand.cards.map((card, idx) =>
+                  renderCard(card, gameState.gameStatus === 'playing' && idx > 0, `dealer_${idx}`)
+                )}
+              </View>
+              {gameState.gameStatus !== 'playing' && gameState.dealerHand.cards.length > 0 && (
+                <Text style={styles.handValue}>Value: {gameState.dealerHand.value}</Text>
               )}
             </View>
-            {gameState.gameStatus !== 'playing' && gameState.dealerHand.cards.length > 0 && (
-              <Text style={styles.handValue}>Value: {gameState.dealerHand.value}</Text>
-            )}
-          </View>
 
-          {/* Player Section */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>👤 Player</Text>
-            <View style={styles.handContainer}>
-              {gameState.playerHand.cards.map((card, idx) => 
-                renderCard(card, false, `player_${idx}`)
+            {/* Player Section */}
+            <View style={styles.tableSection}>
+              <Text style={styles.sectionTitle}>👤 Player</Text>
+              <View style={styles.handContainer}>
+                {gameState.playerHand.cards.map((card, idx) =>
+                  renderCard(card, false, `player_${idx}`)
+                )}
+              </View>
+              {gameState.playerHand.cards.length > 0 && (
+                <Text style={[styles.handValue, gameState.playerHand.isBust && styles.bustText]}>
+                  Value: {gameState.playerHand.value} {gameState.playerHand.isBust ? '(BUST!)' : ''}
+                </Text>
               )}
             </View>
-            {gameState.playerHand.cards.length > 0 && (
-              <Text style={[styles.handValue, gameState.playerHand.isBust && styles.bustText]}>
-                Value: {gameState.playerHand.value} {gameState.playerHand.isBust ? '(BUST!)' : ''}
-              </Text>
-            )}
-          </View>
+          </ImageBackground>
 
           {/* Current Bet */}
           {gameState.currentBet > 0 && (
@@ -539,6 +601,7 @@ const BlackjackScreen = ({ navigation }: any) => {
           </View>
         </ScrollView>
       </SafeAreaView>
+      </LinearGradient>
     </ImageBackground>
   );
 };
@@ -548,8 +611,28 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#1a1a1a',
   },
+  overlay: {
+    flex: 1,
+  },
   safeArea: {
     flex: 1,
+  },
+  editRoomButton: {
+    padding: 6,
+    borderRadius: 8,
+  },
+  editRoomIcon: {
+    fontSize: 22,
+    color: '#FFD700',
+  },
+  toolbarControls: {
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    paddingHorizontal: 3,
+    flexWrap: 'wrap',
+    alignSelf: 'flex-end',
   },
   gameArea: {
     flex: 1,
@@ -574,6 +657,22 @@ const styles = StyleSheet.create({
     fontSize: 32,
     fontWeight: 'bold',
   },
+  cardTable: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginBottom: 24,
+    minHeight: 320,
+    justifyContent: 'space-between',
+    paddingVertical: 20,
+    paddingHorizontal: 16,
+  },
+  cardTableImage: {
+    borderRadius: 16,
+    opacity: 0.92,
+  },
+  tableSection: {
+    alignItems: 'center',
+  },
   section: {
     marginBottom: 24,
   },
@@ -582,10 +681,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     marginBottom: 12,
+    textShadowColor: 'rgba(0,0,0,0.8)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
   handContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    justifyContent: 'center',
     gap: 8,
     marginBottom: 8,
   },
