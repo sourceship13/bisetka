@@ -50,6 +50,7 @@ const GAME_SCREEN_MAP: Record<string, keyof RootStackParamList> = {
   // Other games
   'poker': 'PokerRoom',
   'mrotsi': 'Mrotsi',
+  'blackjack': 'Blackjack',
   'slots': 'Home', // Slots not implemented yet
 };
 
@@ -250,6 +251,9 @@ const GameModeScreen: React.FC<Props> = ({route, navigation}) => {
             allowReplaceAI: allowReplaceAI || undefined,
           }));
         }
+        break;
+      case 'Blackjack':
+        navigation.reset(buildReset('Blackjack'));
         break;
       default:
         // Fallback to SessionStatus for games that need matchmaking UI

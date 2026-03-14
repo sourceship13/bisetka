@@ -24,6 +24,7 @@ import MultiplayerCheckersScreen from '../screens/Games/Checkers/MultiplayerChec
 import PokerRoomScreen from '../screens/Games/Poker/PokerRoomScreen';
 import BilliardsGameScreen from '../screens/Games/Billards/BilliardsGameScreen';
 import SlotsScreen from '../screens/Games/Slots/SlotsScreen';
+import BlackjackScreen from '../screens/Games/Blackjack/BlackjackScreen';
 import GameModeScreen from '../screens/Meta/Game/GameModeScreen';
 import GameInfoScreen from '../screens/Meta/Game/GameInfoScreen';
 import SessionStatusScreen from '../screens/Meta/SessionStatusScreen';
@@ -63,6 +64,7 @@ export type RootStackParamList = {
   PokerRoom: { session: any; gameType: GameType; mode: string; joinCode?: string };
   BilliardsGame: { session: any };
   Slots: undefined;
+  Blackjack: undefined;
   GameMode: { gameType: GameType };
   GameInfo: { gameType: GameType; gradient?: string[] };
   SessionStatus: { gameType: GameType; session: any };
@@ -138,6 +140,7 @@ const linking: LinkingOptions<RootStackParamList> = {
       PokerRoom: 'poker',
       BilliardsGame: 'billiards',
       Slots: 'slots',
+      Blackjack: 'blackjack',
       GameMode: 'game-mode/:gameType',
       GameInfo: 'game-info/:gameType',
       SessionStatus: 'session-status/:gameType',
@@ -253,6 +256,7 @@ const AppNavigator = () => {
               <Stack.Screen name="PokerRoom" component={PokerRoomScreen} />
               <Stack.Screen name="BilliardsGame" component={BilliardsGameScreen} />
               <Stack.Screen name="Slots" component={SlotsScreen} />
+              <Stack.Screen name="Blackjack" component={BlackjackScreen} />
               <Stack.Screen name="GameInfo" component={GameInfoScreen} />
               <Stack.Screen name="GameMode" component={GameModeScreen} />
               <Stack.Screen name="SessionStatus" component={SessionStatusScreen} />

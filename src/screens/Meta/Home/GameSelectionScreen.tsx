@@ -99,6 +99,14 @@ const GAMES = [
     gradient: ['#ef4444', '#f87171'],
     gameType: 'slots',
   },
+  {
+    id: 'blackjack',
+    name: 'Blackjack',
+    description: '21 Card Game',
+    icon: '🎴',
+    gradient: ['#7c3aed', '#a78bfa'],
+    gameType: 'blackjack',
+  },
 ] as const;
 
 type GameConfig = (typeof GAMES)[number];

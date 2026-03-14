@@ -86,9 +86,6 @@ const DynamicCard: React.FC<CardProps> = ({
       }
     : baseSizes[size];
 
-  const isRed = card.suit === 'hearts' || card.suit === 'diamonds';
-  const suitColor = isRed ? '#DC143C' : '#1a1a1a';
-
   // Apply the font family from the theme (fonts are linked natively via react-native.config.js)
   const cardFontStyle = theme?.font ? { fontFamily: theme.font } : {};
 
@@ -162,6 +159,8 @@ const DynamicCard: React.FC<CardProps> = ({
   }
 
   // FACE UP - Simple BlotScreen-style layout
+  const isRed = card.suit === 'hearts' || card.suit === 'diamonds';
+  const suitColor = isRed ? '#DC143C' : '#1a1a1a';
   const cardContent = (
     <>
       <Text style={[styles.cardRank, { fontSize: cardSize.rankSize, color: suitColor }, cardFontStyle]}>

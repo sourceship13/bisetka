@@ -92,9 +92,9 @@ const GameInfoScreen: React.FC<Props> = ({ route, navigation }) => {
   };
 
   const handlePlayNow = () => {
-    // Slots is a solo game - navigate directly without game mode selection
-    if (gameType === 'slots') {
-      navigation.navigate('Slots');
+    // Solo games - navigate directly without game mode selection
+    if (gameType === 'slots' || gameType === 'blackjack') {
+      navigation.navigate(gameType.charAt(0).toUpperCase() + gameType.slice(1) as any);
       return;
     }
     
