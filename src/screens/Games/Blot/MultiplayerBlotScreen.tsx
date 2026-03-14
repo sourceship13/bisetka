@@ -55,6 +55,7 @@ interface GameState {
   whiteScore?: number;
   blackScore?: number;
   currentTurn?: number | string; // number in 4p mode, string in 2p mode
+  phase?: string; // optional: 'bidding' | 'playing' in 4p team blot mode
 }
 
 const MultiplayerBlotScreen = ({ navigation, route }: any) => {
@@ -125,6 +126,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
   const [showBlur, setShowBlur] = useState(true);
   const [showRiffleDealAnimation, setShowRiffleDealAnimation] = useState(false);
   const isRoundTransitioningRef = useRef(false);
+  const prevGameStatePhaseRef = useRef<string | null>(null);
   const toolbarExpanded = useSharedValue(false);
   const roomInfoRef = useRef<RoomInfoDrawerHandle>(null);
 
@@ -142,6 +144,15 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
   }, []);
   const roomNameRef = useRef(roomName);
   useEffect(() => { roomNameRef.current = roomName; }, [roomName]);
+
+  // Trigger deal animation when 4-player game transitions from bidding to playing
+  useEffect(() => {
+    if (gameState?.phase === 'playing' && prevGameStatePhaseRef.current === 'bidding') {
+      isRoundTransitioningRef.current = true;
+      setShowRiffleDealAnimation(true);
+    }
+    prevGameStatePhaseRef.current = gameState?.phase ?? null;
+  }, [gameState?.phase]);
 
   const gameStartTime = useRef<Date | null>(null);
   const blotGameIdRef = useRef<string>(uuidv4());
