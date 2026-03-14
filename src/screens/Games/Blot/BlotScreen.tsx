@@ -23,6 +23,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import GameToolbar from '../../../components/global/GameToolbar';
 import { CardType, Suit } from '../../../components/Card';
 import DynamicCard from '../../../components/DynamicCard';
+import RiffleDealAnimation from '../../../components/RiffleDealAnimation';
 import CardCustomizationModal from '../../../components/global/GameCustomizationModal';
 import CardHandFan from '../../../components/CardHandFan';
 import type { CardTheme } from '../../../components/global/GameCustomizationModal';
@@ -60,9 +61,16 @@ const SUIT_COLOR: Record<string, string> = {
 const BlotScreen = ({ navigation }: any) => {
   const [gameState, setGameState] = useState<GameState>(initializeGame());
   const [showCustomization, setShowCustomization] = useState(false);
+  const [showRiffleDealAnimation, setShowRiffleDealAnimation] = useState(false);
   const [customTheme, setCustomTheme] = useState<CardTheme | undefined>(
     undefined,
   );
+
+  // Trigger animation after screen has fully rendered
+  useEffect(() => {
+    const t = setTimeout(() => setShowRiffleDealAnimation(true), 300);
+    return () => clearTimeout(t);
+  }, []);
 
   // Load saved theme from storage on mount
   useEffect(() => {
@@ -120,6 +128,16 @@ const BlotScreen = ({ navigation }: any) => {
   const trickTransitionOpacity = useRef(new Animated.Value(1)).current;
   const roundTransitionOpacity = useRef(new Animated.Value(1)).current;
   const trickCardAnimations = useRef<Map<string, Animated.Value>>(new Map()).current;
+
+  // Blot player positions for animation (4 players: You, Left, Top, Right)
+  const centerX = screenWidth / 2;
+  const centerY = screenHeight * 0.5;
+  const blotPlayerPositions = [
+    { x: 0, y: screenHeight * 0.35 },           // Position 0: Bottom (You)
+    { x: -screenWidth * 0.35, y: 0 },          // Position 1: Left
+    { x: 0, y: -screenHeight * 0.35 },         // Position 2: Top
+    { x: screenWidth * 0.35, y: 0 },           // Position 3: Right
+  ];
   const trumpRevealScale = useRef(new Animated.Value(0.8)).current;
   
   // Player positions (circular around table)
@@ -173,6 +191,10 @@ const BlotScreen = ({ navigation }: any) => {
       }
       // After all 4 players passed in round 2 → redeal
       if (prev.bidRound === 2 && newPassCount >= TOTAL_PLAYERS) {
+        // Trigger riffle deal animation
+        setShowRiffleDealAnimation(true);
+        setTimeout(() => setShowRiffleDealAnimation(false), 2500); // 6 cards takes longer
+        
         const { players: dealt, proposalCard } = dealCards(prev.players);
         const newDealer = (prev.dealer + 1) % TOTAL_PLAYERS;
         return {
@@ -319,6 +341,10 @@ const BlotScreen = ({ navigation }: any) => {
       }
 
       // Start a new round
+      // Trigger riffle deal animation
+      setShowRiffleDealAnimation(true);
+      setTimeout(() => setShowRiffleDealAnimation(false), 2500); // 6 cards takes longer
+      
       const { players: dealt, proposalCard } = dealCards(prev.players);
       const newDealer = (prev.dealer + 1) % TOTAL_PLAYERS;
       return {
@@ -509,7 +535,7 @@ const BlotScreen = ({ navigation }: any) => {
         <Text style={styles.gameEndScore}>
           Team 1: {gameState.gameScore.team1} — Team 2: {gameState.gameScore.team2}
         </Text>
-        <TouchableOpacity style={styles.newGameButton} onPress={() => setGameState(initializeGame())}>
+        <TouchableOpacity style={styles.newGameButton} onPress={() => { setGameState(initializeGame()); setTimeout(() => setShowRiffleDealAnimation(true), 300); }}>
           <Text style={styles.newGameButtonText}>New Game</Text>
         </TouchableOpacity>
       </View>
@@ -742,30 +768,31 @@ const BlotScreen = ({ navigation }: any) => {
                 </View>
               </View>
 
-              <View style={styles.handContainer}>
-                <Text style={styles.handLabel}>Your Hand:</Text>
-                <CardHandFan
-                  cards={gameState.players[0].hand}
-                  renderCard={(card, index) => {
-                    const isMyTurn = gameState.currentPlayer === 0;
-                    const playable =
-                      isMyTurn &&
-                      canPlayCard(
+              {/* Hide player hand during riffle animation but keep layout space */}
+              <View style={[styles.handContainer, showRiffleDealAnimation && { opacity: 0 }]}>
+                  <Text style={styles.handLabel}>Your Hand:</Text>
+                  <CardHandFan
+                    cards={gameState.players[0].hand}
+                    renderCard={(card, index) => {
+                      const isMyTurn = gameState.currentPlayer === 0;
+                      const playable =
+                        isMyTurn &&
+                        canPlayCard(
+                          card,
+                          gameState.players[0].hand,
+                          gameState.currentTrick,
+                          gameState.trump,
+                        );
+                      return renderCard(
                         card,
-                        gameState.players[0].hand,
-                        gameState.currentTrick,
-                        gameState.trump,
+                        index,
+                        false,
+                        isMyTurn ? () => playCard(card) : undefined,
+                        playable
                       );
-                    return renderCard(
-                      card,
-                      index,
-                      false,
-                      isMyTurn ? () => playCard(card) : undefined,
-                      playable
-                    );
-                  }}
-                />
-              </View>
+                    }}
+                  />
+                </View>
             </>
           )}
         </SafeAreaView>
@@ -865,6 +892,16 @@ const BlotScreen = ({ navigation }: any) => {
           <Text style={styles.panelEmptyText}>No spectators</Text>
         </ScrollView>
       </Animated.View>
+
+      {/* Riffle Shuffle & Deal Animation */}
+      <RiffleDealAnimation
+        visible={showRiffleDealAnimation}
+        playerPositions={blotPlayerPositions}
+        dealerPosition={{ x: centerX, y: centerY }}
+        cardsPerPlayer={6}
+        onComplete={() => setShowRiffleDealAnimation(false)}
+        theme={customTheme}
+      />
     </ImageBackground>
   );
 };
