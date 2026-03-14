@@ -36,6 +36,7 @@ import CardCustomizationModal from '../../../components/global/GameCustomization
 import type { CardTheme } from '../../../components/global/GameCustomizationModal';
 import ExpandableView from '../../../components/global/ExpandableView';
 import ReAnimated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
+import RiffleDealAnimation from '../../../components/RiffleDealAnimation';
 
 interface GameState {
   deck: Card[];
@@ -122,6 +123,8 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
   const [customTheme, setCustomTheme] = useState<CardTheme | undefined>(undefined);
   const [showBackground, setShowBackground] = useState(true);
   const [showBlur, setShowBlur] = useState(true);
+  const [showRiffleDealAnimation, setShowRiffleDealAnimation] = useState(false);
+  const isRoundTransitioningRef = useRef(false);
   const toolbarExpanded = useSharedValue(false);
   const roomInfoRef = useRef<RoomInfoDrawerHandle>(null);
 
@@ -159,6 +162,15 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
     };
   });
 
+  const centerX = screenWidth / 2;
+  const centerY = screenHeight * 0.5;
+  const blotPlayerPositions = [
+    { x: 0, y: screenHeight * 0.35 },
+    { x: -screenWidth * 0.35, y: 0 },
+    { x: 0, y: -screenHeight * 0.35 },
+    { x: screenWidth * 0.35, y: 0 },
+  ];
+
   // Helper: set playerColor and keep ref in sync
   const updatePlayerColor = (color: 'white' | 'black') => {
     playerColorRef.current = color;
@@ -192,6 +204,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
 
   useEffect(() => {
     if (!isLocalGame || !localGameState || localGameState.status !== 'active') return;
+    if (showRiffleDealAnimation || isRoundTransitioningRef.current) return;
     
     // Computer should move when it's their turn and the trick is empty (leading)
     if (localGameState.currentTurn === 'computer' && localGameState.currentTrick.length === 0) {
@@ -210,7 +223,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
       }, 1000);
       return () => clearTimeout(timer);
     }
-  }, [localGameState, isLocalGame]);
+  }, [localGameState, isLocalGame, showRiffleDealAnimation]);
 
   useEffect(() => {
     // If mode is 'ai', auto-start the AI game immediately (no socket needed)
@@ -224,6 +237,8 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
       const newGame = blotAIService.initializeGame();
       setLocalGameState(newGame);
       setIsGameStarted(true);
+      isRoundTransitioningRef.current = true;
+      setTimeout(() => setShowRiffleDealAnimation(true), 300);
       gameStartTime.current = new Date();
       // Don't connect to socket for AI games
       return;
@@ -406,6 +421,8 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
         setGameState(data.gameState);
         setGameMode('game');
         setIsGameStarted(true);
+        isRoundTransitioningRef.current = true;
+        setTimeout(() => setShowRiffleDealAnimation(true), 300);
         setIsMyTurn(data.gameState?.currentTurn === data.myPosition);
         return;
       }
@@ -433,6 +450,8 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
       }
       setGameMode('game');
       setIsGameStarted(true);
+      isRoundTransitioningRef.current = true;
+      setTimeout(() => setShowRiffleDealAnimation(true), 300);
       setIsMyTurn(
         data.cpuRole
           ? data.gameState?.currentTurn === data.cpuRole
@@ -516,6 +535,8 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
     const newGame = blotAIService.initializeGame();
     setLocalGameState(newGame);
     setIsGameStarted(true);
+    isRoundTransitioningRef.current = true;
+    setTimeout(() => setShowRiffleDealAnimation(true), 300);
     setShowDifficultyModal(false);
     gameStartTime.current = new Date();
     BisetkaAlert.alert('Local Game', `Playing against Computer (${selectedDifficulty})!`);
@@ -1170,7 +1191,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
           </View>
         </View>
 
-        <View style={styles.handContainer}>
+        <View style={[styles.handContainer, showRiffleDealAnimation && { opacity: 0 }]}>
           <Text style={styles.handLabel}>Your Hand:</Text>
           <CardHandFan
             cards={localGameState.playerHand as any}
@@ -1390,7 +1411,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
               </View>
             </View>
 
-            <View style={styles.handContainer}>
+            <View style={[styles.handContainer, showRiffleDealAnimation && { opacity: 0 }]}>
               {isSpectating ? (
                 <View style={{ alignItems: 'center', paddingVertical: 16 }}>
                   <Text style={[styles.handLabel, { fontSize: 16, color: '#f59e0b' }]}>👁️ Watching Game</Text>
@@ -1609,6 +1630,15 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
           currentTheme={customTheme}
         />
       )}
+
+      <RiffleDealAnimation
+        visible={showRiffleDealAnimation}
+        playerPositions={blotPlayerPositions}
+        dealerPosition={{ x: centerX, y: centerY }}
+        cardsPerPlayer={6}
+        onComplete={() => { isRoundTransitioningRef.current = false; setShowRiffleDealAnimation(false); }}
+        theme={customTheme}
+      />
         </SafeAreaView>
       </LinearGradient>
     </ImageBackground>

@@ -62,12 +62,14 @@ const BlotScreen = ({ navigation }: any) => {
   const [gameState, setGameState] = useState<GameState>(initializeGame());
   const [showCustomization, setShowCustomization] = useState(false);
   const [showRiffleDealAnimation, setShowRiffleDealAnimation] = useState(false);
+  const isRoundTransitioningRef = useRef(false);
   const [customTheme, setCustomTheme] = useState<CardTheme | undefined>(
     undefined,
   );
 
   // Trigger animation after screen has fully rendered
   useEffect(() => {
+    isRoundTransitioningRef.current = true;
     const t = setTimeout(() => setShowRiffleDealAnimation(true), 300);
     return () => clearTimeout(t);
   }, []);
@@ -191,9 +193,10 @@ const BlotScreen = ({ navigation }: any) => {
       }
       // After all 4 players passed in round 2 → redeal
       if (prev.bidRound === 2 && newPassCount >= TOTAL_PLAYERS) {
-        // Trigger riffle deal animation
-        setShowRiffleDealAnimation(true);
-        setTimeout(() => setShowRiffleDealAnimation(false), 2500); // 6 cards takes longer
+        // Trigger riffle deal animation after board renders
+        isRoundTransitioningRef.current = true;
+        setTimeout(() => setShowRiffleDealAnimation(true), 300);
+        setTimeout(() => setShowRiffleDealAnimation(false), 2800); // 300ms start delay + 2500ms animation
         
         const { players: dealt, proposalCard } = dealCards(prev.players);
         const newDealer = (prev.dealer + 1) % TOTAL_PLAYERS;
@@ -226,6 +229,7 @@ const BlotScreen = ({ navigation }: any) => {
   // AI bidding: auto-run when phase is bidding and currentPlayer != 0
   // ------------------------------------------------------------------
   useEffect(() => {
+    if (showRiffleDealAnimation || isRoundTransitioningRef.current) return;
     if (gameState.phase !== 'bidding' || gameState.currentPlayer === 0) return;
     const timer = setTimeout(() => {
       // AI strategy: take if they hold J or 9 of proposed suit, else pass in round 1
@@ -247,6 +251,7 @@ const BlotScreen = ({ navigation }: any) => {
     }, 600);
     return () => clearTimeout(timer);
   }, [
+    showRiffleDealAnimation,
     gameState.phase,
     gameState.currentPlayer,
     gameState.bidRound,
@@ -258,6 +263,7 @@ const BlotScreen = ({ navigation }: any) => {
   // AI card play: auto-run when phase is playing and currentPlayer != 0
   // ------------------------------------------------------------------
   useEffect(() => {
+    if (showRiffleDealAnimation || isRoundTransitioningRef.current) return;
     if (gameState.phase !== 'playing' || gameState.currentPlayer === 0) return;
     if (isResolvingTrick) return;
     const timer = setTimeout(() => {
@@ -273,7 +279,7 @@ const BlotScreen = ({ navigation }: any) => {
     }, 700);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gameState.phase, gameState.currentPlayer, gameState.currentTrick, isResolvingTrick]);
+  }, [showRiffleDealAnimation, gameState.phase, gameState.currentPlayer, gameState.currentTrick, isResolvingTrick]);
 
   const TABLE_SIZE = Math.min(screenWidth - 32, screenHeight * 0.5);
 
@@ -341,9 +347,10 @@ const BlotScreen = ({ navigation }: any) => {
       }
 
       // Start a new round
-      // Trigger riffle deal animation
-      setShowRiffleDealAnimation(true);
-      setTimeout(() => setShowRiffleDealAnimation(false), 2500); // 6 cards takes longer
+      // Trigger riffle deal animation after board renders
+      isRoundTransitioningRef.current = true;
+      setTimeout(() => setShowRiffleDealAnimation(true), 300);
+      setTimeout(() => setShowRiffleDealAnimation(false), 2800); // 300ms start delay + 2500ms animation
       
       const { players: dealt, proposalCard } = dealCards(prev.players);
       const newDealer = (prev.dealer + 1) % TOTAL_PLAYERS;
@@ -535,7 +542,7 @@ const BlotScreen = ({ navigation }: any) => {
         <Text style={styles.gameEndScore}>
           Team 1: {gameState.gameScore.team1} — Team 2: {gameState.gameScore.team2}
         </Text>
-        <TouchableOpacity style={styles.newGameButton} onPress={() => { setGameState(initializeGame()); setTimeout(() => setShowRiffleDealAnimation(true), 300); }}>
+        <TouchableOpacity style={styles.newGameButton} onPress={() => { isRoundTransitioningRef.current = true; setGameState(initializeGame()); setTimeout(() => setShowRiffleDealAnimation(true), 300); }}>
           <Text style={styles.newGameButtonText}>New Game</Text>
         </TouchableOpacity>
       </View>
@@ -899,7 +906,7 @@ const BlotScreen = ({ navigation }: any) => {
         playerPositions={blotPlayerPositions}
         dealerPosition={{ x: centerX, y: centerY }}
         cardsPerPlayer={6}
-        onComplete={() => setShowRiffleDealAnimation(false)}
+        onComplete={() => { isRoundTransitioningRef.current = false; setShowRiffleDealAnimation(false); }}
         theme={customTheme}
       />
     </ImageBackground>
