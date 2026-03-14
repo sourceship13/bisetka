@@ -174,19 +174,24 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
   }, [gamePhase]);
 
   // Calculate player positions for animation (6 seat table)
+  // Match the actual positions from the styles (position0-position5)
   const { width, height } = Dimensions.get('window');
-  const tableWidth = width * 0.8;
-  const tableHeight = height * 0.4;
   const centerX = width / 2;
   const centerY = height * 0.35;
 
   const playerPositions = [
-    { x: centerX, y: centerY + 200 }, // Position 0 (bottom center - you)
-    { x: centerX - 180, y: centerY + 100 }, // Position 1 (bottom left)
-    { x: centerX - 200, y: centerY - 80 }, // Position 2 (left)
-    { x: centerX - 100, y: centerY - 180 }, // Position 3 (top left)
-    { x: centerX + 100, y: centerY - 180 }, // Position 4 (top right)
-    { x: centerX + 200, y: centerY - 80 }, // Position 5 (right)
+    // Position 0: bottom 8%, center (You)
+    { x: 0, y: height * 0.42 },
+    // Position 1: bottom 20%, right 2% (Player 2)
+    { x: width * 0.40, y: height * 0.30 },
+    // Position 2: top 20%, right 2% (Player 3)
+    { x: width * 0.40, y: -height * 0.05 },
+    // Position 3: top 0%, center (Player 4)
+    { x: 0, y: -height * 0.25 },
+    // Position 4: top 20%, left 2% (Player 5)
+    { x: -width * 0.40, y: -height * 0.05 },
+    // Position 5: bottom 20%, left 2% (Player 6)
+    { x: -width * 0.40, y: height * 0.30 },
   ];
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -465,6 +470,8 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
   const startNewHand = (currentPlayers: Player[]) => {
     // Show riffle deal animation at the start of every new hand
     setShowRiffleDealAnimation(true);
+    console.log('[Poker] Starting new hand with animation');
+    
     // Increment hand number and reset round refs
     handNumberRef.current += 1;
     lastPlayerActionRef.current = null;
@@ -502,6 +509,12 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
     const firstPlayerIndex = (dealerIndex + 3) % 6;
     updatedPlayers[firstPlayerIndex].isActive = true;
 
+    // Hide animation after it completes (1.6 seconds for full animation)
+    const hideTimer = setTimeout(() => {
+      console.log('[Poker] Hiding riffle animation');
+      setShowRiffleDealAnimation(false);
+    }, 1700);
+
     setPlayers(updatedPlayers);
     setCommunityCards([]);
     setPot(15); // Small + big blind
@@ -509,6 +522,8 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
     setGamePhase('preflop');
     setActivePlayerIndex(firstPlayerIndex);
     
+    // Cleanup timer if component unmounts
+    return () => clearTimeout(hideTimer);
   };
 
   const createDeck = (): Card[] => {
@@ -1199,9 +1214,12 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
         {/* Riffle Shuffle & Deal Animation */}
         <RiffleDealAnimation
           visible={showRiffleDealAnimation}
-          playerPositions={playerPositions.slice(1, players.length)} // Only active players, exclude current player position
+          playerPositions={playerPositions.slice(1)} // Deal to positions 1-5 (other players)
           dealerPosition={{ x: centerX, y: centerY }}
-          onComplete={() => setShowRiffleDealAnimation(false)}
+          onComplete={() => {
+            console.log('[Poker] Animation completed');
+            setShowRiffleDealAnimation(false);
+          }}
           theme={customTheme}
         />
       </View>
@@ -1217,6 +1235,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
           <>
             {players[myPlayerIndex] && renderPlayer(players[myPlayerIndex]!, 0)}
             
+            <View style={{position:'absolute', bottom: 0, left: 20, right: 0, alignItems: 'flex-start',}}>
             {players[myPlayerIndex] && players[myPlayerIndex]!.isActive && !players[myPlayerIndex]!.folded && (
               <View style={styles.actionButtons}>
                 <View style={{ position: 'relative' }}>
@@ -1248,6 +1267,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
                 </TouchableOpacity>
               </View>
             )}
+            </View>
           </>
         )}
       </View>
