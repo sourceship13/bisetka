@@ -1,10 +1,12 @@
 import React, {useState, useEffect, useRef, useCallback} from 'react';
-import {View, Text, StyleSheet, TouchableOpacity, ScrollView, ImageBackground, ActivityIndicator, Clipboard, TextInput, Dimensions, Animated} from 'react-native';
+import {View, Text, StyleSheet, TouchableOpacity, ScrollView, ImageBackground, ActivityIndicator, Clipboard, TextInput, Dimensions, Animated, ViewStyle} from 'react-native';
 import { Snackbar } from 'react-native-paper';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import GameToolbar from '../../../components/global/GameToolbar';
 import DynamicCard from '../../../components/DynamicCard';
+import CardShuffleAnimation from '../../../components/CardShuffleAnimation';
+import RiffleDealAnimation from '../../../components/RiffleDealAnimation';
 import type { CardTheme } from '../../../components/DynamicCard';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -73,10 +75,10 @@ const PlayerTurnTimer = React.memo(({ onExpire }: { onExpire: () => void }) => {
 
   return (
     <View style={{ marginTop: 4 }}>
-      <View style={{ height: 3, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 2, overflow: 'hidden' }}>
-        <View style={{ height: 3, width: `${Math.round(pct * 100)}%`, backgroundColor: barColor, borderRadius: 2 }} />
+      <View style={{ height: 8, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 4, overflow: 'hidden' }}>
+        <View style={{ height: 8, width: `${Math.round(pct * 100)}%`, backgroundColor: barColor, borderRadius: 4 }} />
       </View>
-      <Text style={{ color: barColor, fontSize: 11, fontWeight: 'bold', textAlign: 'center', marginTop: 2 }}>
+      <Text style={{ color: barColor, fontSize: 16, fontWeight: 'bold', textAlign: 'center', marginTop: 2 }}>
         {remaining}s
       </Text>
     </View>
@@ -126,6 +128,9 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
   const [playerIndex] = useState(0); // used only in AI mode; overridden in multiplayer via computed value below
   const [winSnackbar, setWinSnackbar] = useState<WinSnackbar>({visible: false, message: ''});
   const [showConfetti, setShowConfetti] = useState(false);
+  const [showShuffleAnimation, setShowShuffleAnimation] = useState(false);
+  const [showRiffleDealAnimation, setShowRiffleDealAnimation] = useState(false);
+  const lastGamePhaseRef = useRef<GamePhase>('waiting');
   const [roomName, setRoomName] = useState('Multiplayer Poker');
   const [editingRoomName, setEditingRoomName] = useState(false);
   const [draftRoomName, setDraftRoomName] = useState('');
@@ -162,6 +167,27 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
   useEffect(() => {
     currentBetRef.current = currentBet;
   }, [currentBet]);
+
+  // Keep lastGamePhaseRef in sync (animation is now triggered directly in startNewHand)
+  useEffect(() => {
+    lastGamePhaseRef.current = gamePhase;
+  }, [gamePhase]);
+
+  // Calculate player positions for animation (6 seat table)
+  const { width, height } = Dimensions.get('window');
+  const tableWidth = width * 0.8;
+  const tableHeight = height * 0.4;
+  const centerX = width / 2;
+  const centerY = height * 0.35;
+
+  const playerPositions = [
+    { x: centerX, y: centerY + 200 }, // Position 0 (bottom center - you)
+    { x: centerX - 180, y: centerY + 100 }, // Position 1 (bottom left)
+    { x: centerX - 200, y: centerY - 80 }, // Position 2 (left)
+    { x: centerX - 100, y: centerY - 180 }, // Position 3 (top left)
+    { x: centerX + 100, y: centerY - 180 }, // Position 4 (top right)
+    { x: centerX + 200, y: centerY - 80 }, // Position 5 (right)
+  ];
 
   // ─────────────────────────────────────────────────────────────────────────
   // MULTIPLAYER SOCKET CONNECTION
@@ -437,6 +463,8 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
   };
 
   const startNewHand = (currentPlayers: Player[]) => {
+    // Show riffle deal animation at the start of every new hand
+    setShowRiffleDealAnimation(true);
     // Increment hand number and reset round refs
     handNumberRef.current += 1;
     lastPlayerActionRef.current = null;
@@ -931,19 +959,21 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
 
   const renderCard = (card: Card, hidden = false, _playerIndex?: number, _cardIndex?: number) => {
     return (
-      <DynamicCard
-        card={card as any}
-        faceDown={hidden}
-        size="small"
-        theme={customTheme}
-      />
+      <View style={styles.pokerCardWrapper}>
+        <DynamicCard
+          card={card as any}
+          faceDown={hidden}
+          size="small"
+          theme={customTheme}
+        />
+      </View>
     );
   };
 
   const renderPlayer = (player: Player, position: number) => {
     const myIdx = isMultiplayer ? mySeatRef.current : playerIndex;
     const isCurrentPlayer = !isSpectating && player.id === myIdx;
-    const showCards = isCurrentPlayer || gamePhase === 'showdown';
+    const showCards = !showRiffleDealAnimation && (isCurrentPlayer || gamePhase === 'showdown');
     
     const positionStyle = position === 0 ? styles.position0 :
                          position === 1 ? styles.position1 :
@@ -959,26 +989,22 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
             <Text style={styles.dealerChipText}>D</Text>
           </View>
         )}
+        {player.isActive && gamePhase !== 'waiting' && gamePhase !== 'showdown' && isMultiplayer && !isCurrentPlayer && (
+          <View style={styles.timerSlot}>
+            <PlayerTurnTimer
+              key={`turn-${activePlayerIndex}-${player.id}`}
+              onExpire={() => {}}
+            />
+          </View>
+        )}
         <View style={[styles.playerInfo, player.isActive && styles.activePlayer, player.folded && styles.foldedPlayer]}>
           <Text style={styles.playerName}>
             {isCurrentPlayer ? 'You' : player.name}
           </Text>
           <Text style={styles.playerChips}>${player.chips}</Text>
-          {player.currentBet > 0 && (
-            <Text style={styles.playerBet}>Bet: ${player.currentBet}</Text>
-          )}
-          {player.isActive && gamePhase !== 'waiting' && gamePhase !== 'showdown' && (isCurrentPlayer || isMultiplayer) && (
-            <PlayerTurnTimer
-              key={`turn-${activePlayerIndex}-${player.id}`}
-              onExpire={() => {
-                if (isCurrentPlayer) {
-                  handleFold();
-                } else if (!isMultiplayer) {
-                  simulateAIMove(player.id);
-                }
-              }}
-            />
-          )}
+          <Text style={[styles.playerBet, player.currentBet <= 0 && styles.playerBetHidden]}>
+            Bet: ${player.currentBet}
+          </Text>
         </View>
         {!player.folded && (
           <View style={styles.playerCards}>
@@ -1137,15 +1163,17 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
           style={styles.pokerTable}
           resizeMode="contain"
         >
-          {/* Community cards in center */}
-          <View style={styles.communityCardsContainer}>
-            <Text style={styles.communityTitle}>Community Cards</Text>
-            <View style={{ flexDirection: 'row' }}>
-              {communityCards.map((card, idx) => (
-                <View key={idx}>{renderCard(card, false)}</View>
-              ))}
+          {/* Community cards in center - hidden during riffle animation */}
+          {!showRiffleDealAnimation && (
+            <View style={styles.communityCardsContainer}>
+              <Text style={styles.communityTitle}>Community Cards</Text>
+              <View style={{ flexDirection: 'row' }}>
+                {communityCards.map((card, idx) => (
+                  <View key={idx}>{renderCard(card, false)}</View>
+                ))}
+              </View>
             </View>
-          </View>
+          )}
         </ImageBackground>
 
         {/* Player overlays rendered OUTSIDE ImageBackground so they don't cause it to re-render */}
@@ -1160,6 +1188,22 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
                 .filter(({ player, seatIdx }) => seatIdx !== myPlayerIndex && player != null)
                 .map(({ player, seatIdx }, idx) => renderPlayer(player, idx + 1))}
         </View>
+
+        {/* Shuffle Animation */}
+        <CardShuffleAnimation
+          visible={showShuffleAnimation}
+          onComplete={() => setShowShuffleAnimation(false)}
+          theme={customTheme}
+        />
+
+        {/* Riffle Shuffle & Deal Animation */}
+        <RiffleDealAnimation
+          visible={showRiffleDealAnimation}
+          playerPositions={playerPositions.slice(1, players.length)} // Only active players, exclude current player position
+          dealerPosition={{ x: centerX, y: centerY }}
+          onComplete={() => setShowRiffleDealAnimation(false)}
+          theme={customTheme}
+        />
       </View>
 
       {/* Current player (you) at bottom */}
@@ -1175,9 +1219,19 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
             
             {players[myPlayerIndex] && players[myPlayerIndex]!.isActive && !players[myPlayerIndex]!.folded && (
               <View style={styles.actionButtons}>
-                <TouchableOpacity style={[styles.button, styles.foldButton]} onPress={handleFold}>
-                  <Text style={styles.buttonText}>Fold</Text>
-                </TouchableOpacity>
+                <View style={{ position: 'relative' }}>
+                  {gamePhase !== 'waiting' && gamePhase !== 'showdown' && (
+                    <View style={{ position: 'absolute', top: -48, left: 0, right: 0 }}>
+                      <PlayerTurnTimer
+                        key={`turn-${activePlayerIndex}-my`}
+                        onExpire={handleFold}
+                      />
+                    </View>
+                  )}
+                  <TouchableOpacity style={[styles.button, styles.foldButton]} onPress={handleFold}>
+                    <Text style={styles.buttonText}>Fold</Text>
+                  </TouchableOpacity>
+                </View>
                 
                 {players[myPlayerIndex]!.currentBet === currentBet ? (
                   <TouchableOpacity style={[styles.button, styles.checkButton]} onPress={handleCheck}>
@@ -1229,6 +1283,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: 'transparent',
+  },
+  pokerCardWrapper: {
+    transform: [{ scale: 0.6 }],
+    marginHorizontal: -18,
+    marginTop: -24,
+    marginBottom: -12,
   },
   safeArea: {
     flex: 1,
@@ -1444,11 +1504,11 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
   position1: {
-    bottom: '28%',
+    bottom: '20%',
     right: '2%',
   },
   position2: {
-    top: '25%',
+    top: '20%',
     right: '2%',
   },
   position3: {
@@ -1456,11 +1516,11 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
   position4: {
-    top: '25%',
+    top: '20%',
     left: '2%',
   },
   position5: {
-    bottom: '28%',
+    bottom: '20%',
     left: '2%',
   },
   playerInfo: {
@@ -1470,6 +1530,20 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#2a7c4e',
     minWidth: 100,
+    height: 72,
+    justifyContent: 'center',
+  },
+  timerSlot: {
+    position: 'absolute',
+    top: -36,
+    left: 0,
+    right: 0,
+    height: 36,
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  playerBetHidden: {
+    opacity: 0,
   },
   activePlayer: {
     borderColor: '#ffd700',
@@ -1499,6 +1573,7 @@ const styles = StyleSheet.create({
   playerCards: {
     flexDirection: 'row',
     marginTop: 5,
+    marginBottom: 8,
     gap: 3,
   },
   communityCardsContainer: {
@@ -1555,19 +1630,21 @@ const styles = StyleSheet.create({
   },
   currentPlayerArea: {
     padding: 15,
-    backgroundColor: 'rgba(9, 64, 41, 0.8)',
+    backgroundColor: 'transparent',
   },
   actionButtons: {
-    flexDirection: 'row',
+    flexDirection: 'column',
     justifyContent: 'space-around',
     marginTop: 15,
     gap: 10,
+    width: 100,
   },
   button: {
     flex: 1,
     padding: 15,
     borderRadius: 8,
     alignItems: 'center',
+
   },
   foldButton: {
     backgroundColor: '#dc2626',
