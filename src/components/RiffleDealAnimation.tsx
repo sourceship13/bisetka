@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Animated, StyleSheet, Text, Dimensions } from 'react-native';
 import DynamicCard from './DynamicCard';
 import type { CardTheme } from './DynamicCard';
@@ -15,7 +15,7 @@ interface RiffleDealAnimationProps {
  * Riffle Shuffle + Deal Animation
  * 1. Shows two deck halves fanning and interleaving (riffle shuffle)
  * 2. Combines into single deck at center
- * 3. Deals cards fanning out to player positions
+ * 3. Deals 2 cards to each player in circular order
  */
 export const RiffleDealAnimation: React.FC<RiffleDealAnimationProps> = ({
   visible,
@@ -33,31 +33,51 @@ export const RiffleDealAnimation: React.FC<RiffleDealAnimationProps> = ({
   const centerX = dealerPosition?.x ?? screenWidth / 2;
   const centerY = dealerPosition?.y ?? screenHeight * 0.35;
 
-  // Left and right deck halves
-  const leftDeckAnimations = Array.from({ length: 6 }).map(() => ({
-    translateX: new Animated.Value(-40),
-    translateY: new Animated.Value(0),
-    rotateZ: new Animated.Value(-15),
-    scale: new Animated.Value(1),
-    opacity: new Animated.Value(1),
-  }));
+  // Use refs to persist animations across renders
+  const animationsRef = useRef<{
+    left: Array<any>;
+    right: Array<any>;
+    deal: Array<any>;
+  } | null>(null);
 
-  const rightDeckAnimations = Array.from({ length: 6 }).map(() => ({
-    translateX: new Animated.Value(40),
-    translateY: new Animated.Value(0),
-    rotateZ: new Animated.Value(15),
-    scale: new Animated.Value(1),
-    opacity: new Animated.Value(1),
-  }));
+  // Initialize animations once
+  // Deal 2 cards to each player (circular dealing pattern)
+  if (!animationsRef.current) {
+    // Create animations for dealing (2 rounds of dealing)
+    const dealingAnimations = [];
+    for (let round = 0; round < 2; round++) {
+      for (let playerIdx = 0; playerIdx < playerPositions.length; playerIdx++) {
+        dealingAnimations.push({
+          translateX: new Animated.Value(0),
+          translateY: new Animated.Value(0),
+          rotateZ: new Animated.Value(0),
+          opacity: new Animated.Value(0),
+          playerIdx, // Track which player this card goes to
+          round,     // Track which round (1st or 2nd card)
+        });
+      }
+    }
 
-  // Cards for dealing (one per player)
-  const dealCardAnimations = playerPositions.map((pos, idx) => ({
-    scale: new Animated.Value(1),
-    translateX: new Animated.Value(0),
-    translateY: new Animated.Value(0),
-    rotateZ: new Animated.Value(0),
-    opacity: new Animated.Value(0),
-  }));
+    animationsRef.current = {
+      left: Array.from({ length: 6 }).map(() => ({
+        translateX: new Animated.Value(-40),
+        translateY: new Animated.Value(0),
+        rotateZ: new Animated.Value(-15),
+        opacity: new Animated.Value(1),
+      })),
+      right: Array.from({ length: 6 }).map(() => ({
+        translateX: new Animated.Value(40),
+        translateY: new Animated.Value(0),
+        rotateZ: new Animated.Value(15),
+        opacity: new Animated.Value(1),
+      })),
+      deal: dealingAnimations,
+    };
+  }
+
+  const leftDeckAnimations = animationsRef.current.left;
+  const rightDeckAnimations = animationsRef.current.right;
+  const dealCardAnimations = animationsRef.current.deal;
 
   useEffect(() => {
     if (visible && !isPlaying) {
@@ -70,7 +90,6 @@ export const RiffleDealAnimation: React.FC<RiffleDealAnimationProps> = ({
     const animations: Animated.CompositeAnimation[] = [];
 
     // Phase 1: Riffle Shuffle (0-600ms)
-    // Left and right decks fan and interleave
     animations.push(
       Animated.parallel([
         // Left deck cards fan out then come in
@@ -78,7 +97,6 @@ export const RiffleDealAnimation: React.FC<RiffleDealAnimationProps> = ({
           Animated.sequence([
             Animated.delay(idx * 30),
             Animated.parallel([
-              // Fan out
               Animated.timing(anim.translateX, {
                 toValue: -60 - idx * 8,
                 duration: 150,
@@ -95,7 +113,6 @@ export const RiffleDealAnimation: React.FC<RiffleDealAnimationProps> = ({
                 useNativeDriver: true,
               }),
             ]),
-            // Come back for interleave
             Animated.parallel([
               Animated.timing(anim.translateX, {
                 toValue: -20 + idx * 4,
@@ -115,7 +132,6 @@ export const RiffleDealAnimation: React.FC<RiffleDealAnimationProps> = ({
           Animated.sequence([
             Animated.delay(idx * 30),
             Animated.parallel([
-              // Fan out
               Animated.timing(anim.translateX, {
                 toValue: 60 + idx * 8,
                 duration: 150,
@@ -132,7 +148,6 @@ export const RiffleDealAnimation: React.FC<RiffleDealAnimationProps> = ({
                 useNativeDriver: true,
               }),
             ]),
-            // Come back for interleave
             Animated.parallel([
               Animated.timing(anim.translateX, {
                 toValue: 20 - idx * 4,
@@ -150,7 +165,7 @@ export const RiffleDealAnimation: React.FC<RiffleDealAnimationProps> = ({
       ])
     );
 
-    // Phase 2: Combine into single deck (600-900ms)
+    // Phase 2: Combine (600-900ms)
     animations.push(
       Animated.parallel([
         ...leftDeckAnimations.map((anim, idx) =>
@@ -161,7 +176,7 @@ export const RiffleDealAnimation: React.FC<RiffleDealAnimationProps> = ({
               useNativeDriver: true,
             }),
             Animated.timing(anim.translateY, {
-              toValue: idx * 2, // Slight stack
+              toValue: idx * 2,
               duration: 300,
               useNativeDriver: true,
             }),
@@ -194,7 +209,7 @@ export const RiffleDealAnimation: React.FC<RiffleDealAnimationProps> = ({
       ])
     );
 
-    // Phase 3: Fade out shuffled deck, fade in dealing cards at center (900-1000ms)
+    // Phase 3: Fade transition (900-1000ms)
     animations.push(
       Animated.parallel([
         ...leftDeckAnimations.map((anim) =>
@@ -214,50 +229,52 @@ export const RiffleDealAnimation: React.FC<RiffleDealAnimationProps> = ({
       ])
     );
 
-    // Phase 4: Deal cards to players with fan animation (1000-1600ms)
+    // Phase 4: Deal cards in circular order (1000ms+)
+    // Each card dealt with 60ms delay between them
     animations.push(
       Animated.parallel(
-        dealCardAnimations.map((anim, idx) =>
-          Animated.sequence([
-            Animated.delay(idx * 80), // Sequential dealing
+        dealCardAnimations.map((anim, cardIdx) => {
+          const targetPos = playerPositions[anim.playerIdx];
+          return Animated.sequence([
+            Animated.delay(cardIdx * 60), // Sequential dealing
             Animated.parallel([
-              // Fade in at center
               Animated.timing(anim.opacity, {
                 toValue: 1,
                 duration: 50,
                 useNativeDriver: true,
               }),
-              // Move to player position
               Animated.timing(anim.translateX, {
-                toValue: playerPositions[idx]?.x ?? 0,
-                duration: 350,
+                toValue: targetPos?.x ?? 0,
+                duration: 300,
                 useNativeDriver: true,
               }),
               Animated.timing(anim.translateY, {
-                toValue: playerPositions[idx]?.y ?? 0,
-                duration: 350,
+                toValue: targetPos?.y ?? 0,
+                duration: 300,
                 useNativeDriver: true,
               }),
-              // Slight rotation for fanning effect
               Animated.timing(anim.rotateZ, {
-                toValue: (idx - Math.floor(playerPositions.length / 2)) * 8,
-                duration: 350,
+                toValue: anim.round * 5, // Slight offset for 2nd card
+                duration: 300,
                 useNativeDriver: true,
               }),
             ]),
-          ])
-        )
+          ]);
+        })
       )
     );
 
-    // Run all phases
+    // Run sequence
     Animated.sequence(animations).start(() => {
+      console.log('[RiffleDealAnimation] Sequence completed');
       setIsPlaying(false);
       onComplete?.();
     });
   };
 
-  if (!visible) return null;
+  if (!visible) {
+    return null;
+  }
 
   const dummyCard = {
     suit: 'hearts' as const,
@@ -267,9 +284,9 @@ export const RiffleDealAnimation: React.FC<RiffleDealAnimationProps> = ({
 
   return (
     <View style={styles.container}>
-      <Text style={styles.shuffleText}>Shuffling…</Text>
+      <Text style={styles.shuffleText}>Shuffling & Dealing…</Text>
 
-      {/* Dealer center position */}
+      {/* Dealer center - riffle shuffle */}
       <View
         style={[
           styles.dealerArea,
@@ -338,7 +355,7 @@ export const RiffleDealAnimation: React.FC<RiffleDealAnimationProps> = ({
         </View>
       </View>
 
-      {/* Dealing cards that move to player positions */}
+      {/* Dealing cards (2 per player in circular order) */}
       {dealCardAnimations.map((anim, idx) => (
         <Animated.View
           key={`deal-${idx}`}
