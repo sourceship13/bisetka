@@ -3176,6 +3176,34 @@ PODS:
     - ReactCommon/turbomodule/core
     - SocketRocket
     - Yoga
+  - RNVectorIcons (10.3.0):
+    - boost
+    - DoubleConversion
+    - fast_float
+    - fmt
+    - glog
+    - hermes-engine
+    - RCT-Folly
+    - RCT-Folly/Fabric
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - SocketRocket
+    - Yoga
   - RNWorklets (0.7.0):
     - boost
     - DoubleConversion
@@ -3371,6 +3399,7 @@ DEPENDENCIES:
   - RNScreens (from `../node_modules/react-native-screens`)
   - "RNSentry (from `../node_modules/@sentry/react-native`)"
   - RNSVG (from `../node_modules/react-native-svg`)
+  - RNVectorIcons (from `../node_modules/react-native-vector-icons`)
   - RNWorklets (from `../node_modules/react-native-worklets`)
   - SocketRocket (~> 0.7.1)
   - Yoga (from `../node_modules/react-native/ReactCommon/yoga`)
@@ -3587,6 +3616,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/@sentry/react-native"
   RNSVG:
     :path: "../node_modules/react-native-svg"
+  RNVectorIcons:
+    :path: "../node_modules/react-native-vector-icons"
   RNWorklets:
     :path: "../node_modules/react-native-worklets"
   Yoga:
@@ -3701,6 +3732,7 @@ SPEC CHECKSUMS:
   RNScreens: 7f643ee0fd1407dc5085c7795460bd93da113b8f
   RNSentry: 3698f118417e6780b3aff6709fb81b05e3eba94c
   RNSVG: 595abfa0f9ac26d56afcaaedf4e37a00f54cab71
+  RNVectorIcons: 791f13226ec4a3fd13062eda9e892159f0981fae
   RNWorklets: 9ff8721e08d3276348675faed9c99286fb8d1080
   Sentry: 7475eb7bf6a41d7505f46341706015ad2d1766b9
   SocketRocket: d4aabe649be1e368d1318fdf28a022d714d65748
