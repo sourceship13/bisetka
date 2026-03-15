@@ -1,3 +1,5 @@
+import type { BaseAvatar, AvatarClothing } from './avatar2d';
+
 export interface User {
   id: string;
   email: string | null;
@@ -12,6 +14,11 @@ export interface User {
   provider?: string;
   needsUsernameSelection?: boolean;
   onboarding_shown?: boolean;
+  avatar?: {
+    baseAvatar: BaseAvatar | null;
+    equipped: Record<string, AvatarClothing>;
+    inventory: AvatarClothing[];
+  };
 }
 
 export interface AuthResponse {

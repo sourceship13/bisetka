@@ -2852,6 +2852,8 @@ PODS:
     - RNFBApp
     - SocketRocket
     - Yoga
+  - RNFS (2.20.0):
+    - React-Core
   - RNGestureHandler (2.30.0):
     - boost
     - DoubleConversion
@@ -3361,6 +3363,7 @@ DEPENDENCIES:
   - RNDeviceInfo (from `../node_modules/react-native-device-info`)
   - "RNFBApp (from `../node_modules/@react-native-firebase/app`)"
   - "RNFBMessaging (from `../node_modules/@react-native-firebase/messaging`)"
+  - RNFS (from `../node_modules/react-native-fs`)
   - RNGestureHandler (from `../node_modules/react-native-gesture-handler`)
   - RNKeychain (from `../node_modules/react-native-keychain`)
   - RNPermissions (from `../node_modules/react-native-permissions`)
@@ -3568,6 +3571,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/@react-native-firebase/app"
   RNFBMessaging:
     :path: "../node_modules/@react-native-firebase/messaging"
+  RNFS:
+    :path: "../node_modules/react-native-fs"
   RNGestureHandler:
     :path: "../node_modules/react-native-gesture-handler"
   RNKeychain:
@@ -3688,6 +3693,7 @@ SPEC CHECKSUMS:
   RNDeviceInfo: 36d7f232bfe7c9b5c494cb7793230424ed32c388
   RNFBApp: b574c08010a6d3e995e654d03e34e789ebe55a35
   RNFBMessaging: da2d7f511df0368011a126b156f1a7f4be0c1b72
+  RNFS: 89de7d7f4c0f6bafa05343c578f61118c8282ed8
   RNGestureHandler: cd4be101cfa17ea6bbd438710caa02e286a84381
   RNKeychain: a2c134ab796272c3d605e035ab727591000b30f3
   RNPermissions: 1d34df6a0190a946e7448cbd404a6fe58b805453

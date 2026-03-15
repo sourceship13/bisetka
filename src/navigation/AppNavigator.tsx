@@ -39,6 +39,9 @@ import ProfileScreen from '../screens/Meta/Home/ProfileScreen';
 import SettingsScreen from '../screens/Meta/Home/SettingsScreen';
 import StoreScreen from '../screens/Meta/Home/StoreScreen';
 import FontTestScreen from '../screens/Meta/Home/FontTestScreen';
+import AvatarSelectionScreen from '../screens/Meta/Onboarding/AvatarSelectionScreen';
+import ClothingStoreScreen from '../screens/Meta/Home/ClothingStoreScreen';
+import WardrobeScreen from '../screens/Meta/Home/WardrobeScreen';
 import DrawerContent from '../components/DrawerContent';
 import {useAuth} from '../libs/hooks/useAuth';
 import {ActivityIndicator, View, StyleSheet, Dimensions} from 'react-native';
@@ -79,6 +82,9 @@ export type RootStackParamList = {
   Settings: undefined;
   Store: undefined;
   FontTest: undefined;
+  AvatarSelection: undefined;
+  ClothingStore: undefined;
+  Wardrobe: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -154,6 +160,9 @@ const linking: LinkingOptions<RootStackParamList> = {
       Profile: 'profile',
       Settings: 'settings',
       Store: 'store',
+      AvatarSelection: 'avatar-selection',
+      ClothingStore: 'clothing-store',
+      Wardrobe: 'wardrobe',
     },
   },
 };
@@ -271,6 +280,9 @@ const AppNavigator = () => {
               <Stack.Screen name="Settings" component={SettingsScreen} />
               <Stack.Screen name="Store" component={StoreScreen} />
               <Stack.Screen name="FontTest" component={FontTestScreen} />
+              <Stack.Screen name="AvatarSelection" component={AvatarSelectionScreen} />
+              <Stack.Screen name="ClothingStore" component={ClothingStoreScreen} />
+              <Stack.Screen name="Wardrobe" component={WardrobeScreen} />
             </>
           )}
         </Stack.Navigator>
