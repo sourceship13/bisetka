@@ -8,12 +8,17 @@ const { withSentryConfig } = require('@sentry/react-native/metro');
  *
  * @type {import('@react-native/metro-config').MetroConfig}
  */
+const defaultConfig = getDefaultConfig(__dirname);
+
 const config = {
   server: {
     experimentalDebuggerFrontend: false,
   },
+  resolver: {
+    assetExts: [...defaultConfig.resolver.assetExts, 'vrm'],
+  },
 };
 
 module.exports = withSentryConfig(
-  mergeConfig(getDefaultConfig(__dirname), config),
+  mergeConfig(defaultConfig, config),
 );
