@@ -9,6 +9,7 @@ import {
   Dimensions,
   Platform,
   ImageBackground,
+  Image,
 } from 'react-native';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -21,6 +22,7 @@ import {colors} from '../../../theme';
 import packageJson from '../../../../package.json';
 import {useNavigation, DrawerActions} from '@react-navigation/native';
 import OnlinePlayersList from '../../../components/OnlinePlayersList';
+import AVATARS, {resolveAvatar} from '../../../utils/avatars';
 import { socketService } from '../../../services/SocketService';
 import tokenService from '../../../services/token.service';
 
@@ -208,6 +210,8 @@ const HomeScreen = ({navigation}: any) => {
     // connected while the app is open to track online presence
   }, [user?.id]);
 
+  const avatarSource = resolveAvatar(user?.avatar_url);
+
   const handleGamePress = (game: GameConfig) => {
     // Navigate to GameInfo screen first to show rules and points
     navigation.navigate('GameInfo', {
@@ -276,66 +280,94 @@ const HomeScreen = ({navigation}: any) => {
           </TouchableOpacity>
         </LinearGradient>
 
-        {/* Balance & Action Buttons */}
+        {/* Avatar + Action Buttons + Points */}
         <View style={styles.quickRow}>
-          <View style={styles.balanceWrap}>
-            <LinearGradient
-              // colors={['#10b981', '#34d399']}
-              colors={['rgba(0, 0, 0, 0.6)', 'rgba(0, 0, 0, 0.6)']}
-              start={{x: 0, y: 0}}
-              end={{x: 1, y: 1}}
-              style={styles.balanceGrad}>
-              <Text style={[styles.balanceLabel, iOSUIKit.bodyEmphasizedWhite]}>Points</Text>
-              <Text style={styles.balanceAmount}>
-                🏆 {(user as any)?.totalPoints?.toLocaleString() || '0'}
-              </Text>
-            </LinearGradient>
-          </View>
-          
-          <View style={styles.actionBtns}>
-            <TouchableOpacity 
-              onPress={() => navigation.navigate('GlobalChat')}
-              style={styles.actionBtn}>
-              <LinearGradient
-                // colors={['#6366f1', '#8b5cf6']}
-                colors={['rgba(0, 0, 0, 0.6)', 'rgba(0, 0, 0, 0.6)']}
-                style={styles.actionGrad}>
-                <Text style={styles.actionIcon}>🌍</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              onPress={() => navigation.navigate('DMList')}
-              style={styles.actionBtn}>
-              <LinearGradient
-                // colors={['#ec4899', '#f472b6']}
-                colors={['rgba(0, 0, 0, 0.6)', 'rgba(0, 0, 0, 0.6)']}
-                style={styles.actionGrad}>
-                <Text style={styles.actionIcon}>💬</Text>
-              </LinearGradient>
-            </TouchableOpacity>
+          {/* Left 1/3 — Avatar */}
+          <TouchableOpacity
+            onPress={() => navigation.navigate('Profile')}
+            style={styles.avatarCol}
+            activeOpacity={0.85}>
+            <Image
+              source={avatarSource || AVATARS[0].source}
+              style={styles.homeAvatarImg}
+              resizeMode="contain"
+            />
+          </TouchableOpacity>
 
-            <TouchableOpacity 
-              onPress={() => navigation.navigate('Leaderboard')}
-              style={styles.actionBtn}>
-              <LinearGradient
-                // colors={['#f59e0b', '#fbbf24']}
-                colors={['rgba(0, 0, 0, 0.6)', 'rgba(0, 0, 0, 0.6)']}
-                style={styles.actionGrad}>
-                <Text style={styles.actionIcon}>🏆</Text>
-              </LinearGradient>
-            </TouchableOpacity>
+          {/* Right 2/3 — buttons row + points row */}
+          <View style={styles.rightCol}>
+            {/* Row 1: 4 icon buttons */}
+            <View style={styles.actionBtns}>
+              <TouchableOpacity
+                onPress={() => navigation.navigate('GlobalChat')}
+                style={styles.actionBtn}>
+                <LinearGradient
+                  colors={['rgba(0, 0, 0, 0.6)', 'rgba(0, 0, 0, 0.6)']}
+                  style={styles.actionGrad}>
+                  <Text style={styles.actionIcon}>🌍</Text>
+                </LinearGradient>
+              </TouchableOpacity>
 
-            <TouchableOpacity 
-              onPress={() => navigation.navigate('ChatRoomsList')}
-              style={styles.actionBtn}>
+              <TouchableOpacity
+                onPress={() => navigation.navigate('DMList')}
+                style={styles.actionBtn}>
+                <LinearGradient
+                  colors={['rgba(0, 0, 0, 0.6)', 'rgba(0, 0, 0, 0.6)']}
+                  style={styles.actionGrad}>
+                  <Text style={styles.actionIcon}>💬</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => navigation.navigate('Leaderboard')}
+                style={styles.actionBtn}>
+                <LinearGradient
+                  colors={['rgba(0, 0, 0, 0.6)', 'rgba(0, 0, 0, 0.6)']}
+                  style={styles.actionGrad}>
+                  <Text style={styles.actionIcon}>🏆</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => navigation.navigate('ChatRoomsList')}
+                style={styles.actionBtn}>
+                <LinearGradient
+                  colors={['rgba(0, 0, 0, 0.6)', 'rgba(0, 0, 0, 0.6)']}
+                  style={styles.actionGrad}>
+                  <Text style={styles.actionIcon}>🏠</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+
+            {/* Row 2: Points + 2 placeholder buttons */}
+            <View style={styles.bottomRow}>
               <LinearGradient
-                // colors={['#14b8a6', '#2dd4bf']}
                 colors={['rgba(0, 0, 0, 0.6)', 'rgba(0, 0, 0, 0.6)']}
-                style={styles.actionGrad}>
-                <Text style={styles.actionIcon}>🏠</Text>
+                start={{x: 0, y: 0}}
+                end={{x: 1, y: 1}}
+                style={styles.balanceGrad}>
+                <Text style={[styles.balanceLabel, iOSUIKit.bodyEmphasizedWhite]}>Points 🏆 </Text>
+                <Text style={styles.balanceAmount}>
+                  {(user as any)?.totalPoints?.toLocaleString() || '0'}
+                </Text>
               </LinearGradient>
-            </TouchableOpacity>
+
+              <TouchableOpacity style={styles.placeholderBtn} activeOpacity={0.85}>
+                <LinearGradient
+                  colors={['rgba(0, 0, 0, 0.6)', 'rgba(0, 0, 0, 0.6)']}
+                  style={styles.actionGrad}>
+                  <Text style={styles.actionIcon}>⭐</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.placeholderBtn} activeOpacity={0.85}>
+                <LinearGradient
+                  colors={['rgba(0, 0, 0, 0.6)', 'rgba(0, 0, 0, 0.6)']}
+                  style={styles.actionGrad}>
+                  <Text style={styles.actionIcon}>🎁</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
 
@@ -405,6 +437,39 @@ const HomeScreen = ({navigation}: any) => {
         </View>
        
 
+        {/* Avatar & Store Section */}
+        <View style={styles.avatarSection}>
+          <Text style={styles.sectionTitle}>Your Avatar</Text>
+          <View style={styles.avatarButtons}>
+            <TouchableOpacity
+              style={styles.avatarButton}
+              onPress={() => navigation.navigate('Wardrobe')}
+            >
+              <LinearGradient
+                colors={['#6366f1', '#8b5cf6']}
+                style={styles.avatarButtonGradient}
+              >
+                <Text style={styles.avatarButtonIcon}>👕</Text>
+                <Text style={styles.avatarButtonText}>My Wardrobe</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.avatarButton}
+              onPress={() => navigation.navigate('ClothingStore')}
+            >
+              <LinearGradient
+                colors={['#ec4899', '#f472b6']}
+                style={styles.avatarButtonGradient}
+              >
+                <Text style={styles.avatarButtonIcon}>🛍️</Text>
+                <Text style={styles.avatarButtonText}>Clothing Store</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+
         {/* Footer */}
         <View style={styles.footer}>
           <Text style={styles.footerText}>🇦🇲 Bisetka</Text>
@@ -412,6 +477,9 @@ const HomeScreen = ({navigation}: any) => {
       </ScrollView>
         </SafeAreaView>
       </ImageBackground>
+
+
+
     </View>
   );
 };
@@ -482,23 +550,32 @@ const styles = StyleSheet.create({
     marginTop: 0,
     flexDirection: 'row',
     gap: 8,
-    alignItems: 'center',
+    alignItems: 'stretch',
   },
-  balanceWrap: {
+  avatarCol: {
     flex: 1,
     borderRadius: 14,
     overflow: 'hidden',
-    shadowColor: '#10b981',
-    shadowOffset: {width: 0, height: 4},
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+  },
+  homeAvatarImg: {
+    width: '100%',
+    height: 120,
+  },
+  rightCol: {
+    flex: 2,
+    flexDirection: 'column',
+    gap: 8,
   },
   balanceGrad: {
-    flex:1,
+    flex: 2,
     borderRadius: 14,
     alignItems: 'flex-start',
     justifyContent: 'center',
+
+
   },
   balanceLabel: {
     fontSize: 14,
@@ -514,9 +591,18 @@ const styles = StyleSheet.create({
     marginLeft:20
   },
   actionBtns: {
-    flex: 1.5,
     flexDirection: 'row',
     gap: 8,
+  },
+  bottomRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  placeholderBtn: {
+    flex: 1,
+    height: 70,
+    borderRadius: 12,
+    overflow: 'hidden',
   },
   actionBtn: {
     flex: 1,
@@ -543,7 +629,6 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   activeRoomsButton: {
-    width: '100%',
     borderRadius: 16,
     overflow: 'hidden',
     shadowColor: '#ec4899',
@@ -704,6 +789,41 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.3)',
     fontSize: 13,
   },
+  avatarSection: {
+    marginTop: 30,
+    marginBottom: 20,
+    paddingHorizontal: 16,
+  },
+  sectionTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  avatarButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  avatarButton: {
+    flex: 1,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  avatarButtonGradient: {
+    paddingVertical: 20,
+    alignItems: 'center',
+  },
+  avatarButtonIcon: {
+    fontSize: 32,
+    marginBottom: 8,
+  },
+  avatarButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+
 });
 
 export default HomeScreen;
