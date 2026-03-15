@@ -23,6 +23,7 @@ import packageJson from '../../../../package.json';
 import {useNavigation, DrawerActions} from '@react-navigation/native';
 import OnlinePlayersList from '../../../components/OnlinePlayersList';
 import AVATARS, {resolveAvatar} from '../../../utils/avatars';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { socketService } from '../../../services/SocketService';
 import tokenService from '../../../services/token.service';
 
@@ -296,7 +297,7 @@ const HomeScreen = ({navigation}: any) => {
 
           {/* Right 2/3 — buttons row + points row */}
           <View style={styles.rightCol}>
-            {/* Row 1: 4 icon buttons */}
+            {/* Row 1: 2 icon buttons */}
             <View style={styles.actionBtns}>
               <TouchableOpacity
                 onPress={() => navigation.navigate('GlobalChat')}
@@ -304,7 +305,7 @@ const HomeScreen = ({navigation}: any) => {
                 <LinearGradient
                   colors={['rgba(0, 0, 0, 0.6)', 'rgba(0, 0, 0, 0.6)']}
                   style={styles.actionGrad}>
-                  <Text style={styles.actionIcon}>🌍</Text>
+                  <Icon name="earth" size={28} color="#fff" />
                 </LinearGradient>
               </TouchableOpacity>
 
@@ -314,17 +315,16 @@ const HomeScreen = ({navigation}: any) => {
                 <LinearGradient
                   colors={['rgba(0, 0, 0, 0.6)', 'rgba(0, 0, 0, 0.6)']}
                   style={styles.actionGrad}>
-                  <Text style={styles.actionIcon}>💬</Text>
+                  <Icon name="message" size={28} color="#fff" />
                 </LinearGradient>
               </TouchableOpacity>
-
               <TouchableOpacity
                 onPress={() => navigation.navigate('Leaderboard')}
                 style={styles.actionBtn}>
                 <LinearGradient
                   colors={['rgba(0, 0, 0, 0.6)', 'rgba(0, 0, 0, 0.6)']}
                   style={styles.actionGrad}>
-                  <Text style={styles.actionIcon}>🏆</Text>
+                  <Icon name="trophy" size={28} color="#fff" />
                 </LinearGradient>
               </TouchableOpacity>
 
@@ -334,12 +334,12 @@ const HomeScreen = ({navigation}: any) => {
                 <LinearGradient
                   colors={['rgba(0, 0, 0, 0.6)', 'rgba(0, 0, 0, 0.6)']}
                   style={styles.actionGrad}>
-                  <Text style={styles.actionIcon}>🏠</Text>
+                  <Icon name="door-open" size={28} color="#fff" />
                 </LinearGradient>
               </TouchableOpacity>
             </View>
 
-            {/* Row 2: Points + 2 placeholder buttons */}
+            {/* Row 2: Points + Leaderboard + ChatRooms */}
             <View style={styles.bottomRow}>
               <LinearGradient
                 colors={['rgba(0, 0, 0, 0.6)', 'rgba(0, 0, 0, 0.6)']}
@@ -352,19 +352,25 @@ const HomeScreen = ({navigation}: any) => {
                 </Text>
               </LinearGradient>
 
-              <TouchableOpacity style={styles.placeholderBtn} activeOpacity={0.85}>
+              <TouchableOpacity
+                onPress={() => navigation.navigate('Wardrobe')}
+                style={styles.placeholderBtn}
+                activeOpacity={0.85}>
                 <LinearGradient
                   colors={['rgba(0, 0, 0, 0.6)', 'rgba(0, 0, 0, 0.6)']}
                   style={styles.actionGrad}>
-                  <Text style={styles.actionIcon}>⭐</Text>
+                  <Icon name="hanger" size={28} color="#fff" />
                 </LinearGradient>
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.placeholderBtn} activeOpacity={0.85}>
+              <TouchableOpacity
+                onPress={() => navigation.navigate('ClothingStore')}
+                style={styles.placeholderBtn}
+                activeOpacity={0.85}>
                 <LinearGradient
                   colors={['rgba(0, 0, 0, 0.6)', 'rgba(0, 0, 0, 0.6)']}
                   style={styles.actionGrad}>
-                  <Text style={styles.actionIcon}>🎁</Text>
+                  <Icon name="shopping" size={28} color="#fff" />
                 </LinearGradient>
               </TouchableOpacity>
             </View>
@@ -438,7 +444,7 @@ const HomeScreen = ({navigation}: any) => {
        
 
         {/* Avatar & Store Section */}
-        <View style={styles.avatarSection}>
+        {/* <View style={styles.avatarSection}>
           <Text style={styles.sectionTitle}>Your Avatar</Text>
           <View style={styles.avatarButtons}>
             <TouchableOpacity
@@ -467,7 +473,7 @@ const HomeScreen = ({navigation}: any) => {
               </LinearGradient>
             </TouchableOpacity>
           </View>
-        </View>
+        </View> */}
 
 
         {/* Footer */}
