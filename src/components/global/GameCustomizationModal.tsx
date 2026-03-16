@@ -118,7 +118,7 @@ const GameCustomizationModal: React.FC<CardCustomizationModalProps> = ({
 }) => {
   const hasPiecesTab = Boolean(gameType);
   const [activeTab,  setActiveTab]  = useState<'cards' | 'pieces'>('cards');
-  const [aiProvider, setAiProvider] = useState<'openai' | 'fal'>('openai');
+  const [aiProvider, setAiProvider] = useState<'openai' | 'fal' | 'google'>('openai');
   // ── Card state ────────────────────────────────────────────────────────────
   const [themeName,           setThemeName]           = useState(currentTheme?.name || '');
   const [backgroundPrompt,    setBackgroundPrompt]    = useState('');
@@ -282,6 +282,11 @@ const GameCustomizationModal: React.FC<CardCustomizationModalProps> = ({
                 style={[styles.providerOption, aiProvider === 'fal' && styles.providerOptionActive]}
                 onPress={() => setAiProvider('fal')}>
                 <Text style={[styles.providerOptionText, aiProvider === 'fal' && styles.providerOptionTextActive]}>fal.ai Flux</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.providerOption, aiProvider === 'google' && styles.providerOptionActive]}
+                onPress={() => setAiProvider('google')}>
+                <Text style={[styles.providerOptionText, aiProvider === 'google' && styles.providerOptionTextActive]}>Google Imagen</Text>
               </TouchableOpacity>
             </View>
 

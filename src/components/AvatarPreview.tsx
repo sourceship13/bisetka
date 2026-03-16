@@ -16,8 +16,14 @@ export const AvatarPreview: React.FC<AvatarPreviewProps> = ({
 }) => {
   console.log('AvatarPreview rendering:', { baseAvatar: baseAvatar?.name, equipped: Object.keys(equipped) });
   
+  // Images are 2816x1536 (landscape, ~1.83:1 ratio)
+  // Display with proper aspect ratio
+  const aspectRatio = 2816 / 1536; // width / height
+  const containerHeight = size;
+  const containerWidth = size * aspectRatio;
+  
   return (
-    <View style={[styles.container, { width: size, height: size * 1.5 }]}>
+    <View style={[styles.container, { width: containerWidth, height: containerHeight }]}>
       {/* Base avatar (in underwear) */}
       <Image
         source={baseAvatar.imageUrl}
@@ -53,7 +59,7 @@ export const AvatarPreview: React.FC<AvatarPreviewProps> = ({
       {equipped.hair && (
         <Image
           source={equipped.hair.imageUrl}
-          style={styles.layer}
+          style={[styles.layer, styles.hairLayer]}
           resizeMode="contain"
         />
       )}
@@ -99,6 +105,9 @@ const styles = StyleSheet.create({
     height: '100%',
     top: 0,
     left: 0,
+  },
+  hairLayer: {
+    top: -25, // adjust this value to move the hair up/down
   },
 });
 
