@@ -311,9 +311,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const freshUser = await apiService.getProfile();
       setUser(mapBackendUser(freshUser));
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error refreshing user:', error);
-      
+
+      // If the server says the user doesn't exist (stale token), clear the session
+      if (error?.status === 404 || error?.message?.includes('404')) {
+        console.warn('⚠️  refreshUser: user not found on server, clearing session');
+        await AuthService.signOut();
+        await tokenService.clearSession();
+        setUser(null);
+        return;
+      }
+
       const accessToken = await tokenService.getAccessToken();
       if (!accessToken) {
         setUser(null);
