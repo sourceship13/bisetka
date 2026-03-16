@@ -54,10 +54,10 @@ export const WardrobeScreen = ({ navigation }: any) => {
       } else {
         // Use default avatar if none selected
         const defaultAvatar: BaseAvatar = {
-          id: '1',
-          name: 'Bald Beard Guy',
-          description: 'Strong and confident',
-          imageUrl: require('../../../../assets/avatars/base/male-1-bald-beard.png'),
+          id: 'm1',
+          name: 'Average',
+          description: 'Strong & confident',
+          imageUrl: require('../../../../assets/avatars/base/male-average-bald.png'),
           gender: 'male',
           isActive: true,
           displayOrder: 1,
@@ -170,7 +170,7 @@ export const WardrobeScreen = ({ navigation }: any) => {
                   <AvatarPreview
                     baseAvatar={baseAvatar}
                     equipped={equipped}
-                    size={280}
+                    size={500}
                   />
                 </View>
               ) : (
@@ -328,12 +328,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5f5f5',
     borderRadius: 16,
     padding: 20,
-    minHeight: 400,
+    minHeight: 300,
   },
   avatarWrapper: {
     backgroundColor: '#ffffff',
     borderRadius: 12,
     overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   noAvatarText: {
     color: '#666',
