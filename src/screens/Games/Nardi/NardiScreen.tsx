@@ -336,6 +336,26 @@ const NardiScreen = ({ navigation, route }: any) => {
     return updated;
   };
 
+  // Check if player can bear off (all checkers in home board)
+  const canPlayerBearOff = (player: PlayerColor): boolean => {
+    if (!gameState) return false;
+    if (gameState.bar[player] > 0) return false;
+    
+    // White moves 0→23, bears off from home board 18-23
+    // Black moves 23→0, bears off from home board 0-5
+    const homeStart = player === 'white' ? 18 : 0;
+    const homeEnd = player === 'white' ? 24 : 6;
+    
+    for (let i = 0; i < 24; i++) {
+      if (i >= homeStart && i < homeEnd) continue;
+      const point = gameState.points[i];
+      if (point.checkers.some(c => c === player)) {
+        return false;
+      }
+    }
+    return true;
+  };
+
   const handleRollDice = () => {
     if (!gameState || gameState.phase !== 'rolling') return;
     const myColor = isMultiplayer ? myMpColorRef.current : 'white';
@@ -739,26 +759,48 @@ const NardiScreen = ({ navigation, route }: any) => {
             </View>
           )}
 
-          {/* Black player's borne-off area (top) */}
+          {/* Black player's borne-off tray (bottom left) */}
           <View style={{ 
-            flexDirection: 'row', 
-            justifyContent: 'center', 
-            alignItems: 'center',
-            paddingVertical: 8,
-            minHeight: 50,
-            gap: 4,
+            position: 'absolute',
+            bottom: 120,
+            left: 16,
+            zIndex: 50,
           }}>
-            <Text style={{ color: '#fff', fontSize: 13, fontWeight: '600', marginRight: 8 }}>
-              ⚫ Borne Off: {gameState.home.black}/15
-            </Text>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', maxWidth: 200, gap: 2 }}>
-              {Array.from({ length: gameState.home.black }).map((_, i) => (
-                <Image
-                  key={i}
-                  source={require('../../../../assets/nardi/checker-black.png')}
-                  style={{ width: 20, height: 20, resizeMode: 'contain' }}
-                />
-              ))}
+            <View style={{
+              backgroundColor: 'rgba(26, 26, 46, 0.95)',
+              borderRadius: 12,
+              borderWidth: 2,
+              borderColor: '#555',
+              padding: 12,
+              minWidth: 120,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.3,
+              shadowRadius: 5,
+              elevation: 8,
+            }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 6 }}>
+                <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: '#1a1a2e', borderWidth: 1, borderColor: '#fff' }} />
+                <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>
+                  {gameState.home.black}/15
+                </Text>
+              </View>
+              <View style={{ 
+                flexDirection: 'row', 
+                flexWrap: 'wrap', 
+                gap: 3,
+                minHeight: 45,
+                alignItems: 'flex-start',
+                justifyContent: 'flex-start',
+              }}>
+                {Array.from({ length: gameState.home.black }).map((_, i) => (
+                  <Image
+                    key={i}
+                    source={require('../../../../assets/nardi/checker-black.png')}
+                    style={{ width: 18, height: 18, resizeMode: 'contain' }}
+                  />
+                ))}
+              </View>
             </View>
           </View>
 
@@ -858,6 +900,51 @@ const NardiScreen = ({ navigation, route }: any) => {
             </ImageBackground>
           </View>
 
+          {/* White player's borne-off tray (top right) */}
+          <View style={{ 
+            position: 'absolute',
+            top: 80,
+            right: 16,
+            zIndex: 50,
+          }}>
+            <View style={{
+              backgroundColor: 'rgba(255, 255, 255, 0.95)',
+              borderRadius: 12,
+              borderWidth: 2,
+              borderColor: '#ccc',
+              padding: 12,
+              minWidth: 120,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.3,
+              shadowRadius: 5,
+              elevation: 8,
+            }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 6 }}>
+                <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: '#fff', borderWidth: 1, borderColor: '#333' }} />
+                <Text style={{ color: '#1a1a2e', fontSize: 12, fontWeight: '700' }}>
+                  {gameState.home.white}/15
+                </Text>
+              </View>
+              <View style={{ 
+                flexDirection: 'row', 
+                flexWrap: 'wrap', 
+                gap: 3,
+                minHeight: 45,
+                alignItems: 'flex-start',
+                justifyContent: 'flex-start',
+              }}>
+                {Array.from({ length: gameState.home.white }).map((_, i) => (
+                  <Image
+                    key={i}
+                    source={require('../../../../assets/nardi/checker-white.png')}
+                    style={{ width: 18, height: 18, resizeMode: 'contain' }}
+                  />
+                ))}
+              </View>
+            </View>
+          </View>
+
           <View style={{ paddingHorizontal: 16, paddingVertical: 12 }}>
             {gameState.phase === 'rolling' && gameState.currentPlayer === myNardiColor && (
               <NardiDice
@@ -913,6 +1000,11 @@ const NardiScreen = ({ navigation, route }: any) => {
             {gameState.bar[myNardiColor] > 0 && gameState.currentPlayer === myNardiColor && gameState.phase === 'moving' && (
               <Text style={{ color: '#fbbf24', fontSize: 13, fontWeight: '600', marginTop: 2 }}>
                 ⚠️ Tap the bar to re-enter your checker!
+              </Text>
+            )}
+            {canPlayerBearOff(myNardiColor) && gameState.currentPlayer === myNardiColor && gameState.phase === 'moving' && (
+              <Text style={{ color: '#10b981', fontSize: 13, fontWeight: '600', marginTop: 2 }}>
+                🎯 You can bear off! Tap your checkers in the home board.
               </Text>
             )}
             <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, marginTop: 2 }}>
