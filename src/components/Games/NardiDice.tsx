@@ -3,7 +3,7 @@ import { View, StyleSheet, Dimensions, Text } from 'react-native';
 import Dice3DSimple from './Dice3DSimple';
 
 const { width } = Dimensions.get('window');
-const DICE_SIZE = Math.floor(width / 6);
+const DICE_SIZE = Math.floor((width / 6) * 1.15); // Increased by 15%
 
 interface NardiDiceProps {
   onRollComplete?: (die1: number, die2: number) => void;
