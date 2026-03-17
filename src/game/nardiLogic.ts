@@ -88,31 +88,38 @@ export const calculatePossibleMoves = (
     return enterMoves;
   }
 
-  // Use dice values based on what's still available
+  // Build the list of available die face-values. For non-doubles we keep both
+  // values individually; for doubles every remaining move uses the same face.
+  // We deduplicate only within each fromPos so we don't generate the same
+  // (from, to) move twice when both dice happen to show the same face value.
   let diceValues: number[] = [];
   if (dice.die1 === dice.die2 && dice.die1 > 0) {
-    // Doubles - use the same value for remaining moves
-    for (let i = 0; i < movesRemaining; i++) {
-      diceValues.push(dice.die1);
-    }
+    // Doubles – one face value, movesRemaining tells us how many moves are left
+    diceValues = [dice.die1];
   } else {
     if (dice.die1 > 0) diceValues.push(dice.die1);
     if (dice.die2 > 0) diceValues.push(dice.die2);
+    // Deduplicate so we don't emit the same (from,to) move twice when die1===die2
+    diceValues = [...new Set(diceValues)];
   }
+  console.log('🎲 Dice values to use:', diceValues);
 
-  // Remove duplicate die values to avoid duplicate moves
-  const uniqueDiceValues = [...new Set(diceValues)];
-  console.log('🎲 Dice values to use:', uniqueDiceValues);
+  // Track (from, to) pairs already added to avoid exact duplicates
+  const seen = new Set<string>();
 
   points.forEach((point, fromPos) => {
     if (point.checkers.length > 0 && point.checkers[point.checkers.length - 1] === currentPlayer) {
-      uniqueDiceValues.forEach(dieValue => {
+      diceValues.forEach(dieValue => {
         const toPos = currentPlayer === 'white' 
           ? fromPos + dieValue 
           : fromPos - dieValue;
 
         if (isValidMove(fromPos, toPos, currentPlayer, points, mode)) {
-          moves.push({ from: fromPos, to: toPos, checker: currentPlayer });
+          const key = `${fromPos}-${toPos}`;
+          if (!seen.has(key)) {
+            seen.add(key);
+            moves.push({ from: fromPos, to: toPos, checker: currentPlayer });
+          }
         }
       });
 
@@ -122,9 +129,7 @@ export const calculatePossibleMoves = (
         // White bears off past point 23 (to 24), Black bears off past point 0 (to -1)
         const bearOffPos = currentPlayer === 'white' ? 24 : -1;
         
-        uniqueDiceValues.forEach(dieValue => {
-          // White moves 0→23, bears off past 23 (to 24)
-          // Black moves 23→0, bears off past 0 (to -1)
+        diceValues.forEach(dieValue => {
           const targetPos = currentPlayer === 'white' ? fromPos + dieValue : fromPos - dieValue;
           
           console.log(`  Checking die ${dieValue}: fromPos=${fromPos}, targetPos=${targetPos}`);
@@ -132,14 +137,16 @@ export const calculatePossibleMoves = (
           // Exact bear-off: die value moves piece exactly off the board
           if (currentPlayer === 'white' && targetPos >= 24) {
             console.log(`    ✅ White exact bear-off from ${fromPos} with die ${dieValue}`);
-            moves.push({ from: fromPos, to: bearOffPos, checker: currentPlayer });
+            const key = `${fromPos}-${bearOffPos}`;
+            if (!seen.has(key)) { seen.add(key); moves.push({ from: fromPos, to: bearOffPos, checker: currentPlayer }); }
           } else if (currentPlayer === 'black' && targetPos < 0) {
             console.log(`    ✅ Black exact bear-off from ${fromPos} with die ${dieValue}`);
-            moves.push({ from: fromPos, to: bearOffPos, checker: currentPlayer });
+            const key = `${fromPos}-${bearOffPos}`;
+            if (!seen.has(key)) { seen.add(key); moves.push({ from: fromPos, to: bearOffPos, checker: currentPlayer }); }
           }
-          // High roll bear-off: can bear off from furthest point if die is too high
-          else if (currentPlayer === 'white' && fromPos + dieValue > 23) {
-            // Check if this is the furthest back point (lowest in home board 18-23)
+          // High roll bear-off: can bear off from furthest back point when die is too large
+          else if (currentPlayer === 'white' && targetPos > 23) {
+            // Only the furthest-back piece in the home board (lowest index) may use a high roll
             let isFurthest = true;
             for (let i = 18; i < fromPos; i++) {
               if (points[i].checkers.some(c => c === currentPlayer)) {
@@ -149,10 +156,11 @@ export const calculatePossibleMoves = (
             }
             if (isFurthest) {
               console.log(`    ✅ White high roll bear-off from ${fromPos} with die ${dieValue}`);
-              moves.push({ from: fromPos, to: bearOffPos, checker: currentPlayer });
+              const key = `${fromPos}-${bearOffPos}`;
+              if (!seen.has(key)) { seen.add(key); moves.push({ from: fromPos, to: bearOffPos, checker: currentPlayer }); }
             }
-          } else if (currentPlayer === 'black' && fromPos - dieValue < 0) {
-            // Check if this is the furthest back point for black (highest in home board 0-5)
+          } else if (currentPlayer === 'black' && targetPos < 0) {
+            // Only the furthest-back piece for black (highest index in 0-5) may use a high roll
             let isFurthest = true;
             for (let i = fromPos + 1; i < 6; i++) {
               if (points[i].checkers.some(c => c === currentPlayer)) {
@@ -162,7 +170,8 @@ export const calculatePossibleMoves = (
             }
             if (isFurthest) {
               console.log(`    ✅ Black high roll bear-off from ${fromPos} with die ${dieValue}`);
-              moves.push({ from: fromPos, to: bearOffPos, checker: currentPlayer });
+              const key = `${fromPos}-${bearOffPos}`;
+              if (!seen.has(key)) { seen.add(key); moves.push({ from: fromPos, to: bearOffPos, checker: currentPlayer }); }
             }
           }
         });
