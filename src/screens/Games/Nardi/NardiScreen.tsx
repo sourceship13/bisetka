@@ -30,6 +30,7 @@ import {socketService} from '../../../services/SocketService';
 import InGameChat from '../../../components/InGameChat';
 import {BisetkaAlert} from '../../../utils/BisetkaAlert';
 import {apiConfig} from '../../../libs/utils/api.utils';
+import NardiDice from '../../../components/Games/NardiDice';
 
 const { width, height } = Dimensions.get('window');
 const BOARD_SIZE = Math.min(width - 32, height * 0.65);
@@ -738,19 +739,26 @@ const NardiScreen = ({ navigation, route }: any) => {
             </View>
           )}
 
-          {/* Borne-off / Home counts */}
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 24, marginBottom: 4 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <View style={{ width: 14, height: 14, borderRadius: 7, backgroundColor: '#fff', borderWidth: 1, borderColor: '#ccc' }} />
-              <Text style={{ color: '#fff', fontSize: 13, fontWeight: '600' }}>
-                Home: {gameState.home.white}/15
-              </Text>
-            </View>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <Text style={{ color: '#fff', fontSize: 13, fontWeight: '600' }}>
-                Home: {gameState.home.black}/15
-              </Text>
-              <View style={{ width: 14, height: 14, borderRadius: 7, backgroundColor: '#1a1a2e', borderWidth: 1, borderColor: '#555' }} />
+          {/* Black player's borne-off area (top) */}
+          <View style={{ 
+            flexDirection: 'row', 
+            justifyContent: 'center', 
+            alignItems: 'center',
+            paddingVertical: 8,
+            minHeight: 50,
+            gap: 4,
+          }}>
+            <Text style={{ color: '#fff', fontSize: 13, fontWeight: '600', marginRight: 8 }}>
+              ⚫ Borne Off: {gameState.home.black}/15
+            </Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', maxWidth: 200, gap: 2 }}>
+              {Array.from({ length: gameState.home.black }).map((_, i) => (
+                <Image
+                  key={i}
+                  source={require('../../../../assets/nardi/checker-black.png')}
+                  style={{ width: 20, height: 20, resizeMode: 'contain' }}
+                />
+              ))}
             </View>
           </View>
 
@@ -852,18 +860,13 @@ const NardiScreen = ({ navigation, route }: any) => {
 
           <View style={{ paddingHorizontal: 16, paddingVertical: 12 }}>
             {gameState.phase === 'rolling' && gameState.currentPlayer === myNardiColor && (
-              <TouchableOpacity
-                style={{ borderRadius: 16, overflow: 'hidden', elevation: 6 }}
-                onPress={() => {
-                  console.log('🎲 Roll Dice button pressed!');
+              <NardiDice
+                onRollComplete={(die1, die2) => {
+                  console.log('🎲 Rolled:', die1, die2);
                   handleRollDice();
-                }}>
-                <LinearGradient 
-                  colors={['#6366f1', '#8b5cf6']} 
-                  style={{ height: 56, alignItems: 'center', justifyContent: 'center', borderRadius: 16 }}>
-                  <Text style={{ fontSize: 18, fontWeight: '700', color: '#fff' }}>🎲 Roll Dice</Text>
-                </LinearGradient>
-              </TouchableOpacity>
+                }}
+                enabled={true}
+              />
             )}
             {/* No valid moves — End Turn button + auto-skip message */}
             {gameState.phase === 'moving' && gameState.currentPlayer === myNardiColor &&

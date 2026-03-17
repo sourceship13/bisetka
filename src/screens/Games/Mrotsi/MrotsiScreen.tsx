@@ -365,7 +365,7 @@ const MrotsiScreen = ({navigation, route}: any) => {
               <Text style={styles.areaLabel}>Opponent</Text>
               <View style={styles.diceRow}>
                 {(gameState.opponentDice.length === 5 ? gameState.opponentDice : [1, 1, 1, 1, 1]).map((d, i) => (
-                  <Dice3DSimple key={i} value={d} isRolling={false} index={i} />
+                  <Dice3DSimple key={i} value={d} isRolling={false} index={i} size={Math.floor(SCREEN_WIDTH / 5)} />
                 ))}
               </View>
               {gameState.opponentRolled && (
@@ -383,7 +383,7 @@ const MrotsiScreen = ({navigation, route}: any) => {
                 {((isRolling ? rollingDice : gameState.playerDice).length === 5
                   ? (isRolling ? rollingDice : gameState.playerDice)
                   : [1, 1, 1, 1, 1]).map((d, i) => (
-                  <Dice3DSimple key={i} value={d} isRolling={isRolling} index={i} />
+                  <Dice3DSimple key={i} value={d} isRolling={isRolling} index={i} size={Math.floor(SCREEN_WIDTH / 5)} />
                 ))}
               </View>
               {gameState.playerRolled && !isRolling && (
@@ -558,7 +558,7 @@ const styles = StyleSheet.create({
   diceRow: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 8,
+    gap: 3,
     flexWrap: 'wrap',
   },
   dice3DContainer: {

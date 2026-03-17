@@ -43,91 +43,91 @@ export const WardrobeScreen = ({ navigation }: any) => {
     loadWardrobe();
   }, []);
 
-  const loadWardrobe = async () => {
-    try {
-      setLoading(true);
+  // const loadWardrobe = async () => {
+  //   try {
+  //     setLoading(true);
 
-      // Load selected base avatar
-      const avatarData = await AsyncStorage.getItem('@bisetka_selected_avatar');
-      if (avatarData) {
-        setBaseAvatar(JSON.parse(avatarData));
-      } else {
-        // Use default avatar if none selected
-        const defaultAvatar: BaseAvatar = {
-          id: 'm1',
-          name: 'Average',
-          description: 'Strong & confident',
-          imageUrl: require('../../../../assets/avatars/base/male-average-bald.png'),
-          gender: 'male',
-          isActive: true,
-          displayOrder: 1,
-          createdAt: new Date().toISOString(),
-        };
-        setBaseAvatar(defaultAvatar);
-      }
+  //     // Load selected base avatar
+  //     const avatarData = await AsyncStorage.getItem('@bisetka_selected_avatar');
+  //     if (avatarData) {
+  //       setBaseAvatar(JSON.parse(avatarData));
+  //     } else {
+  //       // Use default avatar if none selected
+  //       const defaultAvatar: BaseAvatar = {
+  //         id: 'm1',
+  //         name: 'Average',
+  //         description: 'Strong & confident',
+  //         imageUrl: require('../../../../assets/avatars/base/male-average-bald.png'),
+  //         gender: 'male',
+  //         isActive: true,
+  //         displayOrder: 1,
+  //         createdAt: new Date().toISOString(),
+  //       };
+  //       setBaseAvatar(defaultAvatar);
+  //     }
 
-      // Load equipped items
-      const equippedData = await AsyncStorage.getItem('@bisetka_equipped_clothing');
-      if (equippedData) {
-        setEquipped(JSON.parse(equippedData));
-      }
+  //     // Load equipped items
+  //     const equippedData = await AsyncStorage.getItem('@bisetka_equipped_clothing');
+  //     if (equippedData) {
+  //       setEquipped(JSON.parse(equippedData));
+  //     }
 
-      // TODO: Replace with real API call when backend is ready
-      // const response = await apiService.get('/avatar/clothing/inventory');
-      // setInventory(response.data.items);
+  //     // TODO: Replace with real API call when backend is ready
+  //     // const response = await apiService.get('/avatar/clothing/inventory');
+  //     // setInventory(response.data.items);
 
-      // Using mock data for now
-      setInventory(ALL_CLOTHING_ITEMS);
-      setLoading(false);
-    } catch (error) {
-      console.error('Failed to load wardrobe:', error);
-      setInventory(ALL_CLOTHING_ITEMS);
-      setLoading(false);
-    }
-  };
+  //     // Using mock data for now
+  //     setInventory(ALL_CLOTHING_ITEMS);
+  //     setLoading(false);
+  //   } catch (error) {
+  //     console.error('Failed to load wardrobe:', error);
+  //     setInventory(ALL_CLOTHING_ITEMS);
+  //     setLoading(false);
+  //   }
+  // };
 
-  const showTryOn = (item: AvatarClothing) => {
-    setTryingOnItem(item);
-    setTryOnModalVisible(true);
-  };
+  // const showTryOn = (item: AvatarClothing) => {
+  //   setTryingOnItem(item);
+  //   setTryOnModalVisible(true);
+  // };
 
-  const equipItem = async (item: AvatarClothing) => {
-    try {
-      const newEquipped = { ...equipped, [item.type]: item };
-      setEquipped(newEquipped);
-      await AsyncStorage.setItem('@bisetka_equipped_clothing', JSON.stringify(newEquipped));
+  // const equipItem = async (item: AvatarClothing) => {
+  //   try {
+  //     const newEquipped = { ...equipped, [item.type]: item };
+  //     setEquipped(newEquipped);
+  //     await AsyncStorage.setItem('@bisetka_equipped_clothing', JSON.stringify(newEquipped));
 
-      // TODO: Call backend API
-      // await apiService.post('/avatar/clothing/equip', { clothingId: item.id });
+  //     // TODO: Call backend API
+  //     // await apiService.post('/avatar/clothing/equip', { clothingId: item.id });
       
-      // Close try-on modal if open
-      setTryOnModalVisible(false);
-    } catch (error) {
-      console.error('Failed to equip item:', error);
-      BisetkaAlert({
-        title: 'Error',
-        message: 'Failed to equip item. Please try again.',
-      });
-    }
-  };
+  //     // Close try-on modal if open
+  //     setTryOnModalVisible(false);
+  //   } catch (error) {
+  //     console.error('Failed to equip item:', error);
+  //     BisetkaAlert({
+  //       title: 'Error',
+  //       message: 'Failed to equip item. Please try again.',
+  //     });
+  //   }
+  // };
 
-  const unequipItem = async (type: string) => {
-    try {
-      const newEquipped = { ...equipped };
-      delete newEquipped[type];
-      setEquipped(newEquipped);
-      await AsyncStorage.setItem('@bisetka_equipped_clothing', JSON.stringify(newEquipped));
+  // const unequipItem = async (type: string) => {
+  //   try {
+  //     const newEquipped = { ...equipped };
+  //     delete newEquipped[type];
+  //     setEquipped(newEquipped);
+  //     await AsyncStorage.setItem('@bisetka_equipped_clothing', JSON.stringify(newEquipped));
 
-      // TODO: Call backend API
-      // await apiService.post('/avatar/clothing/unequip', { type });
-    } catch (error) {
-      console.error('Failed to unequip item:', error);
-      BisetkaAlert({
-        title: 'Error',
-        message: 'Failed to unequip item. Please try again.',
-      });
-    }
-  };
+  //     // TODO: Call backend API
+  //     // await apiService.post('/avatar/clothing/unequip', { type });
+  //   } catch (error) {
+  //     console.error('Failed to unequip item:', error);
+  //     BisetkaAlert({
+  //       title: 'Error',
+  //       message: 'Failed to unequip item. Please try again.',
+  //     });
+  //   }
+  // };
 
   const categoryItems = inventory.filter((item) => item.type === selectedCategory);
   const currentlyEquipped = equipped[selectedCategory];
