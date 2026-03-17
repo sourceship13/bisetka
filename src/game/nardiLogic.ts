@@ -118,11 +118,52 @@ export const calculatePossibleMoves = (
 
       // Check for bearing off
       if (canBearOff(state, fromPos)) {
+        console.log(`🎯 Can bear off from point ${fromPos} for ${currentPlayer}`);
+        // White bears off past point 23 (to 24), Black bears off past point 0 (to -1)
         const bearOffPos = currentPlayer === 'white' ? 24 : -1;
+        
         uniqueDiceValues.forEach(dieValue => {
-          const exactPos = currentPlayer === 'white' ? fromPos + dieValue : fromPos - dieValue;
-          if (exactPos >= 24 || exactPos < 0) {
+          // White moves 0→23, bears off past 23 (to 24)
+          // Black moves 23→0, bears off past 0 (to -1)
+          const targetPos = currentPlayer === 'white' ? fromPos + dieValue : fromPos - dieValue;
+          
+          console.log(`  Checking die ${dieValue}: fromPos=${fromPos}, targetPos=${targetPos}`);
+          
+          // Exact bear-off: die value moves piece exactly off the board
+          if (currentPlayer === 'white' && targetPos >= 24) {
+            console.log(`    ✅ White exact bear-off from ${fromPos} with die ${dieValue}`);
             moves.push({ from: fromPos, to: bearOffPos, checker: currentPlayer });
+          } else if (currentPlayer === 'black' && targetPos < 0) {
+            console.log(`    ✅ Black exact bear-off from ${fromPos} with die ${dieValue}`);
+            moves.push({ from: fromPos, to: bearOffPos, checker: currentPlayer });
+          }
+          // High roll bear-off: can bear off from furthest point if die is too high
+          else if (currentPlayer === 'white' && fromPos + dieValue > 23) {
+            // Check if this is the furthest back point (lowest in home board 18-23)
+            let isFurthest = true;
+            for (let i = 18; i < fromPos; i++) {
+              if (points[i].checkers.some(c => c === currentPlayer)) {
+                isFurthest = false;
+                break;
+              }
+            }
+            if (isFurthest) {
+              console.log(`    ✅ White high roll bear-off from ${fromPos} with die ${dieValue}`);
+              moves.push({ from: fromPos, to: bearOffPos, checker: currentPlayer });
+            }
+          } else if (currentPlayer === 'black' && fromPos - dieValue < 0) {
+            // Check if this is the furthest back point for black (highest in home board 0-5)
+            let isFurthest = true;
+            for (let i = fromPos + 1; i < 6; i++) {
+              if (points[i].checkers.some(c => c === currentPlayer)) {
+                isFurthest = false;
+                break;
+              }
+            }
+            if (isFurthest) {
+              console.log(`    ✅ Black high roll bear-off from ${fromPos} with die ${dieValue}`);
+              moves.push({ from: fromPos, to: bearOffPos, checker: currentPlayer });
+            }
           }
         });
       }
@@ -185,22 +226,32 @@ const isValidMove = (
 
 // Check if player can bear off
 const canBearOff = (state: NardiGameState, from: number): boolean => {
-  const { currentPlayer, points } = state;
+  const { currentPlayer, points, bar } = state;
   
-  // Check if all checkers are in home board
+  // Can't bear off if any checkers are on the bar
+  if (bar[currentPlayer] > 0) return false;
+  
+  // White moves 0→23, bears off from 18-23
+  // Black moves 23→0, bears off from 0-5
   const homeStart = currentPlayer === 'white' ? 18 : 0;
   const homeEnd = currentPlayer === 'white' ? 24 : 6;
 
+  // Check all points outside home board
   for (let i = 0; i < 24; i++) {
     if (i >= homeStart && i < homeEnd) continue;
     const point = points[i];
     if (point.checkers.some(c => c === currentPlayer)) {
-      return false;
+      console.log(`❌ Cannot bear off: found ${currentPlayer} checker on point ${i} (outside home ${homeStart}-${homeEnd})`);
+      return false; // Found checker outside home board
     }
   }
 
-  // Check if this is in home board
-  return from >= homeStart && from < homeEnd;
+  // Check if this point is in home board
+  const result = from >= homeStart && from < homeEnd;
+  if (result) {
+    console.log(`✅ Point ${from} is in ${currentPlayer} home board (${homeStart}-${homeEnd})`);
+  }
+  return result;
 };
 
 // Execute move
