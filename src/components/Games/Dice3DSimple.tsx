@@ -3,12 +3,13 @@ import { View, Dimensions, Platform } from 'react-native';
 import { WebView } from 'react-native-webview';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const DICE_SIZE = Math.floor(SCREEN_WIDTH / 8);
+const DICE_SIZE = Math.floor(SCREEN_WIDTH / 6);
 
 interface Dice3DSimpleProps {
   value: number;
   isRolling: boolean;
   index: number;
+  size?: number;
   onRollComplete?: () => void;
 }
 
@@ -299,8 +300,10 @@ const Dice3DSimple: React.FC<Dice3DSimpleProps> = ({
   value,
   isRolling,
   index,
+  size,
   onRollComplete,
 }) => {
+  const renderSize = size ?? DICE_SIZE;
   const webViewRef = useRef<WebView>(null);
   const prevRolling = useRef(false);
   const prevValue = useRef(value);
@@ -333,14 +336,12 @@ const Dice3DSimple: React.FC<Dice3DSimpleProps> = ({
 
   const onMessage = (event: any) => {
     if (event.nativeEvent.data === 'rollComplete') {
-      if (index === 4 && onRollComplete) {
-        onRollComplete();
-      }
+      onRollComplete?.();
     }
   };
 
   return (
-    <View style={{ width: DICE_SIZE, height: DICE_SIZE, marginHorizontal: 1 }}>
+    <View style={{ width: renderSize, height: renderSize, marginHorizontal: 1 }}>
       <WebView
         ref={webViewRef}
         source={{ html }}

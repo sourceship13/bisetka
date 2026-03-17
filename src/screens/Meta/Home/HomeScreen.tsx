@@ -378,7 +378,7 @@ const HomeScreen = ({navigation}: any) => {
         </View>
 
         {/* Font Test Button (dev utility) */}
-        <View style={styles.activeRoomsContainer}>
+        {/* <View style={styles.activeRoomsContainer}>
           <TouchableOpacity
             onPress={() => navigation.navigate('FontTest')}
             style={styles.activeRoomsButton}
@@ -395,7 +395,7 @@ const HomeScreen = ({navigation}: any) => {
               <Text style={styles.activeRoomsArrow}>→</Text>
             </LinearGradient>
           </TouchableOpacity>
-        </View>
+        </View> */}
 
         {/* Active Rooms Button */}
         <View style={styles.activeRoomsContainer}>
@@ -427,7 +427,7 @@ const HomeScreen = ({navigation}: any) => {
           style={styles.sectionHeadWrapper}>
           <View style={styles.sectionHead}>
             <View style={styles.sectionHeadContent}>
-              <Text style={styles.sectionTitle}>🎮 Choose a Game</Text>
+              <Text style={styles.sectionTitle}>🎮 Choose a Games</Text>
               <Text style={styles.sectionSub}>Pick your game</Text>
             </View>
             <Text style={styles.sectionArrow}>→</Text>
@@ -712,6 +712,7 @@ const styles = StyleSheet.create({
   },
   sectionHeadContent: {
     flex: 1,
+    alignItems: 'flex-start',
   },
   sectionTitle: {
     fontSize: 20,
