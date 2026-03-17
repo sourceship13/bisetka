@@ -290,15 +290,26 @@ const NardiScreen = ({ navigation, route }: any) => {
     };
   }, []);
 
-  // Helper: figure out which die value a move used
+  // Helper: figure out which die value a move consumed.
+  // For a bear-off (to === 24 or to === -1) we must pick the die whose value
+  // is >= the actual distance so that high-roll bear-offs are handled correctly.
   const getUsedDieValue = (move: Move, player: PlayerColor, dice: Dice): number => {
     if (move.from === -1) {
+      // Re-entering from bar: die equals the destination point number
       return player === 'white' ? move.to + 1 : 24 - move.to;
     }
     if (move.to === 24 || move.to === -1) {
+      // Bearing off: find the die that is >= the distance (handles high-roll bear-offs)
       const dist = player === 'white' ? (24 - move.from) : (move.from + 1);
-      if (dice.die1 >= dist && dice.die1 > 0) return dice.die1;
-      if (dice.die2 >= dist && dice.die2 > 0) return dice.die2;
+      // Prefer exact match first
+      if (dice.die1 === dist && dice.die1 > 0) return dice.die1;
+      if (dice.die2 === dist && dice.die2 > 0) return dice.die2;
+      // Then take the smallest die that is still >= distance
+      const candidates = [dice.die1, dice.die2].filter(d => d >= dist && d > 0);
+      if (candidates.length > 0) return Math.min(...candidates);
+      // Fallback: any remaining die
+      if (dice.die1 > 0) return dice.die1;
+      if (dice.die2 > 0) return dice.die2;
       return dist;
     }
     return Math.abs(move.to - move.from);
@@ -311,12 +322,18 @@ const NardiScreen = ({ navigation, route }: any) => {
     const movesRemaining = Math.max(0, state.movesRemaining - 1);
 
     let newDice = { ...state.dice };
-    if (newDice.die1 !== newDice.die2) {
+    if (state.dice.die1 === state.dice.die2 && state.dice.die1 > 0) {
+      // Doubles: keep the face value in both dice so calculatePossibleMoves
+      // can still detect the doubles case. movesRemaining is the counter.
+      // (no zeroing needed — movesRemaining reaching 0 ends the turn)
+    } else {
+      // Non-doubles: zero out whichever die matches the used value
       if (newDice.die1 === usedDie && newDice.die1 > 0) {
         newDice.die1 = 0;
       } else if (newDice.die2 === usedDie && newDice.die2 > 0) {
         newDice.die2 = 0;
       } else {
+        // Fallback: consume any remaining die (e.g. high-roll bear-off)
         if (newDice.die1 > 0) newDice.die1 = 0;
         else if (newDice.die2 > 0) newDice.die2 = 0;
       }
@@ -476,6 +493,8 @@ const NardiScreen = ({ navigation, route }: any) => {
   }, [gameState?.currentPlayer, gameState?.phase, opponentType]);
 
   // === AUTO-SKIP: If it's the player's turn with moves remaining but no possible moves, auto-end ===
+  // Guard with a ref so that a stale timeout never fires after a new move has been made.
+  const autoSkipGameStateRef = useRef<NardiGameState | null>(null);
   useEffect(() => {
     if (!gameState) return;
     if (gameState.phase !== 'moving') return;
@@ -484,11 +503,17 @@ const NardiScreen = ({ navigation, route }: any) => {
     if (gameState.possibleMoves.length > 0) return;
     if (gameState.movesRemaining <= 0) return;
 
+    // Capture the exact state we're acting on
+    autoSkipGameStateRef.current = gameState;
     console.log('⏭️ No valid moves with', gameState.movesRemaining, 'remaining — auto-ending turn');
+
     const t = setTimeout(() => {
       const mc = isMultiplayer ? myMpColorRef.current : 'white';
       setGameState(prev => {
-        if (!prev || prev.currentPlayer !== mc || prev.phase !== 'moving') return prev;
+        if (!prev) return prev;
+        // Only switch if state hasn't changed (same player, same phase, still no moves)
+        if (prev !== autoSkipGameStateRef.current) return prev;
+        if (prev.currentPlayer !== mc || prev.phase !== 'moving') return prev;
         if (prev.possibleMoves.length > 0) return prev;
         return switchPlayer(prev);
       });
@@ -496,8 +521,13 @@ const NardiScreen = ({ navigation, route }: any) => {
         socketService.makeMove(roomIdRef.current, userId, {type: 'end_turn'});
       }
     }, 1500);
-    return () => clearTimeout(t);
-  }, [gameState?.currentPlayer, gameState?.phase, gameState?.possibleMoves?.length, gameState?.movesRemaining]);
+    return () => {
+      clearTimeout(t);
+      autoSkipGameStateRef.current = null;
+    };
+  // Only re-run when we enter a genuinely new stuck state (player + phase + movesRemaining combo)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameState?.currentPlayer, gameState?.phase, gameState?.movesRemaining, gameState?.possibleMoves?.length]);
 
   // Handle tapping the bar (to enter checkers from bar)
   const handleBarPress = () => {
