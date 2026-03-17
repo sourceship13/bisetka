@@ -3,7 +3,7 @@ import { View, Dimensions, Platform } from 'react-native';
 import { WebView } from 'react-native-webview';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const DICE_SIZE = Math.floor(SCREEN_WIDTH / 6);
+const DICE_SIZE = Math.floor((SCREEN_WIDTH / 6) * 1.15); // Increased by 15%
 
 interface Dice3DSimpleProps {
   value: number;

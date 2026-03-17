@@ -33,50 +33,45 @@ import {apiConfig} from '../../../libs/utils/api.utils';
 import NardiDice from '../../../components/Games/NardiDice';
 
 const { width, height } = Dimensions.get('window');
-const BOARD_SIZE = Math.min(width - 32, height * 0.65);
-const BOARD_PADDING = BOARD_SIZE * 0.08; // Frame border
-const PLAYABLE_WIDTH = BOARD_SIZE - (BOARD_PADDING * 2);
-const BAR_WIDTH = PLAYABLE_WIDTH * 0.05; // Middle bar
-const HALF_WIDTH = (PLAYABLE_WIDTH - BAR_WIDTH) / 2;
-const POINT_WIDTH = HALF_WIDTH / 6;
-const CHECKER_SIZE = POINT_WIDTH * 0.90; // Reduced width for better fit
-const PLAYABLE_HEIGHT = BOARD_SIZE - (BOARD_PADDING * 2);
-const TRIANGLE_HEIGHT = PLAYABLE_HEIGHT * 0.45; // Height of each triangle region
+const BOARD_SIZE = Math.min(width - 16, height * 0.75);
+
+// Board layout — all values derived from BOARD_SIZE so they scale to any screen
+// and the column centres align exactly with the triangles in the board image.
+const BOARD_PADDING  = BOARD_SIZE * 0.08;                         // frame border on each side
+const PLAYABLE_WIDTH = BOARD_SIZE - BOARD_PADDING * 2;
+const BAR_WIDTH      = PLAYABLE_WIDTH * 0.05;                     // centre divider
+const HALF_WIDTH     = (PLAYABLE_WIDTH - BAR_WIDTH) / 2;
+const POINT_WIDTH    = (HALF_WIDTH / 6) * 1;                   // one triangle column (85% width)
+const CHECKER_SIZE   = Math.round(POINT_WIDTH * 1.3);             // checker diameter
+const TRIANGLE_HEIGHT = BOARD_SIZE * 0.40;                        // triangle region height
 
 // Map point index (1-24) to screen coordinates
 const getPointCoords = (pointNum: number): { x: number; y: number; isTop: boolean } => {
   const isTop = pointNum >= 13;
   
   // Determine which column (0-11) this point occupies
-  // Standard backgammon layout from White's perspective:
   // Bottom: 12,11,10,9,8,7 [BAR] 6,5,4,3,2,1
   // Top:    13,14,15,16,17,18 [BAR] 19,20,21,22,23,24
   let col = 0;
   if (pointNum >= 19) {
-    // Top right: 19-24 → columns 6-11
     col = 6 + (pointNum - 19);
   } else if (pointNum >= 13) {
-    // Top left: 13-18 → columns 0-5
     col = pointNum - 13;
   } else if (pointNum >= 7) {
-    // Bottom left: 7-12 → columns 5-0 (reversed)
     col = 5 - (pointNum - 7);
   } else {
-    // Bottom right: 1-6 → columns 11-6 (reversed)
     col = 11 - (pointNum - 1);
   }
   
-  // Calculate x position
-  const leftHalf = col < 6;
-  const colInHalf = leftHalf ? col : col - 6;
+  // x = frame border + column offset + half column width (= column centre)
+  const leftHalf   = col < 6;
+  const colInHalf  = leftHalf ? col : col - 6;
   const x = leftHalf
-    ? BOARD_PADDING + (colInHalf * POINT_WIDTH) + (POINT_WIDTH / 2) + 2
-    : BOARD_PADDING + HALF_WIDTH + BAR_WIDTH + (colInHalf * POINT_WIDTH) + (POINT_WIDTH / 2) + 2;
+    ? BOARD_PADDING + colInHalf * POINT_WIDTH + POINT_WIDTH / 2
+    : BOARD_PADDING + HALF_WIDTH + BAR_WIDTH + colInHalf * POINT_WIDTH + POINT_WIDTH / 2;
   
-  // Calculate y position - pieces sit at base of triangular points
-  const y = isTop 
-    ? BOARD_PADDING + (POINT_WIDTH * 0.00)
-    : BOARD_SIZE - BOARD_PADDING - 12; // Subtract value to move bottom row UP
+  // y = top of the column stack
+  const y = isTop ? BOARD_PADDING : BOARD_SIZE - BOARD_PADDING;
   
   return { x, y, isTop };
 };
@@ -677,7 +672,7 @@ const NardiScreen = ({ navigation, route }: any) => {
 
     // Debug: Log first time we render pieces
     if (pointNum === 1 && checkers > 0) {
-      console.log('🎨 Rendering point 1:', { checkers, color, pos, CHECKER_SIZE, POINT_WIDTH });
+      console.log('🎨 Rendering point 1:', { checkers, color, pos, CHECKER_SIZE });
     }
 
     return (
@@ -801,25 +796,26 @@ const NardiScreen = ({ navigation, route }: any) => {
               borderRadius: 12,
               borderWidth: 2,
               borderColor: '#555',
-              padding: 12,
-              minWidth: 120,
+              padding: 8,
+              minWidth: 100,
+              maxWidth: 130,
               shadowColor: '#000',
               shadowOffset: { width: 0, height: 4 },
               shadowOpacity: 0.3,
               shadowRadius: 5,
               elevation: 8,
             }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 6 }}>
-                <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: '#1a1a2e', borderWidth: 1, borderColor: '#fff' }} />
-                <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6, gap: 4 }}>
+                <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: '#1a1a2e', borderWidth: 1, borderColor: '#fff' }} />
+                <Text style={{ color: '#fff', fontSize: 11, fontWeight: '700' }}>
                   {gameState.home.black}/15
                 </Text>
               </View>
               <View style={{ 
                 flexDirection: 'row', 
                 flexWrap: 'wrap', 
-                gap: 3,
-                minHeight: 45,
+                gap: 2,
+                minHeight: 30,
                 alignItems: 'flex-start',
                 justifyContent: 'flex-start',
               }}>
@@ -827,7 +823,7 @@ const NardiScreen = ({ navigation, route }: any) => {
                   <Image
                     key={i}
                     source={require('../../../../assets/nardi/checker-black.png')}
-                    style={{ width: 18, height: 18, resizeMode: 'contain' }}
+                    style={{ width: 14, height: 14, resizeMode: 'contain' }}
                   />
                 ))}
               </View>
@@ -836,8 +832,8 @@ const NardiScreen = ({ navigation, route }: any) => {
 
           <View style={styles.boardContainer}>
             <ImageBackground
-              source={require('../../../../assets/nardi/board.png')}
-              style={[styles.board, { width: BOARD_SIZE, height: BOARD_SIZE }]}
+              source={require('../../../../assets/nardi/board-futuristic.png')}
+              style={[styles.board, { width: BOARD_SIZE, height: BOARD_SIZE, overflow: 'hidden' }]}
               imageStyle={{ borderRadius: 16 }}>
               
               {/* Render all points (1-24) */}
@@ -848,10 +844,10 @@ const NardiScreen = ({ navigation, route }: any) => {
                 <TouchableOpacity
                   style={{
                     position: 'absolute',
-                    left: BOARD_PADDING + HALF_WIDTH,
-                    width: BAR_WIDTH,
-                    top: BOARD_PADDING,
-                    bottom: BOARD_PADDING,
+                    left: LEFT_MARGIN + (6 * POINT_SPACING),
+                    width: BAR_GAP,
+                    top: TOP_MARGIN,
+                    bottom: BOTTOM_MARGIN,
                     zIndex: 20,
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -942,25 +938,26 @@ const NardiScreen = ({ navigation, route }: any) => {
               borderRadius: 12,
               borderWidth: 2,
               borderColor: '#ccc',
-              padding: 12,
-              minWidth: 120,
+              padding: 8,
+              minWidth: 100,
+              maxWidth: 130,
               shadowColor: '#000',
               shadowOffset: { width: 0, height: 4 },
               shadowOpacity: 0.3,
               shadowRadius: 5,
               elevation: 8,
             }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 6 }}>
-                <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: '#fff', borderWidth: 1, borderColor: '#333' }} />
-                <Text style={{ color: '#1a1a2e', fontSize: 12, fontWeight: '700' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6, gap: 4 }}>
+                <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: '#fff', borderWidth: 1, borderColor: '#333' }} />
+                <Text style={{ color: '#1a1a2e', fontSize: 11, fontWeight: '700' }}>
                   {gameState.home.white}/15
                 </Text>
               </View>
               <View style={{ 
                 flexDirection: 'row', 
                 flexWrap: 'wrap', 
-                gap: 3,
-                minHeight: 45,
+                gap: 2,
+                minHeight: 30,
                 alignItems: 'flex-start',
                 justifyContent: 'flex-start',
               }}>
@@ -968,7 +965,7 @@ const NardiScreen = ({ navigation, route }: any) => {
                   <Image
                     key={i}
                     source={require('../../../../assets/nardi/checker-white.png')}
-                    style={{ width: 18, height: 18, resizeMode: 'contain' }}
+                    style={{ width: 14, height: 14, resizeMode: 'contain' }}
                   />
                 ))}
               </View>
