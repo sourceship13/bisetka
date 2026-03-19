@@ -1,0 +1,1792 @@
+{
+  "countries": [
+    {
+      "id": "us",
+      "code": "US",
+      "name": "United States",
+      "lat": 37.0902,
+      "lng": -95.7129
+    },
+    {
+      "id": "ru",
+      "code": "RU",
+      "name": "Russia",
+      "lat": 61.524,
+      "lng": 105.3188
+    },
+    {
+      "id": "am",
+      "code": "AM",
+      "name": "Armenia",
+      "lat": 40.0691,
+      "lng": 45.0382
+    }
+  ],
+  "regions": [],
+  "cities": [
+    {
+      "id": "us-houston",
+      "country_code": "US",
+      "name": "Houston",
+      "state": "Texas",
+      "lat": 29.7604,
+      "lng": -95.3698
+    },
+    {
+      "id": "us-los-angeles",
+      "country_code": "US",
+      "name": "Los Angeles",
+      "state": "California",
+      "lat": 34.0522,
+      "lng": -118.2437
+    },
+    {
+      "id": "us-new-york",
+      "country_code": "US",
+      "name": "New York",
+      "state": "New York",
+      "lat": 40.7128,
+      "lng": -74.006
+    },
+    {
+      "id": "us-chicago",
+      "country_code": "US",
+      "name": "Chicago",
+      "state": "Illinois",
+      "lat": 41.8781,
+      "lng": -87.6298
+    },
+    {
+      "id": "us-dallas",
+      "country_code": "US",
+      "name": "Dallas",
+      "state": "Texas",
+      "lat": 32.7767,
+      "lng": -96.797
+    },
+    {
+      "id": "us-austin",
+      "country_code": "US",
+      "name": "Austin",
+      "state": "Texas",
+      "lat": 30.2672,
+      "lng": -97.7431
+    },
+    {
+      "id": "us-san-antonio",
+      "country_code": "US",
+      "name": "San Antonio",
+      "state": "Texas",
+      "lat": 29.4241,
+      "lng": -98.4936
+    },
+    {
+      "id": "us-phoenix",
+      "country_code": "US",
+      "name": "Phoenix",
+      "state": "Arizona",
+      "lat": 33.4484,
+      "lng": -112.074
+    },
+    {
+      "id": "us-miami",
+      "country_code": "US",
+      "name": "Miami",
+      "state": "Florida",
+      "lat": 25.7617,
+      "lng": -80.1918
+    },
+    {
+      "id": "us-atlanta",
+      "country_code": "US",
+      "name": "Atlanta",
+      "state": "Georgia",
+      "lat": 33.749,
+      "lng": -84.388
+    },
+    {
+      "id": "us-boston",
+      "country_code": "US",
+      "name": "Boston",
+      "state": "Massachusetts",
+      "lat": 42.3601,
+      "lng": -71.0589
+    },
+    {
+      "id": "us-seattle",
+      "country_code": "US",
+      "name": "Seattle",
+      "state": "Washington",
+      "lat": 47.6062,
+      "lng": -122.3321
+    },
+    {
+      "id": "us-san-francisco",
+      "country_code": "US",
+      "name": "San Francisco",
+      "state": "California",
+      "lat": 37.7749,
+      "lng": -122.4194
+    },
+    {
+      "id": "us-las-vegas",
+      "country_code": "US",
+      "name": "Las Vegas",
+      "state": "Nevada",
+      "lat": 36.1699,
+      "lng": -115.1398
+    },
+    {
+      "id": "us-denver",
+      "country_code": "US",
+      "name": "Denver",
+      "state": "Colorado",
+      "lat": 39.7392,
+      "lng": -104.9903
+    },
+    {
+      "id": "us-philadelphia",
+      "country_code": "US",
+      "name": "Philadelphia",
+      "state": "Pennsylvania",
+      "lat": 39.9526,
+      "lng": -75.1652
+    },
+    {
+      "id": "us-san-diego",
+      "country_code": "US",
+      "name": "San Diego",
+      "state": "California",
+      "lat": 32.7157,
+      "lng": -117.1611
+    },
+    {
+      "id": "us-portland",
+      "country_code": "US",
+      "name": "Portland",
+      "state": "Oregon",
+      "lat": 45.5152,
+      "lng": -122.6784
+    },
+    {
+      "id": "us-detroit",
+      "country_code": "US",
+      "name": "Detroit",
+      "state": "Michigan",
+      "lat": 42.3314,
+      "lng": -83.0458
+    },
+    {
+      "id": "us-nashville",
+      "country_code": "US",
+      "name": "Nashville",
+      "state": "Tennessee",
+      "lat": 36.1627,
+      "lng": -86.7816
+    },
+    {
+      "id": "ru-moscow",
+      "country_code": "RU",
+      "name": "Moscow",
+      "region": "Moscow",
+      "lat": 55.7558,
+      "lng": 37.6173
+    },
+    {
+      "id": "ru-saint-petersburg",
+      "country_code": "RU",
+      "name": "Saint Petersburg",
+      "region": "Leningrad Oblast",
+      "lat": 59.9343,
+      "lng": 30.3351
+    },
+    {
+      "id": "ru-novosibirsk",
+      "country_code": "RU",
+      "name": "Novosibirsk",
+      "region": "Novosibirsk Oblast",
+      "lat": 55.0084,
+      "lng": 82.9357
+    },
+    {
+      "id": "ru-yekaterinburg",
+      "country_code": "RU",
+      "name": "Yekaterinburg",
+      "region": "Sverdlovsk Oblast",
+      "lat": 56.8389,
+      "lng": 60.6057
+    },
+    {
+      "id": "ru-nizhny-novgorod",
+      "country_code": "RU",
+      "name": "Nizhny Novgorod",
+      "region": "Nizhny Novgorod Oblast",
+      "lat": 56.2965,
+      "lng": 43.9361
+    },
+    {
+      "id": "ru-kazan",
+      "country_code": "RU",
+      "name": "Kazan",
+      "region": "Tatarstan",
+      "lat": 55.8304,
+      "lng": 49.0661
+    },
+    {
+      "id": "ru-samara",
+      "country_code": "RU",
+      "name": "Samara",
+      "region": "Samara Oblast",
+      "lat": 53.1952,
+      "lng": 50.1069
+    },
+    {
+      "id": "ru-omsk",
+      "country_code": "RU",
+      "name": "Omsk",
+      "region": "Omsk Oblast",
+      "lat": 54.9885,
+      "lng": 73.3242
+    },
+    {
+      "id": "ru-chelyabinsk",
+      "country_code": "RU",
+      "name": "Chelyabinsk",
+      "region": "Chelyabinsk Oblast",
+      "lat": 55.1644,
+      "lng": 61.4368
+    },
+    {
+      "id": "ru-rostov-on-don",
+      "country_code": "RU",
+      "name": "Rostov-on-Don",
+      "region": "Rostov Oblast",
+      "lat": 47.2357,
+      "lng": 39.7015
+    },
+    {
+      "id": "am-yerevan",
+      "country_code": "AM",
+      "name": "Yerevan",
+      "region": "Yerevan",
+      "lat": 40.1872,
+      "lng": 44.5152
+    },
+    {
+      "id": "am-gyumri",
+      "country_code": "AM",
+      "name": "Gyumri",
+      "region": "Shirak",
+      "lat": 40.7894,
+      "lng": 43.8475
+    },
+    {
+      "id": "am-vanadzor",
+      "country_code": "AM",
+      "name": "Vanadzor",
+      "region": "Lori",
+      "lat": 40.8059,
+      "lng": 44.4882
+    },
+    {
+      "id": "am-vagharshapat",
+      "country_code": "AM",
+      "name": "Vagharshapat",
+      "region": "Armavir",
+      "lat": 40.1564,
+      "lng": 44.2933
+    },
+    {
+      "id": "am-hrazdan",
+      "country_code": "AM",
+      "name": "Hrazdan",
+      "region": "Kotayk",
+      "lat": 40.4978,
+      "lng": 44.7681
+    }
+  ],
+  "neighborhoods": [
+    {
+      "id": "us-houston-downtown",
+      "city_id": "us-houston",
+      "city": "Houston",
+      "country": "US",
+      "name": "Downtown",
+      "lat": 29.7589,
+      "lng": -95.3677
+    },
+    {
+      "id": "us-houston-midtown",
+      "city_id": "us-houston",
+      "city": "Houston",
+      "country": "US",
+      "name": "Midtown",
+      "lat": 29.7423,
+      "lng": -95.3846
+    },
+    {
+      "id": "us-houston-montrose",
+      "city_id": "us-houston",
+      "city": "Houston",
+      "country": "US",
+      "name": "Montrose",
+      "lat": 29.7466,
+      "lng": -95.3988
+    },
+    {
+      "id": "us-houston-east-downtown-(eado)",
+      "city_id": "us-houston",
+      "city": "Houston",
+      "country": "US",
+      "name": "East Downtown (EaDo)",
+      "lat": 29.7531,
+      "lng": -95.3498
+    },
+    {
+      "id": "us-houston-galleria",
+      "city_id": "us-houston",
+      "city": "Houston",
+      "country": "US",
+      "name": "Galleria",
+      "lat": 29.739,
+      "lng": -95.4618
+    },
+    {
+      "id": "us-houston-the-heights",
+      "city_id": "us-houston",
+      "city": "Houston",
+      "country": "US",
+      "name": "The Heights",
+      "lat": 29.7994,
+      "lng": -95.4058
+    },
+    {
+      "id": "us-houston-river-oaks",
+      "city_id": "us-houston",
+      "city": "Houston",
+      "country": "US",
+      "name": "River Oaks",
+      "lat": 29.7591,
+      "lng": -95.4271
+    },
+    {
+      "id": "us-houston-memorial",
+      "city_id": "us-houston",
+      "city": "Houston",
+      "country": "US",
+      "name": "Memorial",
+      "lat": 29.7752,
+      "lng": -95.5207
+    },
+    {
+      "id": "us-houston-medical-center",
+      "city_id": "us-houston",
+      "city": "Houston",
+      "country": "US",
+      "name": "Medical Center",
+      "lat": 29.7071,
+      "lng": -95.4024
+    },
+    {
+      "id": "us-houston-rice-village",
+      "city_id": "us-houston",
+      "city": "Houston",
+      "country": "US",
+      "name": "Rice Village",
+      "lat": 29.7178,
+      "lng": -95.4191
+    },
+    {
+      "id": "us-houston-museum-district",
+      "city_id": "us-houston",
+      "city": "Houston",
+      "country": "US",
+      "name": "Museum District",
+      "lat": 29.7211,
+      "lng": -95.3898
+    },
+    {
+      "id": "us-houston-greenway-plaza",
+      "city_id": "us-houston",
+      "city": "Houston",
+      "country": "US",
+      "name": "Greenway Plaza",
+      "lat": 29.7385,
+      "lng": -95.4386
+    },
+    {
+      "id": "us-houston-upper-kirby",
+      "city_id": "us-houston",
+      "city": "Houston",
+      "country": "US",
+      "name": "Upper Kirby",
+      "lat": 29.7368,
+      "lng": -95.4187
+    },
+    {
+      "id": "us-houston-west-university",
+      "city_id": "us-houston",
+      "city": "Houston",
+      "country": "US",
+      "name": "West University",
+      "lat": 29.7183,
+      "lng": -95.4347
+    },
+    {
+      "id": "us-houston-katy",
+      "city_id": "us-houston",
+      "city": "Houston",
+      "country": "US",
+      "name": "Katy",
+      "lat": 29.7858,
+      "lng": -95.8244
+    },
+    {
+      "id": "us-houston-sugar-land",
+      "city_id": "us-houston",
+      "city": "Houston",
+      "country": "US",
+      "name": "Sugar Land",
+      "lat": 29.6196,
+      "lng": -95.6349
+    },
+    {
+      "id": "us-houston-pearland",
+      "city_id": "us-houston",
+      "city": "Houston",
+      "country": "US",
+      "name": "Pearland",
+      "lat": 29.5636,
+      "lng": -95.2861
+    },
+    {
+      "id": "us-houston-the-woodlands",
+      "city_id": "us-houston",
+      "city": "Houston",
+      "country": "US",
+      "name": "The Woodlands",
+      "lat": 30.1658,
+      "lng": -95.4613
+    },
+    {
+      "id": "us-los-angeles-0",
+      "city_id": "us-los-angeles",
+      "city": "Los Angeles",
+      "country": "US",
+      "name": "Los Angeles",
+      "lat": 34.0536909,
+      "lng": -118.242766,
+      "type": "administrative",
+      "osm_id": 207359
+    },
+    {
+      "id": "us-new-york-0",
+      "city_id": "us-new-york",
+      "city": "New York",
+      "country": "US",
+      "name": "New York",
+      "lat": 40.7127281,
+      "lng": -74.0060152,
+      "type": "administrative",
+      "osm_id": 175905
+    },
+    {
+      "id": "us-chicago-0",
+      "city_id": "us-chicago",
+      "city": "Chicago",
+      "country": "US",
+      "name": "Chicago",
+      "lat": 41.8755616,
+      "lng": -87.6244212,
+      "type": "administrative",
+      "osm_id": 122604
+    },
+    {
+      "id": "us-dallas-0",
+      "city_id": "us-dallas",
+      "city": "Dallas",
+      "country": "US",
+      "name": "Dallas",
+      "lat": 32.7762719,
+      "lng": -96.7968559,
+      "type": "administrative",
+      "osm_id": 6571629
+    },
+    {
+      "id": "us-dallas-1",
+      "city_id": "us-dallas",
+      "city": "Dallas",
+      "country": "US",
+      "name": "Dallas",
+      "lat": 33.9237141,
+      "lng": -84.8407732,
+      "type": "administrative",
+      "osm_id": 119507
+    },
+    {
+      "id": "us-dallas-2",
+      "city_id": "us-dallas",
+      "city": "Dallas",
+      "country": "US",
+      "name": "Dallas",
+      "lat": 44.9189206,
+      "lng": -123.315869,
+      "type": "administrative",
+      "osm_id": 186482
+    },
+    {
+      "id": "us-dallas-3",
+      "city_id": "us-dallas",
+      "city": "Dallas",
+      "country": "US",
+      "name": "Dallas",
+      "lat": 41.33617,
+      "lng": -75.9632636,
+      "type": "administrative",
+      "osm_id": 189042
+    },
+    {
+      "id": "us-dallas-4",
+      "city_id": "us-dallas",
+      "city": "Dallas",
+      "country": "US",
+      "name": "Dallas",
+      "lat": 35.3160401,
+      "lng": -81.1764865,
+      "type": "administrative",
+      "osm_id": 179736
+    },
+    {
+      "id": "us-dallas-5",
+      "city_id": "us-dallas",
+      "city": "Dallas",
+      "country": "US",
+      "name": "Dallas",
+      "lat": 43.2361121,
+      "lng": -99.517053,
+      "type": "administrative",
+      "osm_id": 195188
+    },
+    {
+      "id": "us-dallas-6",
+      "city_id": "us-dallas",
+      "city": "Dallas",
+      "country": "US",
+      "name": "Dallas",
+      "lat": 45.2591275,
+      "lng": -91.8148954,
+      "type": "administrative",
+      "osm_id": 251778
+    },
+    {
+      "id": "us-dallas-7",
+      "city_id": "us-dallas",
+      "city": "Dallas",
+      "country": "US",
+      "name": "Town of Dallas",
+      "lat": 45.2325386,
+      "lng": -91.8500735,
+      "type": "administrative",
+      "osm_id": 9201912
+    },
+    {
+      "id": "us-austin-0",
+      "city_id": "us-austin",
+      "city": "Austin",
+      "country": "US",
+      "name": "Austin",
+      "lat": 30.2711286,
+      "lng": -97.7436995,
+      "type": "administrative",
+      "osm_id": 113314
+    },
+    {
+      "id": "us-austin-1",
+      "city_id": "us-austin",
+      "city": "Austin",
+      "country": "US",
+      "name": "Austin",
+      "lat": 43.6679992,
+      "lng": -92.9746498,
+      "type": "administrative",
+      "osm_id": 137800
+    },
+    {
+      "id": "us-austin-2",
+      "city_id": "us-austin",
+      "city": "Austin",
+      "country": "US",
+      "name": "Austin",
+      "lat": 39.4929853,
+      "lng": -117.0714484,
+      "type": "village",
+      "osm_id": 150946632
+    },
+    {
+      "id": "us-austin-3",
+      "city_id": "us-austin",
+      "city": "Austin",
+      "country": "US",
+      "name": "Austin",
+      "lat": 34.9984206,
+      "lng": -91.9837552,
+      "type": "administrative",
+      "osm_id": 6017139
+    },
+    {
+      "id": "us-austin-4",
+      "city_id": "us-austin",
+      "city": "Austin",
+      "country": "US",
+      "name": "Austin",
+      "lat": 41.8880316,
+      "lng": -87.7648642,
+      "type": "administrative",
+      "osm_id": 7836417
+    },
+    {
+      "id": "us-austin-5",
+      "city_id": "us-austin",
+      "city": "Austin",
+      "country": "US",
+      "name": "Austin",
+      "lat": 41.6315276,
+      "lng": -78.0911354,
+      "type": "administrative",
+      "osm_id": 188752
+    },
+    {
+      "id": "us-austin-6",
+      "city_id": "us-austin",
+      "city": "Austin",
+      "country": "US",
+      "name": "Austin",
+      "lat": 38.7423428,
+      "lng": -85.8048022,
+      "type": "administrative",
+      "osm_id": 127370
+    },
+    {
+      "id": "us-san-antonio-0",
+      "city_id": "us-san-antonio",
+      "city": "San Antonio",
+      "country": "US",
+      "name": "San Antonio",
+      "lat": 29.4246002,
+      "lng": -98.4951405,
+      "type": "administrative",
+      "osm_id": 253556
+    },
+    {
+      "id": "us-san-antonio-1",
+      "city_id": "us-san-antonio",
+      "city": "San Antonio",
+      "country": "US",
+      "name": "San Antonio",
+      "lat": 28.3361142,
+      "lng": -82.2745308,
+      "type": "administrative",
+      "osm_id": 1216828
+    },
+    {
+      "id": "us-san-antonio-2",
+      "city_id": "us-san-antonio",
+      "city": "San Antonio",
+      "country": "US",
+      "name": "San Antonio",
+      "lat": 33.9176747,
+      "lng": -106.8677064,
+      "type": "hamlet",
+      "osm_id": 151789456
+    },
+    {
+      "id": "us-phoenix-0",
+      "city_id": "us-phoenix",
+      "city": "Phoenix",
+      "country": "US",
+      "name": "Phoenix",
+      "lat": 33.4484367,
+      "lng": -112.074141,
+      "type": "administrative",
+      "osm_id": 111257
+    },
+    {
+      "id": "us-phoenix-1",
+      "city_id": "us-phoenix",
+      "city": "Phoenix",
+      "country": "US",
+      "name": "Phoenix",
+      "lat": 41.6147151,
+      "lng": -87.6323811,
+      "type": "administrative",
+      "osm_id": 123425
+    },
+    {
+      "id": "us-phoenix-2",
+      "city_id": "us-phoenix",
+      "city": "Phoenix",
+      "country": "US",
+      "name": "Village of Phoenix",
+      "lat": 43.2309198,
+      "lng": -76.3001887,
+      "type": "administrative",
+      "osm_id": 176024
+    },
+    {
+      "id": "us-phoenix-3",
+      "city_id": "us-phoenix",
+      "city": "Phoenix",
+      "country": "US",
+      "name": "Phoenix",
+      "lat": 42.2740364,
+      "lng": -122.8153283,
+      "type": "administrative",
+      "osm_id": 186680
+    },
+    {
+      "id": "us-phoenix-4",
+      "city_id": "us-phoenix",
+      "city": "Phoenix",
+      "country": "US",
+      "name": "Phoenix",
+      "lat": 39.5163872,
+      "lng": -76.6177815,
+      "type": "village",
+      "osm_id": 158560368
+    },
+    {
+      "id": "us-miami-0",
+      "city_id": "us-miami",
+      "city": "Miami",
+      "country": "US",
+      "name": "Miami",
+      "lat": 25.7741566,
+      "lng": -80.1935973,
+      "type": "administrative",
+      "osm_id": 1216769
+    },
+    {
+      "id": "us-miami-1",
+      "city_id": "us-miami",
+      "city": "Miami",
+      "country": "US",
+      "name": "Miami",
+      "lat": 35.6914588,
+      "lng": -100.6384183,
+      "type": "administrative",
+      "osm_id": 6595922
+    },
+    {
+      "id": "us-miami-2",
+      "city_id": "us-miami",
+      "city": "Miami",
+      "country": "US",
+      "name": "Miami",
+      "lat": 36.8746177,
+      "lng": -94.877374,
+      "type": "administrative",
+      "osm_id": 184168
+    },
+    {
+      "id": "us-miami-3",
+      "city_id": "us-miami",
+      "city": "Miami",
+      "country": "US",
+      "name": "Miami",
+      "lat": 33.3994784,
+      "lng": -110.8707655,
+      "type": "administrative",
+      "osm_id": 18149841
+    },
+    {
+      "id": "us-miami-4",
+      "city_id": "us-miami",
+      "city": "Miami",
+      "country": "US",
+      "name": "Miami",
+      "lat": 39.3214125,
+      "lng": -93.2279823,
+      "type": "administrative",
+      "osm_id": 140852
+    },
+    {
+      "id": "us-atlanta-0",
+      "city_id": "us-atlanta",
+      "city": "Atlanta",
+      "country": "US",
+      "name": "Atlanta",
+      "lat": 33.7544657,
+      "lng": -84.3898151,
+      "type": "administrative",
+      "osm_id": 119557
+    },
+    {
+      "id": "us-atlanta-1",
+      "city_id": "us-atlanta",
+      "city": "Atlanta",
+      "country": "US",
+      "name": "Atlanta",
+      "lat": 33.1162131,
+      "lng": -94.1663493,
+      "type": "administrative",
+      "osm_id": 3507044
+    },
+    {
+      "id": "us-atlanta-2",
+      "city_id": "us-atlanta",
+      "city": "Atlanta",
+      "country": "US",
+      "name": "Atlanta",
+      "lat": 37.4356784,
+      "lng": -96.7691606,
+      "type": "administrative",
+      "osm_id": 130165
+    },
+    {
+      "id": "us-atlanta-3",
+      "city_id": "us-atlanta",
+      "city": "Atlanta",
+      "country": "US",
+      "name": "Atlanta",
+      "lat": 39.899036,
+      "lng": -92.4792519,
+      "type": "administrative",
+      "osm_id": 141187
+    },
+    {
+      "id": "us-atlanta-4",
+      "city_id": "us-atlanta",
+      "city": "Atlanta",
+      "country": "US",
+      "name": "Atlanta",
+      "lat": 45.0047306,
+      "lng": -84.1438927,
+      "type": "village",
+      "osm_id": 154196848
+    },
+    {
+      "id": "us-atlanta-5",
+      "city_id": "us-atlanta",
+      "city": "Atlanta",
+      "country": "US",
+      "name": "Atlanta",
+      "lat": 40.2596504,
+      "lng": -89.2332466,
+      "type": "administrative",
+      "osm_id": 126199
+    },
+    {
+      "id": "us-atlanta-6",
+      "city_id": "us-atlanta",
+      "city": "Atlanta",
+      "country": "US",
+      "name": "Atlanta",
+      "lat": 40.216067,
+      "lng": -86.0264853,
+      "type": "administrative",
+      "osm_id": 127406
+    },
+    {
+      "id": "us-atlanta-7",
+      "city_id": "us-atlanta",
+      "city": "Atlanta",
+      "country": "US",
+      "name": "Atlanta",
+      "lat": 31.8077066,
+      "lng": -92.7391799,
+      "type": "administrative",
+      "osm_id": 131957
+    },
+    {
+      "id": "us-atlanta-8",
+      "city_id": "us-atlanta",
+      "city": "Atlanta",
+      "country": "US",
+      "name": "Atlanta",
+      "lat": 40.3678095,
+      "lng": -99.4733834,
+      "type": "administrative",
+      "osm_id": 169671
+    },
+    {
+      "id": "us-atlanta-9",
+      "city_id": "us-atlanta",
+      "city": "Atlanta",
+      "country": "US",
+      "name": "Town of Atlanta",
+      "lat": 45.5089439,
+      "lng": -91.3333993,
+      "type": "administrative",
+      "osm_id": 9207366
+    },
+    {
+      "id": "us-boston-0",
+      "city_id": "us-boston",
+      "city": "Boston",
+      "country": "US",
+      "name": "Boston",
+      "lat": 42.3588336,
+      "lng": -71.0578303,
+      "type": "administrative",
+      "osm_id": 2315704
+    },
+    {
+      "id": "us-boston-1",
+      "city_id": "us-boston",
+      "city": "Boston",
+      "country": "US",
+      "name": "Boston",
+      "lat": 33.4415086,
+      "lng": -94.4196452,
+      "type": "village",
+      "osm_id": 151534347
+    },
+    {
+      "id": "us-boston-2",
+      "city_id": "us-boston",
+      "city": "Boston",
+      "country": "US",
+      "name": "Boston",
+      "lat": 30.7918613,
+      "lng": -83.7898868,
+      "type": "administrative",
+      "osm_id": 119728
+    },
+    {
+      "id": "us-boston-3",
+      "city_id": "us-boston",
+      "city": "Boston",
+      "country": "US",
+      "name": "Boston",
+      "lat": 40.3120141,
+      "lng": -79.8231024,
+      "type": "village",
+      "osm_id": 158291511
+    },
+    {
+      "id": "us-boston-4",
+      "city_id": "us-boston",
+      "city": "Boston",
+      "country": "US",
+      "name": "Town of Boston",
+      "lat": 42.6289858,
+      "lng": -78.7376213,
+      "type": "administrative",
+      "osm_id": 13642223
+    },
+    {
+      "id": "us-boston-5",
+      "city_id": "us-boston",
+      "city": "Boston",
+      "country": "US",
+      "name": "Boston",
+      "lat": 39.7415986,
+      "lng": -84.8512012,
+      "type": "administrative",
+      "osm_id": 127372
+    },
+    {
+      "id": "us-seattle-0",
+      "city_id": "us-seattle",
+      "city": "Seattle",
+      "country": "US",
+      "name": "Seattle",
+      "lat": 47.6038321,
+      "lng": -122.330062,
+      "type": "administrative",
+      "osm_id": 237385
+    },
+    {
+      "id": "us-san-francisco-0",
+      "city_id": "us-san-francisco",
+      "city": "San Francisco",
+      "country": "US",
+      "name": "San Francisco",
+      "lat": 37.7879363,
+      "lng": -122.4075201,
+      "type": "administrative",
+      "osm_id": 111968
+    },
+    {
+      "id": "us-las-vegas-0",
+      "city_id": "us-las-vegas",
+      "city": "Las Vegas",
+      "country": "US",
+      "name": "Las Vegas",
+      "lat": 36.1674263,
+      "lng": -115.1484131,
+      "type": "administrative",
+      "osm_id": 170117
+    },
+    {
+      "id": "us-las-vegas-1",
+      "city_id": "us-las-vegas",
+      "city": "Las Vegas",
+      "country": "US",
+      "name": "Las Vegas",
+      "lat": 35.5939325,
+      "lng": -105.223896,
+      "type": "administrative",
+      "osm_id": 171237
+    },
+    {
+      "id": "us-denver-0",
+      "city_id": "us-denver",
+      "city": "Denver",
+      "country": "US",
+      "name": "Denver",
+      "lat": 39.7392364,
+      "lng": -104.984862,
+      "type": "administrative",
+      "osm_id": 1411339
+    },
+    {
+      "id": "us-denver-1",
+      "city_id": "us-denver",
+      "city": "Denver",
+      "country": "US",
+      "name": "Denver",
+      "lat": 42.6713752,
+      "lng": -92.3372158,
+      "type": "administrative",
+      "osm_id": 128512
+    },
+    {
+      "id": "us-denver-2",
+      "city_id": "us-denver",
+      "city": "Denver",
+      "country": "US",
+      "name": "Denver",
+      "lat": 40.2331483,
+      "lng": -76.1371684,
+      "type": "administrative",
+      "osm_id": 187699
+    },
+    {
+      "id": "us-denver-3",
+      "city_id": "us-denver",
+      "city": "Denver",
+      "country": "US",
+      "name": "Denver",
+      "lat": 40.8638698,
+      "lng": -86.0775009,
+      "type": "administrative",
+      "osm_id": 14422279
+    },
+    {
+      "id": "us-philadelphia-0",
+      "city_id": "us-philadelphia",
+      "city": "Philadelphia",
+      "country": "US",
+      "name": "Philadelphia",
+      "lat": 39.9527237,
+      "lng": -75.1635262,
+      "type": "administrative",
+      "osm_id": 188022
+    },
+    {
+      "id": "us-philadelphia-1",
+      "city_id": "us-philadelphia",
+      "city": "Philadelphia",
+      "country": "US",
+      "name": "Village of Philadelphia",
+      "lat": 44.154622,
+      "lng": -75.708847,
+      "type": "administrative",
+      "osm_id": 175996
+    },
+    {
+      "id": "us-philadelphia-2",
+      "city_id": "us-philadelphia",
+      "city": "Philadelphia",
+      "country": "US",
+      "name": "Philadelphia",
+      "lat": 32.7703841,
+      "lng": -89.1153488,
+      "type": "administrative",
+      "osm_id": 5740653
+    },
+    {
+      "id": "us-philadelphia-3",
+      "city_id": "us-philadelphia",
+      "city": "Philadelphia",
+      "country": "US",
+      "name": "Town of Philadelphia",
+      "lat": 44.154622,
+      "lng": -75.708847,
+      "type": "administrative",
+      "osm_id": 13580683
+    },
+    {
+      "id": "us-philadelphia-4",
+      "city_id": "us-philadelphia",
+      "city": "Philadelphia",
+      "country": "US",
+      "name": "Philadelphia",
+      "lat": 35.6795198,
+      "lng": -84.4038148,
+      "type": "administrative",
+      "osm_id": 197161
+    },
+    {
+      "id": "us-san-diego-0",
+      "city_id": "us-san-diego",
+      "city": "San Diego",
+      "country": "US",
+      "name": "San Diego",
+      "lat": 32.7174202,
+      "lng": -117.162772,
+      "type": "administrative",
+      "osm_id": 253832
+    },
+    {
+      "id": "us-san-diego-1",
+      "city_id": "us-san-diego",
+      "city": "San Diego",
+      "country": "US",
+      "name": "San Diego",
+      "lat": 27.7639145,
+      "lng": -98.2388953,
+      "type": "administrative",
+      "osm_id": 6587516
+    },
+    {
+      "id": "us-portland-0",
+      "city_id": "us-portland",
+      "city": "Portland",
+      "country": "US",
+      "name": "Portland",
+      "lat": 45.5202471,
+      "lng": -122.674194,
+      "type": "administrative",
+      "osm_id": 186579
+    },
+    {
+      "id": "us-portland-1",
+      "city_id": "us-portland",
+      "city": "Portland",
+      "country": "US",
+      "name": "Portland",
+      "lat": 43.6573605,
+      "lng": -70.2586618,
+      "type": "administrative",
+      "osm_id": 132500
+    },
+    {
+      "id": "us-portland-2",
+      "city_id": "us-portland",
+      "city": "Portland",
+      "country": "US",
+      "name": "Portland",
+      "lat": 27.8818828,
+      "lng": -97.3188666,
+      "type": "administrative",
+      "osm_id": 6587501
+    },
+    {
+      "id": "us-portland-3",
+      "city_id": "us-portland",
+      "city": "Portland",
+      "country": "US",
+      "name": "Portland",
+      "lat": 40.4344895,
+      "lng": -84.9777455,
+      "type": "administrative",
+      "osm_id": 127875
+    },
+    {
+      "id": "us-portland-4",
+      "city_id": "us-portland",
+      "city": "Portland",
+      "country": "US",
+      "name": "Portland",
+      "lat": 41.5729076,
+      "lng": -72.6406905,
+      "type": "administrative",
+      "osm_id": 11059416
+    },
+    {
+      "id": "us-portland-5",
+      "city_id": "us-portland",
+      "city": "Portland",
+      "country": "US",
+      "name": "Portland",
+      "lat": 33.2378972,
+      "lng": -91.5115095,
+      "type": "administrative",
+      "osm_id": 8527098
+    },
+    {
+      "id": "us-portland-6",
+      "city_id": "us-portland",
+      "city": "Portland",
+      "country": "US",
+      "name": "Portland",
+      "lat": 47.4983191,
+      "lng": -97.3703689,
+      "type": "administrative",
+      "osm_id": 181721
+    },
+    {
+      "id": "us-portland-7",
+      "city_id": "us-portland",
+      "city": "Portland",
+      "country": "US",
+      "name": "Portland",
+      "lat": 42.8692006,
+      "lng": -84.9030517,
+      "type": "administrative",
+      "osm_id": 134699
+    },
+    {
+      "id": "us-portland-8",
+      "city_id": "us-portland",
+      "city": "Portland",
+      "country": "US",
+      "name": "Portland",
+      "lat": 36.5817089,
+      "lng": -86.5163833,
+      "type": "administrative",
+      "osm_id": 197244
+    },
+    {
+      "id": "us-portland-9",
+      "city_id": "us-portland",
+      "city": "Portland",
+      "country": "US",
+      "name": "Portland",
+      "lat": 40.9221629,
+      "lng": -75.0979793,
+      "type": "administrative",
+      "osm_id": 189056
+    },
+    {
+      "id": "us-portland-10",
+      "city_id": "us-portland",
+      "city": "Portland",
+      "country": "US",
+      "name": "Portland",
+      "lat": 38.2692365,
+      "lng": -85.8107973,
+      "type": "hamlet",
+      "osm_id": 153674137
+    },
+    {
+      "id": "us-portland-11",
+      "city_id": "us-portland",
+      "city": "Portland",
+      "country": "US",
+      "name": "Town of Portland",
+      "lat": 42.37978,
+      "lng": -79.467547,
+      "type": "administrative",
+      "osm_id": 13603605
+    },
+    {
+      "id": "us-portland-12",
+      "city_id": "us-portland",
+      "city": "Portland",
+      "country": "US",
+      "name": "Town of Portland",
+      "lat": 43.2385213,
+      "lng": -88.9498274,
+      "type": "administrative",
+      "osm_id": 9249074
+    },
+    {
+      "id": "us-portland-13",
+      "city_id": "us-portland",
+      "city": "Portland",
+      "country": "US",
+      "name": "Town of Portland",
+      "lat": 43.774427,
+      "lng": -90.8509867,
+      "type": "administrative",
+      "osm_id": 12041319
+    },
+    {
+      "id": "us-detroit-0",
+      "city_id": "us-detroit",
+      "city": "Detroit",
+      "country": "US",
+      "name": "Detroit",
+      "lat": 42.3315509,
+      "lng": -83.0466403,
+      "type": "administrative",
+      "osm_id": 134591
+    },
+    {
+      "id": "us-detroit-1",
+      "city_id": "us-detroit",
+      "city": "Detroit",
+      "country": "US",
+      "name": "Detroit",
+      "lat": 33.6629825,
+      "lng": -95.2662526,
+      "type": "administrative",
+      "osm_id": 9244570
+    },
+    {
+      "id": "us-detroit-2",
+      "city_id": "us-detroit",
+      "city": "Detroit",
+      "country": "US",
+      "name": "Detroit",
+      "lat": 39.6205965,
+      "lng": -90.676732,
+      "type": "administrative",
+      "osm_id": 127012
+    },
+    {
+      "id": "us-detroit-3",
+      "city_id": "us-detroit",
+      "city": "Detroit",
+      "country": "US",
+      "name": "Detroit",
+      "lat": 34.0281608,
+      "lng": -88.1700368,
+      "type": "administrative",
+      "osm_id": 16849747
+    },
+    {
+      "id": "us-detroit-4",
+      "city_id": "us-detroit",
+      "city": "Detroit",
+      "country": "US",
+      "name": "Detroit",
+      "lat": 44.793044,
+      "lng": -69.296951,
+      "type": "administrative",
+      "osm_id": 12203917
+    },
+    {
+      "id": "us-detroit-5",
+      "city_id": "us-detroit",
+      "city": "Detroit",
+      "country": "US",
+      "name": "Detroit",
+      "lat": 44.7349139,
+      "lng": -122.1511929,
+      "type": "administrative",
+      "osm_id": 186606
+    },
+    {
+      "id": "us-nashville-0",
+      "city_id": "us-nashville",
+      "city": "Nashville",
+      "country": "US",
+      "name": "Nashville",
+      "lat": 36.1622767,
+      "lng": -86.7742984,
+      "type": "administrative",
+      "osm_id": 197472
+    },
+    {
+      "id": "us-nashville-1",
+      "city_id": "us-nashville",
+      "city": "Nashville",
+      "country": "US",
+      "name": "Nashville",
+      "lat": 31.2074197,
+      "lng": -83.2501548,
+      "type": "administrative",
+      "osm_id": 119543
+    },
+    {
+      "id": "us-nashville-2",
+      "city_id": "us-nashville",
+      "city": "Nashville",
+      "country": "US",
+      "name": "Nashville",
+      "lat": 39.207242,
+      "lng": -86.2469472,
+      "type": "administrative",
+      "osm_id": 127371
+    },
+    {
+      "id": "us-nashville-3",
+      "city_id": "us-nashville",
+      "city": "Nashville",
+      "country": "US",
+      "name": "Nashville",
+      "lat": 33.9456692,
+      "lng": -93.847129,
+      "type": "administrative",
+      "osm_id": 111443
+    },
+    {
+      "id": "us-nashville-4",
+      "city_id": "us-nashville",
+      "city": "Nashville",
+      "country": "US",
+      "name": "Nashville",
+      "lat": 37.4416863,
+      "lng": -98.4225773,
+      "type": "administrative",
+      "osm_id": 129929
+    },
+    {
+      "id": "us-nashville-5",
+      "city_id": "us-nashville",
+      "city": "Nashville",
+      "country": "US",
+      "name": "Nashville",
+      "lat": 35.974598,
+      "lng": -77.9655406,
+      "type": "administrative",
+      "osm_id": 179041
+    },
+    {
+      "id": "us-nashville-6",
+      "city_id": "us-nashville",
+      "city": "Nashville",
+      "country": "US",
+      "name": "Nashville",
+      "lat": 38.3434906,
+      "lng": -89.3809783,
+      "type": "administrative",
+      "osm_id": 124760
+    },
+    {
+      "id": "us-nashville-7",
+      "city_id": "us-nashville",
+      "city": "Nashville",
+      "country": "US",
+      "name": "Nashville",
+      "lat": 42.6028137,
+      "lng": -85.0930536,
+      "type": "administrative",
+      "osm_id": 134982
+    },
+    {
+      "id": "us-nashville-8",
+      "city_id": "us-nashville",
+      "city": "Nashville",
+      "country": "US",
+      "name": "Nashville",
+      "lat": 40.5961726,
+      "lng": -82.1120974,
+      "type": "administrative",
+      "osm_id": 182919
+    },
+    {
+      "id": "us-nashville-9",
+      "city_id": "us-nashville",
+      "city": "Nashville",
+      "country": "US",
+      "name": "Town of Nashville",
+      "lat": 45.522762,
+      "lng": -89.024695,
+      "type": "administrative",
+      "osm_id": 8360696
+    },
+    {
+      "id": "ru-moscow-arbat",
+      "city_id": "ru-moscow",
+      "city": "Moscow",
+      "country": "RU",
+      "name": "Arbat",
+      "lat": 55.7522,
+      "lng": 37.5989
+    },
+    {
+      "id": "ru-moscow-tverskoy",
+      "city_id": "ru-moscow",
+      "city": "Moscow",
+      "country": "RU",
+      "name": "Tverskoy",
+      "lat": 55.7655,
+      "lng": 37.6057
+    },
+    {
+      "id": "ru-moscow-zamoskvorechye",
+      "city_id": "ru-moscow",
+      "city": "Moscow",
+      "country": "RU",
+      "name": "Zamoskvorechye",
+      "lat": 55.7377,
+      "lng": 37.6289
+    },
+    {
+      "id": "ru-moscow-presnensky",
+      "city_id": "ru-moscow",
+      "city": "Moscow",
+      "country": "RU",
+      "name": "Presnensky",
+      "lat": 55.7601,
+      "lng": 37.5656
+    },
+    {
+      "id": "ru-moscow-tagansky",
+      "city_id": "ru-moscow",
+      "city": "Moscow",
+      "country": "RU",
+      "name": "Tagansky",
+      "lat": 55.7406,
+      "lng": 37.6563
+    },
+    {
+      "id": "ru-moscow-khamovniki",
+      "city_id": "ru-moscow",
+      "city": "Moscow",
+      "country": "RU",
+      "name": "Khamovniki",
+      "lat": 55.7265,
+      "lng": 37.5634
+    },
+    {
+      "id": "ru-saint-petersburg-0",
+      "city_id": "ru-saint-petersburg",
+      "city": "Saint Petersburg",
+      "country": "RU",
+      "name": "Санкт-Петербург",
+      "lat": 59.938732,
+      "lng": 30.316229,
+      "type": "city",
+      "osm_id": 421007
+    },
+    {
+      "id": "ru-novosibirsk-0",
+      "city_id": "ru-novosibirsk",
+      "city": "Novosibirsk",
+      "country": "RU",
+      "name": "городской округ Новосибирск",
+      "lat": 55.0288307,
+      "lng": 82.9226887,
+      "type": "administrative",
+      "osm_id": 1751445
+    },
+    {
+      "id": "ru-novosibirsk-1",
+      "city_id": "ru-novosibirsk",
+      "city": "Novosibirsk",
+      "country": "RU",
+      "name": "Новосибирск",
+      "lat": 54.9678145,
+      "lng": 82.9515989,
+      "type": "city",
+      "osm_id": 366544
+    },
+    {
+      "id": "ru-yekaterinburg-0",
+      "city_id": "ru-yekaterinburg",
+      "city": "Yekaterinburg",
+      "country": "RU",
+      "name": "Екатеринбург",
+      "lat": 56.8382071,
+      "lng": 60.6007886,
+      "type": "city",
+      "osm_id": 6564910
+    },
+    {
+      "id": "ru-nizhny-novgorod-0",
+      "city_id": "ru-nizhny-novgorod",
+      "city": "Nizhny Novgorod",
+      "country": "RU",
+      "name": "Нижний Новгород",
+      "lat": 56.3264816,
+      "lng": 44.0051395,
+      "type": "city",
+      "osm_id": 1752948
+    },
+    {
+      "id": "ru-kazan-0",
+      "city_id": "ru-kazan",
+      "city": "Kazan",
+      "country": "RU",
+      "name": "Казань",
+      "lat": 55.7946485,
+      "lng": 49.1115022,
+      "type": "city",
+      "osm_id": 3437391
+    },
+    {
+      "id": "ru-samara-0",
+      "city_id": "ru-samara",
+      "city": "Samara",
+      "country": "RU",
+      "name": "Самара",
+      "lat": 53.1956255,
+      "lng": 50.1014927,
+      "type": "city",
+      "osm_id": 3368701
+    },
+    {
+      "id": "ru-samara-1",
+      "city_id": "ru-samara",
+      "city": "Samara",
+      "country": "RU",
+      "name": "Самара",
+      "lat": 54.014721,
+      "lng": 38.833611,
+      "type": "hamlet",
+      "osm_id": 346276007
+    },
+    {
+      "id": "ru-samara-2",
+      "city_id": "ru-samara",
+      "city": "Samara",
+      "country": "RU",
+      "name": "Самара",
+      "lat": 53.850513,
+      "lng": 102.010262,
+      "type": "village",
+      "osm_id": 9391930
+    },
+    {
+      "id": "ru-omsk-0",
+      "city_id": "ru-omsk",
+      "city": "Omsk",
+      "country": "RU",
+      "name": "Омск",
+      "lat": 54.991375,
+      "lng": 73.371529,
+      "type": "city",
+      "osm_id": 3442814
+    },
+    {
+      "id": "ru-chelyabinsk-0",
+      "city_id": "ru-chelyabinsk",
+      "city": "Chelyabinsk",
+      "country": "RU",
+      "name": "Челябинск",
+      "lat": 55.1598408,
+      "lng": 61.4025547,
+      "type": "city",
+      "osm_id": 4442556
+    },
+    {
+      "id": "ru-rostov-on-don-0",
+      "city_id": "ru-rostov-on-don",
+      "city": "Rostov-on-Don",
+      "country": "RU",
+      "name": "Ростов-на-Дону",
+      "lat": 47.2222596,
+      "lng": 39.7198736,
+      "type": "city",
+      "osm_id": 1285772
+    },
+    {
+      "id": "am-yerevan-kentron",
+      "city_id": "am-yerevan",
+      "city": "Yerevan",
+      "country": "AM",
+      "name": "Kentron",
+      "lat": 40.1776,
+      "lng": 44.5126
+    },
+    {
+      "id": "am-yerevan-arabkir",
+      "city_id": "am-yerevan",
+      "city": "Yerevan",
+      "country": "AM",
+      "name": "Arabkir",
+      "lat": 40.192,
+      "lng": 44.4896
+    },
+    {
+      "id": "am-yerevan-ajapnyak",
+      "city_id": "am-yerevan",
+      "city": "Yerevan",
+      "country": "AM",
+      "name": "Ajapnyak",
+      "lat": 40.1625,
+      "lng": 44.4659
+    },
+    {
+      "id": "am-yerevan-malatia-sebastia",
+      "city_id": "am-yerevan",
+      "city": "Yerevan",
+      "country": "AM",
+      "name": "Malatia-Sebastia",
+      "lat": 40.1547,
+      "lng": 44.4598
+    },
+    {
+      "id": "am-yerevan-kanaker-zeytun",
+      "city_id": "am-yerevan",
+      "city": "Yerevan",
+      "country": "AM",
+      "name": "Kanaker-Zeytun",
+      "lat": 40.2035,
+      "lng": 44.5344
+    },
+    {
+      "id": "am-gyumri-0",
+      "city_id": "am-gyumri",
+      "city": "Gyumri",
+      "country": "AM",
+      "name": "Գյումրի-Ախուրյան սահման",
+      "lat": 40.7852085,
+      "lng": 43.8416095,
+      "type": "administrative",
+      "osm_id": 177198942
+    },
+    {
+      "id": "am-gyumri-1",
+      "city_id": "am-gyumri",
+      "city": "Gyumri",
+      "country": "AM",
+      "name": "Գյումրի",
+      "lat": 40.7841374,
+      "lng": 43.8439415,
+      "type": "administrative",
+      "osm_id": 7814501
+    },
+    {
+      "id": "am-gyumri-2",
+      "city_id": "am-gyumri",
+      "city": "Gyumri",
+      "country": "AM",
+      "name": "Գյումրի",
+      "lat": 40.7972856,
+      "lng": 43.8496656,
+      "type": "town",
+      "osm_id": 1030286064
+    },
+    {
+      "id": "am-vanadzor-0",
+      "city_id": "am-vanadzor",
+      "city": "Vanadzor",
+      "country": "AM",
+      "name": "Վանաձոր",
+      "lat": 40.8112384,
+      "lng": 44.4851821,
+      "type": "administrative",
+      "osm_id": 7825883
+    },
+    {
+      "id": "am-vagharshapat-0",
+      "city_id": "am-vagharshapat",
+      "city": "Vagharshapat",
+      "country": "AM",
+      "name": "Վաղարշապատ",
+      "lat": 40.1627757,
+      "lng": 44.2931665,
+      "type": "administrative",
+      "osm_id": 7772201
+    },
+    {
+      "id": "am-hrazdan-0",
+      "city_id": "am-hrazdan",
+      "city": "Hrazdan",
+      "country": "AM",
+      "name": "Հրազդան",
+      "lat": 40.5196871,
+      "lng": 44.7500706,
+      "type": "administrative",
+      "osm_id": 9084333
+    },
+    {
+      "id": "am-hrazdan-1",
+      "city_id": "am-hrazdan",
+      "city": "Hrazdan",
+      "country": "AM",
+      "name": "Հրազդան",
+      "lat": 40.5210328,
+      "lng": 44.7556521,
+      "type": "town",
+      "osm_id": 911419477
+    }
+  ]
+}
