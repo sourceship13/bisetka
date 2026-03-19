@@ -34,7 +34,6 @@
 		1129FD495D3F44C2B4830EC2 /* Inter_18pt-MediumItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 99488DC8F3E148809E4C2B38 /* Inter_18pt-MediumItalic.ttf */; };
 		1206DBF12A92402795619913 /* EBGaramond-ExtraBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 4D4BF0143BA44927B1C12992 /* EBGaramond-ExtraBold.ttf */; };
 		120DD7BBE9604058BDBC8F64 /* Inter_28pt-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 8E29F76D89F14FD5ABCC0F2D /* Inter_28pt-Medium.ttf */; };
-		12B5295F60B24023964C241A /* MaterialCommunityIcons.ttf in Resources */ = {isa = PBXBuildFile; fileRef = C874272D9AF6470FBE3BE1BB /* MaterialCommunityIcons.ttf */; };
 		136D7E7DB6504B78A15996C4 /* CrimsonText-SemiBoldItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = BC8FEC8C4E5046F4B482DD47 /* CrimsonText-SemiBoldItalic.ttf */; };
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		13BC3D8B41684A3B8ABCBD25 /* EBGaramond-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = C5E1A606907441D6841D56D6 /* EBGaramond-Italic.ttf */; };
@@ -1096,7 +1095,6 @@
 				82D4F2F704774AAD81330FB6 /* JetBrainsMono-BoldItalic.ttf in Resources */,
 				F66EDE3765E844A6B2718C62 /* Fredoka_Condensed-SemiBold.ttf in Resources */,
 				C1318551F0154F748F1297B8 /* EBGaramond-Medium.ttf in Resources */,
-				12B5295F60B24023964C241A /* MaterialCommunityIcons.ttf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1639,6 +1637,7 @@
 				DEVELOPMENT_TEAM = "";
 				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = CM52HNMXXW;
 				ENABLE_BITCODE = NO;
+				ENVFILE = ../.env.production;
 				INFOPLIST_FILE = bisetka/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = bisetka;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.social-networking";
@@ -1657,6 +1656,7 @@
 				PRODUCT_NAME = bisetka;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "match AppStore org.sera.dev.bisetka";
+				SWIFT_ENABLE_EXPLICIT_MODULES = NO;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
 				VERSIONING_SYSTEM = "apple-generic";
@@ -1676,6 +1676,7 @@
 				CURRENT_PROJECT_VERSION = 6;
 				DEVELOPMENT_TEAM = "";
 				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = CM52HNMXXW;
+				ENVFILE = ../.env.production;
 				INFOPLIST_FILE = bisetka/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = bisetka;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.social-networking";
@@ -1694,6 +1695,7 @@
 				PRODUCT_NAME = bisetka;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "match AppStore org.sera.dev.bisetka";
+				SWIFT_ENABLE_EXPLICIT_MODULES = NO;
 				SWIFT_VERSION = 5.0;
 				VERSIONING_SYSTEM = "apple-generic";
 			};
@@ -1858,6 +1860,7 @@
 				CURRENT_PROJECT_VERSION = 55;
 				DEVELOPMENT_TEAM = CM52HNMXXW;
 				ENABLE_BITCODE = NO;
+				ENVFILE = ../.env.staging;
 				INFOPLIST_FILE = bisetka/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "bisetka-staging";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.social-networking";
@@ -1875,6 +1878,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = org.sera.dev.bisetka.staging;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
+				SWIFT_ENABLE_EXPLICIT_MODULES = NO;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
 				VERSIONING_SYSTEM = "apple-generic";
@@ -1894,6 +1898,7 @@
 				CURRENT_PROJECT_VERSION = 55;
 				DEVELOPMENT_TEAM = "";
 				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = CM52HNMXXW;
+				ENVFILE = ../.env.staging;
 				INFOPLIST_FILE = bisetka/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "bisetka-staging";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.social-networking";
@@ -1912,6 +1917,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "match AppStore org.sera.dev.bisetka.staging";
+				SWIFT_ENABLE_EXPLICIT_MODULES = NO;
 				SWIFT_VERSION = 5.0;
 				VERSIONING_SYSTEM = "apple-generic";
 			};
