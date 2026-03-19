@@ -1,6 +1,7 @@
 import { io, Socket } from 'socket.io-client';
 import { Platform } from 'react-native';
 import { apiConfig } from '../libs/utils/api.utils';
+import type { UserLocation } from './location.service';
 
 export interface GameMove {
   from: { row: number; col: number };
@@ -17,11 +18,16 @@ export interface MultiplayerGameState {
 }
 
 type RoomNameCallback = (data: { roomId: string; dbSessionId?: string; roomName: string }) => void;
+type PendingLocation = UserLocation & {
+  city?: string | null;
+  country?: string | null;
+};
 
 class SocketService {
   private socket: Socket | null = null;
   private roomNameCallbacks: Set<RoomNameCallback> = new Set();
   private roomNameListenerAttached = false;
+  private pendingLocation: PendingLocation | null = null;
   
   // Use apiConfig to get the correct server URL based on environment
   private getServerUrl(): string {
@@ -126,6 +132,18 @@ class SocketService {
     return this.socket?.connected || false;
   }
 
+  setPendingLocation(location?: PendingLocation | null) {
+    this.pendingLocation = location ?? null;
+  }
+
+  private getPendingLocation(): PendingLocation | undefined {
+    return this.pendingLocation ?? undefined;
+  }
+
+  private clearPendingLocation() {
+    this.pendingLocation = null;
+  }
+
   // Find a random opponent
   findMatch(gameType: string, userId: string, allowReplaceAI?: boolean): Promise<any> {
     return new Promise((resolve, reject) => {
@@ -138,9 +156,15 @@ class SocketService {
       this.socket.off('match_found');
       this.socket.off('room_joined');
 
-      this.socket.emit('find_match', { gameType, userId, allowReplaceAI });
+      this.socket.emit('find_match', {
+        gameType,
+        userId,
+        allowReplaceAI,
+        ...(this.getPendingLocation() ? {location: this.getPendingLocation()} : {}),
+      });
 
       this.socket.once('match_found', (data) => {
+        this.clearPendingLocation();
         resolve(data);
       });
 
@@ -181,6 +205,7 @@ class SocketService {
       this.socket.once('room_created', (data) => {
         clearTimeout(timer);
         this.socket?.off('error');
+        this.clearPendingLocation();
         resolve(data);
       });
 
@@ -190,7 +215,12 @@ class SocketService {
         reject(new Error(error?.message || String(error) || 'Room creation failed'));
       });
 
-      this.socket.emit('create_private_room', { gameType, userId, desiredCode });
+      this.socket.emit('create_private_room', {
+        gameType,
+        userId,
+        desiredCode,
+        ...(this.getPendingLocation() ? {location: this.getPendingLocation()} : {}),
+      });
     });
   }
 
@@ -217,6 +247,7 @@ class SocketService {
       this.socket.once('room_joined', (data) => {
         clearTimeout(timer);
         this.socket?.off('error');
+        this.clearPendingLocation();
         resolve(data);
       });
 
@@ -226,7 +257,11 @@ class SocketService {
         reject(new Error(error?.message || String(error) || 'Failed to join room'));
       });
 
-      this.socket.emit('join_private_room', { roomCode, userId });
+      this.socket.emit('join_private_room', {
+        roomCode,
+        userId,
+        ...(this.getPendingLocation() ? {location: this.getPendingLocation()} : {}),
+      });
     });
   }
 
@@ -358,7 +393,12 @@ class SocketService {
   // ─────────────────────────────────────────────────────────────────────────
 
   joinPokerMatchmaking(userId: string, displayName: string, allowReplaceAI?: boolean): void {
-    this.socket?.emit('join_poker_matchmaking', { userId, displayName, allowReplaceAI });
+    this.socket?.emit('join_poker_matchmaking', {
+      userId,
+      displayName,
+      allowReplaceAI,
+      ...(this.getPendingLocation() ? {location: this.getPendingLocation()} : {}),
+    });
   }
 
   cancelPokerMatchmaking(userId: string): void {
@@ -366,11 +406,20 @@ class SocketService {
   }
 
   createPokerPrivateRoom(userId: string, displayName: string): void {
-    this.socket?.emit('create_poker_private_room', { userId, displayName });
+    this.socket?.emit('create_poker_private_room', {
+      userId,
+      displayName,
+      ...(this.getPendingLocation() ? {location: this.getPendingLocation()} : {}),
+    });
   }
 
   joinPokerPrivateRoom(roomCode: string, userId: string, displayName: string): void {
-    this.socket?.emit('join_poker_private_room', { roomCode, userId, displayName });
+    this.socket?.emit('join_poker_private_room', {
+      roomCode,
+      userId,
+      displayName,
+      ...(this.getPendingLocation() ? {location: this.getPendingLocation()} : {}),
+    });
   }
 
   startPokerPrivateRoom(tableId: string, userId: string): void {

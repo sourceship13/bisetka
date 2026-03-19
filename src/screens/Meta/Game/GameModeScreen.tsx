@@ -11,6 +11,7 @@ import {colors} from '../../../theme';
 import {useAuth} from '../../../libs/hooks/useAuth';
 import {socketService} from '../../../services/SocketService';
 import tokenService from '../../../services/token.service';
+import locationService, {UserLocation} from '../../../services/location.service';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'GameMode'>;
 
@@ -107,6 +108,15 @@ const GameModeScreen: React.FC<Props> = ({route, navigation}) => {
     join: false,
   });
 
+  /** Fetch location silently — never blocks the user if denied or slow. */
+  const getGameLocation = (): Promise<UserLocation | null> =>
+    locationService.getLocationForGame();
+
+  const prepareSocketLocation = (location: UserLocation | null) => {
+    socketService.setPendingLocation(location);
+    return location;
+  };
+
   const navigateToGame = (mode: SessionMode, result: any) => {
     // When joining via code from a different game's screen, use the found game type
     const effectiveGameType: string = result?.foundGameType || gameType;
@@ -182,6 +192,7 @@ const GameModeScreen: React.FC<Props> = ({route, navigation}) => {
           gameType: gameType as any,
           mode: pokerMode,
           joinCode: sessionData.code,
+          location: sessionData.location,
         }));
         break;
       }
@@ -193,6 +204,7 @@ const GameModeScreen: React.FC<Props> = ({route, navigation}) => {
           userId: user?.id || 'guest',
           mode: mode,
           joinCode: sessionData.code,
+          location: sessionData.location,
         }));
         break;
       case 'Mrotsi':
@@ -206,6 +218,7 @@ const GameModeScreen: React.FC<Props> = ({route, navigation}) => {
           userId: user?.id || 'guest',
           mode: mode,
           joinCode: sessionData.code,
+          location: sessionData.location,
         }));
         break;
       case 'MultiplayerMrotsi':
@@ -213,6 +226,7 @@ const GameModeScreen: React.FC<Props> = ({route, navigation}) => {
           userId: user?.id || 'guest',
           mode: mode,
           joinCode: sessionData.code,
+          location: sessionData.location,
         }));
         break;
       case 'Nardi':
@@ -232,6 +246,7 @@ const GameModeScreen: React.FC<Props> = ({route, navigation}) => {
             joinCode: sessionData.code,
             teamMode: teamMode,
             allowReplaceAI: allowReplaceAI || undefined,
+            location: sessionData.location,
           }));
         }
         break;
@@ -249,6 +264,7 @@ const GameModeScreen: React.FC<Props> = ({route, navigation}) => {
             joinCode: sessionData.code,
             teamMode: teamMode,
             allowReplaceAI: allowReplaceAI || undefined,
+            location: sessionData.location,
           }));
         }
         break;
@@ -343,22 +359,25 @@ const GameModeScreen: React.FC<Props> = ({route, navigation}) => {
           onToggleAllowReplaceAI={supportsReplaceAI ? setAllowReplaceAI : undefined}
           onRandomMatch={() =>
             withLoading('random', 'random', async () => {
-              return gameSessionsService.createRandomMatch(gameType);
+              const location = prepareSocketLocation(await getGameLocation());
+              return gameSessionsService.createRandomMatch(gameType, location);
             })
           }
           onPlayAi={() =>
             withLoading('ai', 'ai', async () => {
-              return gameSessionsService.createAiMatch(gameType, 'medium', allowReplaceAI);
+              const location = prepareSocketLocation(await getGameLocation());
+              return gameSessionsService.createAiMatch(gameType, 'medium', allowReplaceAI, location);
             })
           }
-          onCreatePrivate={() => {
+          onCreatePrivate={async () => {
+            const location = prepareSocketLocation(await getGameLocation());
             if (SOCKET_BASED_GAMES.has(gameType)) {
               // Socket-managed room — navigate immediately, let the game screen create via socket
-              navigateToGame('private-create', {});
+              navigateToGame('private-create', {location});
               return;
             }
             withLoading('private', 'private-create', async () => {
-              return gameSessionsService.createPrivateMatch(gameType);
+              return gameSessionsService.createPrivateMatch(gameType, location);
             });
           }}
           onJoinPrivate={async code => {
@@ -366,19 +385,20 @@ const GameModeScreen: React.FC<Props> = ({route, navigation}) => {
             // This lets a user enter a code on ANY game's screen and get routed
             // to the correct multiplayer screen automatically.
             setLoading(prev => ({...prev, join: true}));
+            const location = prepareSocketLocation(await getGameLocation());
             try {
               const token = await tokenService.getAccessToken() ?? 'guest';
               await socketService.connect(user?.id || 'guest', token);
               const roomInfo = await socketService.lookupRoomCode(code);
               // Navigate to the screen matching the ROOM's game type, not the current screen's
-              navigateToGame('private-join', { code, foundGameType: roomInfo.gameType });
+              navigateToGame('private-join', { code, foundGameType: roomInfo.gameType, location });
             } catch (err: any) {
               if (SOCKET_BASED_GAMES.has(gameType)) {
                 BisetkaAlert.error('Unable to join game', err?.message || 'Room not found');
               } else {
                 // Fall back to REST for non-socket games
                 withLoading('join', 'private-join', async () => {
-                  return gameSessionsService.joinPrivateMatch(gameType, code);
+                  return gameSessionsService.joinPrivateMatch(gameType, code, location);
                 });
               }
             } finally {
