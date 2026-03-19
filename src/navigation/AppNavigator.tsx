@@ -42,6 +42,7 @@ import FontTestScreen from '../screens/Meta/Home/FontTestScreen';
 import AvatarSelectionScreen from '../screens/Meta/Onboarding/AvatarSelectionScreen';
 import ClothingStoreScreen from '../screens/Meta/Home/ClothingStoreScreen';
 import WardrobeScreen from '../screens/Meta/Home/WardrobeScreen';
+import GlobalViewScreen from '../screens/Meta/GlobalView/GlobalViewScreen';
 import DrawerContent from '../components/DrawerContent';
 import {useAuth} from '../libs/hooks/useAuth';
 import {ActivityIndicator, View, StyleSheet, Dimensions} from 'react-native';
@@ -85,6 +86,7 @@ export type RootStackParamList = {
   AvatarSelection: undefined;
   ClothingStore: undefined;
   Wardrobe: undefined;
+  GlobalView: { userId?: string };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -163,6 +165,7 @@ const linking: LinkingOptions<RootStackParamList> = {
       AvatarSelection: 'avatar-selection',
       ClothingStore: 'clothing-store',
       Wardrobe: 'wardrobe',
+      GlobalView: 'global-view',
     },
   },
 };
@@ -283,6 +286,7 @@ const AppNavigator = () => {
               <Stack.Screen name="AvatarSelection" component={AvatarSelectionScreen} />
               <Stack.Screen name="ClothingStore" component={ClothingStoreScreen} />
               <Stack.Screen name="Wardrobe" component={WardrobeScreen} />
+              <Stack.Screen name="GlobalView" component={GlobalViewScreen} />
             </>
           )}
         </Stack.Navigator>

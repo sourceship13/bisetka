@@ -11,9 +11,6 @@ const { withSentryConfig } = require('@sentry/react-native/metro');
 const defaultConfig = getDefaultConfig(__dirname);
 
 const config = {
-  server: {
-    experimentalDebuggerFrontend: false,
-  },
   resolver: {
     assetExts: [...defaultConfig.resolver.assetExts, 'vrm'],
   },
