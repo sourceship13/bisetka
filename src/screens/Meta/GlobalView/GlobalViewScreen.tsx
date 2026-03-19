@@ -13,10 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
-import {
-  gameSessionsService,
-  type GlobeRoom,
-} from '../../../services/gameSessions.service';
+import bisetkaService from '../../../services/bisetka.service';
 import Config from 'react-native-config';
 
 const { width, height } = Dimensions.get('window');
@@ -56,38 +53,23 @@ const GAME_ICONS: Record<string, string> = {
   '9-ball': '9️⃣',
   mrotsi: '🎯',
   slots: '🎰',
+  bisetka: '🏘️', // Bisetka neighborhood icon
 };
 
-const GAME_MAX_PLAYERS: Record<string, number> = {
-  blot: 2,
-  'baazar-blot': 4,
-  chess: 2,
-  'chess-multiplayer': 2,
-  cards: 4,
-  checkers: 2,
-  poker: 9,
-  slots: 1,
-  nardi: 2,
-  mrotsi: 2,
-  billiards: 2,
-  '9-ball': 2,
-  blackjack: 7,
+// Calculate distance between two coordinates (Haversine formula)
+const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number): number => {
+  const R = 6371; // Earth's radius in km
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLng / 2) *
+      Math.sin(dLng / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
 };
-
-const mapRoomToSession = (room: GlobeRoom): GameSession => ({
-  id: room.room_id,
-  gameType: room.game_type,
-  playerCount: room.player_count,
-  maxPlayers: GAME_MAX_PLAYERS[room.game_type] ?? Math.max(room.player_count, 2),
-  status: room.status,
-  latitude: room.latitude,
-  longitude: room.longitude,
-  city: room.city ?? undefined,
-  country: room.country ?? undefined,
-  roomName: room.room_name ?? undefined,
-  hostUsername: room.host_username ?? undefined,
-  guestUsername: room.guest_username ?? undefined,
-});
 
 const GlobalViewScreen = ({ navigation }: any) => {
   const [sessions, setSessions] = useState<GameSession[]>([]);
@@ -95,58 +77,144 @@ const GlobalViewScreen = ({ navigation }: any) => {
   const [selectedSession, setSelectedSession] = useState<GameSession | null>(null);
   const [mapboxAvailable] = useState(!!MapboxGL);
   const [refreshing, setRefreshing] = useState(false);
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [nearestBisetka, setNearestBisetka] = useState<GameSession | null>(null);
 
-  useEffect(() => {
-    const loadSessions = async (options?: {
-      showLoader?: boolean;
-      showError?: boolean;
-    }) => {
-      if (options?.showLoader) {
-        setLoading(true);
-      } else {
-        setRefreshing(true);
-      }
+  const loadBisetkas = async (options?: {
+    showLoader?: boolean;
+    showError?: boolean;
+  }) => {
+    if (options?.showLoader) {
+      setLoading(true);
+    } else {
+      setRefreshing(true);
+    }
 
-      try {
-        const rooms = await gameSessionsService.getGlobeRooms();
-        const nextSessions = rooms
-          .filter(room => Number.isFinite(room.latitude) && Number.isFinite(room.longitude))
-          .map(mapRoomToSession);
+    try {
+      console.log('🌍 [GlobalView] Loading Bisetkas...');
+      const bisetkas = await bisetkaService.getGlobeBisetkas();
+      console.log('🌍 [GlobalView] Received Bisetkas:', bisetkas.length);
 
-        setSessions(nextSessions);
-        setSelectedSession(current =>
-          current ? nextSessions.find(session => session.id === current.id) ?? null : null,
-        );
-      } catch (error: any) {
-        console.warn('Failed to load globe rooms', error);
-        if (options?.showError) {
-          BisetkaAlert.error(
-            'Global View Unavailable',
-            error?.message || 'Unable to load player locations right now.',
+      const allSessions = bisetkas
+        .map(b => ({
+          ...b,
+          lat: Number(b.lat),
+          lng: Number(b.lng),
+        }))
+        .filter(b => Number.isFinite(b.lat) && Number.isFinite(b.lng))
+        .map(b => ({
+          id: b.id,
+          gameType: 'bisetka',
+          playerCount: b.active_users,
+          maxPlayers: 100,
+          status: b.active_users > 0 ? 'active' : 'idle',
+          latitude: b.lat,
+          longitude: b.lng,
+          city: b.city,
+          country: b.country,
+          roomName: b.neighborhood_name,
+          hostUsername:
+            b.active_users > 0
+              ? `${b.active_users} ${b.active_users === 1 ? 'player' : 'players'}`
+              : 'No active players yet',
+          guestUsername: undefined,
+        }));
+
+      console.log('🌍 [GlobalView] Created sessions:', allSessions.length);
+      console.log('🌍 [GlobalView] First session:', allSessions[0]);
+      setSessions(allSessions);
+
+      if (userLocation && allSessions.length > 0) {
+        let nearest = allSessions[0];
+        let minDistance = Infinity;
+
+        for (const session of allSessions) {
+          const distance = calculateDistance(
+            userLocation.lat,
+            userLocation.lng,
+            session.latitude,
+            session.longitude
           );
+          if (distance < minDistance) {
+            minDistance = distance;
+            nearest = session;
+          }
         }
-      } finally {
-        setLoading(false);
-        setRefreshing(false);
+
+        setNearestBisetka(nearest);
+        setSelectedSession(current => current ?? nearest);
+        console.log(`🏘️ Nearest Bisetka: ${nearest.roomName}, ${nearest.city} (${minDistance.toFixed(1)} km away)`);
+      } else {
+        setNearestBisetka(null);
+        setSelectedSession(null);
+      }
+    } catch (error: any) {
+      console.warn('Failed to load Bisetkas', error);
+      if (options?.showError) {
+        BisetkaAlert.error(
+          'Global View Unavailable',
+          error?.message || 'Unable to load Bisetka locations right now.',
+        );
+      }
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  // Get user's current location
+  useEffect(() => {
+    const getUserLocation = async () => {
+      try {
+        const Geolocation = require('@react-native-community/geolocation').default;
+        Geolocation.getCurrentPosition(
+          (position: any) => {
+            const location = {
+              lat: position.coords.latitude,
+              lng: position.coords.longitude,
+            };
+            setUserLocation(location);
+            console.log('📍 User location:', location);
+          },
+          (error: any) => {
+            console.warn('Failed to get user location:', error);
+          },
+          { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
+        );
+      } catch (error) {
+        console.warn('Geolocation not available:', error);
       }
     };
 
-    void loadSessions({showLoader: true});
+    getUserLocation();
+  }, []);
+
+  useEffect(() => {
+    void loadBisetkas({showLoader: true});
 
     const interval = setInterval(() => {
-      void loadSessions();
+      void loadBisetkas();
     }, 30000);
 
     return () => {
       clearInterval(interval);
     };
-  }, []);
+  }, [userLocation]);
 
   const handleSessionPress = (session: GameSession) => {
     setSelectedSession(session);
   };
 
   const handleJoinSession = (session: GameSession) => {
+    if (session.playerCount === 0) {
+      BisetkaAlert.alert(
+        'No Active Players',
+        'This Bisetka location is visible on the globe, but nobody is currently active there.',
+        [{ text: 'OK' }],
+      );
+      return;
+    }
+
     navigation.navigate('ActiveRoomDetail', {
       dbSessionId: session.id,
       gameType: session.gameType,
@@ -181,41 +249,55 @@ const GlobalViewScreen = ({ navigation }: any) => {
       );
     }
 
+    // Center camera on nearest Bisetka if available, but allow free movement
+    const cameraCoordinate = nearestBisetka
+      ? [nearestBisetka.longitude, nearestBisetka.latitude]
+      : [0, 20];
+    const cameraZoom = nearestBisetka ? 8 : 2; // Zoom out a bit more to see surrounding Bisetkas
+
     return (
       <MapboxGL.MapView
         style={styles.map}
         styleURL="mapbox://styles/mapbox/dark-v11"
         projection="globe"
         zoomEnabled={true}
+        scrollEnabled={true}
         rotateEnabled={true}
-        pitchEnabled={true}>
+        pitchEnabled={true}
+        compassEnabled={true}
+        scaleBarEnabled={false}>
         <MapboxGL.Camera
-          zoomLevel={1}
-          centerCoordinate={[0, 20]}
-          animationMode="flyTo"
-          animationDuration={2000}
+          zoomLevel={cameraZoom}
+          centerCoordinate={cameraCoordinate}
+          animationMode="easeTo"
+          animationDuration={1500}
+          minZoomLevel={1}
+          maxZoomLevel={18}
         />
 
-        {/* Render markers for each session */}
-        {sessions.map((session) => (
-          <MapboxGL.MarkerView
-            key={session.id}
-            id={session.id}
-            coordinate={[session.longitude, session.latitude]}>
-            <TouchableOpacity
-              style={styles.marker}
-              onPress={() => handleSessionPress(session)}>
-              <LinearGradient
-                colors={['#10b981', '#34d399']}
-                style={styles.markerGrad}>
-                <Text style={styles.markerIcon}>
-                  {GAME_ICONS[session.gameType] || '🎮'}
-                </Text>
-                <Text style={styles.markerCount}>{session.playerCount}</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          </MapboxGL.MarkerView>
-        ))}
+        {/* Render markers for each Bisetka */}
+        {sessions.map((session) => {
+          const isNearest = nearestBisetka && session.id === nearestBisetka.id;
+          return (
+            <MapboxGL.MarkerView
+              key={session.id}
+              id={session.id}
+              coordinate={[session.longitude, session.latitude]}>
+              <TouchableOpacity
+                style={styles.marker}
+                onPress={() => handleSessionPress(session)}>
+                <LinearGradient
+                  colors={isNearest ? ['#f59e0b', '#fbbf24'] : ['#10b981', '#34d399']}
+                  style={[styles.markerGrad, isNearest && styles.markerGradNearest]}>
+                  <Text style={styles.markerIcon}>
+                    {isNearest ? '📍' : GAME_ICONS[session.gameType] || '🏘️'}
+                  </Text>
+                  <Text style={styles.markerCount}>{session.playerCount}</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </MapboxGL.MarkerView>
+          );
+        })}
       </MapboxGL.MapView>
     );
   };
@@ -329,7 +411,7 @@ const GlobalViewScreen = ({ navigation }: any) => {
     return (
       <View style={[styles.container, styles.loadingContainer]}>
         <ActivityIndicator size="large" color="#6366f1" />
-        <Text style={styles.loadingText}>Loading global sessions...</Text>
+        <Text style={styles.loadingText}>Loading Bisetka locations...</Text>
       </View>
     );
   }
@@ -346,31 +428,13 @@ const GlobalViewScreen = ({ navigation }: any) => {
         <View style={styles.headerContent}>
           <Text style={styles.headerTitle}>🌍 Global View</Text>
           <Text style={styles.headerSubtitle}>
-            {sessions.length} active {sessions.length === 1 ? 'session' : 'sessions'}
+            {sessions.length} {sessions.length === 1 ? 'Bisetka location' : 'Bisetka locations'}
           </Text>
         </View>
         <TouchableOpacity
           style={styles.refreshButton}
           onPress={async () => {
-            setRefreshing(true);
-            try {
-              const rooms = await gameSessionsService.getGlobeRooms();
-              const nextSessions = rooms
-                .filter(room => Number.isFinite(room.latitude) && Number.isFinite(room.longitude))
-                .map(mapRoomToSession);
-
-              setSessions(nextSessions);
-              setSelectedSession(current =>
-                current ? nextSessions.find(session => session.id === current.id) ?? null : null,
-              );
-            } catch (error: any) {
-              BisetkaAlert.error(
-                'Global View Unavailable',
-                error?.message || 'Unable to load player locations right now.',
-              );
-            } finally {
-              setRefreshing(false);
-            }
+            await loadBisetkas({ showError: true });
           }}>
           {refreshing ? (
             <ActivityIndicator size="small" color="#fff" />
@@ -386,7 +450,7 @@ const GlobalViewScreen = ({ navigation }: any) => {
           {renderMapView()}
           {sessions.length === 0 && (
             <View style={styles.emptyOverlay}>
-              <Icon name="earth" size={60} color="rgba(255,255,255,0.4)" />
+              {/* <Icon name="earth" size={60} color="rgba(255,255,255,0.4)" />
               <Text style={styles.emptyTitle}>No Active Sessions</Text>
               <Text style={styles.emptyText}>
                 No active rooms with saved location data yet.
@@ -399,7 +463,7 @@ const GlobalViewScreen = ({ navigation }: any) => {
                   style={styles.emptyButtonGrad}>
                   <Text style={styles.emptyButtonText}>Start a Game</Text>
                 </LinearGradient>
-              </TouchableOpacity>
+              </TouchableOpacity> */}
             </View>
           )}
           {renderSessionDetail()}
@@ -408,7 +472,7 @@ const GlobalViewScreen = ({ navigation }: any) => {
         renderSessionsList()
       ) : (
         <View style={styles.emptyContainer}>
-          <Icon name="earth" size={80} color="rgba(255,255,255,0.2)" />
+          {/* <Icon name="earth" size={80} color="rgba(255,255,255,0.2)" />
           <Text style={styles.emptyTitle}>No Active Sessions</Text>
           <Text style={styles.emptyText}>
             No active rooms with saved location data yet.
@@ -421,7 +485,7 @@ const GlobalViewScreen = ({ navigation }: any) => {
               style={styles.emptyButtonGrad}>
               <Text style={styles.emptyButtonText}>Start a Game</Text>
             </LinearGradient>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </View>
       )}
     </SafeAreaView>
@@ -499,6 +563,13 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  markerGradNearest: {
+    shadowColor: '#f59e0b',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.8,
+    shadowRadius: 8,
+    elevation: 12,
   },
   markerIcon: {
     fontSize: 24,

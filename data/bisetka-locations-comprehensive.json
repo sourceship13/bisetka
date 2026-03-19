@@ -1,0 +1,4020 @@
+{
+  "countries": [
+    {
+      "id": "us",
+      "code": "US",
+      "name": "United States",
+      "lat": 37.0902,
+      "lng": -95.7129
+    },
+    {
+      "id": "ru",
+      "code": "RU",
+      "name": "Russia",
+      "lat": 61.524,
+      "lng": 105.3188
+    },
+    {
+      "id": "am",
+      "code": "AM",
+      "name": "Armenia",
+      "lat": 40.0691,
+      "lng": 45.0382
+    }
+  ],
+  "regions": [],
+  "cities": [
+    {
+      "id": "us-new-york",
+      "country_code": "US",
+      "name": "New York",
+      "state": "New York",
+      "lat": 40.7127281,
+      "lng": -74.0060152,
+      "population": 8336817
+    },
+    {
+      "id": "us-los-angeles",
+      "country_code": "US",
+      "name": "Los Angeles",
+      "state": "California",
+      "lat": 34.0536909,
+      "lng": -118.242766,
+      "population": 3979576
+    },
+    {
+      "id": "us-chicago",
+      "country_code": "US",
+      "name": "Chicago",
+      "state": "Illinois",
+      "lat": 41.8755616,
+      "lng": -87.6244212,
+      "population": 2693976
+    },
+    {
+      "id": "us-houston",
+      "country_code": "US",
+      "name": "Houston",
+      "state": "Texas",
+      "lat": 29.7589382,
+      "lng": -95.3676974,
+      "population": 2320268
+    },
+    {
+      "id": "us-phoenix",
+      "country_code": "US",
+      "name": "Phoenix",
+      "state": "Arizona",
+      "lat": 33.4484367,
+      "lng": -112.074141,
+      "population": 1680992
+    },
+    {
+      "id": "us-philadelphia",
+      "country_code": "US",
+      "name": "Philadelphia",
+      "state": "Pennsylvania",
+      "lat": 39.9527237,
+      "lng": -75.1635262,
+      "population": 1584064
+    },
+    {
+      "id": "us-san-antonio",
+      "country_code": "US",
+      "name": "San Antonio",
+      "state": "Texas",
+      "lat": 29.4246002,
+      "lng": -98.4951405,
+      "population": 1547253
+    },
+    {
+      "id": "us-san-diego",
+      "country_code": "US",
+      "name": "San Diego",
+      "state": "California",
+      "lat": 32.7174202,
+      "lng": -117.162772,
+      "population": 1423851
+    },
+    {
+      "id": "us-dallas",
+      "country_code": "US",
+      "name": "Dallas",
+      "state": "Texas",
+      "lat": 32.7762719,
+      "lng": -96.7968559,
+      "population": 1343573
+    },
+    {
+      "id": "us-san-jose",
+      "country_code": "US",
+      "name": "San Jose",
+      "state": "California",
+      "lat": 37.3361663,
+      "lng": -121.890591,
+      "population": 1021795
+    },
+    {
+      "id": "us-austin",
+      "country_code": "US",
+      "name": "Austin",
+      "state": "Texas",
+      "lat": 30.2711286,
+      "lng": -97.7436995,
+      "population": 978908
+    },
+    {
+      "id": "us-jacksonville",
+      "country_code": "US",
+      "name": "Jacksonville",
+      "state": "Florida",
+      "lat": 30.3262247,
+      "lng": -81.6579179,
+      "population": 911507
+    },
+    {
+      "id": "us-fort-worth",
+      "country_code": "US",
+      "name": "Fort Worth",
+      "state": "Texas",
+      "lat": 32.753177,
+      "lng": -97.3327459,
+      "population": 909585
+    },
+    {
+      "id": "us-columbus",
+      "country_code": "US",
+      "name": "Columbus",
+      "state": "Ohio",
+      "lat": 39.9622601,
+      "lng": -83.0007065,
+      "population": 898553
+    },
+    {
+      "id": "us-charlotte",
+      "country_code": "US",
+      "name": "Charlotte",
+      "state": "North Carolina",
+      "lat": 35.2272086,
+      "lng": -80.8430827,
+      "population": 885708
+    },
+    {
+      "id": "us-san-francisco",
+      "country_code": "US",
+      "name": "San Francisco",
+      "state": "California",
+      "lat": 37.7879363,
+      "lng": -122.4075201,
+      "population": 881549
+    },
+    {
+      "id": "us-indianapolis",
+      "country_code": "US",
+      "name": "Indianapolis",
+      "state": "Indiana",
+      "lat": 39.7683331,
+      "lng": -86.1583502,
+      "population": 876384
+    },
+    {
+      "id": "us-seattle",
+      "country_code": "US",
+      "name": "Seattle",
+      "state": "Washington",
+      "lat": 47.6038321,
+      "lng": -122.330062,
+      "population": 753675
+    },
+    {
+      "id": "us-denver",
+      "country_code": "US",
+      "name": "Denver",
+      "state": "Colorado",
+      "lat": 39.7392364,
+      "lng": -104.984862,
+      "population": 727211
+    },
+    {
+      "id": "us-washington",
+      "country_code": "US",
+      "name": "Washington",
+      "state": "District of Columbia",
+      "lat": 38.8950368,
+      "lng": -77.0365427,
+      "population": 705749
+    },
+    {
+      "id": "us-boston",
+      "country_code": "US",
+      "name": "Boston",
+      "state": "Massachusetts",
+      "lat": 42.3588336,
+      "lng": -71.0578303,
+      "population": 692600
+    },
+    {
+      "id": "us-el-paso",
+      "country_code": "US",
+      "name": "El Paso",
+      "state": "Texas",
+      "lat": 31.7601001,
+      "lng": -106.4870476,
+      "population": 681728
+    },
+    {
+      "id": "us-nashville",
+      "country_code": "US",
+      "name": "Nashville",
+      "state": "Tennessee",
+      "lat": 36.1622767,
+      "lng": -86.7742984,
+      "population": 678889
+    },
+    {
+      "id": "us-detroit",
+      "country_code": "US",
+      "name": "Detroit",
+      "state": "Michigan",
+      "lat": 42.3315509,
+      "lng": -83.0466403,
+      "population": 672662
+    },
+    {
+      "id": "us-oklahoma-city",
+      "country_code": "US",
+      "name": "Oklahoma City",
+      "state": "Oklahoma",
+      "lat": 35.4729886,
+      "lng": -97.5170536,
+      "population": 655057
+    },
+    {
+      "id": "us-portland",
+      "country_code": "US",
+      "name": "Portland",
+      "state": "Oregon",
+      "lat": 45.5202471,
+      "lng": -122.674194,
+      "population": 654741
+    },
+    {
+      "id": "us-las-vegas",
+      "country_code": "US",
+      "name": "Las Vegas",
+      "state": "Nevada",
+      "lat": 36.1674263,
+      "lng": -115.1484131,
+      "population": 651319
+    },
+    {
+      "id": "us-memphis",
+      "country_code": "US",
+      "name": "Memphis",
+      "state": "Tennessee",
+      "lat": 35.1460249,
+      "lng": -90.0517638,
+      "population": 651073
+    },
+    {
+      "id": "us-louisville",
+      "country_code": "US",
+      "name": "Louisville",
+      "state": "Kentucky",
+      "lat": 38.2542376,
+      "lng": -85.759407,
+      "population": 617638
+    },
+    {
+      "id": "us-baltimore",
+      "country_code": "US",
+      "name": "Baltimore",
+      "state": "Maryland",
+      "lat": 39.2908816,
+      "lng": -76.610759,
+      "population": 585708
+    },
+    {
+      "id": "us-milwaukee",
+      "country_code": "US",
+      "name": "Milwaukee",
+      "state": "Wisconsin",
+      "lat": 43.0386475,
+      "lng": -87.9090751,
+      "population": 577222
+    },
+    {
+      "id": "us-albuquerque",
+      "country_code": "US",
+      "name": "Albuquerque",
+      "state": "New Mexico",
+      "lat": 35.0841034,
+      "lng": -106.650985,
+      "population": 564559
+    },
+    {
+      "id": "us-tucson",
+      "country_code": "US",
+      "name": "Tucson",
+      "state": "Arizona",
+      "lat": 32.2228765,
+      "lng": -110.974847,
+      "population": 548073
+    },
+    {
+      "id": "us-fresno",
+      "country_code": "US",
+      "name": "Fresno",
+      "state": "California",
+      "lat": 36.7394421,
+      "lng": -119.78483,
+      "population": 542107
+    },
+    {
+      "id": "us-mesa",
+      "country_code": "US",
+      "name": "Mesa",
+      "state": "Arizona",
+      "lat": 33.4151005,
+      "lng": -111.831455,
+      "population": 518012
+    },
+    {
+      "id": "us-sacramento",
+      "country_code": "US",
+      "name": "Sacramento",
+      "state": "California",
+      "lat": 38.5810606,
+      "lng": -121.493895,
+      "population": 513624
+    },
+    {
+      "id": "us-atlanta",
+      "country_code": "US",
+      "name": "Atlanta",
+      "state": "Georgia",
+      "lat": 33.7544657,
+      "lng": -84.3898151,
+      "population": 498715
+    },
+    {
+      "id": "us-kansas-city",
+      "country_code": "US",
+      "name": "Kansas City",
+      "state": "Missouri",
+      "lat": 39.100105,
+      "lng": -94.5781416,
+      "population": 495327
+    },
+    {
+      "id": "us-colorado-springs",
+      "country_code": "US",
+      "name": "Colorado Springs",
+      "state": "Colorado",
+      "lat": 38.8339578,
+      "lng": -104.825348,
+      "population": 478221
+    },
+    {
+      "id": "us-omaha",
+      "country_code": "US",
+      "name": "Omaha",
+      "state": "Nebraska",
+      "lat": 41.2587459,
+      "lng": -95.9383758,
+      "population": 486051
+    },
+    {
+      "id": "us-raleigh",
+      "country_code": "US",
+      "name": "Raleigh",
+      "state": "North Carolina",
+      "lat": 35.7803977,
+      "lng": -78.6390989,
+      "population": 474069
+    },
+    {
+      "id": "us-miami",
+      "country_code": "US",
+      "name": "Miami",
+      "state": "Florida",
+      "lat": 25.7741566,
+      "lng": -80.1935973,
+      "population": 442241
+    },
+    {
+      "id": "us-long-beach",
+      "country_code": "US",
+      "name": "Long Beach",
+      "state": "California",
+      "lat": 33.7690164,
+      "lng": -118.191604,
+      "population": 462257
+    },
+    {
+      "id": "us-virginia-beach",
+      "country_code": "US",
+      "name": "Virginia Beach",
+      "state": "Virginia",
+      "lat": 36.8496579,
+      "lng": -75.9760751,
+      "population": 459470
+    },
+    {
+      "id": "us-oakland",
+      "country_code": "US",
+      "name": "Oakland",
+      "state": "California",
+      "lat": 37.8044557,
+      "lng": -122.271356,
+      "population": 433031
+    },
+    {
+      "id": "us-minneapolis",
+      "country_code": "US",
+      "name": "Minneapolis",
+      "state": "Minnesota",
+      "lat": 44.9772995,
+      "lng": -93.2654692,
+      "population": 429954
+    },
+    {
+      "id": "us-tulsa",
+      "country_code": "US",
+      "name": "Tulsa",
+      "state": "Oklahoma",
+      "lat": 36.1563122,
+      "lng": -95.9927516,
+      "population": 413066
+    },
+    {
+      "id": "us-tampa",
+      "country_code": "US",
+      "name": "Tampa",
+      "state": "Florida",
+      "lat": 27.9449854,
+      "lng": -82.4583107,
+      "population": 407599
+    },
+    {
+      "id": "us-arlington",
+      "country_code": "US",
+      "name": "Arlington",
+      "state": "Texas",
+      "lat": 32.7355816,
+      "lng": -97.1071186,
+      "population": 400316
+    },
+    {
+      "id": "us-new-orleans",
+      "country_code": "US",
+      "name": "New Orleans",
+      "state": "Louisiana",
+      "lat": 29.9561422,
+      "lng": -90.0733934,
+      "population": 390144
+    },
+    {
+      "id": "us-wichita",
+      "country_code": "US",
+      "name": "Wichita",
+      "state": "Kansas",
+      "lat": 37.6922361,
+      "lng": -97.3375448,
+      "population": 397532
+    },
+    {
+      "id": "us-cleveland",
+      "country_code": "US",
+      "name": "Cleveland",
+      "state": "Ohio",
+      "lat": 41.4996574,
+      "lng": -81.6936772,
+      "population": 372624
+    },
+    {
+      "id": "us-bakersfield",
+      "country_code": "US",
+      "name": "Bakersfield",
+      "state": "California",
+      "lat": 35.3738712,
+      "lng": -119.019463,
+      "population": 403455
+    },
+    {
+      "id": "us-aurora",
+      "country_code": "US",
+      "name": "Aurora",
+      "state": "Colorado",
+      "lat": 39.7405111,
+      "lng": -104.830994,
+      "population": 379289
+    },
+    {
+      "id": "us-anaheim",
+      "country_code": "US",
+      "name": "Anaheim",
+      "state": "California",
+      "lat": 33.8347516,
+      "lng": -117.911732,
+      "population": 353676
+    },
+    {
+      "id": "us-honolulu",
+      "country_code": "US",
+      "name": "Honolulu",
+      "state": "Hawaii",
+      "lat": 21.304547,
+      "lng": -157.855676,
+      "population": 345064
+    },
+    {
+      "id": "us-santa-ana",
+      "country_code": "US",
+      "name": "Santa Ana",
+      "state": "California",
+      "lat": 33.7494951,
+      "lng": -117.873221,
+      "population": 332318
+    },
+    {
+      "id": "us-riverside",
+      "country_code": "US",
+      "name": "Riverside",
+      "state": "California",
+      "lat": 33.9824949,
+      "lng": -117.374238,
+      "population": 331360
+    },
+    {
+      "id": "us-corpus-christi",
+      "country_code": "US",
+      "name": "Corpus Christi",
+      "state": "Texas",
+      "lat": 27.7635302,
+      "lng": -97.4033191,
+      "population": 326586
+    },
+    {
+      "id": "us-lexington",
+      "country_code": "US",
+      "name": "Lexington",
+      "state": "Kentucky",
+      "lat": 38.0464066,
+      "lng": -84.4970393,
+      "population": 323780
+    },
+    {
+      "id": "us-henderson",
+      "country_code": "US",
+      "name": "Henderson",
+      "state": "Nevada",
+      "lat": 36.0319602,
+      "lng": -114.9822716,
+      "population": 320189
+    },
+    {
+      "id": "us-stockton",
+      "country_code": "US",
+      "name": "Stockton",
+      "state": "California",
+      "lat": 37.9577016,
+      "lng": -121.290779,
+      "population": 312697
+    },
+    {
+      "id": "us-saint-paul",
+      "country_code": "US",
+      "name": "Saint Paul",
+      "state": "Minnesota",
+      "lat": 44.9497487,
+      "lng": -93.0931028,
+      "population": 308096
+    },
+    {
+      "id": "us-cincinnati",
+      "country_code": "US",
+      "name": "Cincinnati",
+      "state": "Ohio",
+      "lat": 39.1014537,
+      "lng": -84.5124602,
+      "population": 309317
+    },
+    {
+      "id": "us-st.-louis",
+      "country_code": "US",
+      "name": "St. Louis",
+      "state": "Missouri",
+      "lat": 38.6254063,
+      "lng": -90.190009,
+      "population": 301578
+    },
+    {
+      "id": "us-pittsburgh",
+      "country_code": "US",
+      "name": "Pittsburgh",
+      "state": "Pennsylvania",
+      "lat": 40.4406968,
+      "lng": -80.0025666,
+      "population": 302971
+    },
+    {
+      "id": "us-greensboro",
+      "country_code": "US",
+      "name": "Greensboro",
+      "state": "North Carolina",
+      "lat": 36.0726355,
+      "lng": -79.7919754,
+      "population": 296710
+    },
+    {
+      "id": "us-anchorage",
+      "country_code": "US",
+      "name": "Anchorage",
+      "state": "Alaska",
+      "lat": 61.2163129,
+      "lng": -149.894852,
+      "population": 291247
+    },
+    {
+      "id": "us-plano",
+      "country_code": "US",
+      "name": "Plano",
+      "state": "Texas",
+      "lat": 33.0136764,
+      "lng": -96.6925096,
+      "population": 288061
+    },
+    {
+      "id": "us-lincoln",
+      "country_code": "US",
+      "name": "Lincoln",
+      "state": "Nebraska",
+      "lat": 40.8088861,
+      "lng": -96.7077751,
+      "population": 289102
+    },
+    {
+      "id": "us-orlando",
+      "country_code": "US",
+      "name": "Orlando",
+      "state": "Florida",
+      "lat": 28.5421218,
+      "lng": -81.379045,
+      "population": 307573
+    },
+    {
+      "id": "us-irvine",
+      "country_code": "US",
+      "name": "Irvine",
+      "state": "California",
+      "lat": 33.6856969,
+      "lng": -117.825981,
+      "population": 307670
+    },
+    {
+      "id": "us-newark",
+      "country_code": "US",
+      "name": "Newark",
+      "state": "New Jersey",
+      "lat": 40.735657,
+      "lng": -74.1723667,
+      "population": 311549
+    },
+    {
+      "id": "us-toledo",
+      "country_code": "US",
+      "name": "Toledo",
+      "state": "Ohio",
+      "lat": 41.6529143,
+      "lng": -83.5378173,
+      "population": 270871
+    },
+    {
+      "id": "us-durham",
+      "country_code": "US",
+      "name": "Durham",
+      "state": "North Carolina",
+      "lat": 35.996653,
+      "lng": -78.9018053,
+      "population": 278993
+    },
+    {
+      "id": "us-chula-vista",
+      "country_code": "US",
+      "name": "Chula Vista",
+      "state": "California",
+      "lat": 32.6400541,
+      "lng": -117.084195,
+      "population": 274492
+    },
+    {
+      "id": "us-fort-wayne",
+      "country_code": "US",
+      "name": "Fort Wayne",
+      "state": "Indiana",
+      "lat": 41.0799898,
+      "lng": -85.1386015,
+      "population": 270402
+    },
+    {
+      "id": "us-jersey-city",
+      "country_code": "US",
+      "name": "Jersey City",
+      "state": "New Jersey",
+      "lat": 40.7215682,
+      "lng": -74.047455,
+      "population": 292449
+    },
+    {
+      "id": "us-st.-petersburg",
+      "country_code": "US",
+      "name": "St. Petersburg",
+      "state": "Florida",
+      "lat": 27.7712264,
+      "lng": -82.6340259,
+      "population": 265098
+    },
+    {
+      "id": "us-laredo",
+      "country_code": "US",
+      "name": "Laredo",
+      "state": "Texas",
+      "lat": 27.5079211,
+      "lng": -99.5069834,
+      "population": 262491
+    },
+    {
+      "id": "us-madison",
+      "country_code": "US",
+      "name": "Madison",
+      "state": "Wisconsin",
+      "lat": 43.07469,
+      "lng": -89.3841663,
+      "population": 269196
+    },
+    {
+      "id": "us-chandler",
+      "country_code": "US",
+      "name": "Chandler",
+      "state": "Arizona",
+      "lat": 33.3062031,
+      "lng": -111.841185,
+      "population": 275987
+    },
+    {
+      "id": "us-buffalo",
+      "country_code": "US",
+      "name": "Buffalo",
+      "state": "New York",
+      "lat": 42.8864163,
+      "lng": -78.8781493,
+      "population": 278349
+    },
+    {
+      "id": "us-lubbock",
+      "country_code": "US",
+      "name": "Lubbock",
+      "state": "Texas",
+      "lat": 33.5855677,
+      "lng": -101.8470215,
+      "population": 258862
+    },
+    {
+      "id": "us-scottsdale",
+      "country_code": "US",
+      "name": "Scottsdale",
+      "state": "Arizona",
+      "lat": 33.4942189,
+      "lng": -111.926018,
+      "population": 258069
+    },
+    {
+      "id": "us-reno",
+      "country_code": "US",
+      "name": "Reno",
+      "state": "Nevada",
+      "lat": 39.5261788,
+      "lng": -119.812658,
+      "population": 264165
+    },
+    {
+      "id": "us-glendale",
+      "country_code": "US",
+      "name": "Glendale",
+      "state": "Arizona",
+      "lat": 33.5386858,
+      "lng": -112.185994,
+      "population": 252381
+    },
+    {
+      "id": "us-gilbert",
+      "country_code": "US",
+      "name": "Gilbert",
+      "state": "Arizona",
+      "lat": 33.3527632,
+      "lng": -111.789037,
+      "population": 267918
+    },
+    {
+      "id": "us-winston-salem",
+      "country_code": "US",
+      "name": "Winston-Salem",
+      "state": "North Carolina",
+      "lat": 36.0998131,
+      "lng": -80.2440518,
+      "population": 247945
+    },
+    {
+      "id": "us-north-las-vegas",
+      "country_code": "US",
+      "name": "North Las Vegas",
+      "state": "Nevada",
+      "lat": 36.2005191,
+      "lng": -115.1214745,
+      "population": 262527
+    },
+    {
+      "id": "us-norfolk",
+      "country_code": "US",
+      "name": "Norfolk",
+      "state": "Virginia",
+      "lat": 36.8493695,
+      "lng": -76.2899539,
+      "population": 242742
+    },
+    {
+      "id": "us-chesapeake",
+      "country_code": "US",
+      "name": "Chesapeake",
+      "state": "Virginia",
+      "lat": 36.7168315,
+      "lng": -76.2494453,
+      "population": 249422
+    },
+    {
+      "id": "us-garland",
+      "country_code": "US",
+      "name": "Garland",
+      "state": "Texas",
+      "lat": 32.912624,
+      "lng": -96.6388833,
+      "population": 239928
+    },
+    {
+      "id": "us-irving",
+      "country_code": "US",
+      "name": "Irving",
+      "state": "Texas",
+      "lat": 32.8295183,
+      "lng": -96.9442177,
+      "population": 239798
+    },
+    {
+      "id": "us-hialeah",
+      "country_code": "US",
+      "name": "Hialeah",
+      "state": "Florida",
+      "lat": 25.8267775,
+      "lng": -80.2814009,
+      "population": 238942
+    },
+    {
+      "id": "us-fremont",
+      "country_code": "US",
+      "name": "Fremont",
+      "state": "California",
+      "lat": 37.5482697,
+      "lng": -121.988571,
+      "population": 234962
+    },
+    {
+      "id": "us-boise",
+      "country_code": "US",
+      "name": "Boise",
+      "state": "Idaho",
+      "lat": 43.6166163,
+      "lng": -116.200886,
+      "population": 235684
+    },
+    {
+      "id": "us-richmond",
+      "country_code": "US",
+      "name": "Richmond",
+      "state": "Virginia",
+      "lat": 37.5385087,
+      "lng": -77.43428,
+      "population": 230436
+    },
+    {
+      "id": "us-baton-rouge",
+      "country_code": "US",
+      "name": "Baton Rouge",
+      "state": "Louisiana",
+      "lat": 30.4494155,
+      "lng": -91.1869659,
+      "population": 227470
+    },
+    {
+      "id": "ru-moscow",
+      "country_code": "RU",
+      "name": "Moscow",
+      "state": "Moscow",
+      "lat": 55.7505412,
+      "lng": 37.6174782,
+      "population": 12678079
+    },
+    {
+      "id": "ru-saint-petersburg",
+      "country_code": "RU",
+      "name": "Saint Petersburg",
+      "state": "Leningrad Oblast",
+      "lat": 59.8554978,
+      "lng": 30.5080418,
+      "population": 5601911
+    },
+    {
+      "id": "ru-novosibirsk",
+      "country_code": "RU",
+      "name": "Novosibirsk",
+      "state": "Novosibirsk Oblast",
+      "lat": 55.0288307,
+      "lng": 82.9226887,
+      "population": 1633595
+    },
+    {
+      "id": "ru-yekaterinburg",
+      "country_code": "RU",
+      "name": "Yekaterinburg",
+      "state": "Sverdlovsk Oblast",
+      "lat": 56.8382071,
+      "lng": 60.6007886,
+      "population": 1544376
+    },
+    {
+      "id": "ru-kazan",
+      "country_code": "RU",
+      "name": "Kazan",
+      "state": "Tatarstan",
+      "lat": 55.7946485,
+      "lng": 49.1115022,
+      "population": 1308660
+    },
+    {
+      "id": "ru-nizhny-novgorod",
+      "country_code": "RU",
+      "name": "Nizhny Novgorod",
+      "state": "Nizhny Novgorod Oblast",
+      "lat": 56.1301421,
+      "lng": 44.1364688,
+      "population": 1228199
+    },
+    {
+      "id": "ru-chelyabinsk",
+      "country_code": "RU",
+      "name": "Chelyabinsk",
+      "state": "Chelyabinsk Oblast",
+      "lat": 55.1598408,
+      "lng": 61.4025547,
+      "population": 1196680
+    },
+    {
+      "id": "ru-samara",
+      "country_code": "RU",
+      "name": "Samara",
+      "state": "Samara Oblast",
+      "lat": 53.1956255,
+      "lng": 50.1014927,
+      "population": 1156719
+    },
+    {
+      "id": "ru-omsk",
+      "country_code": "RU",
+      "name": "Omsk",
+      "state": "Omsk Oblast",
+      "lat": 54.9830067,
+      "lng": 73.3745224,
+      "population": 1139897
+    },
+    {
+      "id": "ru-rostov-on-don",
+      "country_code": "RU",
+      "name": "Rostov-on-Don",
+      "state": "Rostov Oblast",
+      "lat": 47.2610441,
+      "lng": 39.7249086,
+      "population": 1142162
+    },
+    {
+      "id": "ru-ufa",
+      "country_code": "RU",
+      "name": "Ufa",
+      "state": "Bashkortostan",
+      "lat": 54.7261409,
+      "lng": 55.947499,
+      "population": 1144809
+    },
+    {
+      "id": "ru-krasnoyarsk",
+      "country_code": "RU",
+      "name": "Krasnoyarsk",
+      "state": "Krasnoyarsk Krai",
+      "lat": 56.0091173,
+      "lng": 92.872586,
+      "population": 1093771
+    },
+    {
+      "id": "ru-voronezh",
+      "country_code": "RU",
+      "name": "Voronezh",
+      "state": "Voronezh Oblast",
+      "lat": 51.6800081,
+      "lng": 39.183725,
+      "population": 1058261
+    },
+    {
+      "id": "ru-perm",
+      "country_code": "RU",
+      "name": "Perm",
+      "state": "Perm Krai",
+      "lat": 58.0108531,
+      "lng": 56.2318528,
+      "population": 1055397
+    },
+    {
+      "id": "ru-volgograd",
+      "country_code": "RU",
+      "name": "Volgograd",
+      "state": "Volgograd Oblast",
+      "lat": 48.7081906,
+      "lng": 44.5153353,
+      "population": 1008998
+    },
+    {
+      "id": "ru-krasnodar",
+      "country_code": "RU",
+      "name": "Krasnodar",
+      "state": "Krasnodar Krai",
+      "lat": 45.0351532,
+      "lng": 38.9772396,
+      "population": 948827
+    },
+    {
+      "id": "ru-saratov",
+      "country_code": "RU",
+      "name": "Saratov",
+      "state": "Saratov Oblast",
+      "lat": 51.530018,
+      "lng": 46.034683,
+      "population": 838042
+    },
+    {
+      "id": "ru-tyumen",
+      "country_code": "RU",
+      "name": "Tyumen",
+      "state": "Tyumen Oblast",
+      "lat": 57.153534,
+      "lng": 65.542274,
+      "population": 847488
+    },
+    {
+      "id": "ru-tolyatti",
+      "country_code": "RU",
+      "name": "Tolyatti",
+      "state": "Samara Oblast",
+      "lat": 53.5098845,
+      "lng": 49.4189187,
+      "population": 684709
+    },
+    {
+      "id": "ru-izhevsk",
+      "country_code": "RU",
+      "name": "Izhevsk",
+      "state": "Udmurtia",
+      "lat": 56.8605175,
+      "lng": 53.1977307,
+      "population": 646277
+    },
+    {
+      "id": "ru-barnaul",
+      "country_code": "RU",
+      "name": "Barnaul",
+      "state": "Altai Krai",
+      "lat": 53.3475493,
+      "lng": 83.7788448,
+      "population": 631157
+    },
+    {
+      "id": "ru-ulyanovsk",
+      "country_code": "RU",
+      "name": "Ulyanovsk",
+      "state": "Ulyanovsk Oblast",
+      "lat": 54.3150278,
+      "lng": 48.403373,
+      "population": 627705
+    },
+    {
+      "id": "ru-irkutsk",
+      "country_code": "RU",
+      "name": "Irkutsk",
+      "state": "Irkutsk Oblast",
+      "lat": 52.2891225,
+      "lng": 104.279829,
+      "population": 623736
+    },
+    {
+      "id": "ru-khabarovsk",
+      "country_code": "RU",
+      "name": "Khabarovsk",
+      "state": "Khabarovsk Krai",
+      "lat": 48.4812568,
+      "lng": 135.0762968,
+      "population": 617441
+    },
+    {
+      "id": "ru-yaroslavl",
+      "country_code": "RU",
+      "name": "Yaroslavl",
+      "state": "Yaroslavl Oblast",
+      "lat": 57.6508433,
+      "lng": 39.8718634,
+      "population": 608353
+    },
+    {
+      "id": "ru-vladivostok",
+      "country_code": "RU",
+      "name": "Vladivostok",
+      "state": "Primorsky Krai",
+      "lat": 43.1150678,
+      "lng": 131.8855768,
+      "population": 605049
+    },
+    {
+      "id": "ru-makhachkala",
+      "country_code": "RU",
+      "name": "Makhachkala",
+      "state": "Dagestan",
+      "lat": 42.9830241,
+      "lng": 47.5048717,
+      "population": 604081
+    },
+    {
+      "id": "ru-tomsk",
+      "country_code": "RU",
+      "name": "Tomsk",
+      "state": "Tomsk Oblast",
+      "lat": 56.4887526,
+      "lng": 84.9523434,
+      "population": 575352
+    },
+    {
+      "id": "ru-orenburg",
+      "country_code": "RU",
+      "name": "Orenburg",
+      "state": "Orenburg Oblast",
+      "lat": 51.7671248,
+      "lng": 55.0978517,
+      "population": 572877
+    },
+    {
+      "id": "ru-kemerovo",
+      "country_code": "RU",
+      "name": "Kemerovo",
+      "state": "Kemerovo Oblast",
+      "lat": 54.7264651,
+      "lng": 86.2186718,
+      "population": 558973
+    },
+    {
+      "id": "ru-novokuznetsk",
+      "country_code": "RU",
+      "name": "Novokuznetsk",
+      "state": "Kemerovo Oblast",
+      "lat": 53.7575903,
+      "lng": 87.1358494,
+      "population": 547904
+    },
+    {
+      "id": "ru-ryazan",
+      "country_code": "RU",
+      "name": "Ryazan",
+      "state": "Ryazan Oblast",
+      "lat": 54.6295687,
+      "lng": 39.7425039,
+      "population": 539290
+    },
+    {
+      "id": "ru-naberezhnye-chelny",
+      "country_code": "RU",
+      "name": "Naberezhnye Chelny",
+      "state": "Tatarstan",
+      "lat": 55.7419774,
+      "lng": 52.399207,
+      "population": 533839
+    },
+    {
+      "id": "ru-astrakhan",
+      "country_code": "RU",
+      "name": "Astrakhan",
+      "state": "Astrakhan Oblast",
+      "lat": 46.3498308,
+      "lng": 48.0326203,
+      "population": 524371
+    },
+    {
+      "id": "ru-penza",
+      "country_code": "RU",
+      "name": "Penza",
+      "state": "Penza Oblast",
+      "lat": 53.1953477,
+      "lng": 45.0190437,
+      "population": 520300
+    },
+    {
+      "id": "ru-kirov",
+      "country_code": "RU",
+      "name": "Kirov",
+      "state": "Kirov Oblast",
+      "lat": 58.6035661,
+      "lng": 49.6666241,
+      "population": 518348
+    },
+    {
+      "id": "ru-lipetsk",
+      "country_code": "RU",
+      "name": "Lipetsk",
+      "state": "Lipetsk Oblast",
+      "lat": 52.6051488,
+      "lng": 39.5963775,
+      "population": 508573
+    },
+    {
+      "id": "ru-balashikha",
+      "country_code": "RU",
+      "name": "Balashikha",
+      "state": "Moscow Oblast",
+      "lat": 55.7997662,
+      "lng": 37.9373707,
+      "population": 507366
+    },
+    {
+      "id": "ru-cheboksary",
+      "country_code": "RU",
+      "name": "Cheboksary",
+      "state": "Chuvashia",
+      "lat": 56.1399598,
+      "lng": 47.2480999,
+      "population": 497618
+    },
+    {
+      "id": "ru-kaliningrad",
+      "country_code": "RU",
+      "name": "Kaliningrad",
+      "state": "Kaliningrad Oblast",
+      "lat": 54.7046485,
+      "lng": 20.4565666,
+      "population": 489359
+    },
+    {
+      "id": "ru-tula",
+      "country_code": "RU",
+      "name": "Tula",
+      "state": "Tula Oblast",
+      "lat": 54.1930321,
+      "lng": 37.61754,
+      "population": 475161
+    },
+    {
+      "id": "ru-kursk",
+      "country_code": "RU",
+      "name": "Kursk",
+      "state": "Kursk Oblast",
+      "lat": 51.7270357,
+      "lng": 36.192248,
+      "population": 450854
+    },
+    {
+      "id": "ru-stavropol",
+      "country_code": "RU",
+      "name": "Stavropol",
+      "state": "Stavropol Krai",
+      "lat": 45.0442234,
+      "lng": 41.9897172,
+      "population": 450680
+    },
+    {
+      "id": "ru-sevastopol",
+      "country_code": "RU",
+      "name": "Sevastopol",
+      "state": "Sevastopol",
+      "lat": 44.5878744,
+      "lng": 33.4797193,
+      "population": 449138
+    },
+    {
+      "id": "ru-ulan-ude",
+      "country_code": "RU",
+      "name": "Ulan-Ude",
+      "state": "Buryatia",
+      "lat": 51.8357841,
+      "lng": 107.5839105,
+      "population": 439128
+    },
+    {
+      "id": "ru-tver",
+      "country_code": "RU",
+      "name": "Tver",
+      "state": "Tver Oblast",
+      "lat": 56.858675,
+      "lng": 35.9208284,
+      "population": 425072
+    },
+    {
+      "id": "ru-magnitogorsk",
+      "country_code": "RU",
+      "name": "Magnitogorsk",
+      "state": "Chelyabinsk Oblast",
+      "lat": 53.4070173,
+      "lng": 58.9811297,
+      "population": 413351
+    },
+    {
+      "id": "ru-ivanovo",
+      "country_code": "RU",
+      "name": "Ivanovo",
+      "state": "Ivanovo Oblast",
+      "lat": 56.9956855,
+      "lng": 40.9812104,
+      "population": 404598
+    },
+    {
+      "id": "ru-bryansk",
+      "country_code": "RU",
+      "name": "Bryansk",
+      "state": "Bryansk Oblast",
+      "lat": 53.2423778,
+      "lng": 34.3668288,
+      "population": 402758
+    },
+    {
+      "id": "ru-belgorod",
+      "country_code": "RU",
+      "name": "Belgorod",
+      "state": "Belgorod Oblast",
+      "lat": 50.5955595,
+      "lng": 36.5873394,
+      "population": 391554
+    },
+    {
+      "id": "ru-surgut",
+      "country_code": "RU",
+      "name": "Surgut",
+      "state": "Khanty-Mansi",
+      "lat": 61.2419217,
+      "lng": 73.3952717,
+      "population": 379438
+    },
+    {
+      "id": "ru-vladimir",
+      "country_code": "RU",
+      "name": "Vladimir",
+      "state": "Vladimir Oblast",
+      "lat": 56.1288899,
+      "lng": 40.4075203,
+      "population": 357024
+    },
+    {
+      "id": "ru-nizhny-tagil",
+      "country_code": "RU",
+      "name": "Nizhny Tagil",
+      "state": "Sverdlovsk Oblast",
+      "lat": 57.9076001,
+      "lng": 59.97077,
+      "population": 355694
+    },
+    {
+      "id": "ru-arkhangelsk",
+      "country_code": "RU",
+      "name": "Arkhangelsk",
+      "state": "Arkhangelsk Oblast",
+      "lat": 64.543022,
+      "lng": 40.537121,
+      "population": 346784
+    },
+    {
+      "id": "ru-chita",
+      "country_code": "RU",
+      "name": "Chita",
+      "state": "Zabaykalsky Krai",
+      "lat": 52.033409,
+      "lng": 113.500893,
+      "population": 339453
+    },
+    {
+      "id": "ru-smolensk",
+      "country_code": "RU",
+      "name": "Smolensk",
+      "state": "Smolensk Oblast",
+      "lat": 54.7814057,
+      "lng": 32.0461261,
+      "population": 329672
+    },
+    {
+      "id": "ru-kaluga",
+      "country_code": "RU",
+      "name": "Kaluga",
+      "state": "Kaluga Oblast",
+      "lat": 54.5101087,
+      "lng": 36.2598115,
+      "population": 337058
+    },
+    {
+      "id": "ru-volzhsky",
+      "country_code": "RU",
+      "name": "Volzhsky",
+      "state": "Volgograd Oblast",
+      "lat": 48.829992,
+      "lng": 44.7654586,
+      "population": 323293
+    },
+    {
+      "id": "ru-cherepovets",
+      "country_code": "RU",
+      "name": "Cherepovets",
+      "state": "Vologda Oblast",
+      "lat": 59.1242181,
+      "lng": 37.9123351,
+      "population": 314300
+    },
+    {
+      "id": "ru-saransk",
+      "country_code": "RU",
+      "name": "Saransk",
+      "state": "Mordovia",
+      "lat": 54.18671,
+      "lng": 45.18383,
+      "population": 312698
+    },
+    {
+      "id": "ru-vologda",
+      "country_code": "RU",
+      "name": "Vologda",
+      "state": "Vologda Oblast",
+      "lat": 59.2264585,
+      "lng": 39.8722391,
+      "population": 311700
+    },
+    {
+      "id": "ru-yakutsk",
+      "country_code": "RU",
+      "name": "Yakutsk",
+      "state": "Sakha",
+      "lat": 62.0274078,
+      "lng": 129.7319787,
+      "population": 318515
+    },
+    {
+      "id": "ru-tambov",
+      "country_code": "RU",
+      "name": "Tambov",
+      "state": "Tambov Oblast",
+      "lat": 52.7216164,
+      "lng": 41.4523988,
+      "population": 290305
+    },
+    {
+      "id": "ru-sterlitamak",
+      "country_code": "RU",
+      "name": "Sterlitamak",
+      "state": "Bashkortostan",
+      "lat": 53.6194416,
+      "lng": 55.9616172,
+      "population": 280233
+    },
+    {
+      "id": "ru-kostroma",
+      "country_code": "RU",
+      "name": "Kostroma",
+      "state": "Kostroma Oblast",
+      "lat": 57.7679158,
+      "lng": 40.9269141,
+      "population": 277648
+    },
+    {
+      "id": "ru-petrozavodsk",
+      "country_code": "RU",
+      "name": "Petrozavodsk",
+      "state": "Karelia",
+      "lat": 61.789221,
+      "lng": 34.3688041,
+      "population": 280127
+    },
+    {
+      "id": "ru-nizhnevartovsk",
+      "country_code": "RU",
+      "name": "Nizhnevartovsk",
+      "state": "Khanty-Mansi",
+      "lat": 60.9384134,
+      "lng": 76.5590829,
+      "population": 275800
+    },
+    {
+      "id": "ru-novorossiysk",
+      "country_code": "RU",
+      "name": "Novorossiysk",
+      "state": "Krasnodar Krai",
+      "lat": 44.7239578,
+      "lng": 37.7690711,
+      "population": 275400
+    },
+    {
+      "id": "ru-yoshkar-ola",
+      "country_code": "RU",
+      "name": "Yoshkar-Ola",
+      "state": "Mari El",
+      "lat": 56.6315556,
+      "lng": 47.8868803,
+      "population": 271386
+    },
+    {
+      "id": "ru-murmansk",
+      "country_code": "RU",
+      "name": "Murmansk",
+      "state": "Murmansk Oblast",
+      "lat": 68.970665,
+      "lng": 33.07497,
+      "population": 270384
+    },
+    {
+      "id": "ru-taganrog",
+      "country_code": "RU",
+      "name": "Taganrog",
+      "state": "Rostov Oblast",
+      "lat": 47.2153657,
+      "lng": 38.9285216,
+      "population": 250287
+    },
+    {
+      "id": "ru-komsomolsk-on-amur",
+      "country_code": "RU",
+      "name": "Komsomolsk-on-Amur",
+      "state": "Khabarovsk Krai",
+      "lat": 50.5497277,
+      "lng": 137.0099189,
+      "population": 249810
+    },
+    {
+      "id": "ru-syktyvkar",
+      "country_code": "RU",
+      "name": "Syktyvkar",
+      "state": "Komi",
+      "lat": 61.6685237,
+      "lng": 50.8352024,
+      "population": 244290
+    },
+    {
+      "id": "ru-nizhny-novgorod",
+      "country_code": "RU",
+      "name": "Nizhny Novgorod",
+      "state": "Nizhny Novgorod Oblast",
+      "lat": 56.1301421,
+      "lng": 44.1364688,
+      "population": 1228199
+    },
+    {
+      "id": "ru-bratsk",
+      "country_code": "RU",
+      "name": "Bratsk",
+      "state": "Irkutsk Oblast",
+      "lat": 56.1517085,
+      "lng": 101.6334907,
+      "population": 232370
+    },
+    {
+      "id": "ru-oryol",
+      "country_code": "RU",
+      "name": "Oryol",
+      "state": "Oryol Oblast",
+      "lat": 52.9709262,
+      "lng": 36.0642127,
+      "population": 310654
+    },
+    {
+      "id": "ru-nalchik",
+      "country_code": "RU",
+      "name": "Nalchik",
+      "state": "Kabardino-Balkaria",
+      "lat": 43.4769604,
+      "lng": 43.5966578,
+      "population": 240203
+    },
+    {
+      "id": "ru-mytishchi",
+      "country_code": "RU",
+      "name": "Mytishchi",
+      "state": "Moscow Oblast",
+      "lat": 55.9094928,
+      "lng": 37.7339358,
+      "population": 232324
+    },
+    {
+      "id": "ru-shakhty",
+      "country_code": "RU",
+      "name": "Shakhty",
+      "state": "Rostov Oblast",
+      "lat": 47.7094622,
+      "lng": 40.2154859,
+      "population": 235607
+    },
+    {
+      "id": "ru-angarsk",
+      "country_code": "RU",
+      "name": "Angarsk",
+      "state": "Irkutsk Oblast",
+      "lat": 52.5443167,
+      "lng": 103.8882138,
+      "population": 228553
+    },
+    {
+      "id": "ru-blagoveshchensk",
+      "country_code": "RU",
+      "name": "Blagoveshchensk",
+      "state": "Amur Oblast",
+      "lat": 50.2600417,
+      "lng": 127.5337378,
+      "population": 225592
+    },
+    {
+      "id": "ru-stary-oskol",
+      "country_code": "RU",
+      "name": "Stary Oskol",
+      "state": "Belgorod Oblast",
+      "lat": 51.298038,
+      "lng": 37.833202,
+      "population": 221163
+    },
+    {
+      "id": "ru-podolsk",
+      "country_code": "RU",
+      "name": "Podolsk",
+      "state": "Moscow Oblast",
+      "lat": 55.4308841,
+      "lng": 37.5453056,
+      "population": 215108
+    },
+    {
+      "id": "ru-orsk",
+      "country_code": "RU",
+      "name": "Orsk",
+      "state": "Orenburg Oblast",
+      "lat": 51.2305015,
+      "lng": 58.4738015,
+      "population": 239752
+    },
+    {
+      "id": "ru-noginsk",
+      "country_code": "RU",
+      "name": "Noginsk",
+      "state": "Moscow Oblast",
+      "lat": 55.8553511,
+      "lng": 38.4411898,
+      "population": 253540
+    },
+    {
+      "id": "ru-khimki",
+      "country_code": "RU",
+      "name": "Khimki",
+      "state": "Moscow Oblast",
+      "lat": 55.8917293,
+      "lng": 37.4396994,
+      "population": 259550
+    },
+    {
+      "id": "ru-engels",
+      "country_code": "RU",
+      "name": "Engels",
+      "state": "Saratov Oblast",
+      "lat": 51.5013775,
+      "lng": 46.1233093,
+      "population": 203775
+    },
+    {
+      "id": "ru-grozny",
+      "country_code": "RU",
+      "name": "Grozny",
+      "state": "Chechnya",
+      "lat": 43.3086383,
+      "lng": 45.7065735,
+      "population": 328533
+    },
+    {
+      "id": "ru-pskov",
+      "country_code": "RU",
+      "name": "Pskov",
+      "state": "Pskov Oblast",
+      "lat": 57.8173923,
+      "lng": 28.3343465,
+      "population": 209688
+    },
+    {
+      "id": "ru-biysk",
+      "country_code": "RU",
+      "name": "Biysk",
+      "state": "Altai Krai",
+      "lat": 52.5394905,
+      "lng": 85.2148673,
+      "population": 203138
+    },
+    {
+      "id": "ru-balakovo",
+      "country_code": "RU",
+      "name": "Balakovo",
+      "state": "Saratov Oblast",
+      "lat": 52.01812,
+      "lng": 47.819141,
+      "population": 187816
+    },
+    {
+      "id": "ru-armavir",
+      "country_code": "RU",
+      "name": "Armavir",
+      "state": "Krasnodar Krai",
+      "lat": 44.9993585,
+      "lng": 41.1294061,
+      "population": 188832
+    },
+    {
+      "id": "ru-korolev",
+      "country_code": "RU",
+      "name": "Korolev",
+      "state": "Moscow Oblast",
+      "lat": 55.9190049,
+      "lng": 37.8150443,
+      "population": 226037
+    },
+    {
+      "id": "ru-petropavlovsk-kamchatsky",
+      "country_code": "RU",
+      "name": "Petropavlovsk-Kamchatsky",
+      "state": "Kamchatka Krai",
+      "lat": 53.0199838,
+      "lng": 158.6471356,
+      "population": 181216
+    },
+    {
+      "id": "ru-lyubertsy",
+      "country_code": "RU",
+      "name": "Lyubertsy",
+      "state": "Moscow Oblast",
+      "lat": 55.6783142,
+      "lng": 37.89377,
+      "population": 201654
+    },
+    {
+      "id": "ru-prokopyevsk",
+      "country_code": "RU",
+      "name": "Prokopyevsk",
+      "state": "Kemerovo Oblast",
+      "lat": 53.8879117,
+      "lng": 86.7492072,
+      "population": 197255
+    },
+    {
+      "id": "am-yerevan",
+      "country_code": "AM",
+      "name": "Yerevan",
+      "state": "Yerevan",
+      "lat": 40.1553963,
+      "lng": 44.5077993,
+      "population": 1093485
+    },
+    {
+      "id": "am-gyumri",
+      "country_code": "AM",
+      "name": "Gyumri",
+      "state": "Shirak",
+      "lat": 40.7852085,
+      "lng": 43.8416095,
+      "population": 114600
+    },
+    {
+      "id": "am-vanadzor",
+      "country_code": "AM",
+      "name": "Vanadzor",
+      "state": "Lori",
+      "lat": 40.8136308,
+      "lng": 44.4821035,
+      "population": 79223
+    },
+    {
+      "id": "am-vagharshapat",
+      "country_code": "AM",
+      "name": "Vagharshapat",
+      "state": "Armavir",
+      "lat": 40.1627757,
+      "lng": 44.2931665,
+      "population": 46540
+    },
+    {
+      "id": "am-hrazdan",
+      "country_code": "AM",
+      "name": "Hrazdan",
+      "state": "Kotayk",
+      "lat": 40.5196871,
+      "lng": 44.7500706,
+      "population": 41875
+    },
+    {
+      "id": "am-abovyan",
+      "country_code": "AM",
+      "name": "Abovyan",
+      "state": "Kotayk",
+      "lat": 40.2714761,
+      "lng": 44.6333951,
+      "population": 36916
+    },
+    {
+      "id": "am-kapan",
+      "country_code": "AM",
+      "name": "Kapan",
+      "state": "Syunik",
+      "lat": 39.207636,
+      "lng": 46.4049074,
+      "population": 35404
+    },
+    {
+      "id": "am-armavir",
+      "country_code": "AM",
+      "name": "Armavir",
+      "state": "Armavir",
+      "lat": 40.1555485,
+      "lng": 44.0387565,
+      "population": 29319
+    },
+    {
+      "id": "am-gavar",
+      "country_code": "AM",
+      "name": "Gavar",
+      "state": "Gegharkunik",
+      "lat": 40.3513976,
+      "lng": 45.1273162,
+      "population": 23302
+    },
+    {
+      "id": "am-artashat",
+      "country_code": "AM",
+      "name": "Artashat",
+      "state": "Ararat",
+      "lat": 39.9566633,
+      "lng": 44.5471007,
+      "population": 22269
+    },
+    {
+      "id": "am-goris",
+      "country_code": "AM",
+      "name": "Goris",
+      "state": "Syunik",
+      "lat": 39.5052419,
+      "lng": 46.3442334,
+      "population": 20591
+    },
+    {
+      "id": "am-ashtarak",
+      "country_code": "AM",
+      "name": "Ashtarak",
+      "state": "Aragatsotn",
+      "lat": 40.2886849,
+      "lng": 44.3613061,
+      "population": 19615
+    },
+    {
+      "id": "am-sevan",
+      "country_code": "AM",
+      "name": "Sevan",
+      "state": "Gegharkunik",
+      "lat": 40.3925199,
+      "lng": 45.3460867,
+      "population": 19229
+    },
+    {
+      "id": "am-ijevan",
+      "country_code": "AM",
+      "name": "Ijevan",
+      "state": "Tavush",
+      "lat": 40.8779943,
+      "lng": 45.1437542,
+      "population": 16126
+    },
+    {
+      "id": "am-charentsavan",
+      "country_code": "AM",
+      "name": "Charentsavan",
+      "state": "Kotayk",
+      "lat": 40.4029877,
+      "lng": 44.6469349,
+      "population": 15281
+    }
+  ],
+  "neighborhoods": [
+    {
+      "id": "us-new-york-center",
+      "city_id": "us-new-york",
+      "city": "New York",
+      "country": "US",
+      "name": "City Center",
+      "lat": 40.7127281,
+      "lng": -74.0060152,
+      "type": "city_center"
+    },
+    {
+      "id": "us-los-angeles-center",
+      "city_id": "us-los-angeles",
+      "city": "Los Angeles",
+      "country": "US",
+      "name": "City Center",
+      "lat": 34.0536909,
+      "lng": -118.242766,
+      "type": "city_center"
+    },
+    {
+      "id": "us-chicago-center",
+      "city_id": "us-chicago",
+      "city": "Chicago",
+      "country": "US",
+      "name": "City Center",
+      "lat": 41.8755616,
+      "lng": -87.6244212,
+      "type": "city_center"
+    },
+    {
+      "id": "us-houston-center",
+      "city_id": "us-houston",
+      "city": "Houston",
+      "country": "US",
+      "name": "City Center",
+      "lat": 29.7589382,
+      "lng": -95.3676974,
+      "type": "city_center"
+    },
+    {
+      "id": "us-phoenix-center",
+      "city_id": "us-phoenix",
+      "city": "Phoenix",
+      "country": "US",
+      "name": "City Center",
+      "lat": 33.4484367,
+      "lng": -112.074141,
+      "type": "city_center"
+    },
+    {
+      "id": "us-philadelphia-center",
+      "city_id": "us-philadelphia",
+      "city": "Philadelphia",
+      "country": "US",
+      "name": "City Center",
+      "lat": 39.9527237,
+      "lng": -75.1635262,
+      "type": "city_center"
+    },
+    {
+      "id": "us-san-antonio-center",
+      "city_id": "us-san-antonio",
+      "city": "San Antonio",
+      "country": "US",
+      "name": "City Center",
+      "lat": 29.4246002,
+      "lng": -98.4951405,
+      "type": "city_center"
+    },
+    {
+      "id": "us-san-diego-center",
+      "city_id": "us-san-diego",
+      "city": "San Diego",
+      "country": "US",
+      "name": "City Center",
+      "lat": 32.7174202,
+      "lng": -117.162772,
+      "type": "city_center"
+    },
+    {
+      "id": "us-dallas-center",
+      "city_id": "us-dallas",
+      "city": "Dallas",
+      "country": "US",
+      "name": "City Center",
+      "lat": 32.7762719,
+      "lng": -96.7968559,
+      "type": "city_center"
+    },
+    {
+      "id": "us-san-jose-center",
+      "city_id": "us-san-jose",
+      "city": "San Jose",
+      "country": "US",
+      "name": "City Center",
+      "lat": 37.3361663,
+      "lng": -121.890591,
+      "type": "city_center"
+    },
+    {
+      "id": "us-austin-center",
+      "city_id": "us-austin",
+      "city": "Austin",
+      "country": "US",
+      "name": "City Center",
+      "lat": 30.2711286,
+      "lng": -97.7436995,
+      "type": "city_center"
+    },
+    {
+      "id": "us-jacksonville-center",
+      "city_id": "us-jacksonville",
+      "city": "Jacksonville",
+      "country": "US",
+      "name": "City Center",
+      "lat": 30.3262247,
+      "lng": -81.6579179,
+      "type": "city_center"
+    },
+    {
+      "id": "us-fort-worth-center",
+      "city_id": "us-fort-worth",
+      "city": "Fort Worth",
+      "country": "US",
+      "name": "City Center",
+      "lat": 32.753177,
+      "lng": -97.3327459,
+      "type": "city_center"
+    },
+    {
+      "id": "us-columbus-center",
+      "city_id": "us-columbus",
+      "city": "Columbus",
+      "country": "US",
+      "name": "City Center",
+      "lat": 39.9622601,
+      "lng": -83.0007065,
+      "type": "city_center"
+    },
+    {
+      "id": "us-charlotte-center",
+      "city_id": "us-charlotte",
+      "city": "Charlotte",
+      "country": "US",
+      "name": "City Center",
+      "lat": 35.2272086,
+      "lng": -80.8430827,
+      "type": "city_center"
+    },
+    {
+      "id": "us-san-francisco-center",
+      "city_id": "us-san-francisco",
+      "city": "San Francisco",
+      "country": "US",
+      "name": "City Center",
+      "lat": 37.7879363,
+      "lng": -122.4075201,
+      "type": "city_center"
+    },
+    {
+      "id": "us-indianapolis-center",
+      "city_id": "us-indianapolis",
+      "city": "Indianapolis",
+      "country": "US",
+      "name": "City Center",
+      "lat": 39.7683331,
+      "lng": -86.1583502,
+      "type": "city_center"
+    },
+    {
+      "id": "us-seattle-center",
+      "city_id": "us-seattle",
+      "city": "Seattle",
+      "country": "US",
+      "name": "City Center",
+      "lat": 47.6038321,
+      "lng": -122.330062,
+      "type": "city_center"
+    },
+    {
+      "id": "us-denver-center",
+      "city_id": "us-denver",
+      "city": "Denver",
+      "country": "US",
+      "name": "City Center",
+      "lat": 39.7392364,
+      "lng": -104.984862,
+      "type": "city_center"
+    },
+    {
+      "id": "us-washington-center",
+      "city_id": "us-washington",
+      "city": "Washington",
+      "country": "US",
+      "name": "City Center",
+      "lat": 38.8950368,
+      "lng": -77.0365427,
+      "type": "city_center"
+    },
+    {
+      "id": "us-boston-center",
+      "city_id": "us-boston",
+      "city": "Boston",
+      "country": "US",
+      "name": "City Center",
+      "lat": 42.3588336,
+      "lng": -71.0578303,
+      "type": "city_center"
+    },
+    {
+      "id": "us-el-paso-center",
+      "city_id": "us-el-paso",
+      "city": "El Paso",
+      "country": "US",
+      "name": "City Center",
+      "lat": 31.7601001,
+      "lng": -106.4870476,
+      "type": "city_center"
+    },
+    {
+      "id": "us-nashville-center",
+      "city_id": "us-nashville",
+      "city": "Nashville",
+      "country": "US",
+      "name": "City Center",
+      "lat": 36.1622767,
+      "lng": -86.7742984,
+      "type": "city_center"
+    },
+    {
+      "id": "us-detroit-center",
+      "city_id": "us-detroit",
+      "city": "Detroit",
+      "country": "US",
+      "name": "City Center",
+      "lat": 42.3315509,
+      "lng": -83.0466403,
+      "type": "city_center"
+    },
+    {
+      "id": "us-oklahoma-city-center",
+      "city_id": "us-oklahoma-city",
+      "city": "Oklahoma City",
+      "country": "US",
+      "name": "City Center",
+      "lat": 35.4729886,
+      "lng": -97.5170536,
+      "type": "city_center"
+    },
+    {
+      "id": "us-portland-center",
+      "city_id": "us-portland",
+      "city": "Portland",
+      "country": "US",
+      "name": "City Center",
+      "lat": 45.5202471,
+      "lng": -122.674194,
+      "type": "city_center"
+    },
+    {
+      "id": "us-las-vegas-center",
+      "city_id": "us-las-vegas",
+      "city": "Las Vegas",
+      "country": "US",
+      "name": "City Center",
+      "lat": 36.1674263,
+      "lng": -115.1484131,
+      "type": "city_center"
+    },
+    {
+      "id": "us-memphis-center",
+      "city_id": "us-memphis",
+      "city": "Memphis",
+      "country": "US",
+      "name": "City Center",
+      "lat": 35.1460249,
+      "lng": -90.0517638,
+      "type": "city_center"
+    },
+    {
+      "id": "us-louisville-center",
+      "city_id": "us-louisville",
+      "city": "Louisville",
+      "country": "US",
+      "name": "City Center",
+      "lat": 38.2542376,
+      "lng": -85.759407,
+      "type": "city_center"
+    },
+    {
+      "id": "us-baltimore-center",
+      "city_id": "us-baltimore",
+      "city": "Baltimore",
+      "country": "US",
+      "name": "City Center",
+      "lat": 39.2908816,
+      "lng": -76.610759,
+      "type": "city_center"
+    },
+    {
+      "id": "us-milwaukee-center",
+      "city_id": "us-milwaukee",
+      "city": "Milwaukee",
+      "country": "US",
+      "name": "City Center",
+      "lat": 43.0386475,
+      "lng": -87.9090751,
+      "type": "city_center"
+    },
+    {
+      "id": "us-albuquerque-center",
+      "city_id": "us-albuquerque",
+      "city": "Albuquerque",
+      "country": "US",
+      "name": "City Center",
+      "lat": 35.0841034,
+      "lng": -106.650985,
+      "type": "city_center"
+    },
+    {
+      "id": "us-tucson-center",
+      "city_id": "us-tucson",
+      "city": "Tucson",
+      "country": "US",
+      "name": "City Center",
+      "lat": 32.2228765,
+      "lng": -110.974847,
+      "type": "city_center"
+    },
+    {
+      "id": "us-fresno-center",
+      "city_id": "us-fresno",
+      "city": "Fresno",
+      "country": "US",
+      "name": "City Center",
+      "lat": 36.7394421,
+      "lng": -119.78483,
+      "type": "city_center"
+    },
+    {
+      "id": "us-mesa-center",
+      "city_id": "us-mesa",
+      "city": "Mesa",
+      "country": "US",
+      "name": "City Center",
+      "lat": 33.4151005,
+      "lng": -111.831455,
+      "type": "city_center"
+    },
+    {
+      "id": "us-sacramento-center",
+      "city_id": "us-sacramento",
+      "city": "Sacramento",
+      "country": "US",
+      "name": "City Center",
+      "lat": 38.5810606,
+      "lng": -121.493895,
+      "type": "city_center"
+    },
+    {
+      "id": "us-atlanta-center",
+      "city_id": "us-atlanta",
+      "city": "Atlanta",
+      "country": "US",
+      "name": "City Center",
+      "lat": 33.7544657,
+      "lng": -84.3898151,
+      "type": "city_center"
+    },
+    {
+      "id": "us-kansas-city-center",
+      "city_id": "us-kansas-city",
+      "city": "Kansas City",
+      "country": "US",
+      "name": "City Center",
+      "lat": 39.100105,
+      "lng": -94.5781416,
+      "type": "city_center"
+    },
+    {
+      "id": "us-colorado-springs-center",
+      "city_id": "us-colorado-springs",
+      "city": "Colorado Springs",
+      "country": "US",
+      "name": "City Center",
+      "lat": 38.8339578,
+      "lng": -104.825348,
+      "type": "city_center"
+    },
+    {
+      "id": "us-omaha-center",
+      "city_id": "us-omaha",
+      "city": "Omaha",
+      "country": "US",
+      "name": "City Center",
+      "lat": 41.2587459,
+      "lng": -95.9383758,
+      "type": "city_center"
+    },
+    {
+      "id": "us-raleigh-center",
+      "city_id": "us-raleigh",
+      "city": "Raleigh",
+      "country": "US",
+      "name": "City Center",
+      "lat": 35.7803977,
+      "lng": -78.6390989,
+      "type": "city_center"
+    },
+    {
+      "id": "us-miami-center",
+      "city_id": "us-miami",
+      "city": "Miami",
+      "country": "US",
+      "name": "City Center",
+      "lat": 25.7741566,
+      "lng": -80.1935973,
+      "type": "city_center"
+    },
+    {
+      "id": "us-long-beach-center",
+      "city_id": "us-long-beach",
+      "city": "Long Beach",
+      "country": "US",
+      "name": "City Center",
+      "lat": 33.7690164,
+      "lng": -118.191604,
+      "type": "city_center"
+    },
+    {
+      "id": "us-virginia-beach-center",
+      "city_id": "us-virginia-beach",
+      "city": "Virginia Beach",
+      "country": "US",
+      "name": "City Center",
+      "lat": 36.8496579,
+      "lng": -75.9760751,
+      "type": "city_center"
+    },
+    {
+      "id": "us-oakland-center",
+      "city_id": "us-oakland",
+      "city": "Oakland",
+      "country": "US",
+      "name": "City Center",
+      "lat": 37.8044557,
+      "lng": -122.271356,
+      "type": "city_center"
+    },
+    {
+      "id": "us-minneapolis-center",
+      "city_id": "us-minneapolis",
+      "city": "Minneapolis",
+      "country": "US",
+      "name": "City Center",
+      "lat": 44.9772995,
+      "lng": -93.2654692,
+      "type": "city_center"
+    },
+    {
+      "id": "us-tulsa-center",
+      "city_id": "us-tulsa",
+      "city": "Tulsa",
+      "country": "US",
+      "name": "City Center",
+      "lat": 36.1563122,
+      "lng": -95.9927516,
+      "type": "city_center"
+    },
+    {
+      "id": "us-tampa-center",
+      "city_id": "us-tampa",
+      "city": "Tampa",
+      "country": "US",
+      "name": "City Center",
+      "lat": 27.9449854,
+      "lng": -82.4583107,
+      "type": "city_center"
+    },
+    {
+      "id": "us-arlington-center",
+      "city_id": "us-arlington",
+      "city": "Arlington",
+      "country": "US",
+      "name": "City Center",
+      "lat": 32.7355816,
+      "lng": -97.1071186,
+      "type": "city_center"
+    },
+    {
+      "id": "us-new-orleans-center",
+      "city_id": "us-new-orleans",
+      "city": "New Orleans",
+      "country": "US",
+      "name": "City Center",
+      "lat": 29.9561422,
+      "lng": -90.0733934,
+      "type": "city_center"
+    },
+    {
+      "id": "us-wichita-center",
+      "city_id": "us-wichita",
+      "city": "Wichita",
+      "country": "US",
+      "name": "City Center",
+      "lat": 37.6922361,
+      "lng": -97.3375448,
+      "type": "city_center"
+    },
+    {
+      "id": "us-cleveland-center",
+      "city_id": "us-cleveland",
+      "city": "Cleveland",
+      "country": "US",
+      "name": "City Center",
+      "lat": 41.4996574,
+      "lng": -81.6936772,
+      "type": "city_center"
+    },
+    {
+      "id": "us-bakersfield-center",
+      "city_id": "us-bakersfield",
+      "city": "Bakersfield",
+      "country": "US",
+      "name": "City Center",
+      "lat": 35.3738712,
+      "lng": -119.019463,
+      "type": "city_center"
+    },
+    {
+      "id": "us-aurora-center",
+      "city_id": "us-aurora",
+      "city": "Aurora",
+      "country": "US",
+      "name": "City Center",
+      "lat": 39.7405111,
+      "lng": -104.830994,
+      "type": "city_center"
+    },
+    {
+      "id": "us-anaheim-center",
+      "city_id": "us-anaheim",
+      "city": "Anaheim",
+      "country": "US",
+      "name": "City Center",
+      "lat": 33.8347516,
+      "lng": -117.911732,
+      "type": "city_center"
+    },
+    {
+      "id": "us-honolulu-center",
+      "city_id": "us-honolulu",
+      "city": "Honolulu",
+      "country": "US",
+      "name": "City Center",
+      "lat": 21.304547,
+      "lng": -157.855676,
+      "type": "city_center"
+    },
+    {
+      "id": "us-santa-ana-center",
+      "city_id": "us-santa-ana",
+      "city": "Santa Ana",
+      "country": "US",
+      "name": "City Center",
+      "lat": 33.7494951,
+      "lng": -117.873221,
+      "type": "city_center"
+    },
+    {
+      "id": "us-riverside-center",
+      "city_id": "us-riverside",
+      "city": "Riverside",
+      "country": "US",
+      "name": "City Center",
+      "lat": 33.9824949,
+      "lng": -117.374238,
+      "type": "city_center"
+    },
+    {
+      "id": "us-corpus-christi-center",
+      "city_id": "us-corpus-christi",
+      "city": "Corpus Christi",
+      "country": "US",
+      "name": "City Center",
+      "lat": 27.7635302,
+      "lng": -97.4033191,
+      "type": "city_center"
+    },
+    {
+      "id": "us-lexington-center",
+      "city_id": "us-lexington",
+      "city": "Lexington",
+      "country": "US",
+      "name": "City Center",
+      "lat": 38.0464066,
+      "lng": -84.4970393,
+      "type": "city_center"
+    },
+    {
+      "id": "us-henderson-center",
+      "city_id": "us-henderson",
+      "city": "Henderson",
+      "country": "US",
+      "name": "City Center",
+      "lat": 36.0319602,
+      "lng": -114.9822716,
+      "type": "city_center"
+    },
+    {
+      "id": "us-stockton-stockton",
+      "city_id": "us-stockton",
+      "city": "Stockton",
+      "country": "US",
+      "name": "Stockton",
+      "lat": 32.7115319,
+      "lng": -117.125453,
+      "type": "quarter"
+    },
+    {
+      "id": "us-saint-paul-center",
+      "city_id": "us-saint-paul",
+      "city": "Saint Paul",
+      "country": "US",
+      "name": "City Center",
+      "lat": 44.9497487,
+      "lng": -93.0931028,
+      "type": "city_center"
+    },
+    {
+      "id": "us-cincinnati-center",
+      "city_id": "us-cincinnati",
+      "city": "Cincinnati",
+      "country": "US",
+      "name": "City Center",
+      "lat": 39.1014537,
+      "lng": -84.5124602,
+      "type": "city_center"
+    },
+    {
+      "id": "us-st.-louis-center",
+      "city_id": "us-st.-louis",
+      "city": "St. Louis",
+      "country": "US",
+      "name": "City Center",
+      "lat": 38.6254063,
+      "lng": -90.190009,
+      "type": "city_center"
+    },
+    {
+      "id": "us-pittsburgh-center",
+      "city_id": "us-pittsburgh",
+      "city": "Pittsburgh",
+      "country": "US",
+      "name": "City Center",
+      "lat": 40.4406968,
+      "lng": -80.0025666,
+      "type": "city_center"
+    },
+    {
+      "id": "us-greensboro-center",
+      "city_id": "us-greensboro",
+      "city": "Greensboro",
+      "country": "US",
+      "name": "City Center",
+      "lat": 36.0726355,
+      "lng": -79.7919754,
+      "type": "city_center"
+    },
+    {
+      "id": "us-anchorage-center",
+      "city_id": "us-anchorage",
+      "city": "Anchorage",
+      "country": "US",
+      "name": "City Center",
+      "lat": 61.2163129,
+      "lng": -149.894852,
+      "type": "city_center"
+    },
+    {
+      "id": "us-plano-center",
+      "city_id": "us-plano",
+      "city": "Plano",
+      "country": "US",
+      "name": "City Center",
+      "lat": 33.0136764,
+      "lng": -96.6925096,
+      "type": "city_center"
+    },
+    {
+      "id": "us-lincoln-center",
+      "city_id": "us-lincoln",
+      "city": "Lincoln",
+      "country": "US",
+      "name": "City Center",
+      "lat": 40.8088861,
+      "lng": -96.7077751,
+      "type": "city_center"
+    },
+    {
+      "id": "us-orlando-center",
+      "city_id": "us-orlando",
+      "city": "Orlando",
+      "country": "US",
+      "name": "City Center",
+      "lat": 28.5421218,
+      "lng": -81.379045,
+      "type": "city_center"
+    },
+    {
+      "id": "us-irvine-center",
+      "city_id": "us-irvine",
+      "city": "Irvine",
+      "country": "US",
+      "name": "City Center",
+      "lat": 33.6856969,
+      "lng": -117.825981,
+      "type": "city_center"
+    },
+    {
+      "id": "us-newark-center",
+      "city_id": "us-newark",
+      "city": "Newark",
+      "country": "US",
+      "name": "City Center",
+      "lat": 40.735657,
+      "lng": -74.1723667,
+      "type": "city_center"
+    },
+    {
+      "id": "us-toledo-center",
+      "city_id": "us-toledo",
+      "city": "Toledo",
+      "country": "US",
+      "name": "City Center",
+      "lat": 41.6529143,
+      "lng": -83.5378173,
+      "type": "city_center"
+    },
+    {
+      "id": "us-durham-center",
+      "city_id": "us-durham",
+      "city": "Durham",
+      "country": "US",
+      "name": "City Center",
+      "lat": 35.996653,
+      "lng": -78.9018053,
+      "type": "city_center"
+    },
+    {
+      "id": "us-chula-vista-center",
+      "city_id": "us-chula-vista",
+      "city": "Chula Vista",
+      "country": "US",
+      "name": "City Center",
+      "lat": 32.6400541,
+      "lng": -117.084195,
+      "type": "city_center"
+    },
+    {
+      "id": "us-fort-wayne-center",
+      "city_id": "us-fort-wayne",
+      "city": "Fort Wayne",
+      "country": "US",
+      "name": "City Center",
+      "lat": 41.0799898,
+      "lng": -85.1386015,
+      "type": "city_center"
+    },
+    {
+      "id": "us-jersey-city-center",
+      "city_id": "us-jersey-city",
+      "city": "Jersey City",
+      "country": "US",
+      "name": "City Center",
+      "lat": 40.7215682,
+      "lng": -74.047455,
+      "type": "city_center"
+    },
+    {
+      "id": "us-st.-petersburg-center",
+      "city_id": "us-st.-petersburg",
+      "city": "St. Petersburg",
+      "country": "US",
+      "name": "City Center",
+      "lat": 27.7712264,
+      "lng": -82.6340259,
+      "type": "city_center"
+    },
+    {
+      "id": "us-laredo-center",
+      "city_id": "us-laredo",
+      "city": "Laredo",
+      "country": "US",
+      "name": "City Center",
+      "lat": 27.5079211,
+      "lng": -99.5069834,
+      "type": "city_center"
+    },
+    {
+      "id": "us-madison-center",
+      "city_id": "us-madison",
+      "city": "Madison",
+      "country": "US",
+      "name": "City Center",
+      "lat": 43.07469,
+      "lng": -89.3841663,
+      "type": "city_center"
+    },
+    {
+      "id": "us-chandler-center",
+      "city_id": "us-chandler",
+      "city": "Chandler",
+      "country": "US",
+      "name": "City Center",
+      "lat": 33.3062031,
+      "lng": -111.841185,
+      "type": "city_center"
+    },
+    {
+      "id": "us-buffalo-center",
+      "city_id": "us-buffalo",
+      "city": "Buffalo",
+      "country": "US",
+      "name": "City Center",
+      "lat": 42.8864163,
+      "lng": -78.8781493,
+      "type": "city_center"
+    },
+    {
+      "id": "us-lubbock-center",
+      "city_id": "us-lubbock",
+      "city": "Lubbock",
+      "country": "US",
+      "name": "City Center",
+      "lat": 33.5855677,
+      "lng": -101.8470215,
+      "type": "city_center"
+    },
+    {
+      "id": "us-scottsdale-center",
+      "city_id": "us-scottsdale",
+      "city": "Scottsdale",
+      "country": "US",
+      "name": "City Center",
+      "lat": 33.4942189,
+      "lng": -111.926018,
+      "type": "city_center"
+    },
+    {
+      "id": "us-reno-center",
+      "city_id": "us-reno",
+      "city": "Reno",
+      "country": "US",
+      "name": "City Center",
+      "lat": 39.5261788,
+      "lng": -119.812658,
+      "type": "city_center"
+    },
+    {
+      "id": "us-glendale-center",
+      "city_id": "us-glendale",
+      "city": "Glendale",
+      "country": "US",
+      "name": "City Center",
+      "lat": 33.5386858,
+      "lng": -112.185994,
+      "type": "city_center"
+    },
+    {
+      "id": "us-gilbert-center",
+      "city_id": "us-gilbert",
+      "city": "Gilbert",
+      "country": "US",
+      "name": "City Center",
+      "lat": 33.3527632,
+      "lng": -111.789037,
+      "type": "city_center"
+    },
+    {
+      "id": "us-winston-salem-center",
+      "city_id": "us-winston-salem",
+      "city": "Winston-Salem",
+      "country": "US",
+      "name": "City Center",
+      "lat": 36.0998131,
+      "lng": -80.2440518,
+      "type": "city_center"
+    },
+    {
+      "id": "us-north-las-vegas-center",
+      "city_id": "us-north-las-vegas",
+      "city": "North Las Vegas",
+      "country": "US",
+      "name": "City Center",
+      "lat": 36.2005191,
+      "lng": -115.1214745,
+      "type": "city_center"
+    },
+    {
+      "id": "us-norfolk-center",
+      "city_id": "us-norfolk",
+      "city": "Norfolk",
+      "country": "US",
+      "name": "City Center",
+      "lat": 36.8493695,
+      "lng": -76.2899539,
+      "type": "city_center"
+    },
+    {
+      "id": "us-chesapeake-center",
+      "city_id": "us-chesapeake",
+      "city": "Chesapeake",
+      "country": "US",
+      "name": "City Center",
+      "lat": 36.7168315,
+      "lng": -76.2494453,
+      "type": "city_center"
+    },
+    {
+      "id": "us-garland-center",
+      "city_id": "us-garland",
+      "city": "Garland",
+      "country": "US",
+      "name": "City Center",
+      "lat": 32.912624,
+      "lng": -96.6388833,
+      "type": "city_center"
+    },
+    {
+      "id": "us-irving-center",
+      "city_id": "us-irving",
+      "city": "Irving",
+      "country": "US",
+      "name": "City Center",
+      "lat": 32.8295183,
+      "lng": -96.9442177,
+      "type": "city_center"
+    },
+    {
+      "id": "us-hialeah-center",
+      "city_id": "us-hialeah",
+      "city": "Hialeah",
+      "country": "US",
+      "name": "City Center",
+      "lat": 25.8267775,
+      "lng": -80.2814009,
+      "type": "city_center"
+    },
+    {
+      "id": "us-fremont-center",
+      "city_id": "us-fremont",
+      "city": "Fremont",
+      "country": "US",
+      "name": "City Center",
+      "lat": 37.5482697,
+      "lng": -121.988571,
+      "type": "city_center"
+    },
+    {
+      "id": "us-boise-center",
+      "city_id": "us-boise",
+      "city": "Boise",
+      "country": "US",
+      "name": "City Center",
+      "lat": 43.6166163,
+      "lng": -116.200886,
+      "type": "city_center"
+    },
+    {
+      "id": "us-richmond-center",
+      "city_id": "us-richmond",
+      "city": "Richmond",
+      "country": "US",
+      "name": "City Center",
+      "lat": 37.5385087,
+      "lng": -77.43428,
+      "type": "city_center"
+    },
+    {
+      "id": "us-baton-rouge-center",
+      "city_id": "us-baton-rouge",
+      "city": "Baton Rouge",
+      "country": "US",
+      "name": "City Center",
+      "lat": 30.4494155,
+      "lng": -91.1869659,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-moscow-center",
+      "city_id": "ru-moscow",
+      "city": "Moscow",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 55.7505412,
+      "lng": 37.6174782,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-saint-petersburg-center",
+      "city_id": "ru-saint-petersburg",
+      "city": "Saint Petersburg",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 59.8554978,
+      "lng": 30.5080418,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-novosibirsk-center",
+      "city_id": "ru-novosibirsk",
+      "city": "Novosibirsk",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 55.0288307,
+      "lng": 82.9226887,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-yekaterinburg-center",
+      "city_id": "ru-yekaterinburg",
+      "city": "Yekaterinburg",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 56.8382071,
+      "lng": 60.6007886,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-kazan-center",
+      "city_id": "ru-kazan",
+      "city": "Kazan",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 55.7946485,
+      "lng": 49.1115022,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-nizhny-novgorod-center",
+      "city_id": "ru-nizhny-novgorod",
+      "city": "Nizhny Novgorod",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 56.1301421,
+      "lng": 44.1364688,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-chelyabinsk-center",
+      "city_id": "ru-chelyabinsk",
+      "city": "Chelyabinsk",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 55.1598408,
+      "lng": 61.4025547,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-samara-center",
+      "city_id": "ru-samara",
+      "city": "Samara",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 53.1956255,
+      "lng": 50.1014927,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-omsk-center",
+      "city_id": "ru-omsk",
+      "city": "Omsk",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 54.9830067,
+      "lng": 73.3745224,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-rostov-on-don-center",
+      "city_id": "ru-rostov-on-don",
+      "city": "Rostov-on-Don",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 47.2610441,
+      "lng": 39.7249086,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-ufa-center",
+      "city_id": "ru-ufa",
+      "city": "Ufa",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 54.7261409,
+      "lng": 55.947499,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-krasnoyarsk-center",
+      "city_id": "ru-krasnoyarsk",
+      "city": "Krasnoyarsk",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 56.0091173,
+      "lng": 92.872586,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-voronezh-center",
+      "city_id": "ru-voronezh",
+      "city": "Voronezh",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 51.6800081,
+      "lng": 39.183725,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-perm-center",
+      "city_id": "ru-perm",
+      "city": "Perm",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 58.0108531,
+      "lng": 56.2318528,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-volgograd-center",
+      "city_id": "ru-volgograd",
+      "city": "Volgograd",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 48.7081906,
+      "lng": 44.5153353,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-krasnodar-center",
+      "city_id": "ru-krasnodar",
+      "city": "Krasnodar",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 45.0351532,
+      "lng": 38.9772396,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-saratov-center",
+      "city_id": "ru-saratov",
+      "city": "Saratov",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 51.530018,
+      "lng": 46.034683,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-tyumen-center",
+      "city_id": "ru-tyumen",
+      "city": "Tyumen",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 57.153534,
+      "lng": 65.542274,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-tolyatti-center",
+      "city_id": "ru-tolyatti",
+      "city": "Tolyatti",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 53.5098845,
+      "lng": 49.4189187,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-izhevsk-center",
+      "city_id": "ru-izhevsk",
+      "city": "Izhevsk",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 56.8605175,
+      "lng": 53.1977307,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-barnaul-center",
+      "city_id": "ru-barnaul",
+      "city": "Barnaul",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 53.3475493,
+      "lng": 83.7788448,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-ulyanovsk-center",
+      "city_id": "ru-ulyanovsk",
+      "city": "Ulyanovsk",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 54.3150278,
+      "lng": 48.403373,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-irkutsk-center",
+      "city_id": "ru-irkutsk",
+      "city": "Irkutsk",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 52.2891225,
+      "lng": 104.279829,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-khabarovsk-center",
+      "city_id": "ru-khabarovsk",
+      "city": "Khabarovsk",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 48.4812568,
+      "lng": 135.0762968,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-yaroslavl-center",
+      "city_id": "ru-yaroslavl",
+      "city": "Yaroslavl",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 57.6508433,
+      "lng": 39.8718634,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-vladivostok-center",
+      "city_id": "ru-vladivostok",
+      "city": "Vladivostok",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 43.1150678,
+      "lng": 131.8855768,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-makhachkala-center",
+      "city_id": "ru-makhachkala",
+      "city": "Makhachkala",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 42.9830241,
+      "lng": 47.5048717,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-tomsk-center",
+      "city_id": "ru-tomsk",
+      "city": "Tomsk",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 56.4887526,
+      "lng": 84.9523434,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-orenburg-center",
+      "city_id": "ru-orenburg",
+      "city": "Orenburg",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 51.7671248,
+      "lng": 55.0978517,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-kemerovo-center",
+      "city_id": "ru-kemerovo",
+      "city": "Kemerovo",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 54.7264651,
+      "lng": 86.2186718,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-novokuznetsk-center",
+      "city_id": "ru-novokuznetsk",
+      "city": "Novokuznetsk",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 53.7575903,
+      "lng": 87.1358494,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-ryazan-center",
+      "city_id": "ru-ryazan",
+      "city": "Ryazan",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 54.6295687,
+      "lng": 39.7425039,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-naberezhnye-chelny-center",
+      "city_id": "ru-naberezhnye-chelny",
+      "city": "Naberezhnye Chelny",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 55.7419774,
+      "lng": 52.399207,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-astrakhan-center",
+      "city_id": "ru-astrakhan",
+      "city": "Astrakhan",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 46.3498308,
+      "lng": 48.0326203,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-penza-center",
+      "city_id": "ru-penza",
+      "city": "Penza",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 53.1953477,
+      "lng": 45.0190437,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-kirov-center",
+      "city_id": "ru-kirov",
+      "city": "Kirov",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 58.6035661,
+      "lng": 49.6666241,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-lipetsk-center",
+      "city_id": "ru-lipetsk",
+      "city": "Lipetsk",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 52.6051488,
+      "lng": 39.5963775,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-balashikha-center",
+      "city_id": "ru-balashikha",
+      "city": "Balashikha",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 55.7997662,
+      "lng": 37.9373707,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-cheboksary-center",
+      "city_id": "ru-cheboksary",
+      "city": "Cheboksary",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 56.1399598,
+      "lng": 47.2480999,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-kaliningrad-center",
+      "city_id": "ru-kaliningrad",
+      "city": "Kaliningrad",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 54.7046485,
+      "lng": 20.4565666,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-tula-center",
+      "city_id": "ru-tula",
+      "city": "Tula",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 54.1930321,
+      "lng": 37.61754,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-kursk-center",
+      "city_id": "ru-kursk",
+      "city": "Kursk",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 51.7270357,
+      "lng": 36.192248,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-stavropol-center",
+      "city_id": "ru-stavropol",
+      "city": "Stavropol",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 45.0442234,
+      "lng": 41.9897172,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-sevastopol-center",
+      "city_id": "ru-sevastopol",
+      "city": "Sevastopol",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 44.5878744,
+      "lng": 33.4797193,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-ulan-ude-center",
+      "city_id": "ru-ulan-ude",
+      "city": "Ulan-Ude",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 51.8357841,
+      "lng": 107.5839105,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-tver-center",
+      "city_id": "ru-tver",
+      "city": "Tver",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 56.858675,
+      "lng": 35.9208284,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-magnitogorsk-center",
+      "city_id": "ru-magnitogorsk",
+      "city": "Magnitogorsk",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 53.4070173,
+      "lng": 58.9811297,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-ivanovo-center",
+      "city_id": "ru-ivanovo",
+      "city": "Ivanovo",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 56.9956855,
+      "lng": 40.9812104,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-bryansk-center",
+      "city_id": "ru-bryansk",
+      "city": "Bryansk",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 53.2423778,
+      "lng": 34.3668288,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-belgorod-center",
+      "city_id": "ru-belgorod",
+      "city": "Belgorod",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 50.5955595,
+      "lng": 36.5873394,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-surgut-center",
+      "city_id": "ru-surgut",
+      "city": "Surgut",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 61.2419217,
+      "lng": 73.3952717,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-vladimir-center",
+      "city_id": "ru-vladimir",
+      "city": "Vladimir",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 56.1288899,
+      "lng": 40.4075203,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-nizhny-tagil-center",
+      "city_id": "ru-nizhny-tagil",
+      "city": "Nizhny Tagil",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 57.9076001,
+      "lng": 59.97077,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-arkhangelsk-center",
+      "city_id": "ru-arkhangelsk",
+      "city": "Arkhangelsk",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 64.543022,
+      "lng": 40.537121,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-chita-center",
+      "city_id": "ru-chita",
+      "city": "Chita",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 52.033409,
+      "lng": 113.500893,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-smolensk-center",
+      "city_id": "ru-smolensk",
+      "city": "Smolensk",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 54.7814057,
+      "lng": 32.0461261,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-kaluga-center",
+      "city_id": "ru-kaluga",
+      "city": "Kaluga",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 54.5101087,
+      "lng": 36.2598115,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-volzhsky-center",
+      "city_id": "ru-volzhsky",
+      "city": "Volzhsky",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 48.829992,
+      "lng": 44.7654586,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-cherepovets-center",
+      "city_id": "ru-cherepovets",
+      "city": "Cherepovets",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 59.1242181,
+      "lng": 37.9123351,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-saransk-center",
+      "city_id": "ru-saransk",
+      "city": "Saransk",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 54.18671,
+      "lng": 45.18383,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-vologda-center",
+      "city_id": "ru-vologda",
+      "city": "Vologda",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 59.2264585,
+      "lng": 39.8722391,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-yakutsk-center",
+      "city_id": "ru-yakutsk",
+      "city": "Yakutsk",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 62.0274078,
+      "lng": 129.7319787,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-tambov-center",
+      "city_id": "ru-tambov",
+      "city": "Tambov",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 52.7216164,
+      "lng": 41.4523988,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-sterlitamak-center",
+      "city_id": "ru-sterlitamak",
+      "city": "Sterlitamak",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 53.6194416,
+      "lng": 55.9616172,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-kostroma-center",
+      "city_id": "ru-kostroma",
+      "city": "Kostroma",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 57.7679158,
+      "lng": 40.9269141,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-petrozavodsk-center",
+      "city_id": "ru-petrozavodsk",
+      "city": "Petrozavodsk",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 61.789221,
+      "lng": 34.3688041,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-nizhnevartovsk-center",
+      "city_id": "ru-nizhnevartovsk",
+      "city": "Nizhnevartovsk",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 60.9384134,
+      "lng": 76.5590829,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-novorossiysk-center",
+      "city_id": "ru-novorossiysk",
+      "city": "Novorossiysk",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 44.7239578,
+      "lng": 37.7690711,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-yoshkar-ola-center",
+      "city_id": "ru-yoshkar-ola",
+      "city": "Yoshkar-Ola",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 56.6315556,
+      "lng": 47.8868803,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-murmansk-center",
+      "city_id": "ru-murmansk",
+      "city": "Murmansk",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 68.970665,
+      "lng": 33.07497,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-taganrog-center",
+      "city_id": "ru-taganrog",
+      "city": "Taganrog",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 47.2153657,
+      "lng": 38.9285216,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-komsomolsk-on-amur-center",
+      "city_id": "ru-komsomolsk-on-amur",
+      "city": "Komsomolsk-on-Amur",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 50.5497277,
+      "lng": 137.0099189,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-syktyvkar-center",
+      "city_id": "ru-syktyvkar",
+      "city": "Syktyvkar",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 61.6685237,
+      "lng": 50.8352024,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-nizhny-novgorod-center",
+      "city_id": "ru-nizhny-novgorod",
+      "city": "Nizhny Novgorod",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 56.1301421,
+      "lng": 44.1364688,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-bratsk-center",
+      "city_id": "ru-bratsk",
+      "city": "Bratsk",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 56.1517085,
+      "lng": 101.6334907,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-oryol-center",
+      "city_id": "ru-oryol",
+      "city": "Oryol",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 52.9709262,
+      "lng": 36.0642127,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-nalchik-center",
+      "city_id": "ru-nalchik",
+      "city": "Nalchik",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 43.4769604,
+      "lng": 43.5966578,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-mytishchi-center",
+      "city_id": "ru-mytishchi",
+      "city": "Mytishchi",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 55.9094928,
+      "lng": 37.7339358,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-shakhty-center",
+      "city_id": "ru-shakhty",
+      "city": "Shakhty",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 47.7094622,
+      "lng": 40.2154859,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-angarsk-center",
+      "city_id": "ru-angarsk",
+      "city": "Angarsk",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 52.5443167,
+      "lng": 103.8882138,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-blagoveshchensk-center",
+      "city_id": "ru-blagoveshchensk",
+      "city": "Blagoveshchensk",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 50.2600417,
+      "lng": 127.5337378,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-stary-oskol-center",
+      "city_id": "ru-stary-oskol",
+      "city": "Stary Oskol",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 51.298038,
+      "lng": 37.833202,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-podolsk-center",
+      "city_id": "ru-podolsk",
+      "city": "Podolsk",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 55.4308841,
+      "lng": 37.5453056,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-orsk-center",
+      "city_id": "ru-orsk",
+      "city": "Orsk",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 51.2305015,
+      "lng": 58.4738015,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-noginsk-center",
+      "city_id": "ru-noginsk",
+      "city": "Noginsk",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 55.8553511,
+      "lng": 38.4411898,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-khimki-center",
+      "city_id": "ru-khimki",
+      "city": "Khimki",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 55.8917293,
+      "lng": 37.4396994,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-engels-center",
+      "city_id": "ru-engels",
+      "city": "Engels",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 51.5013775,
+      "lng": 46.1233093,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-grozny-center",
+      "city_id": "ru-grozny",
+      "city": "Grozny",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 43.3086383,
+      "lng": 45.7065735,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-pskov-center",
+      "city_id": "ru-pskov",
+      "city": "Pskov",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 57.8173923,
+      "lng": 28.3343465,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-biysk-center",
+      "city_id": "ru-biysk",
+      "city": "Biysk",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 52.5394905,
+      "lng": 85.2148673,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-balakovo-center",
+      "city_id": "ru-balakovo",
+      "city": "Balakovo",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 52.01812,
+      "lng": 47.819141,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-armavir-center",
+      "city_id": "ru-armavir",
+      "city": "Armavir",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 44.9993585,
+      "lng": 41.1294061,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-korolev-center",
+      "city_id": "ru-korolev",
+      "city": "Korolev",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 55.9190049,
+      "lng": 37.8150443,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-petropavlovsk-kamchatsky-center",
+      "city_id": "ru-petropavlovsk-kamchatsky",
+      "city": "Petropavlovsk-Kamchatsky",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 53.0199838,
+      "lng": 158.6471356,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-lyubertsy-center",
+      "city_id": "ru-lyubertsy",
+      "city": "Lyubertsy",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 55.6783142,
+      "lng": 37.89377,
+      "type": "city_center"
+    },
+    {
+      "id": "ru-prokopyevsk-center",
+      "city_id": "ru-prokopyevsk",
+      "city": "Prokopyevsk",
+      "country": "RU",
+      "name": "City Center",
+      "lat": 53.8879117,
+      "lng": 86.7492072,
+      "type": "city_center"
+    },
+    {
+      "id": "am-yerevan-center",
+      "city_id": "am-yerevan",
+      "city": "Yerevan",
+      "country": "AM",
+      "name": "City Center",
+      "lat": 40.1553963,
+      "lng": 44.5077993,
+      "type": "city_center"
+    },
+    {
+      "id": "am-gyumri-center",
+      "city_id": "am-gyumri",
+      "city": "Gyumri",
+      "country": "AM",
+      "name": "City Center",
+      "lat": 40.7852085,
+      "lng": 43.8416095,
+      "type": "city_center"
+    },
+    {
+      "id": "am-vanadzor-center",
+      "city_id": "am-vanadzor",
+      "city": "Vanadzor",
+      "country": "AM",
+      "name": "City Center",
+      "lat": 40.8136308,
+      "lng": 44.4821035,
+      "type": "city_center"
+    },
+    {
+      "id": "am-vagharshapat-center",
+      "city_id": "am-vagharshapat",
+      "city": "Vagharshapat",
+      "country": "AM",
+      "name": "City Center",
+      "lat": 40.1627757,
+      "lng": 44.2931665,
+      "type": "city_center"
+    },
+    {
+      "id": "am-hrazdan-center",
+      "city_id": "am-hrazdan",
+      "city": "Hrazdan",
+      "country": "AM",
+      "name": "City Center",
+      "lat": 40.5196871,
+      "lng": 44.7500706,
+      "type": "city_center"
+    },
+    {
+      "id": "am-abovyan-center",
+      "city_id": "am-abovyan",
+      "city": "Abovyan",
+      "country": "AM",
+      "name": "City Center",
+      "lat": 40.2714761,
+      "lng": 44.6333951,
+      "type": "city_center"
+    },
+    {
+      "id": "am-kapan-center",
+      "city_id": "am-kapan",
+      "city": "Kapan",
+      "country": "AM",
+      "name": "City Center",
+      "lat": 39.207636,
+      "lng": 46.4049074,
+      "type": "city_center"
+    },
+    {
+      "id": "am-armavir-center",
+      "city_id": "am-armavir",
+      "city": "Armavir",
+      "country": "AM",
+      "name": "City Center",
+      "lat": 40.1555485,
+      "lng": 44.0387565,
+      "type": "city_center"
+    },
+    {
+      "id": "am-gavar-center",
+      "city_id": "am-gavar",
+      "city": "Gavar",
+      "country": "AM",
+      "name": "City Center",
+      "lat": 40.3513976,
+      "lng": 45.1273162,
+      "type": "city_center"
+    },
+    {
+      "id": "am-artashat-center",
+      "city_id": "am-artashat",
+      "city": "Artashat",
+      "country": "AM",
+      "name": "City Center",
+      "lat": 39.9566633,
+      "lng": 44.5471007,
+      "type": "city_center"
+    },
+    {
+      "id": "am-goris-center",
+      "city_id": "am-goris",
+      "city": "Goris",
+      "country": "AM",
+      "name": "City Center",
+      "lat": 39.5052419,
+      "lng": 46.3442334,
+      "type": "city_center"
+    },
+    {
+      "id": "am-ashtarak-center",
+      "city_id": "am-ashtarak",
+      "city": "Ashtarak",
+      "country": "AM",
+      "name": "City Center",
+      "lat": 40.2886849,
+      "lng": 44.3613061,
+      "type": "city_center"
+    },
+    {
+      "id": "am-sevan-center",
+      "city_id": "am-sevan",
+      "city": "Sevan",
+      "country": "AM",
+      "name": "City Center",
+      "lat": 40.3925199,
+      "lng": 45.3460867,
+      "type": "city_center"
+    },
+    {
+      "id": "am-ijevan-center",
+      "city_id": "am-ijevan",
+      "city": "Ijevan",
+      "country": "AM",
+      "name": "City Center",
+      "lat": 40.8779943,
+      "lng": 45.1437542,
+      "type": "city_center"
+    },
+    {
+      "id": "am-charentsavan-center",
+      "city_id": "am-charentsavan",
+      "city": "Charentsavan",
+      "country": "AM",
+      "name": "City Center",
+      "lat": 40.4029877,
+      "lng": 44.6469349,
+      "type": "city_center"
+    }
+  ]
+}

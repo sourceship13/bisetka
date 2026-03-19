@@ -126,6 +126,44 @@ class ApiService {
     }
   }
 
+  async get<T>(endpoint: string, requireAuth: boolean = false): Promise<T> {
+    return this.request<T>(endpoint, { method: 'GET' }, requireAuth);
+  }
+
+  async post<T>(
+    endpoint: string,
+    body?: unknown,
+    requireAuth: boolean = false,
+  ): Promise<T> {
+    return this.request<T>(
+      endpoint,
+      {
+        method: 'POST',
+        body: body === undefined ? undefined : JSON.stringify(body),
+      },
+      requireAuth,
+    );
+  }
+
+  async put<T>(
+    endpoint: string,
+    body?: unknown,
+    requireAuth: boolean = false,
+  ): Promise<T> {
+    return this.request<T>(
+      endpoint,
+      {
+        method: 'PUT',
+        body: body === undefined ? undefined : JSON.stringify(body),
+      },
+      requireAuth,
+    );
+  }
+
+  async delete<T>(endpoint: string, requireAuth: boolean = false): Promise<T> {
+    return this.request<T>(endpoint, { method: 'DELETE' }, requireAuth);
+  }
+
   // ========== AUTHENTICATION ENDPOINTS ==========
 
   /**
