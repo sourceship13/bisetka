@@ -342,14 +342,29 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
 
       // Auto-start private flows after listeners are ready
       if (initialMode === 'private-create') {
-        socket.emit('create_baazar_private_room', { userId, desiredCode: initialJoinCode });
+        socket.emit('create_baazar_private_room', {
+          userId,
+          desiredCode: initialJoinCode,
+          location: route.params?.location,
+        });
       } else if (initialMode === 'private-join' && initialJoinCode) {
-        socket.emit('join_baazar_private_room', { roomCode: initialJoinCode, userId });
+        socket.emit('join_baazar_private_room', {
+          roomCode: initialJoinCode,
+          userId,
+          location: route.params?.location,
+        });
       } else if (initialMode === 'random') {
         if (teamMode === 'full-multiplayer') {
-          socket.emit('find_baazar_teams_match', { userId });
+          socket.emit('find_baazar_teams_match', {
+            userId,
+            location: route.params?.location,
+          });
         } else {
-          socket.emit('find_baazar_match', { userId, allowReplaceAI });
+          socket.emit('find_baazar_match', {
+            userId,
+            allowReplaceAI,
+            location: route.params?.location,
+          });
         }
       } else if (initialMode === 'replace-ai' && dbSessionId) {
         // Replace an AI player in an existing Baazar Blot room from the Active Rooms lobby.
