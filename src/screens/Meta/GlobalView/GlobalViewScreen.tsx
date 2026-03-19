@@ -12,8 +12,11 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import { socketService } from '../../../services/SocketService';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
+import {
+  gameSessionsService,
+  type GlobeRoom,
+} from '../../../services/gameSessions.service';
 import Config from 'react-native-config';
 
 const { width, height } = Dimensions.get('window');
@@ -32,11 +35,14 @@ interface GameSession {
   gameType: string;
   playerCount: number;
   maxPlayers: number;
+  status: string;
   latitude: number;
   longitude: number;
   city?: string;
   country?: string;
   roomName?: string;
+  hostUsername?: string;
+  guestUsername?: string;
 }
 
 const GAME_ICONS: Record<string, string> = {
@@ -52,58 +58,87 @@ const GAME_ICONS: Record<string, string> = {
   slots: '🎰',
 };
 
-const GlobalViewScreen = ({ navigation, route }: any) => {
+const GAME_MAX_PLAYERS: Record<string, number> = {
+  blot: 2,
+  'baazar-blot': 4,
+  chess: 2,
+  'chess-multiplayer': 2,
+  cards: 4,
+  checkers: 2,
+  poker: 9,
+  slots: 1,
+  nardi: 2,
+  mrotsi: 2,
+  billiards: 2,
+  '9-ball': 2,
+  blackjack: 7,
+};
+
+const mapRoomToSession = (room: GlobeRoom): GameSession => ({
+  id: room.room_id,
+  gameType: room.game_type,
+  playerCount: room.player_count,
+  maxPlayers: GAME_MAX_PLAYERS[room.game_type] ?? Math.max(room.player_count, 2),
+  status: room.status,
+  latitude: room.latitude,
+  longitude: room.longitude,
+  city: room.city ?? undefined,
+  country: room.country ?? undefined,
+  roomName: room.room_name ?? undefined,
+  hostUsername: room.host_username ?? undefined,
+  guestUsername: room.guest_username ?? undefined,
+});
+
+const GlobalViewScreen = ({ navigation }: any) => {
   const [sessions, setSessions] = useState<GameSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedSession, setSelectedSession] = useState<GameSession | null>(null);
   const [mapboxAvailable] = useState(!!MapboxGL);
-  const userId = route?.params?.userId || 'guest';
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    const socket = socketService.getSocket();
-    console.log('🌍 GlobalView: Socket status:', {
-      exists: !!socket,
-      connected: socket?.connected,
-      id: socket?.id,
-    });
-    
-    if (!socket) {
-      console.log('❌ Socket not connected');
-      setLoading(false);
-      // Don't show alert - just show empty state
-      return;
-    }
-
-    // Set timeout in case backend doesn't respond
-    const timeout = setTimeout(() => {
-      console.log('⏱️ Global sessions request timed out - showing empty state');
-      setLoading(false);
-      setSessions([]);
-    }, 5000); // 5 second timeout
-
-    // Request global sessions
-    console.log('📡 Requesting global sessions...');
-    socket.emit('get_global_sessions');
-
-    // Listen for session updates
-    socket.on('global_sessions', (data: GameSession[]) => {
-      console.log('📍 Received global sessions:', data?.length || 0);
-      clearTimeout(timeout);
-      setSessions(data || []);
-      setLoading(false);
-    });
-
-    // Refresh every 30 seconds
-    const interval = setInterval(() => {
-      if (socket.connected) {
-        socket.emit('get_global_sessions');
+    const loadSessions = async (options?: {
+      showLoader?: boolean;
+      showError?: boolean;
+    }) => {
+      if (options?.showLoader) {
+        setLoading(true);
+      } else {
+        setRefreshing(true);
       }
+
+      try {
+        const rooms = await gameSessionsService.getGlobeRooms();
+        const nextSessions = rooms
+          .filter(room => Number.isFinite(room.latitude) && Number.isFinite(room.longitude))
+          .map(mapRoomToSession);
+
+        setSessions(nextSessions);
+        setSelectedSession(current =>
+          current ? nextSessions.find(session => session.id === current.id) ?? null : null,
+        );
+      } catch (error: any) {
+        console.warn('Failed to load globe rooms', error);
+        if (options?.showError) {
+          BisetkaAlert.error(
+            'Global View Unavailable',
+            error?.message || 'Unable to load player locations right now.',
+          );
+        }
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
+      }
+    };
+
+    void loadSessions({showLoader: true});
+
+    const interval = setInterval(() => {
+      void loadSessions();
     }, 30000);
 
     return () => {
-      clearTimeout(timeout);
       clearInterval(interval);
-      socket.off('global_sessions');
     };
   }, []);
 
@@ -205,6 +240,11 @@ const GlobalViewScreen = ({ navigation, route }: any) => {
                   <Text style={styles.sessionName}>
                     {session.roomName || session.gameType.toUpperCase()}
                   </Text>
+                  <Text style={styles.sessionHost}>
+                    {session.hostUsername
+                      ? `Host: ${session.hostUsername}`
+                      : 'Host location'}
+                  </Text>
                   <Text style={styles.sessionLocation}>
                     📍 {session.city || 'Unknown'}, {session.country || 'World'}
                   </Text>
@@ -249,6 +289,16 @@ const GlobalViewScreen = ({ navigation, route }: any) => {
             <Text style={styles.detailPlayers}>
               👥 {selectedSession.playerCount}/{selectedSession.maxPlayers} Players
             </Text>
+            <Text style={styles.detailHost}>
+              {selectedSession.hostUsername
+                ? `Host: ${selectedSession.hostUsername}`
+                : 'Host location available'}
+            </Text>
+            {!!selectedSession.guestUsername && (
+              <Text style={styles.detailHost}>
+                Guest: {selectedSession.guestUsername}
+              </Text>
+            )}
             <View style={styles.detailButtons}>
               <TouchableOpacity
                 style={styles.detailBtn}
@@ -301,20 +351,32 @@ const GlobalViewScreen = ({ navigation, route }: any) => {
         </View>
         <TouchableOpacity
           style={styles.refreshButton}
-          onPress={() => {
-            const socket = socketService.getSocket();
-            if (!socket || !socket.connected) {
-              BisetkaAlert.error('Connection Error', 'Not connected to server');
-              return;
+          onPress={async () => {
+            setRefreshing(true);
+            try {
+              const rooms = await gameSessionsService.getGlobeRooms();
+              const nextSessions = rooms
+                .filter(room => Number.isFinite(room.latitude) && Number.isFinite(room.longitude))
+                .map(mapRoomToSession);
+
+              setSessions(nextSessions);
+              setSelectedSession(current =>
+                current ? nextSessions.find(session => session.id === current.id) ?? null : null,
+              );
+            } catch (error: any) {
+              BisetkaAlert.error(
+                'Global View Unavailable',
+                error?.message || 'Unable to load player locations right now.',
+              );
+            } finally {
+              setRefreshing(false);
             }
-            setLoading(true);
-            socket.emit('get_global_sessions');
-            // Auto-stop loading after 5 seconds if no response
-            setTimeout(() => {
-              setLoading(false);
-            }, 5000);
           }}>
-          <Icon name="refresh" size={24} color="#fff" />
+          {refreshing ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <Icon name="refresh" size={24} color="#fff" />
+          )}
         </TouchableOpacity>
       </View>
 
@@ -327,9 +389,7 @@ const GlobalViewScreen = ({ navigation, route }: any) => {
               <Icon name="earth" size={60} color="rgba(255,255,255,0.4)" />
               <Text style={styles.emptyTitle}>No Active Sessions</Text>
               <Text style={styles.emptyText}>
-                {!socketService.getSocket()?.connected
-                  ? 'Connecting to server...'
-                  : 'Be the first to start a global game!'}
+                No active rooms with saved location data yet.
               </Text>
               <TouchableOpacity
                 style={styles.emptyButton}
@@ -351,9 +411,7 @@ const GlobalViewScreen = ({ navigation, route }: any) => {
           <Icon name="earth" size={80} color="rgba(255,255,255,0.2)" />
           <Text style={styles.emptyTitle}>No Active Sessions</Text>
           <Text style={styles.emptyText}>
-            {!socketService.getSocket()?.connected
-              ? 'Connecting to server...'
-              : 'Be the first to start a global game!'}
+            No active rooms with saved location data yet.
           </Text>
           <TouchableOpacity
             style={styles.emptyButton}
@@ -483,6 +541,11 @@ const styles = StyleSheet.create({
     color: '#fff',
     marginBottom: 4,
   },
+  sessionHost: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.7)',
+    marginBottom: 4,
+  },
   sessionLocation: {
     fontSize: 14,
     color: 'rgba(255,255,255,0.7)',
@@ -544,12 +607,18 @@ const styles = StyleSheet.create({
   detailPlayers: {
     fontSize: 14,
     color: 'rgba(255,255,255,0.6)',
-    marginBottom: 20,
+    marginBottom: 6,
+  },
+  detailHost: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.75)',
+    marginBottom: 4,
   },
   detailButtons: {
     flexDirection: 'row',
     gap: 12,
     width: '100%',
+    marginTop: 16,
   },
   detailBtn: {
     flex: 1,

@@ -1,5 +1,6 @@
 import apiConfig from '../libs/utils/api.utils';
 import tokenService from './token.service';
+import type {UserLocation} from './location.service';
 
 type GameOpponentType = 'random' | 'ai' | 'private';
 
@@ -16,6 +17,27 @@ export type GameType =
   | 'mrotsi'
   | 'billiards'
   | '9-ball';
+
+export interface GlobeRoom {
+  room_id: string;
+  game_type: string;
+  mode: string;
+  status: string;
+  room_name: string | null;
+  player_count: number;
+  latitude: number;
+  longitude: number;
+  city: string | null;
+  country: string | null;
+  host_id: string;
+  host_username: string | null;
+  host_avatar_url: string | null;
+  guest_id: string | null;
+  guest_username: string | null;
+  guest_avatar_url: string | null;
+  created_at: string;
+  started_at: string | null;
+}
 
 const request = async <T>(path: string, options: RequestInit = {}): Promise<T> => {
   const token = await tokenService.getAccessToken();
@@ -44,20 +66,27 @@ const request = async <T>(path: string, options: RequestInit = {}): Promise<T> =
 };
 
 export const gameSessionsService = {
-  createRandomMatch: (gameType: GameType) =>
-    request(`/games/${gameType}/matchmaking`, {
-      method: 'POST',
+  getGlobeRooms: () =>
+    request<GlobeRoom[]>('/games/globe', {
+      method: 'GET',
     }),
 
-  createPrivateMatch: (gameType: GameType) =>
+  createRandomMatch: (gameType: GameType, location?: UserLocation | null) =>
+    request(`/games/${gameType}/matchmaking`, {
+      method: 'POST',
+      body: location ? JSON.stringify({location}) : undefined,
+    }),
+
+  createPrivateMatch: (gameType: GameType, location?: UserLocation | null) =>
     request(`/games/${gameType}/private`, {
       method: 'POST',
+      body: location ? JSON.stringify({location}) : undefined,
     }).then((s: any) => ({ ...s, code: s.access_code ?? s.code })),
 
-  joinPrivateMatch: (gameType: GameType, code: string) =>
+  joinPrivateMatch: (gameType: GameType, code: string, location?: UserLocation | null) =>
     request(`/games/${gameType}/private/join`, {
       method: 'POST',
-      body: JSON.stringify({ code }),
+      body: JSON.stringify({code, ...(location ? {location} : {})}),
     }).then((s: any) => ({ ...s, code: s.access_code ?? s.code })),
 
   createAiMatch: (gameType: GameType, difficulty: 'easy' | 'medium' | 'hard' = 'medium', allowReplaceAI: boolean = false) =>
