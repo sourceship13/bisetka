@@ -300,12 +300,22 @@ const HomeScreen = ({navigation}: any) => {
             {/* Row 1: 2 icon buttons */}
             <View style={styles.actionBtns}>
               <TouchableOpacity
+                onPress={() => navigation.navigate('GlobalView', { userId: user?.id })}
+                style={styles.actionBtn}>
+                <LinearGradient
+                  colors={['rgba(16, 185, 129, 0.7)', 'rgba(52, 211, 153, 0.7)']}
+                  style={styles.actionGrad}>
+                  <Icon name="earth" size={28} color="#fff" />
+                </LinearGradient>
+              </TouchableOpacity>
+
+              <TouchableOpacity
                 onPress={() => navigation.navigate('GlobalChat')}
                 style={styles.actionBtn}>
                 <LinearGradient
                   colors={['rgba(0, 0, 0, 0.6)', 'rgba(0, 0, 0, 0.6)']}
                   style={styles.actionGrad}>
-                  <Icon name="earth" size={28} color="#fff" />
+                  <Icon name="forum" size={28} color="#fff" />
                 </LinearGradient>
               </TouchableOpacity>
 
