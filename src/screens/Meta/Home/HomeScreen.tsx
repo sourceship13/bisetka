@@ -26,6 +26,7 @@ import AVATARS, {resolveAvatar} from '../../../utils/avatars';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { socketService } from '../../../services/SocketService';
 import tokenService from '../../../services/token.service';
+import useBisetkaLocation from '../../../hooks/useBisetkaLocation';
 
 const bisetkaBackground = require('../../../../assets/backgrounds/bisetka.png');
 
@@ -121,6 +122,19 @@ type GameConfig = (typeof GAMES)[number];
 const HomeScreen = ({navigation}: any) => {
   const {user, signOut, refreshUser} = useAuth();
   const drawerNav = useNavigation();
+
+  // Auto-connect to local Bisetka based on GPS location
+  const { location, neighborhood, bisetka, loading: bisetkaLoading, error: bisetkaError } = useBisetkaLocation();
+
+  // Log Bisetka connection
+  useEffect(() => {
+    if (bisetka) {
+      console.log(`🏘️ Connected to Bisetka: ${bisetka.neighborhood_name}, ${bisetka.city} (${bisetka.active_users} active users)`);
+    }
+    if (bisetkaError) {
+      console.warn('⚠️ Bisetka connection error:', bisetkaError);
+    }
+  }, [bisetka, bisetkaError]);
 
   // Refresh profile data and upsert device info every time HomeScreen mounts
   useEffect(() => {
