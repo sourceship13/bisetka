@@ -476,26 +476,6 @@ const HomeScreen = ({navigation}: any) => {
 
         {renderNearestBisetkaCard()}
 
-        {/* Font Test Button (dev utility) */}
-        {/* <View style={styles.activeRoomsContainer}>
-          <TouchableOpacity
-            onPress={() => navigation.navigate('FontTest')}
-            style={styles.activeRoomsButton}
-            activeOpacity={0.85}>
-            <LinearGradient
-              colors={['rgba(99, 102, 241, 0.7)', 'rgba(139, 92, 246, 0.7)']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.activeRoomsGradient}>
-              <View style={{flex:1, padding:10}}>
-                <Text style={styles.activeRoomsTitle}>🔤 Font Test</Text>
-                <Text style={styles.activeRoomsSubtitle}>Browse all installed fonts</Text>
-              </View>
-              <Text style={styles.activeRoomsArrow}>→</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-        </View> */}
-
         {/* Active Rooms Button */}
         <View style={styles.activeRoomsContainer}>
           <TouchableOpacity
@@ -540,40 +520,6 @@ const HomeScreen = ({navigation}: any) => {
           </View>
           <OnlinePlayersList maxPlayers={20} />
         </View>
-       
-
-        {/* Avatar & Store Section */}
-        {/* <View style={styles.avatarSection}>
-          <Text style={styles.sectionTitle}>Your Avatar</Text>
-          <View style={styles.avatarButtons}>
-            <TouchableOpacity
-              style={styles.avatarButton}
-              onPress={() => navigation.navigate('Wardrobe')}
-            >
-              <LinearGradient
-                colors={['#6366f1', '#8b5cf6']}
-                style={styles.avatarButtonGradient}
-              >
-                <Text style={styles.avatarButtonIcon}>👕</Text>
-                <Text style={styles.avatarButtonText}>My Wardrobe</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.avatarButton}
-              onPress={() => navigation.navigate('ClothingStore')}
-            >
-              <LinearGradient
-                colors={['#ec4899', '#f472b6']}
-                style={styles.avatarButtonGradient}
-              >
-                <Text style={styles.avatarButtonIcon}>🛍️</Text>
-                <Text style={styles.avatarButtonText}>Clothing Store</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          </View>
-        </View> */}
-
 
         {/* Footer */}
         <View style={styles.footer}>
@@ -734,7 +680,6 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   closestBisetkaContainer: {
-    marginHorizontal: 16,
     marginTop: 10,
   },
   closestBisetkaButton: {
