@@ -124,7 +124,14 @@ const HomeScreen = ({navigation}: any) => {
   const drawerNav = useNavigation();
 
   // Auto-connect to local Bisetka based on GPS location
-  const { location, neighborhood, bisetka, loading: bisetkaLoading, error: bisetkaError } = useBisetkaLocation();
+  const {
+    location,
+    neighborhood,
+    bisetka,
+    loading: bisetkaLoading,
+    error: bisetkaError,
+    refreshLocation,
+  } = useBisetkaLocation();
 
   // Log Bisetka connection
   useEffect(() => {
@@ -233,6 +240,72 @@ const HomeScreen = ({navigation}: any) => {
       gameType: game.gameType,
       gradient: game.gradient as unknown as string[],
     });
+  };
+
+  const handleNearestBisetkaPress = () => {
+    if (bisetkaError) {
+      refreshLocation();
+      return;
+    }
+
+    navigation.navigate('GlobalView', { userId: user?.id });
+  };
+
+  const renderNearestBisetkaCard = () => {
+    const hasNearestBisetka = Boolean(bisetka && neighborhood);
+
+    let title = 'Closest Bisetka';
+    let subtitle = 'Checking which Bisetka you are physically closest to.';
+    let metaText = location
+      ? `${location.latitude.toFixed(3)}, ${location.longitude.toFixed(3)}`
+      : 'Using your device location';
+    let pillText = 'Locating';
+
+    if (bisetkaLoading) {
+      subtitle = 'Getting your location and matching you with the nearest neighborhood.';
+    } else if (bisetkaError) {
+      subtitle = bisetkaError;
+      metaText = 'Tap to retry location lookup';
+      pillText = 'Retry';
+    } else if (hasNearestBisetka) {
+      title = `${bisetka!.neighborhood_name}, ${bisetka!.city}`;
+      subtitle = 'This is the Bisetka closest to where your device is right now.';
+      metaText = `${neighborhood!.city}, ${neighborhood!.country}`;
+      pillText = `${bisetka!.active_users} active`;
+    }
+
+    return (
+      <View style={styles.closestBisetkaContainer}>
+        <TouchableOpacity
+          activeOpacity={0.85}
+          onPress={handleNearestBisetkaPress}
+          style={styles.closestBisetkaButton}>
+          <LinearGradient
+            colors={['rgba(0, 0, 0, 0.72)', 'rgba(18, 52, 46, 0.72)']}
+            start={{x: 0, y: 0}}
+            end={{x: 1, y: 1}}
+            style={styles.closestBisetkaGradient}>
+            <View style={styles.closestBisetkaIconWrap}>
+              <Icon name="map-marker-radius" size={26} color="#ffffff" />
+            </View>
+
+            <View style={styles.closestBisetkaContent}>
+              <Text style={styles.closestBisetkaEyebrow}>Nearest To You</Text>
+              <Text style={styles.closestBisetkaTitle}>{title}</Text>
+              <Text style={styles.closestBisetkaSubtitle}>{subtitle}</Text>
+              <Text style={styles.closestBisetkaMeta}>{metaText}</Text>
+            </View>
+
+            <View style={styles.closestBisetkaSide}>
+              <View style={styles.closestBisetkaPill}>
+                <Text style={styles.closestBisetkaPillText}>{pillText}</Text>
+              </View>
+              <Text style={styles.closestBisetkaArrow}>→</Text>
+            </View>
+          </LinearGradient>
+        </TouchableOpacity>
+      </View>
+    );
   };
 
   const renderGameCard = (game: GameConfig) => {
@@ -400,6 +473,8 @@ const HomeScreen = ({navigation}: any) => {
             </View>
           </View>
         </View>
+
+        {renderNearestBisetkaCard()}
 
         {/* Font Test Button (dev utility) */}
         {/* <View style={styles.activeRoomsContainer}>
@@ -657,6 +732,85 @@ const styles = StyleSheet.create({
   activeRoomsContainer: {
     marginHorizontal: 16,
     marginTop: 8,
+  },
+  closestBisetkaContainer: {
+    marginHorizontal: 16,
+    marginTop: 10,
+  },
+  closestBisetkaButton: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#10b981',
+    shadowOffset: {width: 0, height: 4},
+    shadowOpacity: 0.22,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  closestBisetkaGradient: {
+    minHeight: 110,
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  closestBisetkaIconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.16)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  closestBisetkaContent: {
+    flex: 1,
+    paddingRight: 10,
+  },
+  closestBisetkaEyebrow: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    color: 'rgba(255,255,255,0.72)',
+    marginBottom: 4,
+  },
+  closestBisetkaTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  closestBisetkaSubtitle: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.86)',
+    marginTop: 4,
+    lineHeight: 17,
+  },
+  closestBisetkaMeta: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.62)',
+    marginTop: 6,
+  },
+  closestBisetkaSide: {
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    minHeight: 72,
+  },
+  closestBisetkaPill: {
+    backgroundColor: 'rgba(255,255,255,0.16)',
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  closestBisetkaPillText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  closestBisetkaArrow: {
+    fontSize: 24,
+    color: '#fff',
+    fontWeight: '700',
   },
   activeRoomsButton: {
     borderRadius: 16,
