@@ -586,7 +586,6 @@
 		C5E1A606907441D6841D56D6 /* EBGaramond-Italic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "EBGaramond-Italic.ttf"; path = "../assets/fonts/EBGaramond-Italic.ttf"; sourceTree = "<group>"; };
 		C67D7AC970674E3A94AB6034 /* EBGaramond-SemiBold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "EBGaramond-SemiBold.ttf"; path = "../assets/fonts/EBGaramond-SemiBold.ttf"; sourceTree = "<group>"; };
 		C7FD9EC2E1F0D9352130D291 /* libPods-bisetka-staging.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-bisetka-staging.a"; sourceTree = BUILT_PRODUCTS_DIR; };
-		C874272D9AF6470FBE3BE1BB /* MaterialCommunityIcons.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = MaterialCommunityIcons.ttf; path = ../assets/fonts/MaterialCommunityIcons.ttf; sourceTree = "<group>"; };
 		CF6248775B954B2A91E9577D /* Inter_18pt-Regular.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "Inter_18pt-Regular.ttf"; path = "../assets/fonts/Inter_18pt-Regular.ttf"; sourceTree = "<group>"; };
 		D15C27B397F84A35AE9A96BE /* PlayfairDisplaySC-BoldItalic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "PlayfairDisplaySC-BoldItalic.ttf"; path = "../assets/fonts/PlayfairDisplaySC-BoldItalic.ttf"; sourceTree = "<group>"; };
 		D216C0464CC9442B94FDF359 /* Inter_24pt-Light.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "Inter_24pt-Light.ttf"; path = "../assets/fonts/Inter_24pt-Light.ttf"; sourceTree = "<group>"; };
@@ -801,7 +800,6 @@
 				2910604EF97045BD8E4E41B3 /* JetBrainsMono-BoldItalic.ttf */,
 				663CC6D3FAB948B59C35ADAA /* Fredoka_Condensed-SemiBold.ttf */,
 				600DC68CC47C43F0A0A34B27 /* EBGaramond-Medium.ttf */,
-				C874272D9AF6470FBE3BE1BB /* MaterialCommunityIcons.ttf */,
 			);
 			name = Resources;
 			path = "";
