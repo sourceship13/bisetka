@@ -837,11 +837,6 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'flex-start',
   },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#fff',
-  },
   sectionSub: {
     fontSize: 13,
     color: 'rgba(255,255,255,0.6)',
