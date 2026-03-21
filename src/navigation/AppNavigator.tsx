@@ -43,6 +43,7 @@ import AvatarSelectionScreen from '../screens/Meta/Onboarding/AvatarSelectionScr
 import ClothingStoreScreen from '../screens/Meta/Home/ClothingStoreScreen';
 import WardrobeScreen from '../screens/Meta/Home/WardrobeScreen';
 import GlobalViewScreen from '../screens/Meta/GlobalView/GlobalViewScreen';
+import BisetkaDetailScreen from '../screens/Meta/BisetkaDetail/BisetkaDetailScreen';
 import DrawerContent from '../components/DrawerContent';
 import {useAuth} from '../libs/hooks/useAuth';
 import {ActivityIndicator, View, StyleSheet, Dimensions} from 'react-native';
@@ -87,6 +88,7 @@ export type RootStackParamList = {
   ClothingStore: undefined;
   Wardrobe: undefined;
   GlobalView: { userId?: string };
+  BisetkaDetail: { bisetkaId: string; bisetkaName: string; city: string; country: string };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -287,6 +289,7 @@ const AppNavigator = () => {
               <Stack.Screen name="ClothingStore" component={ClothingStoreScreen} />
               <Stack.Screen name="Wardrobe" component={WardrobeScreen} />
               <Stack.Screen name="GlobalView" component={GlobalViewScreen} />
+              <Stack.Screen name="BisetkaDetail" component={BisetkaDetailScreen} />
             </>
           )}
         </Stack.Navigator>
