@@ -202,23 +202,18 @@ const GlobalViewScreen = ({ navigation }: any) => {
   }, [userLocation]);
 
   const handleSessionPress = (session: GameSession) => {
-    setSelectedSession(session);
+    // Navigate to BisetkaDetail screen to show Kings and leaderboard
+    navigation.navigate('BisetkaDetail', {
+      bisetkaId: session.id,
+      bisetkaName: session.roomName || 'Unknown',
+      city: session.city || 'Unknown',
+      country: session.country || 'World',
+    });
   };
 
   const handleJoinSession = (session: GameSession) => {
-    if (session.playerCount === 0) {
-      BisetkaAlert.alert(
-        'No Active Players',
-        'This Bisetka location is visible on the globe, but nobody is currently active there.',
-        [{ text: 'OK' }],
-      );
-      return;
-    }
-
-    navigation.navigate('ActiveRoomDetail', {
-      dbSessionId: session.id,
-      gameType: session.gameType,
-    });
+    // Same as handleSessionPress - go to BisetkaDetail
+    handleSessionPress(session);
   };
 
   const renderMapView = () => {

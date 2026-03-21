@@ -248,7 +248,18 @@ const HomeScreen = ({navigation}: any) => {
       return;
     }
 
-    navigation.navigate('GlobalView', { userId: user?.id });
+    // If we have a valid Bisetka connection, go directly to BisetkaDetail
+    // Otherwise, show the GlobalView to explore all Bisetkas
+    if (bisetka && neighborhood) {
+      navigation.navigate('BisetkaDetail', {
+        bisetkaId: bisetka.id,
+        bisetkaName: bisetka.neighborhood_name,
+        city: bisetka.city,
+        country: neighborhood.country,
+      });
+    } else {
+      navigation.navigate('GlobalView', { userId: user?.id });
+    }
   };
 
   const renderNearestBisetkaCard = () => {
@@ -500,18 +511,46 @@ const HomeScreen = ({navigation}: any) => {
           </TouchableOpacity>
         </View>
         {/* Section Title */}
-        <TouchableOpacity 
-          onPress={() => navigation.navigate('GameSelection')}
-          activeOpacity={0.85}
-          style={styles.sectionHeadWrapper}>
-          <View style={styles.sectionHead}>
-            <View style={styles.sectionHeadContent}>
-              <Text style={styles.sectionTitle}>🎮 Choose a Games</Text>
-              <Text style={styles.sectionSub}>Pick your game</Text>
+        <View style={styles.sectionHeadWrapper}>
+          <TouchableOpacity 
+            onPress={() => {
+              if (bisetka?.id) {
+                navigation.navigate('BisetkaDetail', {
+                  bisetkaId: bisetka.id,
+                  bisetkaName: bisetka.neighborhood_name,
+                  city: bisetka.city,
+                  country: bisetka.country,
+                });
+              }
+            }}
+            activeOpacity={0.85}>
+            <View style={styles.sectionHead}>
+              <View style={styles.sectionHeadContent}>
+                <Text style={styles.sectionTitle}>
+                  🎮 Choose what to play in {bisetka?.neighborhood_name || 'your Bisetka'}
+                </Text>
+                <Text style={styles.sectionSub}>
+                  {bisetka?.city ? `${bisetka.city}, ${bisetka.country}` : 'Pick your game'}
+                </Text>
+              </View>
+              <Text style={styles.sectionArrow}>📊</Text>
             </View>
-            <Text style={styles.sectionArrow}>→</Text>
-          </View>
-        </TouchableOpacity>
+          </TouchableOpacity>
+          
+          {bisetka?.id && (
+            <TouchableOpacity
+              style={styles.leaderboardButton}
+              onPress={() => navigation.navigate('GameSelection')}>
+              <LinearGradient
+                colors={['#6366f1', '#8b5cf6']}
+                start={{x: 0, y: 0}}
+                end={{x: 1, y: 0}}
+                style={styles.leaderboardButtonGrad}>
+                <Text style={styles.leaderboardButtonText}>Choose Game →</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          )}
+        </View>
 
         {/* Online Players */}
         <View style={styles.onlinePlayersContainer}>
@@ -846,6 +885,21 @@ const styles = StyleSheet.create({
     fontSize: 24,
     color: '#fff',
     fontWeight: '700',
+  },
+  leaderboardButton: {
+    marginTop: 8,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  leaderboardButtonGrad: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+  },
+  leaderboardButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
   },
   gamesGrid: {
     flexDirection: 'row',
