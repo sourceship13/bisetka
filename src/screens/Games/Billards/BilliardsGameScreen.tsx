@@ -9,7 +9,9 @@ import {
   Animated,
   Easing,
   ImageBackground,
+  Alert,
 } from 'react-native';
+import { apiService } from '../../../services/api.service';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import GameToolbar from '../../../components/global/GameToolbar';
 import RoomNameModal from '../../../components/RoomNameModal';
@@ -559,6 +561,78 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
     cueBallVelocity: Vec2;
     targetBall?: { number: number; type: string };
   } | null>(null);
+
+  // Entry fee and prize tracking
+  const [entryDeducted, setEntryDeducted] = useState(false);
+  const [prizeAwarded, setPrizeAwarded] = useState(false);
+  const { user, refreshUser } = useAuth();
+
+  // Entry fee deduction handler
+  const handleGameStart = async () => {
+    if (entryDeducted || !user?.id) return;
+
+    try {
+      console.log('💰 Deducting billiards entry fee...');
+      const result = await apiService.deductEntry('billiards', billiardsGameIdRef.current);
+      
+      if (result.success) {
+        console.log(`✅ Entry deducted: -50 points. Balance: ${result.newBalance}`);
+        setEntryDeducted(true);
+        refreshUser().catch(console.error);
+      } else {
+        console.error('❌ Insufficient points:', result.error);
+        Alert.alert('Insufficient Points', result.error || 'You need 50 points to play billiards.', [
+          { text: 'OK', onPress: () => navigation.goBack() }
+        ]);
+      }
+    } catch (error: any) {
+      console.error('❌ Entry deduction error:', error);
+      Alert.alert('Error', 'Failed to deduct entry fee.', [
+        { text: 'OK', onPress: () => navigation.goBack() }
+      ]);
+    }
+  };
+
+  // Prize award handler
+  const handleGameEnd = async (didWin: boolean) => {
+    if (prizeAwarded || !user?.id) return;
+
+    try {
+      const result = didWin ? 'win' : 'loss';
+      console.log(`🏆 Awarding prize for ${result}...`);
+      const prizeResult = await apiService.awardPrize('billiards', result, billiardsGameIdRef.current);
+      
+      if (prizeResult.success) {
+        console.log(`✅ Prize awarded: +${prizeResult.prize} points. Balance: ${prizeResult.newBalance}`);
+        setPrizeAwarded(true);
+        refreshUser().catch(console.error);
+        
+        if (didWin) {
+          setTimeout(() => {
+            Alert.alert('🏆 Victory!', `You won ${prizeResult.prize} points!\n\nNew balance: ${prizeResult.newBalance} points`);
+          }, 2000);
+        }
+      }
+    } catch (error: any) {
+      console.error('❌ Prize award error:', error);
+    }
+  };
+
+  // Entry fee & prize logic
+  // Deduct entry when game starts
+  useEffect(() => {
+    if (!entryDeducted) {
+      handleGameStart();
+    }
+  }, [entryDeducted]);
+
+  // Award prize when game ends
+  useEffect(() => {
+    if (gameOver && !prizeAwarded) {
+      const didWin = winner === 'player';
+      handleGameEnd(didWin);
+    }
+  }, [gameOver, prizeAwarded, winner]);
 
   const cueBall = balls.find(b => b.type === 'cue' && !b.pocketed);
 
@@ -1388,6 +1462,8 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
     billiardsGameIdRef.current = uuidv4();
     shotCountRef.current = 0;
     lastPlayerShotRef.current = null;
+    setEntryDeducted(false);
+    setPrizeAwarded(false);
     
     setBalls(variant === '9-ball' ? createRack9Ball() : createRack8Ball());
     setIsMoving(false);

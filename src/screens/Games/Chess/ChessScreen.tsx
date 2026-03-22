@@ -1,5 +1,5 @@
 import React, {useState, useEffect, useRef} from 'react';
-import {View, Text, StyleSheet, TouchableOpacity, ImageBackground} from 'react-native';
+import {View, Text, StyleSheet, TouchableOpacity, ImageBackground, Alert} from 'react-native';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
@@ -12,7 +12,7 @@ import {
   makeMove,
   isKingInCheck,
   isCheckmate,
-  isStalemate,
+  getDrawReason,
   getComputerMove,
   Position,
 } from '../../../game/chessLogic';
@@ -22,8 +22,11 @@ import type { GameTheme } from '../../../components/global/GameThemeCustomizer';
 import { aiMoveLogService } from '../../../services/aiMoveLog.service';
 import { v4 as uuidv4 } from 'uuid';
 import { useGameEndRefresh } from '../../../libs/hooks/useGameEndRefresh';
+import { apiService } from '../../../services/api.service';
+import { useAuth } from '../../../libs/hooks/useAuth';
 
 const ChessScreen = ({navigation}: any) => {
+  const { user, refreshUser } = useAuth();
   const [difficulty, setDifficulty] = useState<Difficulty | null>(null);
   const [gameState, setGameState] = useState<ChessGameState | null>(null);
   const gameIdRef = useRef<string | null>(null);
@@ -32,10 +35,171 @@ const ChessScreen = ({navigation}: any) => {
   useGameEndRefresh(!!(gameState?.isCheckmate || gameState?.isStalemate), 'chess');
   const [showCustomization, setShowCustomization] = useState(false);
   const [gameTheme, setGameTheme] = useState<GameTheme>({});
+  
+  // Entry fee and prize tracking
+  const [entryDeducted, setEntryDeducted] = useState(false);
+  const [prizeAwarded, setPrizeAwarded] = useState(false);
+  const [userPoints, setUserPoints] = useState(Math.floor(user?.balance || 0));
+
+  // Debug: Log user state on mount
+  useEffect(() => {
+    console.log('🎮 ChessScreen mounted');
+    console.log('   User:', user ? { id: user.id, points: user.points } : 'NOT LOGGED IN');
+  }, []);
 
   const handleApplyTheme = (theme: GameTheme) => {
     setGameTheme(theme);
   };
+
+  // Entry fee deduction handler
+  const handleGameStart = async () => {
+    if (entryDeducted) {
+      console.log('⚠️ Entry already deducted, skipping');
+      return;
+    }
+
+    if (!user?.id) {
+      console.error('❌ User not authenticated');
+      Alert.alert(
+        'Not Logged In',
+        'You must be logged in to play. Please sign in and try again.',
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              resetGame();
+              navigation.goBack();
+            },
+          },
+        ]
+      );
+      return;
+    }
+
+    try {
+      console.log('💰 Deducting chess entry fee...');
+      console.log('   User ID:', user.id);
+      console.log('   Game ID:', gameIdRef.current);
+      
+      const result = await apiService.deductEntry('chess', gameIdRef.current || undefined);
+      
+      console.log('📥 Entry result:', JSON.stringify(result));
+      
+      if (result.success) {
+        console.log(`✅ Entry deducted: -50 points. New balance: ${result.newBalance}`);
+        setUserPoints(result.newBalance);
+        setEntryDeducted(true);
+        
+        // Refresh user data in Auth context
+        refreshUser().catch(err => console.error('Failed to refresh user after entry:', err));
+      } else {
+        console.error('❌ Insufficient points:', result.error);
+        Alert.alert(
+          'Insufficient Points',
+          result.error || 'You need 50 points to play chess.',
+          [
+            {
+              text: 'OK',
+              onPress: () => {
+                resetGame();
+                navigation.goBack();
+              },
+            },
+          ]
+        );
+      }
+    } catch (error: any) {
+      console.error('❌ Entry deduction error:', error);
+      console.error('   Error message:', error?.message);
+      console.error('   Error status:', error?.status);
+      console.error('   Error code:', error?.code);
+      console.error('   Full error:', JSON.stringify(error));
+      
+      Alert.alert(
+        'Error',
+        `Failed to deduct entry fee: ${error?.message || 'Please try again.'}`,
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              resetGame();
+              navigation.goBack();
+            },
+          },
+        ]
+      );
+    }
+  };
+
+  // Prize award handler
+  const handleGameEnd = async (winner: 'white' | 'black' | null) => {
+    if (prizeAwarded || !user?.id) return;
+
+    try {
+      // Determine result: white = player, black = computer
+      const result: 'win' | 'draw' | 'loss' = 
+        winner === null ? 'draw' : 
+        winner === 'white' ? 'win' : 
+        'loss';
+      
+      console.log(`🏆 Awarding prize for ${result}...`);
+      const prizeResult = await apiService.awardPrize('chess', result, gameIdRef.current || undefined);
+      
+      if (prizeResult.success) {
+        console.log(`✅ Prize awarded: +${prizeResult.prize} points. Balance: ${prizeResult.newBalance}`);
+        setUserPoints(prizeResult.newBalance);
+        setPrizeAwarded(true);
+        
+        // Refresh user data in Auth context (so HomeScreen sees updated balance)
+        refreshUser().catch(err => console.error('Failed to refresh user after game:', err));
+        
+        // Show prize notification after game over screen
+        if (result === 'win') {
+          setTimeout(() => {
+            Alert.alert(
+              '🏆 Victory!',
+              `You won ${prizeResult.prize} points!\n\nNew balance: ${prizeResult.newBalance} points`,
+              [{ text: 'Awesome!', style: 'default' }]
+            );
+          }, 2000);
+        } else if (result === 'draw') {
+          setTimeout(() => {
+            Alert.alert(
+              'Draw',
+              `Entry fee refunded: ${prizeResult.prize} points\n\nNew balance: ${prizeResult.newBalance} points`,
+              [{ text: 'OK', style: 'default' }]
+            );
+          }, 2000);
+        }
+        // For loss, we don't show an alert (they already know they lost)
+      }
+    } catch (error: any) {
+      console.error('❌ Prize award error:', error);
+      // Non-fatal - game is over, just log it
+    }
+  };
+
+  // Deduct entry fee when game starts
+  useEffect(() => {
+    if (gameState && difficulty && !entryDeducted) {
+      handleGameStart();
+    }
+  }, [gameState, difficulty, entryDeducted]);
+
+  // Award prize when game ends
+  useEffect(() => {
+    if (gameState && (gameState.isCheckmate || gameState.isStalemate) && !prizeAwarded) {
+      // Determine winner: if checkmate and currentPlayer is black, white (player) won
+      // if currentPlayer is white, black (computer) won
+      let winner: 'white' | 'black' | null = null;
+      if (gameState.isCheckmate) {
+        winner = gameState.currentPlayer === 'black' ? 'white' : 'black';
+      } else {
+        winner = null; // stalemate = draw
+      }
+      handleGameEnd(winner);
+    }
+  }, [gameState?.isCheckmate, gameState?.isStalemate, prizeAwarded]);
 
   useEffect(() => {
     // Computer's turn
@@ -57,7 +221,8 @@ const ChessScreen = ({navigation}: any) => {
 
             const isCheck = isKingInCheck(newBoard, nextPlayer);
             const isCheckMate = isCheckmate(newBoard, nextPlayer);
-            const isStaleMate = isStalemate(newBoard, nextPlayer);
+            const drawReason = getDrawReason(newBoard, nextPlayer);
+            const isStaleMate = drawReason !== null;
 
             // Log AI move after state update
             if (gameIdRef.current && lastPlayerMoveRef.current) {
@@ -90,6 +255,7 @@ const ChessScreen = ({navigation}: any) => {
               isCheck,
               isCheckmate: isCheckMate,
               isStalemate: isStaleMate,
+              drawReason,
             };
           });
         }
@@ -169,7 +335,8 @@ const ChessScreen = ({navigation}: any) => {
 
     const isCheck = isKingInCheck(newBoard, nextPlayer);
     const isCheckMate = isCheckmate(newBoard, nextPlayer);
-    const isStaleMate = isStalemate(newBoard, nextPlayer);
+    const drawReason = getDrawReason(newBoard, nextPlayer);
+    const isStaleMate = drawReason !== null;
 
     setGameState({
       ...gameState,
@@ -180,13 +347,17 @@ const ChessScreen = ({navigation}: any) => {
       isCheck,
       isCheckmate: isCheckMate,
       isStalemate: isStaleMate,
+      drawReason,
       moveHistory: [...gameState.moveHistory, { from, to }],
     });
 
     if (isCheckMate) {
       BisetkaAlert.success('Checkmate!', `${gameState.currentPlayer === 'white' ? 'White' : 'Black'} wins!`);
     } else if (isStaleMate) {
-      BisetkaAlert.alert('Stalemate!', 'Game is a draw.');
+      BisetkaAlert.alert(
+        drawReason === 'insufficient-material' ? 'Draw!' : 'Stalemate!',
+        drawReason === 'insufficient-material' ? 'Only the two kings remain. The game is a draw.' : 'Game is a draw.'
+      );
     } else if (isCheck) {
       BisetkaAlert.warning('Check!', `${nextPlayer === 'white' ? 'White' : 'Black'} is in check.`);
     }
@@ -198,6 +369,8 @@ const ChessScreen = ({navigation}: any) => {
     gameIdRef.current = null;
     moveCountRef.current = 0;
     lastPlayerMoveRef.current = null;
+    setEntryDeducted(false);
+    setPrizeAwarded(false);
   };
 
   // Difficulty selection screen
@@ -330,12 +503,14 @@ const ChessScreen = ({navigation}: any) => {
         <View style={styles.gameOverOverlay}>
           <View style={styles.gameOverBox}>
             <Text style={styles.gameOverTitle}>
-              {gameState.isCheckmate ? 'Checkmate!' : 'Stalemate!'}
+              {gameState.isCheckmate ? 'Checkmate!' : gameState.drawReason === 'insufficient-material' ? 'Draw!' : 'Stalemate!'}
             </Text>
             <Text style={styles.gameOverText}>
               {gameState.isCheckmate
                 ? gameState.currentPlayer === 'black' ? 'You Win!' : 'Computer Wins!'
-                : "It's a Draw!"}
+                : gameState.drawReason === 'insufficient-material'
+                  ? 'Only kings remain. This is a draw.'
+                  : "It's a Draw!"}
             </Text>
             <TouchableOpacity style={styles.playAgainButton} onPress={resetGame} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
               <Text style={styles.playAgainText}>Play Again</Text>

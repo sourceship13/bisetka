@@ -3,10 +3,17 @@ import { Platform } from 'react-native';
 import { apiConfig } from '../libs/utils/api.utils';
 import type { UserLocation } from './location.service';
 
-export interface GameMove {
+export interface GridGameMove {
   from: { row: number; col: number };
   to: { row: number; col: number };
 }
+
+export type NardiGameMove =
+  | { type: 'roll_dice'; dice: { die1: number; die2: number } }
+  | { type: 'move_piece'; from: number; to: number }
+  | { type: 'end_turn' };
+
+export type GameMove = GridGameMove | NardiGameMove;
 
 export interface MultiplayerGameState {
   roomId: string;

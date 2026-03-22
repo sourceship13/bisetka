@@ -33,12 +33,16 @@ interface GameInfoData {
   estimatedDuration: number;
   difficulty: string;
   categories: string[];
+  entryCost: number;
+  prizeMultiplier: number;
   pointAwards: {
     type: 'monetary' | 'config';
+    entryCost: number;
     description?: string;
     examples?: Array<{ scenario: string; points: number }>;
     modes?: {
       [mode: string]: {
+        entry?: number;
         win: number | null;
         draw: number | null;
         loss: number | null;
@@ -106,17 +110,31 @@ const GameInfoScreen: React.FC<Props> = ({ route, navigation }) => {
     if (!gameInfo?.pointAwards) return null;
 
     const { pointAwards } = gameInfo;
+    const entryCost = pointAwards.entryCost || gameInfo.entryCost || 50;
 
-    if (pointAwards.type === 'monetary') {
-      return (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>💰 Point System</Text>
+    return (
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>💰 Entry Cost & Prizes</Text>
+        
+        {/* Entry Cost Card */}
+        <View style={[styles.card, styles.entryCostCard]}>
+          <View style={styles.entryCostHeader}>
+            <Text style={styles.entryCostLabel}>Entry Cost</Text>
+            <Text style={styles.entryCostValue}>-{entryCost} points</Text>
+          </View>
+          <Text style={styles.entryCostDescription}>
+            Pay {entryCost} points to play. Win to earn prizes!
+          </Text>
+        </View>
+
+        {/* Prize Structure */}
+        {pointAwards.type === 'monetary' ? (
           <View style={[styles.card, styles.monetaryCard]}>
             <Text style={styles.monetaryDescription}>{pointAwards.description}</Text>
             
             {pointAwards.examples && (
               <View style={styles.examplesContainer}>
-                <Text style={styles.examplesTitle}>Examples:</Text>
+                <Text style={styles.examplesTitle}>Potential Rewards:</Text>
                 {pointAwards.examples.map((example, index) => (
                   <View key={index} style={styles.exampleRow}>
                     <Text style={styles.exampleScenario}>{example.scenario}</Text>
@@ -133,54 +151,52 @@ const GameInfoScreen: React.FC<Props> = ({ route, navigation }) => {
               </View>
             )}
           </View>
-        </View>
-      );
-    }
-
-    // Config-based points
-    if (pointAwards.type === 'config' && pointAwards.modes) {
-      const modeNames: { [key: string]: string } = {
-        random: 'Random Match',
-        private: 'Private Match',
-        ai: 'AI Opponent',
-        solo: 'Solo Play',
-      };
-
-      return (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>🏆 Point Rewards</Text>
-          {Object.entries(pointAwards.modes).map(([mode, points]) => (
-            <View key={mode} style={styles.card}>
-              <Text style={styles.modeName}>{modeNames[mode] || mode}</Text>
-              <View style={styles.pointsGrid}>
-                {points.win !== null && (
-                  <View style={styles.pointItem}>
-                    <Text style={styles.pointLabel}>Win</Text>
-                    <Text style={[styles.pointValue, styles.pointsPositive]}>
-                      +{points.win} pts
-                    </Text>
-                  </View>
-                )}
-                {points.draw !== null && (
-                  <View style={styles.pointItem}>
-                    <Text style={styles.pointLabel}>Draw</Text>
-                    <Text style={styles.pointValue}>+{points.draw} pts</Text>
-                  </View>
-                )}
-                {points.loss !== null && (
-                  <View style={styles.pointItem}>
-                    <Text style={styles.pointLabel}>Loss</Text>
-                    <Text style={styles.pointValue}>+{points.loss} pts</Text>
-                  </View>
-                )}
-              </View>
+        ) : pointAwards.type === 'config' && pointAwards.modes ? (
+          <View style={styles.card}>
+            <Text style={styles.prizeTitle}>🏆 Prize Structure</Text>
+            <View style={styles.prizesGrid}>
+              {Object.entries(pointAwards.modes).slice(0, 1).map(([mode, points]) => (
+                <React.Fragment key={mode}>
+                  {points.win !== null && (
+                    <View style={styles.prizeItem}>
+                      <Text style={styles.prizeIcon}>🥇</Text>
+                      <View style={styles.prizeTextContainer}>
+                        <Text style={styles.prizeLabel}>Win</Text>
+                        <Text style={[styles.prizeValue, styles.pointsPositive]}>
+                          +{points.win} pts
+                        </Text>
+                      </View>
+                    </View>
+                  )}
+                  {points.draw !== null && (
+                    <View style={styles.prizeItem}>
+                      <Text style={styles.prizeIcon}>🤝</Text>
+                      <View style={styles.prizeTextContainer}>
+                        <Text style={styles.prizeLabel}>Draw</Text>
+                        <Text style={styles.prizeValue}>+{points.draw} pts</Text>
+                        <Text style={styles.prizeSubtext}>(Entry refunded)</Text>
+                      </View>
+                    </View>
+                  )}
+                  {points.loss !== null && (
+                    <View style={styles.prizeItem}>
+                      <Text style={styles.prizeIcon}>😔</Text>
+                      <View style={styles.prizeTextContainer}>
+                        <Text style={styles.prizeLabel}>Loss</Text>
+                        <Text style={[styles.prizeValue, styles.pointsNegative]}>
+                          {points.loss} pts
+                        </Text>
+                        <Text style={styles.prizeSubtext}>(No prize)</Text>
+                      </View>
+                    </View>
+                  )}
+                </React.Fragment>
+              ))}
             </View>
-          ))}
-        </View>
-      );
-    }
-
-    return null;
+          </View>
+        ) : null}
+      </View>
+    );
   };
 
   const renderRules = () => {
@@ -336,6 +352,9 @@ const GameInfoScreen: React.FC<Props> = ({ route, navigation }) => {
             end={{ x: 1, y: 1 }}
             style={styles.playButtonGradient}>
             <Text style={styles.playButtonText}>Play Now</Text>
+            <Text style={styles.playButtonSubtext}>
+              Entry: {gameInfo.entryCost || 50} points
+            </Text>
           </LinearGradient>
         </TouchableOpacity>
       </View>
@@ -472,10 +491,79 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 12,
   },
+  entryCostCard: {
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    borderWidth: 2,
+    borderColor: 'rgba(239, 68, 68, 0.4)',
+    marginBottom: 16,
+  },
+  entryCostHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  entryCostLabel: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  entryCostValue: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#ef4444',
+  },
+  entryCostDescription: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.7)',
+    fontStyle: 'italic',
+  },
   monetaryCard: {
     backgroundColor: 'rgba(99, 102, 241, 0.15)',
     borderWidth: 1,
     borderColor: 'rgba(99, 102, 241, 0.3)',
+  },
+  prizeTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#fff',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  prizesGrid: {
+    gap: 16,
+  },
+  prizeItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 12,
+    padding: 12,
+  },
+  prizeIcon: {
+    fontSize: 32,
+    marginRight: 12,
+  },
+  prizeTextContainer: {
+    flex: 1,
+  },
+  prizeLabel: {
+    fontSize: 14,
+    color: colors.text.secondary,
+    marginBottom: 2,
+    textTransform: 'uppercase',
+    fontWeight: '600',
+  },
+  prizeValue: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#fff',
+  },
+  prizeSubtext: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.5)',
+    marginTop: 2,
+    fontStyle: 'italic',
   },
   monetaryDescription: {
     fontSize: 16,
@@ -626,6 +714,12 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  playButtonSubtext: {
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 14,
+    fontWeight: '600',
+    marginTop: 4,
   },
 });
 

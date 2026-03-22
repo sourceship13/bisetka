@@ -11,7 +11,10 @@ import {
   Animated,
   ScrollView,
   Image,
+  Alert,
 } from 'react-native';
+import { apiService } from '../../../services/api.service';
+import { v4 as uuidv4 } from 'uuid';
 import ReAnimated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import ExpandableView from '../../../components/global/ExpandableView';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -79,6 +82,23 @@ const BaazarBlotScreen = ({ navigation }: any) => {
     });
   }, []);
 
+  // Entry fee & prize logic
+  // Deduct entry when game starts
+  useEffect(() => {
+    if (gameState && !entryDeducted) {
+      handleGameStart();
+    }
+  }, [gameState, entryDeducted]);
+
+  // Award prize when game ends
+  useEffect(() => {
+    if (gameState?.phase === 'gameEnd' && !prizeAwarded) {
+      const winner = gameState.gameScore.team1 >= gameState.targetScore ? 1 : 2;
+      const didWin = winner === 1; // Team 1 includes player 0 (you)
+      handleGameEnd(didWin);
+    }
+  }, [gameState?.phase, prizeAwarded]);
+
   const handleSaveTheme = (theme: CardTheme) => {
     const urls = [theme.boardImage, theme.backgroundImage].filter(Boolean) as string[];
     if (urls.length > 0) {
@@ -98,7 +118,63 @@ const BaazarBlotScreen = ({ navigation }: any) => {
   const [showPanel, setShowPanel] = useState(false);
   const panelAnim = useRef(new Animated.Value(0)).current;
   const toolbarExpanded = useSharedValue(false);
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, refreshUser } = useAuth();
+
+  // Entry fee and prize tracking
+  const [entryDeducted, setEntryDeducted] = useState(false);
+  const [prizeAwarded, setPrizeAwarded] = useState(false);
+  const gameIdRef = useRef<string>(uuidv4());
+
+  // Entry fee deduction handler
+  const handleGameStart = async () => {
+    if (entryDeducted || !currentUser?.id) return;
+
+    try {
+      console.log('💰 Deducting baazar blot entry fee...');
+      const result = await apiService.deductEntry('baazar_blot', gameIdRef.current);
+      
+      if (result.success) {
+        console.log(`✅ Entry deducted: -50 points. Balance: ${result.newBalance}`);
+        setEntryDeducted(true);
+        refreshUser().catch(console.error);
+      } else {
+        console.error('❌ Insufficient points:', result.error);
+        Alert.alert('Insufficient Points', result.error || 'You need 50 points to play baazar blot.', [
+          { text: 'OK', onPress: () => navigation.goBack() }
+        ]);
+      }
+    } catch (error: any) {
+      console.error('❌ Entry deduction error:', error);
+      Alert.alert('Error', 'Failed to deduct entry fee.', [
+        { text: 'OK', onPress: () => navigation.goBack() }
+      ]);
+    }
+  };
+
+  // Prize award handler
+  const handleGameEnd = async (didWin: boolean) => {
+    if (prizeAwarded || !currentUser?.id) return;
+
+    try {
+      const result = didWin ? 'win' : 'loss';
+      console.log(`🏆 Awarding prize for ${result}...`);
+      const prizeResult = await apiService.awardPrize('baazar_blot', result, gameIdRef.current);
+      
+      if (prizeResult.success) {
+        console.log(`✅ Prize awarded: +${prizeResult.prize} points. Balance: ${prizeResult.newBalance}`);
+        setPrizeAwarded(true);
+        refreshUser().catch(console.error);
+        
+        if (didWin) {
+          setTimeout(() => {
+            Alert.alert('🏆 Victory!', `You won ${prizeResult.prize} points!\n\nNew balance: ${prizeResult.newBalance} points`);
+          }, 2000);
+        }
+      }
+    } catch (error: any) {
+      console.error('❌ Prize award error:', error);
+    }
+  };
   const chevronStyle = useAnimatedStyle(() => ({
     transform: [{ rotate: withTiming(toolbarExpanded.value ? '180deg' : '0deg', { duration: 250 }) }],
   }));
@@ -138,6 +214,9 @@ const BaazarBlotScreen = ({ navigation }: any) => {
   ];
 
   const startGame = useCallback((target: GameTarget) => {
+    gameIdRef.current = uuidv4();
+    setEntryDeducted(false);
+    setPrizeAwarded(false);
     const gs = initializeBaazarGame(target);
     dealtHandsRef.current = gs.players.map(p => ({ team: p.team, hand: [...p.hand] }));
     setGameState(gs);

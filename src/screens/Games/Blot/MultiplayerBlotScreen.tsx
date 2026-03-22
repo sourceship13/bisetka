@@ -11,6 +11,7 @@ import {
   Image,
   Dimensions,
   Animated,
+  Alert,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
@@ -32,6 +33,7 @@ import RoomInfoDrawer from '../../../components/RoomInfoDrawer';
 import type { RoomInfoDrawerHandle } from '../../../components/RoomInfoDrawer';
 import {apiConfig} from '../../../libs/utils/api.utils';
 import apiService from '../../../services/api.service';
+import { useAuth } from '../../../libs/hooks/useAuth';
 import CardCustomizationModal from '../../../components/global/GameCustomizationModal';
 import type { CardTheme } from '../../../components/global/GameCustomizationModal';
 import ExpandableView from '../../../components/global/ExpandableView';
@@ -118,6 +120,63 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [showDifficultyModal, setShowDifficultyModal] = useState(false);
   const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
+
+  // Entry fee and prize tracking
+  const { user, refreshUser } = useAuth();
+  const [entryDeducted, setEntryDeducted] = useState(false);
+  const [prizeAwarded, setPrizeAwarded] = useState(false);
+
+  // Entry fee deduction handler
+  const handleGameStart = async () => {
+    if (entryDeducted || !user?.id || isSpectating) return;
+
+    try {
+      console.log('💰 Deducting blot entry fee...');
+      const result = await apiService.deductEntry('blot', blotGameIdRef.current);
+      
+      if (result.success) {
+        console.log(`✅ Entry deducted: -50 points. Balance: ${result.newBalance}`);
+        setEntryDeducted(true);
+        refreshUser().catch(console.error);
+      } else {
+        console.error('❌ Insufficient points:', result.error);
+        Alert.alert('Insufficient Points', result.error || 'You need 50 points to play blot.', [
+          { text: 'OK', onPress: () => navigation.goBack() }
+        ]);
+      }
+    } catch (error: any) {
+      console.error('❌ Entry deduction error:', error);
+      Alert.alert('Error', 'Failed to deduct entry fee.', [
+        { text: 'OK', onPress: () => navigation.goBack() }
+      ]);
+    }
+  };
+
+  // Prize award handler
+  const handlePrizeAward = async (didWin: boolean) => {
+    if (prizeAwarded || !user?.id || isSpectating) return;
+
+    try {
+      const result = didWin ? 'win' : 'loss';
+      console.log(`🏆 Awarding prize for ${result}...`);
+      const prizeResult = await apiService.awardPrize('blot', result, blotGameIdRef.current);
+      
+      if (prizeResult.success) {
+        console.log(`✅ Prize awarded: +${prizeResult.prize} points. Balance: ${prizeResult.newBalance}`);
+        setPrizeAwarded(true);
+        refreshUser().catch(console.error);
+        
+        if (didWin) {
+          setTimeout(() => {
+            Alert.alert('🏆 Victory!', `You won ${prizeResult.prize} points!\n\nNew balance: ${prizeResult.newBalance} points`);
+          }, 2000);
+        }
+      }
+    } catch (error: any) {
+      console.error('❌ Prize award error:', error);
+    }
+  };
+
   const [roomName, setRoomName] = useState('Multiplayer Blot');
   const [showRoomNameModal, setShowRoomNameModal] = useState(false);
   const [showCustomization, setShowCustomization] = useState(false);
@@ -142,6 +201,16 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
       }
     });
   }, []);
+
+  // Entry fee & prize logic
+  // Deduct entry when game starts (AI or multiplayer)
+  useEffect(() => {
+    const shouldDeduct = (isLocalGame && localGameState) || (isGameStarted && gameState);
+    if (shouldDeduct && !entryDeducted) {
+      handleGameStart();
+    }
+  }, [isLocalGame, localGameState, isGameStarted, gameState, entryDeducted]);
+
   const roomNameRef = useRef(roomName);
   useEffect(() => { roomNameRef.current = roomName; }, [roomName]);
 
@@ -498,6 +567,10 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
     socketService.onGameEnded((data: any) => {
       console.log('Game ended:', data);
       const isWinner = data.winnerId === userId;
+      
+      // Award prize for multiplayer game
+      handlePrizeAward(isWinner);
+      
       if (isWinner) {
         BisetkaAlert.success(
           'Game Over!',
@@ -895,6 +968,11 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
     const isWinner = finalState.winnerId === 'player';
     const isDraw = finalState.status === 'draw';
     
+    // Award prize for AI game
+    if (!isDraw) {
+      handlePrizeAward(isWinner);
+    }
+    
     // Calculate duration
     const durationSeconds = gameStartTime.current 
       ? Math.floor((new Date().getTime() - gameStartTime.current.getTime()) / 1000)
@@ -930,6 +1008,8 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
         blotGameIdRef.current = uuidv4();
         trickCountRef.current = 0;
         lastPlayerCardRef.current = null;
+        setEntryDeducted(false);
+        setPrizeAwarded(false);
         const newGame = blotAIService.initializeGame();
         setLocalGameState(newGame);
         gameStartTime.current = new Date();
