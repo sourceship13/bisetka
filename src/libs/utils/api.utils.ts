@@ -131,27 +131,26 @@ function getBundleId(): string {
 }
 
 function getEnvironment(): Environment {
-  // Priority 1: Force local — works for ALL build types (simulator, physical device, staging scheme)
-  // Set FORCE_LOCAL = false before making a production/TestFlight release
-  if (FORCE_LOCAL) {
+  // Priority 1: Development builds with FORCE_LOCAL use local server
+  if (__DEV__ && FORCE_LOCAL) {
     return 'local';
   }
 
-  // Priority 2: Development builds always use staging
+  // Priority 2: Development builds without FORCE_LOCAL use staging
   if (__DEV__) {
     return 'staging';
   }
 
-  // Priority 3: Check bundle identifier for release builds
+  // Priority 3: Release builds - check bundle identifier
   const bundleId = getBundleId();
   console.log('🔍 Bundle ID detected:', bundleId);
 
-  // If bundle ID contains 'staging', use staging environment
+  // Staging release build: bundle ID contains 'staging'
   if (bundleId.includes('staging')) {
     return 'staging';
   }
 
-  // Default: production for release builds
+  // Production release build: default
   return 'production';
 }
 
