@@ -24,7 +24,7 @@ import MultiplayerCheckersScreen from '../screens/Games/Checkers/MultiplayerChec
 import PokerRoomScreen from '../screens/Games/Poker/PokerRoomScreen';
 import BilliardsGameScreen from '../screens/Games/Billards/BilliardsGameScreen';
 import SlotsScreen from '../screens/Games/Slots/SlotsScreen';
-import BlackjackScreen from '../screens/Games/Blackjack/BlackjackScreen';
+import BlackjackScreen from '../screens/Games/Blot/Blackjack/BlackjackScreen';
 import GameModeScreen from '../screens/Meta/Game/GameModeScreen';
 import GameInfoScreen from '../screens/Meta/Game/GameInfoScreen';
 import SessionStatusScreen from '../screens/Meta/SessionStatusScreen';
