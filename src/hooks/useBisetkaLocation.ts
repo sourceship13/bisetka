@@ -3,6 +3,7 @@ import { Platform, PermissionsAndroid } from 'react-native';
 import Geolocation from '@react-native-community/geolocation';
 import axios from 'axios';
 import apiConfig from '../libs/utils/api.utils';
+import bisetkaStorageService from '../services/bisetkaStorage.service';
 
 interface Location {
   latitude: number;
@@ -128,6 +129,44 @@ const useBisetkaLocation = () => {
     try {
       setState(prev => ({ ...prev, loading: true, error: null }));
 
+      // PRIORITY 1: Check for stored Bisetka from login (IP or GPS-based)
+      const storedBisetka = await bisetkaStorageService.getStoredBisetka();
+      if (storedBisetka) {
+        console.log(`✅ Using stored Bisetka: ${storedBisetka.neighborhood}, ${storedBisetka.city} (${storedBisetka.source})`);
+        
+        // Convert stored format to hook format
+        const bisetka: Bisetka = {
+          id: storedBisetka.id,
+          neighborhood_id: '', // Not needed for display
+          neighborhood_name: storedBisetka.neighborhood,
+          city: storedBisetka.city,
+          country: storedBisetka.country,
+          active_users: storedBisetka.active_users,
+          created_at: storedBisetka.connectedAt,
+        };
+
+        const neighborhood: Neighborhood = {
+          id: '', // Not needed
+          name: storedBisetka.neighborhood,
+          city: storedBisetka.city,
+          country: storedBisetka.country,
+          lat: 0, // Not needed for display
+          lng: 0,
+        };
+
+        setState(prev => ({ 
+          ...prev, 
+          bisetka, 
+          neighborhood,
+          loading: false 
+        }));
+
+        return { location: null, neighborhood, bisetka };
+      }
+
+      // PRIORITY 2: Fall back to GPS detection
+      console.log('📍 No stored Bisetka, trying GPS...');
+
       // 1. Request permission
       const hasPermission = await requestLocationPermission();
       if (!hasPermission) {
@@ -148,6 +187,16 @@ const useBisetkaLocation = () => {
       // 4. Find or create Bisetka for this neighborhood
       const bisetka = await findOrCreateBisetka(neighborhood.id);
       setState(prev => ({ ...prev, bisetka, loading: false }));
+
+      // Store for next time
+      await bisetkaStorageService.storeBisetka({
+        id: bisetka.id,
+        neighborhood: bisetka.neighborhood_name,
+        city: bisetka.city,
+        country: bisetka.country,
+        active_users: bisetka.active_users,
+        source: 'gps',
+      });
 
       return { location, neighborhood, bisetka };
     } catch (error: any) {
