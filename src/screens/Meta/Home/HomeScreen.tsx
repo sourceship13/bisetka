@@ -169,7 +169,7 @@ const HomeScreen = ({navigation}: any) => {
 
       if (status === 'undetermined' || status === 'denied') {
         // Give the UI a moment to settle before the system dialog appears
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        await new Promise<void>(resolve => setTimeout(resolve, 1500));
         await pushNotificationService.initialize();
       } else if (status === 'blocked') {
         // Previously denied — prompt user to enable manually in Settings
@@ -180,7 +180,9 @@ const HomeScreen = ({navigation}: any) => {
             { text: 'Not Now', style: 'cancel' },
             {
               text: 'Open Settings',
-              onPress: () => pushNotificationService.openNotificationSettings(),
+              onPress: async () => {
+                await pushNotificationService.openNotificationSettings();
+              },
             },
           ],
         );
