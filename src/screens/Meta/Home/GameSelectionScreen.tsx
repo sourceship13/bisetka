@@ -8,9 +8,11 @@ import {
   StatusBar,
   Dimensions,
   ImageBackground,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
+import { useBisetkaLocation } from '../../../hooks/useBisetkaLocation';
 
 const bisetkaBackground = require('../../../../assets/backgrounds/bisetka.png');
 
@@ -112,6 +114,8 @@ const GAMES = [
 type GameConfig = (typeof GAMES)[number];
 
 const GameSelectionScreen = ({ navigation }: any) => {
+  const { bisetka, loading: bisetkaLoading } = useBisetkaLocation();
+
   const handleGamePress = (game: GameConfig) => {
     // Navigate to GameInfo screen first to show rules and points
     navigation.navigate('GameInfo', {
@@ -190,6 +194,54 @@ const GameSelectionScreen = ({ navigation }: any) => {
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
           >
+            {/* Bisetka Location Card */}
+            {bisetkaLoading ? (
+              <View style={styles.bisetkaCardWrapper}>
+                <LinearGradient
+                  colors={['rgba(0,0,0,0.5)', 'rgba(0,0,0,0.8)']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.bisetkaCard}
+                >
+                  <ActivityIndicator size="large" color="#fff" />
+                  <Text style={styles.bisetkaLoadingText}>Finding your Bisetka...</Text>
+                </LinearGradient>
+              </View>
+            ) : bisetka ? (
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={() => navigation.navigate('BisetkaDetail', { bisetkaId: bisetka.id })}
+                style={styles.bisetkaCardWrapper}
+              >
+                <LinearGradient
+                  colors={['rgba(0,0,0,0.5)', 'rgba(0,0,0,0.8)']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.bisetkaCard}
+                >
+                  <View style={styles.bisetkaCardContent}>
+                    <View style={styles.bisetkaIconContainer}>
+                      <Text style={styles.bisetkaCardIcon}>📍</Text>
+                    </View>
+                    <View style={styles.bisetkaCardTextContainer}>
+                      <Text style={styles.bisetkaCardLabel}>NEAREST TO YOU</Text>
+                      <Text style={styles.bisetkaCardTitle}>
+                        {bisetka.neighborhood_name}, {bisetka.city}
+                      </Text>
+                      <Text style={styles.bisetkaCardDescription}>
+                        This is the Bisetka closest to where your device is right now.
+                      </Text>
+                    </View>
+                    <View style={styles.bisetkaCardBadge}>
+                      <Text style={styles.bisetkaCardBadgeText}>
+                        {bisetka.active_users} active
+                      </Text>
+                    </View>
+                  </View>
+                </LinearGradient>
+              </TouchableOpacity>
+            ) : null}
+
             {/* Games Grid */}
             <View style={styles.gamesGrid}>
               {GAMES.map(game => renderGameCard(game))}
@@ -254,6 +306,80 @@ const styles = StyleSheet.create({
   },
   placeholder: {
     width: 40,
+  },
+  bisetkaCardWrapper: {
+    marginHorizontal: 16,
+    marginBottom: 16,
+    borderRadius: 20,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  bisetkaCard: {
+
+    minHeight: 120,
+  },
+  bisetkaCardContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding:10
+  },
+  bisetkaIconContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  bisetkaCardIcon: {
+    fontSize: 32,
+  },
+  bisetkaCardTextContainer: {
+    flex: 1,
+  },
+  bisetkaCardLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: 'rgba(255,255,255,0.6)',
+    letterSpacing: 1,
+    marginBottom: 4,
+  },
+  bisetkaCardTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#fff',
+    marginBottom: 4,
+  },
+  bisetkaCardDescription: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.7)',
+    lineHeight: 18,
+  },
+  bisetkaCardBadge: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  bisetkaCardBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  bisetkaLoadingText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.8)',
+    marginTop: 12,
+    textAlign: 'center',
   },
   gamesGrid: {
     flexDirection: 'row',
