@@ -26,4 +26,11 @@ export interface AuthResponse {
   token: string;
   refreshToken: string;
   isNewUser?: boolean;
+  bisetka?: {
+    id: string;
+    neighborhood: string;
+    city: string;
+    country: string;
+    active_users: number;
+  };
 }
