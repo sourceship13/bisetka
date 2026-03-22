@@ -7,6 +7,7 @@ import {
   SafeAreaView,
   Animated,
   Dimensions,
+  Alert,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { useAuth } from '../../../libs/hooks/useAuth';
@@ -15,6 +16,8 @@ import Svg, { Polyline } from 'react-native-svg';
 import apiConfig from '../../../libs/utils/api.utils';
 import tokenService from '../../../services/token.service';
 import GameToolbar from '../../../components/global/GameToolbar';
+import { apiService } from '../../../services/api.service';
+import { v4 as uuidv4 } from 'uuid';
 
 const { width } = Dimensions.get('window');
 const CONTAINER_PADDING = 8;
@@ -63,9 +66,10 @@ interface SpinResult {
 }
 
 const SlotsScreen = ({ navigation }: any) => {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const { refreshOnGameEnd } = useGameEndRefresh(undefined, 'slots');
-  const [balance, setBalance] = useState((user as any)?.balance || 1000);
+  // Use user's actual balance - no entry fee, real money gameplay
+  const [balance, setBalance] = useState(Math.floor((user as any)?.balance || 0));
   const [betAmount, setBetAmount] = useState(10);
   const [spinning, setSpinning] = useState(false);
   // 5 reels × 3 rows — what shows at the bottom of each reel strip (the result)
@@ -85,6 +89,13 @@ const SlotsScreen = ({ navigation }: any) => {
   useEffect(() => {
     REEL_ANIMS.forEach(anim => anim.setValue(0));
   }, []);
+
+  // Sync balance with user data
+  useEffect(() => {
+    if (user?.balance !== undefined) {
+      setBalance(Math.floor(user.balance));
+    }
+  }, [user?.balance]);
 
   // Neon flickering effect
   useEffect(() => {
@@ -163,11 +174,15 @@ const SlotsScreen = ({ navigation }: any) => {
         setReelSymbols(data.result);
       }
       setWinnings(data);
-      refreshOnGameEnd().catch(console.error);
-
+      
+      // Update local balance
       if (data.totalPayout > 0) {
         setBalance((prev: number) => prev + data.totalPayout);
       }
+      
+      // Sync user balance from backend
+      refreshUser().catch(console.error);
+      refreshOnGameEnd().catch(console.error);
     } catch (error) {
       console.error('Spin failed:', error);
       setBalance((prev: number) => prev + betAmount);

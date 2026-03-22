@@ -21,7 +21,7 @@ import {
   makeMove as makeChessMove,
   isKingInCheck,
   isCheckmate,
-  isStalemate,
+  getDrawReason,
   Position,
 } from '../../../game/chessLogic';
 import ChessPiece from '../../../components/ChessPiece';
@@ -156,7 +156,8 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
           const newBoard = makeChessMove(prevState.board, data.move);
           const isCheck = isKingInCheck(newBoard, nextPlayer);
           const isCheckMate = isCheckmate(newBoard, nextPlayer);
-          const isStaleMate = isStalemate(newBoard, nextPlayer);
+          const drawReason = getDrawReason(newBoard, nextPlayer);
+          const isStaleMate = drawReason !== null;
 
           return {
             ...prevState,
@@ -167,6 +168,7 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
             isCheck,
             isCheckmate: isCheckMate,
             isStalemate: isStaleMate,
+            drawReason,
           };
         });
 
@@ -445,7 +447,8 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
 
     const isCheck = isKingInCheck(newBoard, nextPlayer);
     const isCheckMate = isCheckmate(newBoard, nextPlayer);
-    const isStaleMate = isStalemate(newBoard, nextPlayer);
+    const drawReason = getDrawReason(newBoard, nextPlayer);
+    const isStaleMate = drawReason !== null;
 
     setGameState({
       ...gameState,
@@ -456,6 +459,7 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
       isCheck,
       isCheckmate: isCheckMate,
       isStalemate: isStaleMate,
+      drawReason,
     });
 
     // Send move to server — use ref to avoid stale roomId
@@ -473,9 +477,13 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
         {text: 'OK', onPress: () => navigation.replace('GameMode', {gameType: 'chess-multiplayer'})},
       ]);
     } else if (isStaleMate) {
-      BisetkaAlert.alert('Stalemate!', 'The game is a draw.', [
+      BisetkaAlert.alert(
+        drawReason === 'insufficient-material' ? 'Draw!' : 'Stalemate!',
+        drawReason === 'insufficient-material' ? 'Only the two kings remain. The game is a draw.' : 'The game is a draw.',
+        [
         {text: 'OK', onPress: () => navigation.replace('GameMode', {gameType: 'chess-multiplayer'})},
-      ]);
+        ]
+      );
     }
   };
 
@@ -642,14 +650,16 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
                 <View style={styles.gameOverOverlay}>
                   <View style={styles.gameOverBox}>
                     <Text style={styles.gameOverTitle}>
-                      {gameState.isCheckmate ? 'Checkmate!' : 'Stalemate!'}
+                      {gameState.isCheckmate ? 'Checkmate!' : gameState.drawReason === 'insufficient-material' ? 'Draw!' : 'Stalemate!'}
                     </Text>
                     <Text style={styles.gameOverText}>
                       {gameState.isCheckmate
                         ? currentTurn !== myColor
                           ? 'You Win! 🏆'
                           : 'Opponent Wins'
-                        : "It's a Draw!"}
+                        : gameState.drawReason === 'insufficient-material'
+                          ? 'Only kings remain. The game is a draw.'
+                          : "It's a Draw!"}
                     </Text>
                     <TouchableOpacity
                       style={styles.playAgainButton}

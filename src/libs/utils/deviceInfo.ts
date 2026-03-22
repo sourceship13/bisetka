@@ -3,6 +3,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo, { NetInfoState } from '@react-native-community/netinfo';
 import packageJson from '../../../package.json';
 
+const DEVICE_REGISTRATION_DEDUPE_WINDOW_MS = 30_000;
+
+let inFlightRegistration: Promise<void> | null = null;
+let inFlightRegistrationKey: string | null = null;
+let lastCompletedRegistrationKey: string | null = null;
+let lastCompletedRegistrationAt = 0;
+
 // ============================================================================
 // DEVICE ID (persistent across sessions)
 // ============================================================================
@@ -297,8 +304,28 @@ export const registerDevice = async (
   accessToken: string | null,
   pushToken?: string
 ): Promise<void> => {
+  let currentRegistrationKey: string | null = null;
+
   try {
     const fullInfo = await getFullDeviceInfo(pushToken);
+    const { collectedAt: _ignoredCollectedAt, ...registrationPayload } = fullInfo;
+    const registrationKey = JSON.stringify({
+      apiUrl,
+      accessToken,
+      registrationPayload,
+    });
+    currentRegistrationKey = registrationKey;
+
+    if (inFlightRegistration && inFlightRegistrationKey === registrationKey) {
+      return inFlightRegistration;
+    }
+
+    if (
+      lastCompletedRegistrationKey === registrationKey &&
+      Date.now() - lastCompletedRegistrationAt < DEVICE_REGISTRATION_DEDUPE_WINDOW_MS
+    ) {
+      return;
+    }
     
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -309,20 +336,38 @@ export const registerDevice = async (
       headers['Authorization'] = `Bearer ${accessToken}`;
     }
 
-    const response = await fetch(`${apiUrl}/devices/register`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(fullInfo),
-    });
+    const requestPromise = (async () => {
+      const response = await fetch(`${apiUrl}/devices/register`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          ...registrationPayload,
+          collectedAt: fullInfo.collectedAt,
+        }),
+      });
 
-    if (!response.ok) {
-      let body = '';
-      try { body = await response.text(); } catch { /* ignore */ }
-      console.warn('⚠️ Device registration failed:', response.status, body);
-    } else {
+      if (!response.ok) {
+        let body = '';
+        try { body = await response.text(); } catch { /* ignore */ }
+        console.warn('⚠️ Device registration failed:', response.status, body);
+        return;
+      }
+
+      lastCompletedRegistrationKey = registrationKey;
+      lastCompletedRegistrationAt = Date.now();
       console.log('✅ Device registered successfully');
-    }
+    })();
+
+    inFlightRegistration = requestPromise;
+    inFlightRegistrationKey = registrationKey;
+
+    await requestPromise;
   } catch (error) {
     console.warn('Device registration error:', error);
+  } finally {
+    if (inFlightRegistrationKey === currentRegistrationKey) {
+      inFlightRegistration = null;
+      inFlightRegistrationKey = null;
+    }
   }
 };

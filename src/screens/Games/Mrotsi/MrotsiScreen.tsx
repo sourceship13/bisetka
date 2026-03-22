@@ -1,5 +1,5 @@
 import React, {useState, useEffect, useRef} from 'react';
-import {View, Text, StyleSheet, TouchableOpacity, Animated, ImageBackground, Dimensions} from 'react-native';
+import {View, Text, StyleSheet, TouchableOpacity, Animated, ImageBackground, Dimensions, Alert} from 'react-native';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import GameToolbar from '../../../components/global/GameToolbar';
@@ -7,6 +7,8 @@ import { aiMoveLogService } from '../../../services/aiMoveLog.service';
 import { v4 as uuidv4 } from 'uuid';
 import { useGameEndRefresh } from '../../../libs/hooks/useGameEndRefresh';
 import Dice3DSimple from '../../../components/Games/Dice3DSimple';
+import { apiService } from '../../../services/api.service';
+import { useAuth } from '../../../libs/hooks/useAuth';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -37,6 +39,78 @@ const MrotsiScreen = ({navigation, route}: any) => {
   const lastPlayerDiceRef = useRef<{ dice: number[]; score: number } | null>(null);
   const rollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   useGameEndRefresh(gameState.isGameOver, 'mrotsi');
+
+  // Entry fee and prize tracking
+  const { user, refreshUser } = useAuth();
+  const [entryDeducted, setEntryDeducted] = useState(false);
+  const [prizeAwarded, setPrizeAwarded] = useState(false);
+
+  // Entry fee deduction handler
+  const handleGameStart = async () => {
+    if (entryDeducted || !user?.id) return;
+
+    try {
+      console.log('💰 Deducting mrotsi entry fee...');
+      const result = await apiService.deductEntry('mrotsi', gameIdRef.current);
+      
+      if (result.success) {
+        console.log(`✅ Entry deducted: -50 points. Balance: ${result.newBalance}`);
+        setEntryDeducted(true);
+        refreshUser().catch(console.error);
+      } else {
+        console.error('❌ Insufficient points:', result.error);
+        Alert.alert('Insufficient Points', result.error || 'You need 50 points to play mrotsi.', [
+          { text: 'OK', onPress: () => navigation.goBack() }
+        ]);
+      }
+    } catch (error: any) {
+      console.error('❌ Entry deduction error:', error);
+      Alert.alert('Error', 'Failed to deduct entry fee.', [
+        { text: 'OK', onPress: () => navigation.goBack() }
+      ]);
+    }
+  };
+
+  // Prize award handler
+  const handleGameEnd = async (didWin: boolean) => {
+    if (prizeAwarded || !user?.id) return;
+
+    try {
+      const result = didWin ? 'win' : 'loss';
+      console.log(`🏆 Awarding prize for ${result}...`);
+      const prizeResult = await apiService.awardPrize('mrotsi', result, gameIdRef.current);
+      
+      if (prizeResult.success) {
+        console.log(`✅ Prize awarded: +${prizeResult.prize} points. Balance: ${prizeResult.newBalance}`);
+        setPrizeAwarded(true);
+        refreshUser().catch(console.error);
+        
+        if (didWin) {
+          setTimeout(() => {
+            Alert.alert('🏆 Victory!', `You won ${prizeResult.prize} points!\n\nNew balance: ${prizeResult.newBalance} points`);
+          }, 2000);
+        }
+      }
+    } catch (error: any) {
+      console.error('❌ Prize award error:', error);
+    }
+  };
+
+  // Entry fee & prize logic
+  // Deduct entry when game starts
+  useEffect(() => {
+    if (!entryDeducted) {
+      handleGameStart();
+    }
+  }, [entryDeducted]);
+
+  // Award prize when game ends
+  useEffect(() => {
+    if (gameState.isGameOver && !prizeAwarded) {
+      const didWin = gameState.winner === 'player';
+      handleGameEnd(didWin);
+    }
+  }, [gameState.isGameOver, prizeAwarded, gameState.winner]);
 
   // Cleanup rolling animation on unmount
   useEffect(() => {
@@ -296,6 +370,8 @@ const MrotsiScreen = ({navigation, route}: any) => {
     setGameState(initializeGame(gameState.gameMode));
     gameIdRef.current = uuidv4();
     lastPlayerDiceRef.current = null;
+    setEntryDeducted(false);
+    setPrizeAwarded(false);
   }
 
   function getDiceEmoji(value: number): string {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, ImageBackground } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, ImageBackground, Alert } from 'react-native';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
@@ -11,6 +11,8 @@ import { socketService } from '../../../services/SocketService';
 import { v4 as uuidv4 } from 'uuid';
 import { useGameEndRefresh } from '../../../libs/hooks/useGameEndRefresh';
 import InGameChat from '../../../components/InGameChat';
+import { apiService } from '../../../services/api.service';
+import { useAuth } from '../../../libs/hooks/useAuth';
 
 type PieceType = 'regular' | 'king';
 type PieceColor = 'red' | 'black';
@@ -115,12 +117,94 @@ const CheckersScreen = ({ navigation, route }: any) => {
   const [showCustomization, setShowCustomization] = useState(false);
   const [gameTheme, setGameTheme] = useState<GameTheme>({});
 
+  // Entry fee and prize tracking
+  const { user, refreshUser } = useAuth();
+  const [entryDeducted, setEntryDeducted] = useState(false);
+  const [prizeAwarded, setPrizeAwarded] = useState(false);
+
   const handleApplyTheme = (theme: GameTheme) => {
     setGameTheme(theme);
   };
 
+  // Entry fee deduction handler
+  const handleGameStart = async () => {
+    if (entryDeducted || !user?.id) return;
+
+    try {
+      console.log('💰 Deducting checkers entry fee...');
+      const result = await apiService.deductEntry('checkers', gameIdRef.current);
+      
+      if (result.success) {
+        console.log(`✅ Entry deducted: -50 points. Balance: ${result.newBalance}`);
+        setEntryDeducted(true);
+        refreshUser().catch(console.error);
+      } else {
+        console.error('❌ Insufficient points:', result.error);
+        Alert.alert('Insufficient Points', result.error || 'You need 50 points to play checkers.', [
+          { text: 'OK', onPress: () => navigation.goBack() }
+        ]);
+      }
+    } catch (error: any) {
+      console.error('❌ Entry deduction error:', error);
+      Alert.alert('Error', 'Failed to deduct entry fee.', [
+        { text: 'OK', onPress: () => navigation.goBack() }
+      ]);
+    }
+  };
+
+  // Prize award handler
+  const handleGameEnd = async (didWin: boolean) => {
+    if (prizeAwarded || !user?.id) return;
+
+    try {
+      const result = didWin ? 'win' : 'loss';
+      console.log(`🏆 Awarding prize for ${result}...`);
+      const prizeResult = await apiService.awardPrize('checkers', result, gameIdRef.current);
+      
+      if (prizeResult.success) {
+        console.log(`✅ Prize awarded: +${prizeResult.prize} points. Balance: ${prizeResult.newBalance}`);
+        setPrizeAwarded(true);
+        refreshUser().catch(console.error);
+        
+        if (didWin) {
+          setTimeout(() => {
+            Alert.alert('🏆 Victory!', `You won ${prizeResult.prize} points!\n\nNew balance: ${prizeResult.newBalance} points`);
+          }, 2000);
+        }
+      }
+    } catch (error: any) {
+      console.error('❌ Prize award error:', error);
+    }
+  };
+
   const myPieceColor: PieceColor = mySocketColor === 'black' ? 'black' : 'red';
   const isMyTurn = isMultiplayer ? serverTurn === mySocketColor : gameState.currentPlayer === 'red';
+
+  // ── Entry fee & prize logic ──────────────────────────────────────────────
+  // Deduct entry fee when game starts (AI mode starts immediately, multiplayer waits for game_started)
+  useEffect(() => {
+    const shouldDeduct = mode === 'ai' || (isMultiplayer && mpStatus === 'playing');
+    if (shouldDeduct && !entryDeducted) {
+      handleGameStart();
+    }
+  }, [mode, isMultiplayer, mpStatus, entryDeducted]);
+
+  // Award prize when game ends
+  useEffect(() => {
+    if (gameState.isGameOver && !prizeAwarded) {
+      let didWin = false;
+      
+      if (mode === 'ai') {
+        // AI mode: red (player) wins
+        didWin = gameState.winner === 'red';
+      } else if (isMultiplayer) {
+        // Multiplayer: check if our color won
+        didWin = gameState.winner === myPieceColor;
+      }
+      
+      handleGameEnd(didWin);
+    }
+  }, [gameState.isGameOver, prizeAwarded, gameState.winner, mode, isMultiplayer, myPieceColor]);
 
   // ── multiplayer setup ────────────────────────────────────────────────────
   useEffect(() => {
@@ -487,7 +571,13 @@ const CheckersScreen = ({ navigation, route }: any) => {
                 : gameState.winner==='red' ? 'Red Wins! 🎉' : 'Black Wins!'}
             </Text>
             {!isMultiplayer && (
-              <TouchableOpacity style={styles.playAgainButton} onPress={() => { setGameState(freshGame()); gameIdRef.current=uuidv4(); moveCountRef.current=0; }}>
+              <TouchableOpacity style={styles.playAgainButton} onPress={() => { 
+                setGameState(freshGame()); 
+                gameIdRef.current=uuidv4(); 
+                moveCountRef.current=0; 
+                setEntryDeducted(false); 
+                setPrizeAwarded(false); 
+              }}>
                 <Text style={styles.playAgainText}>Play Again</Text>
               </TouchableOpacity>
             )}
