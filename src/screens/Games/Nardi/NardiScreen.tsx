@@ -8,6 +8,7 @@ import {
   Image,
   Dimensions,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import GameToolbar from '../../../components/global/GameToolbar';
@@ -31,13 +32,16 @@ import InGameChat from '../../../components/InGameChat';
 import {BisetkaAlert} from '../../../utils/BisetkaAlert';
 import {apiConfig} from '../../../libs/utils/api.utils';
 import NardiDice from '../../../components/Games/NardiDice';
+import { apiService } from '../../../services/api.service';
+import { useAuth } from '../../../libs/hooks/useAuth';
+import { v4 as uuidv4 } from 'uuid';
 
 const { width, height } = Dimensions.get('window');
 const BOARD_SIZE = Math.min(width - 16, height * 0.75);
 
 // Board layout — all values derived from BOARD_SIZE so they scale to any screen
 // and the column centres align exactly with the triangles in the board image.
-const BOARD_PADDING  = BOARD_SIZE * 0.08;                         // frame border on each side
+const BOARD_PADDING  = BOARD_SIZE * 0.04;                         // frame border on each side
 const PLAYABLE_WIDTH = BOARD_SIZE - BOARD_PADDING * 2;
 const BAR_WIDTH      = PLAYABLE_WIDTH * 0.05;                     // centre divider
 const HALF_WIDTH     = (PLAYABLE_WIDTH - BAR_WIDTH) / 2;
@@ -105,12 +109,89 @@ const NardiScreen = ({ navigation, route }: any) => {
   const myMpColorRef = useRef<'white'|'black'>('white');
   const myNardiColor: 'white'|'black' = isMultiplayer ? myMpColor : 'white';
 
+  // Entry fee and prize tracking
+  const { user, refreshUser } = useAuth();
+  const [entryDeducted, setEntryDeducted] = useState(false);
+  const [prizeAwarded, setPrizeAwarded] = useState(false);
+  const gameIdRef = useRef<string>(dbSessionId || uuidv4());
+
+  // Entry fee deduction handler
+  const handleGameStart = async () => {
+    if (entryDeducted || !user?.id || isSpectating) return;
+
+    try {
+      console.log('💰 Deducting nardi entry fee...');
+      const result = await apiService.deductEntry('nardi', gameIdRef.current);
+      
+      if (result.success) {
+        console.log(`✅ Entry deducted: -50 points. Balance: ${result.newBalance}`);
+        setEntryDeducted(true);
+        refreshUser().catch(console.error);
+      } else {
+        console.error('❌ Insufficient points:', result.error);
+        Alert.alert('Insufficient Points', result.error || 'You need 50 points to play nardi.', [
+          { text: 'OK', onPress: () => navigation.goBack() }
+        ]);
+      }
+    } catch (error: any) {
+      console.error('❌ Entry deduction error:', error);
+      console.error('   Error message:', error?.message);
+      console.error('   Error status:', error?.status);
+      console.error('   Full error:', JSON.stringify(error, null, 2));
+      Alert.alert('Error', `Failed to deduct entry fee: ${error?.message || 'Unknown error'}`, [
+        { text: 'OK', onPress: () => navigation.goBack() }
+      ]);
+    }
+  };
+
+  // Prize award handler
+  const handleGameEnd = async (didWin: boolean) => {
+    if (prizeAwarded || !user?.id || isSpectating) return;
+
+    try {
+      const result = didWin ? 'win' : 'loss';
+      console.log(`🏆 Awarding prize for ${result}...`);
+      const prizeResult = await apiService.awardPrize('nardi', result, gameIdRef.current);
+      
+      if (prizeResult.success) {
+        console.log(`✅ Prize awarded: +${prizeResult.prize} points. Balance: ${prizeResult.newBalance}`);
+        setPrizeAwarded(true);
+        refreshUser().catch(console.error);
+        
+        if (didWin) {
+          setTimeout(() => {
+            Alert.alert('🏆 Victory!', `You won ${prizeResult.prize} points!\n\nNew balance: ${prizeResult.newBalance} points`);
+          }, 2000);
+        }
+      }
+    } catch (error: any) {
+      console.error('❌ Prize award error:', error);
+    }
+  };
+
   // Clear selection whenever state changes
   useEffect(() => {
     if (gameState) {
       setSelectedPoint(null);
     }
   }, [gameState]);
+
+  // Entry fee & prize logic
+  // Deduct entry when game starts (AI mode starts when gameState is initialized, multiplayer waits for game_started)
+  useEffect(() => {
+    const shouldDeduct = (opponentType === 'ai' && gameState) || (isMultiplayer && mpStatus === 'playing' && gameState);
+    if (shouldDeduct && !entryDeducted) {
+      handleGameStart();
+    }
+  }, [opponentType, gameState, isMultiplayer, mpStatus, entryDeducted]);
+
+  // Award prize when game ends
+  useEffect(() => {
+    if (gameState?.winner && !prizeAwarded) {
+      const didWin = gameState.winner === myNardiColor;
+      handleGameEnd(didWin);
+    }
+  }, [gameState?.winner, prizeAwarded, myNardiColor]);
 
   // Cleanup all AI timeouts on unmount
   useEffect(() => {
@@ -196,7 +277,11 @@ const NardiScreen = ({ navigation, route }: any) => {
               if (!prev) return prev;
               // Skip if this is our own move (already applied locally by handleMove)
               if (prev.currentPlayer === myMpColorRef.current) return prev;
-              return applyMove(prev, {from: mv.from, to: mv.to});
+              return applyMove(prev, {
+                from: mv.from,
+                to: mv.to,
+                checker: prev.currentPlayer,
+              });
             });
           } else if (mv?.type === 'end_turn') {
             setGameState(prev => {
@@ -647,6 +732,7 @@ const NardiScreen = ({ navigation, route }: any) => {
     // Get color from the top checker (last in array) if any
     const color = checkers > 0 ? point.checkers[point.checkers.length - 1] : null;
     const isSelected = selectedPoint === pointIndex;
+    const myColorForRender = isMultiplayer ? myMpColorRef.current : 'white';
 
     // Check if this is a valid destination when a piece is selected (including bar entry when selectedPoint === -1)
     const isValidDestination = selectedPoint !== null && 
@@ -658,7 +744,6 @@ const NardiScreen = ({ navigation, route }: any) => {
       gameState.possibleMoves.some(m => m.from === -1 && m.to === pointIndex);
     
     // Check if this piece can be moved (has any valid moves)
-    const myColorForRender = isMultiplayer ? myMpColorRef.current : 'white';
     const canMove = checkers > 0 &&
       gameState.phase === 'moving' &&
       gameState.currentPlayer === myColorForRender &&
@@ -683,9 +768,6 @@ const NardiScreen = ({ navigation, route }: any) => {
           {
             left: pos.x - CHECKER_SIZE / 2,
             width: CHECKER_SIZE,
-            backgroundColor: pos.isTop 
-              ? (pointNum % 2 === 0 ? 'rgba(255, 0, 0, 0.3)' : 'rgba(0, 0, 255, 0.3)')
-              : (pointNum % 2 === 0 ? 'rgba(0, 255, 0, 0.3)' : 'rgba(255, 255, 0, 0.3)'),
             ...(pos.isTop
               ? { top: pos.y, minHeight: CHECKER_SIZE * 1.5 }
               : { top: pos.y - TRIANGLE_HEIGHT, height: TRIANGLE_HEIGHT, justifyContent: 'flex-end' as const }),
@@ -774,7 +856,7 @@ const NardiScreen = ({ navigation, route }: any) => {
                  'Waiting for game to start...'}
               </Text>
               <TouchableOpacity
-                style={{ paddingHorizontal: 28, paddingVertical: 12, backgroundColor: '#ef4444', borderRadius: 10 }}
+                style={{ paddingHorizontal: 28, paddingVertical: 12, borderRadius: 10 }}
                 onPress={() => {
                   (socketService as any).cancelMatchmaking?.(userId);
                   navigation.goBack();
@@ -844,10 +926,10 @@ const NardiScreen = ({ navigation, route }: any) => {
                 <TouchableOpacity
                   style={{
                     position: 'absolute',
-                    left: LEFT_MARGIN + (6 * POINT_SPACING),
-                    width: BAR_GAP,
-                    top: TOP_MARGIN,
-                    bottom: BOTTOM_MARGIN,
+                    left: BOARD_PADDING + HALF_WIDTH,
+                    width: BAR_WIDTH,
+                    top: BOARD_PADDING,
+                    bottom: BOARD_PADDING,
                     zIndex: 20,
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -1054,7 +1136,12 @@ const NardiScreen = ({ navigation, route }: any) => {
                 </Text>
                 <TouchableOpacity
                   style={styles.newGameBtn}
-                  onPress={() => setGameState(initializeNardiGame('short'))}>
+                  onPress={() => {
+                    setGameState(initializeNardiGame('short'));
+                    setEntryDeducted(false);
+                    setPrizeAwarded(false);
+                    gameIdRef.current = uuidv4();
+                  }}>
                   <Text style={styles.newGameText}>Play Again</Text>
                 </TouchableOpacity>
               </LinearGradient>

@@ -1,6 +1,7 @@
 export type PieceType = 'pawn' | 'knight' | 'bishop' | 'rook' | 'queen' | 'king';
 export type PieceColor = 'white' | 'black';
 export type Difficulty = 'easy' | 'medium' | 'hard';
+export type ChessDrawReason = 'stalemate' | 'insufficient-material';
 
 export interface ChessPiece {
   type: PieceType;
@@ -31,6 +32,7 @@ export interface ChessGameState {
   isCheck: boolean;
   isCheckmate: boolean;
   isStalemate: boolean;
+  drawReason: ChessDrawReason | null;
   difficulty: Difficulty;
 }
 
@@ -299,8 +301,22 @@ export const isCheckmate = (board: (ChessPiece | null)[][], color: PieceColor): 
 };
 
 export const isStalemate = (board: (ChessPiece | null)[][], color: PieceColor): boolean => {
-  if (isKingInCheck(board, color)) return false;
-  return !hasLegalMoves(board, color);
+  return getDrawReason(board, color) !== null;
+};
+
+export const getDrawReason = (
+  board: (ChessPiece | null)[][],
+  color: PieceColor
+): ChessDrawReason | null => {
+  if (hasOnlyKingsRemaining(board)) {
+    return 'insufficient-material';
+  }
+
+  if (isKingInCheck(board, color)) {
+    return null;
+  }
+
+  return !hasLegalMoves(board, color) ? 'stalemate' : null;
 };
 
 const hasLegalMoves = (board: (ChessPiece | null)[][], color: PieceColor): boolean => {
@@ -314,6 +330,11 @@ const hasLegalMoves = (board: (ChessPiece | null)[][], color: PieceColor): boole
     }
   }
   return false;
+};
+
+const hasOnlyKingsRemaining = (board: (ChessPiece | null)[][]): boolean => {
+  const remainingPieces = board.flat().filter((piece): piece is ChessPiece => piece !== null);
+  return remainingPieces.length === 2 && remainingPieces.every(piece => piece.type === 'king');
 };
 
 // AI move generation
@@ -384,6 +405,7 @@ export const initializeChessGame = (difficulty: Difficulty): ChessGameState => {
     isCheck: false,
     isCheckmate: false,
     isStalemate: false,
+    drawReason: null,
     difficulty,
   };
 };

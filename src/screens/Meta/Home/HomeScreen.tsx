@@ -20,7 +20,7 @@ import pushNotificationService from '../../../services/pushNotification.service'
 import {iOSUIKit} from 'react-native-typography';
 import {colors} from '../../../theme';
 import packageJson from '../../../../package.json';
-import {useNavigation, DrawerActions} from '@react-navigation/native';
+import {useNavigation, DrawerActions, useFocusEffect} from '@react-navigation/native';
 import OnlinePlayersList from '../../../components/OnlinePlayersList';
 import AVATARS, {resolveAvatar} from '../../../utils/avatars';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -153,6 +153,16 @@ const HomeScreen = ({navigation}: any) => {
       console.warn('Device data upsert failed:', err)
     );
   }, []);
+
+  // Refresh user data every time screen gains focus (e.g., returning from a game)
+  useFocusEffect(
+    React.useCallback(() => {
+      console.log('🔄 HomeScreen gained focus - refreshing user data');
+      refreshUser().catch(err =>
+        console.warn('Focus refresh failed:', err)
+      );
+    }, [refreshUser])
+  );
 
   // Ensure push permission is granted and the FCM token is registered.
   //
@@ -458,7 +468,7 @@ const HomeScreen = ({navigation}: any) => {
                 style={styles.balanceGrad}>
                 <Text style={[styles.balanceLabel, iOSUIKit.bodyEmphasizedWhite]}>Points 🏆 </Text>
                 <Text style={styles.balanceAmount}>
-                  {(user as any)?.totalPoints?.toLocaleString() || '0'}
+                  {Math.floor(user?.balance || 0).toLocaleString()}
                 </Text>
               </LinearGradient>
 
@@ -490,7 +500,7 @@ const HomeScreen = ({navigation}: any) => {
         {renderNearestBisetkaCard()}
 
         {/* Active Rooms Button */}
-        <View style={styles.activeRoomsContainer}>
+        {/* <View style={styles.activeRoomsContainer}>
           <TouchableOpacity
             onPress={() => navigation.navigate('ActiveRooms')}
             style={styles.activeRoomsButton}
@@ -511,7 +521,7 @@ const HomeScreen = ({navigation}: any) => {
                 <Text style={styles.activeRoomsArrow}>→</Text>
             </LinearGradient>
           </TouchableOpacity>
-        </View>
+        </View> */}
         {/* Section Title */}
         <View style={styles.sectionHeadWrapper}>
           <TouchableOpacity 
