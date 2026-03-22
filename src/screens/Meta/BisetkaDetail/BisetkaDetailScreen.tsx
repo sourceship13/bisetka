@@ -235,16 +235,13 @@ const BisetkaDetailScreen: React.FC<BisetkaDetailScreenProps> = ({
         onPress={() => handleGamePress(game)}
         style={styles.gameCardWrapper}
       >
-        <LinearGradient
-          colors={['rgba(0,0,0,0.5)', 'rgba(0,0,0,0.8)']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.gameCard}
-        >
-          <Text style={styles.gameIcon}>{game.icon}</Text>
-          <Text style={styles.gameName}>{game.name}</Text>
-          <Text style={styles.gameDescription}>{game.description}</Text>
-        </LinearGradient>
+        <View style={{ ...styles.gameCard, backgroundColor: "rgba(0,0,0,0.5)" }}>
+          <View style={styles.gameCardContent}>
+            <Text style={styles.gameIcon}>{game.icon}</Text>
+            <Text style={styles.gameName}>{game.name }</Text>
+            <Text style={styles.gameDescription}>{game.description}</Text>
+          </View>
+        </View>
       </TouchableOpacity>
     );
   };
@@ -432,11 +429,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  gameCardContent: {
+    flex: 1,
+    width: '100%',
+    justifyContent: 'center',
+  },
   gameIcon: {
+    width: '100%',
     fontSize: 48,
     marginBottom: 12,
+    textAlign: 'center',
   },
   gameName: {
+    width: '100%',
     fontSize: 16,
     fontWeight: '700',
     color: '#fff',
@@ -444,6 +449,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   gameDescription: {
+    width: '100%',
     fontSize: 12,
     color: 'rgba(255,255,255,0.7)',
     textAlign: 'center',
