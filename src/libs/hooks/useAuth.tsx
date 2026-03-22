@@ -9,6 +9,7 @@ import { registerDevice } from '../utils/deviceInfo';
 import { apiConfig } from '../utils/api.utils';
 import * as Sentry from '@sentry/react-native';
 import pushNotificationService from '../../services/pushNotification.service';
+import bisetkaStorageService from '../../services/bisetkaStorage.service';
 import type { User } from '../../types/auth';
 
 interface AuthContextType {
@@ -218,6 +219,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await tokenService.storeSession(backendResponse);
       setUser(mapBackendUser(backendResponse.user));
 
+      // Store Bisetka info from login response (IP-based)
+      if (backendResponse.bisetka) {
+        await bisetkaStorageService.storeBisetka({
+          id: backendResponse.bisetka.id,
+          neighborhood: backendResponse.bisetka.neighborhood,
+          city: backendResponse.bisetka.city,
+          country: backendResponse.bisetka.country,
+          active_users: backendResponse.bisetka.active_users,
+          source: 'ip',
+        });
+        console.log(`🏘️ Connected to Bisetka: ${backendResponse.bisetka.neighborhood}, ${backendResponse.bisetka.city}`);
+      }
+
       registerDevice(apiConfig.apiURL, backendResponse.token).catch(err =>
         console.warn('Device registration failed:', err)
       );
@@ -241,6 +255,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       await tokenService.storeSession(backendResponse);
       setUser(mapBackendUser(backendResponse.user));
+
+      // Store Bisetka info from login response (IP-based or GPS-based)
+      if (backendResponse.bisetka) {
+        await bisetkaStorageService.storeBisetka({
+          id: backendResponse.bisetka.id,
+          neighborhood: backendResponse.bisetka.neighborhood,
+          city: backendResponse.bisetka.city,
+          country: backendResponse.bisetka.country,
+          active_users: backendResponse.bisetka.active_users,
+          source: 'ip', // Backend used IP geolocation (or GPS if provided by frontend)
+        });
+        console.log(`🏘️ Connected to Bisetka: ${backendResponse.bisetka.neighborhood}, ${backendResponse.bisetka.city}`);
+      }
 
       registerDevice(apiConfig.apiURL, backendResponse.token).catch(err =>
         console.warn('Device registration failed:', err)
@@ -297,6 +324,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       await AuthService.signOut();
       await tokenService.clearSession();
+      await bisetkaStorageService.clearBisetka(); // Clear stored Bisetka
       // chatSocketService.disconnect();
       setUser(null);
     } catch (error) {

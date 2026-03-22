@@ -541,13 +541,13 @@ const HomeScreen = ({navigation}: any) => {
             <TouchableOpacity
               style={styles.leaderboardButton}
               onPress={() => navigation.navigate('GameSelection')}>
-              <LinearGradient
+              {/* <LinearGradient
                 colors={['#6366f1', '#8b5cf6']}
                 start={{x: 0, y: 0}}
                 end={{x: 1, y: 0}}
-                style={styles.leaderboardButtonGrad}>
+                style={styles.leaderboardButtonGrad}> */}
                 <Text style={styles.leaderboardButtonText}>Choose Game →</Text>
-              </LinearGradient>
+              {/* </LinearGradient> */}
             </TouchableOpacity>
           )}
         </View>
