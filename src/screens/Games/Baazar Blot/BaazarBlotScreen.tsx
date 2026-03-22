@@ -57,6 +57,7 @@ const SUIT_COLOR: Record<string, string> = {
 
 const TOTAL_PLAYERS = 4;
 const { width: SW } = Dimensions.get('window');
+const GAME_TYPE = 'baazar-blot';
 
 const BaazarBlotScreen = ({ navigation }: any) => {
   const [gameState, setGameState] = useState<BaazarGameState | null>(null);
@@ -70,8 +71,11 @@ const BaazarBlotScreen = ({ navigation }: any) => {
   const resolutionStartTimeRef = useRef<number>(0);
   const dealtHandsRef = useRef<{ team: 1 | 2; hand: CardType[] }[]>([]);
   const prevPhaseRef = useRef<string | null>(null);
+  const [entryDeducted, setEntryDeducted] = useState(false);
+  const [prizeAwarded, setPrizeAwarded] = useState(false);
+  const gameIdRef = useRef<string>(uuidv4());
 
-  const { refreshOnGameEnd } = useGameEndRefresh(undefined, 'baazar_blot');
+  const { refreshOnGameEnd } = useGameEndRefresh(undefined, GAME_TYPE);
 
   // Load saved theme from storage on mount
   useEffect(() => {
@@ -120,18 +124,13 @@ const BaazarBlotScreen = ({ navigation }: any) => {
   const toolbarExpanded = useSharedValue(false);
   const { user: currentUser, refreshUser } = useAuth();
 
-  // Entry fee and prize tracking
-  const [entryDeducted, setEntryDeducted] = useState(false);
-  const [prizeAwarded, setPrizeAwarded] = useState(false);
-  const gameIdRef = useRef<string>(uuidv4());
-
   // Entry fee deduction handler
   const handleGameStart = async () => {
     if (entryDeducted || !currentUser?.id) return;
 
     try {
       console.log('💰 Deducting baazar blot entry fee...');
-      const result = await apiService.deductEntry('baazar_blot', gameIdRef.current);
+      const result = await apiService.deductEntry(GAME_TYPE, gameIdRef.current);
       
       if (result.success) {
         console.log(`✅ Entry deducted: -50 points. Balance: ${result.newBalance}`);
@@ -158,7 +157,7 @@ const BaazarBlotScreen = ({ navigation }: any) => {
     try {
       const result = didWin ? 'win' : 'loss';
       console.log(`🏆 Awarding prize for ${result}...`);
-      const prizeResult = await apiService.awardPrize('baazar_blot', result, gameIdRef.current);
+      const prizeResult = await apiService.awardPrize(GAME_TYPE, result, gameIdRef.current);
       
       if (prizeResult.success) {
         console.log(`✅ Prize awarded: +${prizeResult.prize} points. Balance: ${prizeResult.newBalance}`);
@@ -407,7 +406,7 @@ const BaazarBlotScreen = ({ navigation }: any) => {
     if (gameOver) {
       const winner = newGameScore.team1 >= prev.targetScore ? 1 : 2;
       gameResultService.recordGameResult({
-        gameType: 'baazar_blot',
+        gameType: GAME_TYPE,
         result: winner === 1 ? 'win' : 'loss',
         score: newGameScore.team1,
         opponentScore: newGameScore.team2,
