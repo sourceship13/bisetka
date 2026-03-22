@@ -380,20 +380,16 @@ const GlobalViewScreen = ({ navigation }: any) => {
               <TouchableOpacity
                 style={styles.detailBtn}
                 onPress={() => handleJoinSession(selectedSession)}>
-                <LinearGradient
-                  colors={['#10b981', '#34d399']}
-                  style={styles.detailBtnGrad}>
+                <View style={{backgroundColor: '#10b981', paddingVertical: 14, borderRadius: 8, alignItems: 'center'}}>
                   <Text style={styles.detailBtnText}>Join Game</Text>
-                </LinearGradient>
+                </View>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.detailBtn}
                 onPress={() => setSelectedSession(null)}>
-                <LinearGradient
-                  colors={['#6b7280', '#9ca3af']}
-                  style={styles.detailBtnGrad}>
+                <View style={{backgroundColor: '#6b7280', paddingVertical: 14, borderRadius: 8, alignItems: 'center'}}>
                   <Text style={styles.detailBtnText}>Close</Text>
-                </LinearGradient>
+                </View>
               </TouchableOpacity>
             </View>
           </LinearGradient>
@@ -652,7 +648,7 @@ const styles = StyleSheet.create({
     elevation: 12,
   },
   detailGrad: {
-    padding: 24,
+    margin:20,
     alignItems: 'center',
   },
   detailIcon: {
@@ -684,7 +680,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
     width: '100%',
-    marginTop: 16,
+    margin:20,
   },
   detailBtn: {
     flex: 1,
@@ -692,7 +688,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   detailBtnGrad: {
-    paddingVertical: 14,
     alignItems: 'center',
   },
   detailBtnText: {

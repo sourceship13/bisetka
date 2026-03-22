@@ -453,7 +453,7 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
   const isMultiplayer = !!(mode && mode !== 'ai');
 
   // Auth / user ID
-  const {user} = useAuth();
+  const {user, refreshUser} = useAuth();
   const userId: string = (user as any)?.id || session?.user?.id || session?.id || 'guest';
 
   const [balls, setBalls] = useState<Ball[]>(
@@ -565,7 +565,6 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
   // Entry fee and prize tracking
   const [entryDeducted, setEntryDeducted] = useState(false);
   const [prizeAwarded, setPrizeAwarded] = useState(false);
-  const { user, refreshUser } = useAuth();
 
   // Entry fee deduction handler
   const handleGameStart = async () => {
