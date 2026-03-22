@@ -889,9 +889,11 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   leaderboardButton: {
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
     marginTop: 8,
     borderRadius: 12,
     overflow: 'hidden',
+    padding:10
   },
   leaderboardButtonGrad: {
     paddingVertical: 12,
@@ -899,7 +901,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   leaderboardButtonText: {
-    fontSize: 14,
+    fontSize: 20,
     fontWeight: '600',
     color: '#fff',
   },
