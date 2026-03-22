@@ -12,16 +12,16 @@ import {
   Animated,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useAuth } from '../../../libs/hooks/useAuth';
-import { BisetkaAlert } from '../../../utils/BisetkaAlert';
-import GameToolbar from '../../../components/global/GameToolbar';
-import DynamicCard from '../../../components/DynamicCard';
-import CardCustomizationModal from '../../../components/global/GameCustomizationModal';
-import type { CardTheme } from '../../../components/global/GameCustomizationModal';
-import { gameResultService } from '../../../services/gameResult.service';
-import { useGameEndRefresh } from '../../../libs/hooks/useGameEndRefresh';
+import { useAuth } from '../../../../libs/hooks/useAuth';
+import { BisetkaAlert } from '../../../../utils/BisetkaAlert';
+import GameToolbar from '../../../../components/global/GameToolbar';
+import DynamicCard from '../../../../components/DynamicCard';
+import CardCustomizationModal from '../../../../components/global/GameCustomizationModal';
+import type { CardTheme } from '../../../../components/global/GameCustomizationModal';
+import { gameResultService } from '../../../../services/gameResult.service';
+import { useGameEndRefresh } from '../../../../libs/hooks/useGameEndRefresh';
 import ReAnimated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
-import ExpandableView from '../../../components/global/ExpandableView';
+import ExpandableView from '../../../../components/global/ExpandableView';
 import LinearGradient from 'react-native-linear-gradient';
 
 interface Card {
@@ -438,7 +438,7 @@ const BlackjackScreen = ({ navigation }: any) => {
 
   return (
     <ImageBackground
-      source={customTheme?.backgroundImage ? { uri: customTheme.backgroundImage } : require('../../../../assets/blot/park-background.png')}
+      source={customTheme?.backgroundImage ? { uri: customTheme.backgroundImage } : require('../../../../../assets/blot/park-background.png')}
       style={styles.container}
       blurRadius={showBlur ? 3 : 0}
     >
@@ -507,7 +507,7 @@ const BlackjackScreen = ({ navigation }: any) => {
 
           {/* Card Table */}
           <ImageBackground
-            source={showBackground ? (customTheme?.boardImage ? { uri: customTheme.boardImage } : require('../../../../assets/blot/card-table.png')) : undefined}
+            source={showBackground ? (customTheme?.boardImage ? { uri: customTheme.boardImage } : require('../../../../../assets/blot/card-table.png')) : undefined}
             style={styles.cardTable}
             imageStyle={styles.cardTableImage}
             resizeMode="cover">

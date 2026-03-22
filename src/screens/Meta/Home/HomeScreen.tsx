@@ -283,6 +283,7 @@ const HomeScreen = ({navigation}: any) => {
       ? `${location.latitude.toFixed(3)}, ${location.longitude.toFixed(3)}`
       : 'Using your device location';
     let pillText = 'Locating';
+    let actionText = 'View Map';
 
     if (bisetkaLoading) {
       subtitle = 'Getting your location and matching you with the nearest neighborhood.';
@@ -290,11 +291,13 @@ const HomeScreen = ({navigation}: any) => {
       subtitle = bisetkaError;
       metaText = 'Tap to retry location lookup';
       pillText = 'Retry';
+      actionText = 'Retry';
     } else if (hasNearestBisetka) {
       title = `${bisetka!.neighborhood_name}, ${bisetka!.city}`;
-      subtitle = 'This is the Bisetka closest to where your device is right now.';
+      subtitle = 'Tap to choose a game and start playing';
       metaText = `${neighborhood!.city}, ${neighborhood!.country}`;
       pillText = `${bisetka!.active_users} active`;
+      actionText = '🎮 Play Games';
     }
 
     return (
@@ -304,12 +307,20 @@ const HomeScreen = ({navigation}: any) => {
           onPress={handleNearestBisetkaPress}
           style={styles.closestBisetkaButton}>
           <LinearGradient
-            colors={['rgba(0, 0, 0, 0.72)', 'rgba(18, 52, 46, 0.72)']}
+            colors={
+              hasNearestBisetka 
+                ? ['rgba(0, 0 , 0, 0.75)', 'rgba(100, 92, 222, 0.65)']
+                : ['rgba(0, 0, 0, 0.72)', 'rgba(18, 52, 46, 0.72)']
+            }
             start={{x: 0, y: 0}}
             end={{x: 1, y: 1}}
             style={styles.closestBisetkaGradient}>
             <View style={styles.closestBisetkaIconWrap}>
-              <Icon name="map-marker-radius" size={26} color="#ffffff" />
+              <Icon 
+                name={hasNearestBisetka ? "controller-classic" : "map-marker-radius"} 
+                size={hasNearestBisetka ? 32 : 26} 
+                color="#ffffff" 
+              />
             </View>
 
             <View style={styles.closestBisetkaContent}>
@@ -320,10 +331,14 @@ const HomeScreen = ({navigation}: any) => {
             </View>
 
             <View style={styles.closestBisetkaSide}>
-              <View style={styles.closestBisetkaPill}>
-                <Text style={styles.closestBisetkaPillText}>{pillText}</Text>
+              {pillText && (
+                <View style={styles.closestBisetkaPill}>
+                  <Text style={styles.closestBisetkaPillText}>{pillText}</Text>
+                </View>
+              )}
+              <View style={styles.actionButton}>
+                <Text style={styles.actionButtonText}>{actionText}</Text>
               </View>
-              <Text style={styles.closestBisetkaArrow}>→</Text>
             </View>
           </LinearGradient>
         </TouchableOpacity>
@@ -522,48 +537,6 @@ const HomeScreen = ({navigation}: any) => {
             </LinearGradient>
           </TouchableOpacity>
         </View> */}
-        {/* Section Title */}
-        <View style={styles.sectionHeadWrapper}>
-          <TouchableOpacity 
-            onPress={() => {
-              if (bisetka?.id) {
-                navigation.navigate('BisetkaDetail', {
-                  bisetkaId: bisetka.id,
-                  bisetkaName: bisetka.neighborhood_name,
-                  city: bisetka.city,
-                  country: bisetka.country,
-                });
-              }
-            }}
-            activeOpacity={0.85}>
-            <View style={styles.sectionHead}>
-              <View style={styles.sectionHeadContent}>
-                <Text style={styles.sectionTitle}>
-                  🎮 Choose what to play in {bisetka?.neighborhood_name || 'your Bisetka'}
-                </Text>
-                <Text style={styles.sectionSub}>
-                  {bisetka?.city ? `${bisetka.city}, ${bisetka.country}` : 'Pick your game'}
-                </Text>
-              </View>
-              <Text style={styles.sectionArrow}>📊</Text>
-            </View>
-          </TouchableOpacity>
-          
-          {bisetka?.id && (
-            <TouchableOpacity
-              style={styles.leaderboardButton}
-              onPress={() => navigation.navigate('GameSelection')}>
-              {/* <LinearGradient
-                colors={['#6366f1', '#8b5cf6']}
-                start={{x: 0, y: 0}}
-                end={{x: 1, y: 0}}
-                style={styles.leaderboardButtonGrad}> */}
-                <Text style={styles.leaderboardButtonText}>Choose Game →</Text>
-              {/* </LinearGradient> */}
-            </TouchableOpacity>
-          )}
-        </View>
-
         {/* Online Players */}
         <View style={styles.onlinePlayersContainer}>
           <View style={styles.onlinePlayersHeader}>
@@ -808,6 +781,24 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '700',
   },
+  actionButton: {
+    backgroundColor: 'rgba(99, 102, 241, 0.9)',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    marginTop: 8,
+    shadowColor: '#6366f1',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.4,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  actionButtonText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#fff',
+    textAlign: 'center',
+  },
   activeRoomsButton: {
     borderRadius: 16,
     overflow: 'hidden',
@@ -894,26 +885,10 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   sectionArrow: {
-    fontSize: 24,
+    fontSize: 32,
     color: '#fff',
     fontWeight: '700',
-  },
-  leaderboardButton: {
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    marginTop: 8,
-    borderRadius: 12,
-    overflow: 'hidden',
-    padding:10
-  },
-  leaderboardButtonGrad: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    alignItems: 'center',
-  },
-  leaderboardButtonText: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#fff',
+    marginBottom: 4,
   },
   gamesGrid: {
     flexDirection: 'row',

@@ -54,7 +54,7 @@ interface GameInfoData {
 const { width } = Dimensions.get('window');
 
 const GameInfoScreen: React.FC<Props> = ({ route, navigation }) => {
-  const { gameType, gradient } = route.params;
+  const { gameType, gradient, bisetkaId, bisetkaName } = route.params;
   const [gameInfo, setGameInfo] = useState<GameInfoData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -98,12 +98,19 @@ const GameInfoScreen: React.FC<Props> = ({ route, navigation }) => {
   const handlePlayNow = () => {
     // Solo games - navigate directly without game mode selection
     if (gameType === 'slots' || gameType === 'blackjack') {
-      navigation.navigate(gameType.charAt(0).toUpperCase() + gameType.slice(1) as any);
+      navigation.navigate(gameType.charAt(0).toUpperCase() + gameType.slice(1) as any, {
+        bisetkaId,
+        bisetkaName,
+      });
       return;
     }
     
-    // For other games, navigate to GameMode screen
-    navigation.navigate('GameMode', { gameType: gameType as any });
+    // For other games, navigate to GameMode screen with bisetkaId
+    navigation.navigate('GameMode', { 
+      gameType: gameType as any,
+      bisetkaId,
+      bisetkaName,
+    });
   };
 
   const renderPointAwards = () => {
@@ -290,6 +297,13 @@ const GameInfoScreen: React.FC<Props> = ({ route, navigation }) => {
           <Text style={styles.gameTitle}>{gameInfo.displayName}</Text>
           <Text style={styles.gameSubtitle}>{gameInfo.shortDescription}</Text>
           
+          {bisetkaName && (
+            <View style={styles.bisetkaIndicator}>
+              <Text style={styles.bisetkaIndicatorIcon}>🏘️</Text>
+              <Text style={styles.bisetkaIndicatorText}>Playing in {bisetkaName}</Text>
+            </View>
+          )}
+          
           <View style={styles.gameMetaRow}>
             <View style={styles.metaItem}>
               <Text style={styles.metaIcon}>👥</Text>
@@ -445,7 +459,26 @@ const styles = StyleSheet.create({
   gameSubtitle: {
     fontSize: 16,
     color: 'rgba(255,255,255,0.8)',
+    marginBottom: 12,
+  },
+  bisetkaIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
     marginBottom: 16,
+    alignSelf: 'flex-start',
+  },
+  bisetkaIndicatorIcon: {
+    fontSize: 14,
+    marginRight: 6,
+  },
+  bisetkaIndicatorText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.95)',
   },
   gameMetaRow: {
     flexDirection: 'row',
