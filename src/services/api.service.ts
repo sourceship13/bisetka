@@ -1,5 +1,5 @@
 import apiConfig from '../libs/utils/api.utils';
-import { getDeviceId, getFullDeviceInfo } from '../libs/utils/deviceInfo';
+import { getDeviceId, registerDevice as registerBackendDevice } from '../libs/utils/deviceInfo';
 import tokenService from './token.service';
 import type { AuthResponse, User } from '../types/auth';
 
@@ -71,8 +71,11 @@ class ApiService {
 
       if (requireAuth) {
         const accessToken = await tokenService.getAccessToken();
+        console.log('🔑 Access token:', accessToken ? `${accessToken.substring(0, 20)}...` : 'NONE');
         if (accessToken) {
           headers.Authorization = `Bearer ${accessToken}`;
+        } else {
+          console.warn('⚠️ No access token available for authenticated request!');
         }
       }
 
@@ -280,14 +283,177 @@ class ApiService {
    */
   async upsertDeviceData(): Promise<void> {
     try {
-      const fullInfo = await getFullDeviceInfo();
-      await this.request('/devices/register', {
-        method: 'POST',
-        body: JSON.stringify(fullInfo),
-      }, true);
+      const accessToken = await tokenService.getAccessToken();
+      if (!accessToken) {
+        return;
+      }
+
+      await registerBackendDevice(this.baseURL, accessToken);
     } catch (error) {
       console.warn('⚠️ Device data upsert failed:', error);
     }
+  }
+
+  // ========== GAME POINTS ENDPOINTS ==========
+
+  /**
+   * Deduct entry cost from user's points
+   * POST /api/game/deduct-entry
+   */
+  async deductEntry(gameType: string, gameId?: string): Promise<{
+    success: boolean;
+    newBalance: number;
+    transactionId: string;
+    error?: string;
+  }> {
+    console.log('🔵 deductEntry called:', { gameType, gameId });
+    console.log('   Base URL:', this.baseURL);
+    console.log('   Full URL:', `${this.baseURL}/game/deduct-entry`);
+    
+    try {
+      const result = await this.request<{
+        success: boolean;
+        newBalance: number;
+        transactionId: string;
+        error?: string;
+      }>(
+        '/game/deduct-entry',
+        {
+          method: 'POST',
+          body: JSON.stringify({ gameType, gameId }),
+        },
+        true
+      );
+      console.log('🔵 deductEntry result:', result);
+      return result;
+    } catch (error) {
+      console.error('🔵 deductEntry error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Award prize to user based on game result
+   * POST /api/game/award-prize
+   */
+  async awardPrize(
+    gameType: string,
+    result: 'win' | 'draw' | 'loss',
+    gameId?: string,
+    customPrize?: number
+  ): Promise<{
+    success: boolean;
+    prize: number;
+    newBalance: number;
+    transactionId: string;
+    error?: string;
+  }> {
+    return this.request<{
+      success: boolean;
+      prize: number;
+      newBalance: number;
+      transactionId: string;
+      error?: string;
+    }>(
+      '/game/award-prize',
+      {
+        method: 'POST',
+        body: JSON.stringify({ gameType, result, gameId, customPrize }),
+      },
+      true
+    );
+  }
+
+  /**
+   * Get entry cost and prize info for a game
+   * GET /api/game/:gameType/entry-info
+   */
+  async getEntryInfo(gameType: string): Promise<{
+    success: boolean;
+    gameType: string;
+    displayName: string;
+    icon: string;
+    entryCost: number;
+    prizes: {
+      win: number;
+      draw: number;
+      loss: number;
+    };
+    profit: {
+      win: number;
+      draw: number;
+      loss: number;
+    };
+    multiplier: number;
+    userPoints?: number;
+    canAfford?: boolean;
+  }> {
+    return this.request<{
+      success: boolean;
+      gameType: string;
+      displayName: string;
+      icon: string;
+      entryCost: number;
+      prizes: {
+        win: number;
+        draw: number;
+        loss: number;
+      };
+      profit: {
+        win: number;
+        draw: number;
+        loss: number;
+      };
+      multiplier: number;
+      userPoints?: number;
+      canAfford?: boolean;
+    }>(
+      `/game/${gameType}/entry-info`,
+      { method: 'GET' },
+      false // Auth is optional - returns can_afford only if authenticated
+    );
+  }
+
+  /**
+   * Get user's points transaction history
+   * GET /api/game/transaction-history
+   */
+  async getTransactionHistory(limit: number = 20, offset: number = 0): Promise<{
+    success: boolean;
+    transactions: Array<{
+      id: string;
+      points_change: number;
+      reason: string;
+      game_type?: string;
+      game_result?: string;
+      balance_before: number;
+      balance_after: number;
+      created_at: string;
+    }>;
+    count: number;
+    limit: number;
+    offset: number;
+  }> {
+    return this.request<{
+      success: boolean;
+      transactions: Array<{
+        id: string;
+        points_change: number;
+        reason: string;
+        game_type?: string;
+        game_result?: string;
+        balance_before: number;
+        balance_after: number;
+        created_at: string;
+      }>;
+      count: number;
+      limit: number;
+      offset: number;
+    }>(
+      `/game/transaction-history?limit=${limit}&offset=${offset}`,
+      { method: 'GET' },
+      true
+    );
   }
 
   // ========== GAME ENDPOINTS ==========

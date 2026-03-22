@@ -1,7 +1,9 @@
 import React, {useState, useEffect, useRef, useCallback} from 'react';
-import {View, Text, StyleSheet, TouchableOpacity, ScrollView, ImageBackground, ActivityIndicator, Clipboard, TextInput, Dimensions, Animated, ViewStyle} from 'react-native';
+import {View, Text, StyleSheet, TouchableOpacity, ScrollView, ImageBackground, ActivityIndicator, Clipboard, TextInput, Dimensions, Animated, ViewStyle, Alert} from 'react-native';
 import { Snackbar } from 'react-native-paper';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
+import { apiService } from '../../../services/api.service';
+import { useAuth } from '../../../libs/hooks/useAuth';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import GameToolbar from '../../../components/global/GameToolbar';
 import DynamicCard from '../../../components/DynamicCard';
@@ -158,6 +160,9 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
   const handNumberRef = useRef(0);
   const lastPlayerActionRef = useRef<{ action: string; amount: number } | null>(null);
   const aiActionsThisRoundRef = useRef<Array<{ playerId: number; action: string; amount?: number }>>([]);
+  
+  // No entry fee for poker - players use their balance to buy chips
+  const { user, refreshUser } = useAuth();
   
   // Keep refs in sync with state
   useEffect(() => {
