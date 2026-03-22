@@ -629,6 +629,36 @@ const NardiScreen = ({ navigation, route }: any) => {
     }
   };
 
+  const handleBearOffTrayPress = (player: PlayerColor) => {
+    const myColor = isMultiplayer ? myMpColorRef.current : 'white';
+    if (!gameState || gameState.currentPlayer !== myColor || gameState.phase !== 'moving') return;
+    if (player !== myColor) return;
+
+    const bearOffTarget = player === 'white' ? 24 : -1;
+
+    if (selectedPoint !== null) {
+      const selectedBearOffMove = gameState.possibleMoves.find(
+        m => m.from === selectedPoint && m.to === bearOffTarget,
+      );
+
+      if (selectedBearOffMove) {
+        console.log('✅ Bearing off from selected point to tray:', selectedBearOffMove);
+        handleMove(selectedBearOffMove);
+      } else {
+        console.log('❌ Selected point cannot bear off with current dice');
+      }
+
+      setSelectedPoint(null);
+      return;
+    }
+
+    const bearOffMoves = gameState.possibleMoves.filter(m => m.to === bearOffTarget);
+    if (bearOffMoves.length === 1) {
+      console.log('✅ Auto-bearing off only available checker:', bearOffMoves[0]);
+      handleMove(bearOffMoves[0]);
+    }
+  };
+
   const handlePointPress = (pointIndex: number) => {
     const myColor = isMultiplayer ? myMpColorRef.current : 'white';
     if (!gameState || gameState.currentPlayer !== myColor || gameState.phase !== 'moving') {
@@ -676,8 +706,15 @@ const NardiScreen = ({ navigation, route }: any) => {
       
       if (hasOwnChecker) {
         if (movesFromThisPoint.length > 0) {
-          setSelectedPoint(pointIndex);
-          console.log('✅ Selected point:', pointIndex + 1, 'with', movesFromThisPoint.length, 'possible moves');
+          const bearOffMove = movesFromThisPoint.find(m => m.to >= 24 || m.to < 0);
+          if (movesFromThisPoint.length === 1 && bearOffMove) {
+            console.log('✅ Auto-bearing off from point:', pointIndex + 1);
+            handleMove(bearOffMove);
+            setSelectedPoint(null);
+          } else {
+            setSelectedPoint(pointIndex);
+            console.log('✅ Selected point:', pointIndex + 1, 'with', movesFromThisPoint.length, 'possible moves');
+          }
         } else {
           console.log('⚠️ No valid moves from point', pointIndex + 1);
         }
@@ -808,6 +845,15 @@ const NardiScreen = ({ navigation, route }: any) => {
     );
   }
 
+  const whiteTrayIsValidDestination =
+    selectedPoint !== null &&
+    gameState.currentPlayer === 'white' &&
+    gameState.possibleMoves.some(m => m.from === selectedPoint && m.to === 24);
+  const blackTrayIsValidDestination =
+    selectedPoint !== null &&
+    gameState.currentPlayer === 'black' &&
+    gameState.possibleMoves.some(m => m.from === selectedPoint && m.to === -1);
+
   return (
     <ImageBackground
       source={require('../../../../assets/nardi/park-background.png')}
@@ -873,11 +919,15 @@ const NardiScreen = ({ navigation, route }: any) => {
             left: 16,
             zIndex: 50,
           }}>
-            <View style={{
+            <TouchableOpacity
+              activeOpacity={0.85}
+              disabled={gameState.currentPlayer !== 'black'}
+              onPress={() => handleBearOffTrayPress('black')}
+              style={{
               backgroundColor: 'rgba(26, 26, 46, 0.95)',
               borderRadius: 12,
-              borderWidth: 2,
-              borderColor: '#555',
+              borderWidth: blackTrayIsValidDestination ? 3 : 2,
+              borderColor: blackTrayIsValidDestination ? '#fbbf24' : '#555',
               padding: 8,
               minWidth: 100,
               maxWidth: 130,
@@ -909,7 +959,7 @@ const NardiScreen = ({ navigation, route }: any) => {
                   />
                 ))}
               </View>
-            </View>
+            </TouchableOpacity>
           </View>
 
           <View style={styles.boardContainer}>
@@ -1015,11 +1065,15 @@ const NardiScreen = ({ navigation, route }: any) => {
             right: 16,
             zIndex: 50,
           }}>
-            <View style={{
+            <TouchableOpacity
+              activeOpacity={0.85}
+              disabled={gameState.currentPlayer !== 'white'}
+              onPress={() => handleBearOffTrayPress('white')}
+              style={{
               backgroundColor: 'rgba(255, 255, 255, 0.95)',
               borderRadius: 12,
-              borderWidth: 2,
-              borderColor: '#ccc',
+              borderWidth: whiteTrayIsValidDestination ? 3 : 2,
+              borderColor: whiteTrayIsValidDestination ? '#fbbf24' : '#ccc',
               padding: 8,
               minWidth: 100,
               maxWidth: 130,
@@ -1051,7 +1105,7 @@ const NardiScreen = ({ navigation, route }: any) => {
                   />
                 ))}
               </View>
-            </View>
+            </TouchableOpacity>
           </View>
 
           <View style={{ paddingHorizontal: 16, paddingVertical: 12 }}>
@@ -1113,7 +1167,7 @@ const NardiScreen = ({ navigation, route }: any) => {
             )}
             {canPlayerBearOff(myNardiColor) && gameState.currentPlayer === myNardiColor && gameState.phase === 'moving' && (
               <Text style={{ color: '#10b981', fontSize: 13, fontWeight: '600', marginTop: 2 }}>
-                🎯 You can bear off! Tap your checkers in the home board.
+                🎯 You can bear off! Tap a checker, then tap your tray.
               </Text>
             )}
             <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, marginTop: 2 }}>
@@ -1121,7 +1175,7 @@ const NardiScreen = ({ navigation, route }: any) => {
             </Text>
             {selectedPoint !== null && (
               <Text style={styles.statusText}>
-                Point {selectedPoint + 1} selected - Tap destination
+                Point {selectedPoint + 1} selected - Tap destination or your tray
               </Text>
             )}
           </View>
