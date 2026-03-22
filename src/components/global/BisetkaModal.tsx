@@ -101,7 +101,7 @@ const ConfettiRain: React.FC = () => {
 
 export interface BisetkaModalButton {
   text: string;
-  onPress: () => void;
+  onPress: () => void | Promise<void>;
   style?: 'primary' | 'secondary' | 'danger' | 'success';
 }
 
@@ -190,8 +190,8 @@ const BisetkaModal: React.FC<BisetkaModalProps> = ({
             {defaultButtons.map((button, index) => (
               <TouchableOpacity
                 key={index}
-                onPress={() => {
-                  button.onPress();
+                onPress={async () => {
+                  await Promise.resolve(button.onPress());
                   onClose?.();
                 }}
                 style={[
