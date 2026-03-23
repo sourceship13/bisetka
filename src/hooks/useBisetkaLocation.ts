@@ -3,6 +3,7 @@ import { Platform, PermissionsAndroid } from 'react-native';
 import Geolocation from '@react-native-community/geolocation';
 import axios from 'axios';
 import apiConfig from '../libs/utils/api.utils';
+import bisetkaService from '../services/bisetka.service';
 import bisetkaStorageService from '../services/bisetkaStorage.service';
 
 const bundledLocationData = require('../../data/bisetka-locations-enriched.json') as {
@@ -40,6 +41,49 @@ interface BisetkaLocationState {
   loading: boolean;
   error: string | null;
 }
+
+const buildFallbackFromStoredBisetka = (
+  storedBisetka: {
+    id: string;
+    neighborhood: string;
+    city: string;
+    country: string;
+    active_users: number;
+    connectedAt: string;
+  },
+): { bisetka: Bisetka; neighborhood: Neighborhood } => ({
+  bisetka: {
+    id: storedBisetka.id,
+    neighborhood_id: '',
+    neighborhood_name: storedBisetka.neighborhood,
+    city: storedBisetka.city,
+    country: storedBisetka.country,
+    active_users: storedBisetka.active_users,
+    created_at: storedBisetka.connectedAt,
+  },
+  neighborhood: {
+    id: '',
+    name: storedBisetka.neighborhood,
+    city: storedBisetka.city,
+    country: storedBisetka.country,
+    lat: 0,
+    lng: 0,
+  },
+});
+
+const buildFallbackFromRemoteBisetka = (
+  remoteBisetka: Bisetka,
+): { bisetka: Bisetka; neighborhood: Neighborhood } => ({
+  bisetka: remoteBisetka,
+  neighborhood: {
+    id: remoteBisetka.neighborhood_id || '',
+    name: remoteBisetka.neighborhood_name,
+    city: remoteBisetka.city,
+    country: remoteBisetka.country,
+    lat: 0,
+    lng: 0,
+  },
+});
 
 const toRadians = (value: number) => (value * Math.PI) / 180;
 
@@ -127,13 +171,20 @@ const useBisetkaLocation = () => {
       }
     }
 
-    try {
-      const status = await Geolocation.requestAuthorization('whenInUse');
-      return status === 'granted';
-    } catch (err) {
-      console.warn('iOS location permission error:', err);
-      return false;
-    }
+    return new Promise((resolve) => {
+      try {
+        Geolocation.requestAuthorization(
+          () => resolve(true),
+          (err: unknown) => {
+            console.warn('iOS location permission error:', err);
+            resolve(false);
+          },
+        );
+      } catch (err) {
+        console.warn('iOS location permission error:', err);
+        resolve(false);
+      }
+    });
   };
 
   const findNearestNeighborhood = async (lat: number, lng: number): Promise<Neighborhood | null> => {
@@ -216,25 +267,9 @@ const useBisetkaLocation = () => {
       const storedBisetka = await bisetkaStorageService.getStoredBisetka();
       if (storedBisetka) {
         console.log(`✅ Using stored Bisetka: ${storedBisetka.neighborhood}, ${storedBisetka.city} (${storedBisetka.source})`);
-        
-        storedBisetkaForFallback = {
-          id: storedBisetka.id,
-          neighborhood_id: '', // Not needed for display
-          neighborhood_name: storedBisetka.neighborhood,
-          city: storedBisetka.city,
-          country: storedBisetka.country,
-          active_users: storedBisetka.active_users,
-          created_at: storedBisetka.connectedAt,
-        };
-
-        storedNeighborhood = {
-          id: '', // Not needed
-          name: storedBisetka.neighborhood,
-          city: storedBisetka.city,
-          country: storedBisetka.country,
-          lat: 0, // Not needed for display
-          lng: 0,
-        };
+        const fallback = buildFallbackFromStoredBisetka(storedBisetka);
+        storedBisetkaForFallback = fallback.bisetka;
+        storedNeighborhood = fallback.neighborhood;
 
         setState(prev => ({ 
           ...prev, 
@@ -249,6 +284,42 @@ const useBisetkaLocation = () => {
             neighborhood: storedNeighborhood,
             bisetka: storedBisetkaForFallback,
           };
+        }
+      }
+
+      if (!storedBisetkaForFallback) {
+        const serverBisetka = await bisetkaService.getMyBisetka();
+
+        if (serverBisetka) {
+          console.log(`✅ Using backend Bisetka: ${serverBisetka.neighborhood_name}, ${serverBisetka.city}`);
+
+          const fallback = buildFallbackFromRemoteBisetka(serverBisetka);
+          storedBisetkaForFallback = fallback.bisetka;
+          storedNeighborhood = fallback.neighborhood;
+
+          await bisetkaStorageService.storeBisetka({
+            id: serverBisetka.id,
+            neighborhood: serverBisetka.neighborhood_name,
+            city: serverBisetka.city,
+            country: serverBisetka.country,
+            active_users: serverBisetka.active_users,
+            source: 'ip',
+          });
+
+          setState(prev => ({
+            ...prev,
+            bisetka: storedBisetkaForFallback,
+            neighborhood: storedNeighborhood,
+            loading: false,
+          }));
+
+          if (!forcePreciseLocation) {
+            return {
+              location: null,
+              neighborhood: storedNeighborhood,
+              bisetka: storedBisetkaForFallback,
+            };
+          }
         }
       }
 
