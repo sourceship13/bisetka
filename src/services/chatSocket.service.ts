@@ -23,7 +23,7 @@ class ChatSocketService {
       console.log('💬 Connecting to chat socket:', apiConfig.baseURL);
 
       this.socket = io(apiConfig.baseURL, {
-        transports: ['websocket'],
+        transports: ['websocket', 'polling'],
         auth: { userId, token },
       });
 
@@ -35,7 +35,11 @@ class ChatSocketService {
       });
 
       this.socket.on('connect_error', (error) => {
-        console.error('❌ Chat socket connection error:', error);
+        console.warn('⚠️ Chat socket connection error:', {
+          message: error.message,
+          type: (error as any)?.type,
+          description: (error as any)?.description,
+        });
         reject(error);
       });
 

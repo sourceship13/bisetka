@@ -63,11 +63,11 @@ class SocketService {
       console.log('🔄 Creating new socket connection...');
       console.log('🔄 Socket.IO config:', {
         url: this.serverUrl,
-        transports: ['websocket'],
+        transports: ['websocket', 'polling'],
       });
       
       this.socket = io(this.serverUrl, {
-        transports: ['websocket'],
+        transports: ['websocket', 'polling'],
         reconnection: true,
         reconnectionAttempts: 5,
         reconnectionDelay: 1000,
@@ -80,7 +80,7 @@ class SocketService {
 
       // Set a timeout for authentication
       const authTimeout = setTimeout(() => {
-        console.error('❌ Authentication timeout');
+        console.warn('⚠️ Socket authentication timeout');
         reject(new Error('Authentication timeout'));
       }, 10000);
 
@@ -107,14 +107,16 @@ class SocketService {
 
       this.socket.on('connect_error', (error) => {
         clearTimeout(authTimeout);
-        console.error('❌ Connection error:', error);
-        console.error('❌ Error message:', error.message);
-        console.error('❌ Error type:', error.type);
+        console.warn('⚠️ Socket connection error:', {
+          message: error.message,
+          type: (error as any)?.type,
+          description: (error as any)?.description,
+        });
         reject(error);
       });
 
       this.socket.on('error', (error) => {
-        console.error('❌ Socket error:', error);
+        console.warn('⚠️ Socket error:', error);
       });
 
       this.socket.on('disconnect', (reason) => {
