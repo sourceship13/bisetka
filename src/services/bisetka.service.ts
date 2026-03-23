@@ -279,6 +279,27 @@ class BisetkaService {
     }
   }
 
+  /**
+   * Find the nearest Bisetka by the device's IP address — no GPS needed.
+   * Used as the first-open fallback when there is no stored or profile bisetka.
+   */
+  async getByIpBisetka(): Promise<{ bisetka: Bisetka; neighborhood: Neighborhood } | null> {
+    try {
+      const response = await apiService.get<{
+        bisetka: Bisetka;
+        neighborhood: Neighborhood;
+        source: string;
+      }>('/bisetka/by-ip');
+      if (response.bisetka) {
+        return { bisetka: response.bisetka, neighborhood: response.neighborhood };
+      }
+      return null;
+    } catch (error) {
+      console.warn('IP-based bisetka lookup failed:', error);
+      return null;
+    }
+  }
+
   async resolvePlayableBisetka(candidate?: BisetkaLookupCandidate | null): Promise<Bisetka | null> {
     const currentBisetka = await this.getMyBisetka();
     if (currentBisetka) {

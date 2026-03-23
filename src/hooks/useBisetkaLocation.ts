@@ -385,6 +385,44 @@ const useBisetkaLocation = () => {
         }
       }
 
+      // ─── IP-based fallback ───────────────────────────────────────────────
+      // Nothing resolved yet — ask the server to determine nearest bisetka
+      // from the device's IP address.  No GPS, no stored data required.
+      if (!storedBisetkaForFallback) {
+        console.log('🌐 Trying IP-based Bisetka lookup...');
+        const ipResult = await bisetkaService.getByIpBisetka();
+        if (ipResult) {
+          console.log(`✅ IP Bisetka: ${ipResult.bisetka.neighborhood_name}, ${ipResult.bisetka.city}`);
+          storedBisetkaForFallback = ipResult.bisetka;
+          storedNeighborhood = ipResult.neighborhood;
+
+          await bisetkaStorageService.storeBisetka({
+            id: ipResult.bisetka.id,
+            neighborhood: ipResult.bisetka.neighborhood_name,
+            city: ipResult.bisetka.city,
+            country: ipResult.bisetka.country,
+            active_users: ipResult.bisetka.active_users,
+            source: 'ip',
+          });
+
+          setState(prev => ({
+            ...prev,
+            bisetka: storedBisetkaForFallback,
+            neighborhood: storedNeighborhood,
+            loading: false,
+          }));
+
+          if (!forcePreciseLocation) {
+            return {
+              location: null,
+              neighborhood: storedNeighborhood,
+              bisetka: storedBisetkaForFallback,
+            };
+          }
+        }
+      }
+      // ────────────────────────────────────────────────────────────────────
+
       if (!forcePreciseLocation) {
         setState(prev => ({
           ...prev,
