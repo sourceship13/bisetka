@@ -300,15 +300,15 @@ const HomeScreen = ({navigation}: any) => {
     const hasRemoteBisetka = Boolean(bisetka?.id && !bisetka.id.startsWith('local:'));
 
     let title = 'Closest Bisetka';
-    let subtitle = 'Checking which Bisetka you are physically closest to.';
+    let subtitle = 'Using your saved or IP-based Bisetka when available.';
     let metaText = location
       ? `${location.latitude.toFixed(3)}, ${location.longitude.toFixed(3)}`
-      : 'Using your device location';
-    let pillText = 'Locating';
+      : 'Open the map or allow location for a precise nearby match';
+    let pillText = 'Browse';
     let actionText = 'View Map';
 
     if (bisetkaLoading) {
-      subtitle = 'Getting your location and matching you with the nearest neighborhood.';
+      subtitle = 'Checking your saved and account Bisetka.';
     } else if (bisetkaError) {
       subtitle = bisetkaError;
       metaText = 'Tap to retry location lookup';

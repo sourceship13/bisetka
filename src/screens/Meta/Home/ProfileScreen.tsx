@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState} from 'react';
 import {
   View,
   Text,
@@ -15,50 +15,18 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import {useAuth} from '../../../libs/hooks/useAuth';
 import {colors, spacing} from '../../../theme';
-import Config from 'react-native-config';
 import AVATARS, {resolveAvatar} from '../../../utils/avatars';
 import type {AvatarOption} from '../../../utils/avatars';
 import apiService from '../../../services/api.service';
 
 const {width} = Dimensions.get('window');
-const API_URL = Config.API_URL || 'http://localhost:3000';
 const AVATAR_GRID_SIZE = (width - spacing.md * 2 - 20) / 4;
-
-interface UserStats {
-  total_games: number;
-  total_wins: number;
-  win_rate: number;
-  best_win_streak: number;
-  total_points: number;
-  lifetime_points: number;
-}
 
 const ProfileScreen = ({navigation}: any) => {
   const {user, setUser} = useAuth();
-  const [stats, setStats] = useState<UserStats | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    if (user?.id) {
-      fetch(`${API_URL}/api/leaderboard`)
-        .then(r => r.json())
-        .then(data => {
-          const me = data?.leaderboard?.find((e: any) => e.user_id === user.id);
-          if (me) {
-            setStats({
-              total_games: me.total_games || 0,
-              total_wins: me.total_wins || 0,
-              win_rate: me.win_rate || 0,
-              best_win_streak: me.best_win_streak || 0,
-              total_points: me.total_points || 0,
-              lifetime_points: me.lifetime_points || 0,
-            });
-          }
-        })
-        .catch(() => {});
-    }
-  }, [user?.id]);
+  const stats = user?.playerStats ?? null;
 
   const handleSelectAvatar = async (avatar: AvatarOption) => {
     setSaving(true);
@@ -174,7 +142,7 @@ const ProfileScreen = ({navigation}: any) => {
               <View>
                 <Text style={styles.pointsLabel}>Current Points</Text>
                 <Text style={styles.pointsValue}>
-                  🏆 {((user as any)?.totalPoints ?? stats?.total_points ?? 0).toLocaleString()}
+                  🏆 {((stats?.total_points ?? (user as any)?.totalPoints) || 0).toLocaleString()}
                 </Text>
               </View>
               <View style={styles.pointsDivider} />
