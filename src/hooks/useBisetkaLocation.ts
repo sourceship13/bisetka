@@ -77,7 +77,14 @@ const useBisetkaLocation = () => {
         return false;
       }
     }
-    return true; // iOS handles permissions differently
+
+    try {
+      const status = await Geolocation.requestAuthorization('whenInUse');
+      return status === 'granted';
+    } catch (err) {
+      console.warn('iOS location permission error:', err);
+      return false;
+    }
   };
 
   const findNearestNeighborhood = async (lat: number, lng: number): Promise<Neighborhood | null> => {
@@ -126,16 +133,18 @@ const useBisetkaLocation = () => {
   };
 
   const loadBisetkaLocation = async () => {
+    let storedNeighborhood: Neighborhood | null = null;
+    let storedBisetkaForFallback: Bisetka | null = null;
+
     try {
       setState(prev => ({ ...prev, loading: true, error: null }));
 
-      // PRIORITY 1: Check for stored Bisetka from login (IP or GPS-based)
+      // Use the stored Bisetka immediately as a fallback, then try to refine it with GPS.
       const storedBisetka = await bisetkaStorageService.getStoredBisetka();
       if (storedBisetka) {
         console.log(`✅ Using stored Bisetka: ${storedBisetka.neighborhood}, ${storedBisetka.city} (${storedBisetka.source})`);
         
-        // Convert stored format to hook format
-        const bisetka: Bisetka = {
+        storedBisetkaForFallback = {
           id: storedBisetka.id,
           neighborhood_id: '', // Not needed for display
           neighborhood_name: storedBisetka.neighborhood,
@@ -145,7 +154,7 @@ const useBisetkaLocation = () => {
           created_at: storedBisetka.connectedAt,
         };
 
-        const neighborhood: Neighborhood = {
+        storedNeighborhood = {
           id: '', // Not needed
           name: storedBisetka.neighborhood,
           city: storedBisetka.city,
@@ -156,20 +165,25 @@ const useBisetkaLocation = () => {
 
         setState(prev => ({ 
           ...prev, 
-          bisetka, 
-          neighborhood,
+          bisetka: storedBisetkaForFallback,
+          neighborhood: storedNeighborhood,
           loading: false 
         }));
-
-        return { location: null, neighborhood, bisetka };
       }
 
-      // PRIORITY 2: Fall back to GPS detection
-      console.log('📍 No stored Bisetka, trying GPS...');
+      console.log('📍 Trying GPS-based Bisetka lookup...');
 
       // 1. Request permission
       const hasPermission = await requestLocationPermission();
       if (!hasPermission) {
+        if (storedBisetkaForFallback && storedNeighborhood) {
+          console.log('ℹ️ Location permission denied, keeping stored Bisetka');
+          return {
+            location: null,
+            neighborhood: storedNeighborhood,
+            bisetka: storedBisetkaForFallback,
+          };
+        }
         throw new Error('Location permission denied');
       }
 
@@ -180,6 +194,14 @@ const useBisetkaLocation = () => {
       // 3. Find nearest neighborhood
       const neighborhood = await findNearestNeighborhood(location.latitude, location.longitude);
       if (!neighborhood) {
+        if (storedBisetkaForFallback && storedNeighborhood) {
+          console.log('ℹ️ GPS lookup found no neighborhood, keeping stored Bisetka');
+          return {
+            location,
+            neighborhood: storedNeighborhood,
+            bisetka: storedBisetkaForFallback,
+          };
+        }
         throw new Error('No neighborhood found for your location');
       }
       setState(prev => ({ ...prev, neighborhood }));
@@ -200,6 +222,22 @@ const useBisetkaLocation = () => {
 
       return { location, neighborhood, bisetka };
     } catch (error: any) {
+      if (storedBisetkaForFallback && storedNeighborhood) {
+        console.warn('⚠️ GPS Bisetka lookup failed, using stored fallback:', error?.message || error);
+        setState(prev => ({
+          ...prev,
+          bisetka: storedBisetkaForFallback,
+          neighborhood: storedNeighborhood,
+          loading: false,
+          error: null,
+        }));
+        return {
+          location: null,
+          neighborhood: storedNeighborhood,
+          bisetka: storedBisetkaForFallback,
+        };
+      }
+
       setState(prev => ({
         ...prev,
         loading: false,
