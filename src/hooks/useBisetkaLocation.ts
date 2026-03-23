@@ -3,6 +3,7 @@ import { Platform, PermissionsAndroid } from 'react-native';
 import Geolocation from '@react-native-community/geolocation';
 import axios from 'axios';
 import apiConfig from '../libs/utils/api.utils';
+import { useAuth } from '../libs/hooks/useAuth';
 import bisetkaService from '../services/bisetka.service';
 import bisetkaStorageService from '../services/bisetkaStorage.service';
 
@@ -85,6 +86,34 @@ const buildFallbackFromRemoteBisetka = (
   },
 });
 
+const buildFallbackFromAccountBisetka = (
+  accountBisetka: {
+    id: string;
+    neighborhood: string;
+    city: string;
+    country: string;
+    active_users: number;
+  },
+): { bisetka: Bisetka; neighborhood: Neighborhood } => ({
+  bisetka: {
+    id: accountBisetka.id,
+    neighborhood_id: '',
+    neighborhood_name: accountBisetka.neighborhood,
+    city: accountBisetka.city,
+    country: accountBisetka.country,
+    active_users: accountBisetka.active_users,
+    created_at: new Date().toISOString(),
+  },
+  neighborhood: {
+    id: '',
+    name: accountBisetka.neighborhood,
+    city: accountBisetka.city,
+    country: accountBisetka.country,
+    lat: 0,
+    lng: 0,
+  },
+});
+
 const toRadians = (value: number) => (value * Math.PI) / 180;
 
 const calculateDistanceKm = (
@@ -143,6 +172,7 @@ const findNearestNeighborhoodFromBundle = (
  * - Returns Bisetka info for the user's neighborhood
  */
 const useBisetkaLocation = () => {
+  const { user } = useAuth();
   const [state, setState] = useState<BisetkaLocationState>({
     location: null,
     neighborhood: null,
@@ -287,6 +317,38 @@ const useBisetkaLocation = () => {
         }
       }
 
+      if (!storedBisetkaForFallback && user?.bisetka) {
+        console.log(`✅ Using account Bisetka: ${user.bisetka.neighborhood}, ${user.bisetka.city}`);
+
+        const fallback = buildFallbackFromAccountBisetka(user.bisetka);
+        storedBisetkaForFallback = fallback.bisetka;
+        storedNeighborhood = fallback.neighborhood;
+
+        await bisetkaStorageService.storeBisetka({
+          id: user.bisetka.id,
+          neighborhood: user.bisetka.neighborhood,
+          city: user.bisetka.city,
+          country: user.bisetka.country,
+          active_users: user.bisetka.active_users,
+          source: 'ip',
+        });
+
+        setState(prev => ({
+          ...prev,
+          bisetka: storedBisetkaForFallback,
+          neighborhood: storedNeighborhood,
+          loading: false,
+        }));
+
+        if (!forcePreciseLocation) {
+          return {
+            location: null,
+            neighborhood: storedNeighborhood,
+            bisetka: storedBisetkaForFallback,
+          };
+        }
+      }
+
       if (!storedBisetkaForFallback) {
         const serverBisetka = await bisetkaService.getMyBisetka();
 
@@ -321,6 +383,15 @@ const useBisetkaLocation = () => {
             };
           }
         }
+      }
+
+      if (!forcePreciseLocation) {
+        setState(prev => ({
+          ...prev,
+          loading: false,
+          error: null,
+        }));
+        return null;
       }
 
       console.log('📍 Trying GPS-based Bisetka lookup...');
@@ -403,7 +474,7 @@ const useBisetkaLocation = () => {
 
   useEffect(() => {
     loadBisetkaLocation();
-  }, []);
+  }, [user?.bisetka?.id]);
 
   return {
     location: state.location,
