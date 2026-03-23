@@ -37,7 +37,7 @@ interface BisetkaDetailScreenProps {
   navigation: any;
 }
 
-// All 11 games with configurations - Using generated icons
+// All 10 games with configurations - Using generated icons
 const GAMES = [
   {
     id: 'blot',
@@ -121,22 +121,13 @@ const GAMES = [
     isImage: true,
   },
   {
-    id: 'blackjack',
-    name: 'Blackjack',
-    description: '21 Card Game',
-    icon: require('../../../../assets/game-icons/blackjack-icon.png'),
-    gradient: ['#7c3aed', '#a78bfa'],
-    gameType: 'blackjack',
-    isImage: true,
-  },
-  {
     id: 'slots',
     name: 'Slots',
     description: 'Arcade',
-    icon: require('../../../../assets/game-icons/slots-icon.png'),
+    icon: '🎰',
     gradient: ['#ef4444', '#f87171'],
     gameType: 'slots',
-    isImage: true,
+    isImage: false,
   },
 ] as const;
 
@@ -195,9 +186,7 @@ const BisetkaDetailScreen: React.FC<BisetkaDetailScreenProps> = ({
   };
 
   const renderHeader = () => (
-    <LinearGradient
-      colors={['#1a1a2e', '#16213e']}
-      style={styles.header}>
+    <View style={styles.header}>
       <TouchableOpacity
         style={styles.backButton}
         onPress={() => navigation.goBack()}>
@@ -213,7 +202,8 @@ const BisetkaDetailScreen: React.FC<BisetkaDetailScreenProps> = ({
           {activePlayers} {activePlayers === 1 ? 'player' : 'players'} • {allKings.length} {allKings.length === 1 ? 'king' : 'kings'}
         </Text>
       </View>
-    </LinearGradient>
+    </View>
+
   );
 
   const renderKingsSummary = () => {
@@ -357,10 +347,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    paddingVertical: 20,
-    paddingHorizontal: 16,
+    backgroundColor:'#16213e',
     flexDirection: 'row',
     alignItems: 'center',
+    padding:10,
+    borderRadius:12
   },
   backButton: {
     width: 40,
