@@ -39,6 +39,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  const persistBisetkaFromUser = async (nextUser: User | null) => {
+    if (!nextUser?.bisetka) {
+      return;
+    }
+
+    await bisetkaStorageService.storeBisetka({
+      id: nextUser.bisetka.id,
+      neighborhood: nextUser.bisetka.neighborhood,
+      city: nextUser.bisetka.city,
+      country: nextUser.bisetka.country,
+      active_users: nextUser.bisetka.active_users,
+      source: 'ip',
+    });
+  };
+
   // App state reference for background/foreground handling
   const appState = useRef(AppState.currentState);
   const isHandlingAppStateChange = useRef(false);
@@ -80,6 +95,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // Try to refresh from server
           try {
             const freshUser = await apiService.getProfile();
+            await persistBisetkaFromUser(freshUser);
             if (isMounted) {
               setUser(mapBackendUser(freshUser));
             }
@@ -301,6 +317,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await tokenService.storeSession(backendResponse);
       setUser(mapBackendUser(backendResponse.user));
 
+      if (backendResponse.bisetka) {
+        await bisetkaStorageService.storeBisetka({
+          id: backendResponse.bisetka.id,
+          neighborhood: backendResponse.bisetka.neighborhood,
+          city: backendResponse.bisetka.city,
+          country: backendResponse.bisetka.country,
+          active_users: backendResponse.bisetka.active_users,
+          source: 'ip',
+        });
+      }
+
       registerDevice(apiConfig.apiURL, backendResponse.token).catch(err =>
         console.warn('Device registration failed:', err)
       );
@@ -338,6 +365,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const refreshUser = async () => {
     try {
       const freshUser = await apiService.getProfile();
+      await persistBisetkaFromUser(freshUser);
       setUser(mapBackendUser(freshUser));
     } catch (error: any) {
       console.error('Error refreshing user:', error);

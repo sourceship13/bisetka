@@ -204,7 +204,8 @@ const useBisetkaLocation = () => {
     });
   };
 
-  const loadBisetkaLocation = async () => {
+  const loadBisetkaLocation = async (options?: { forcePreciseLocation?: boolean }) => {
+    const forcePreciseLocation = options?.forcePreciseLocation === true;
     let storedNeighborhood: Neighborhood | null = null;
     let storedBisetkaForFallback: Bisetka | null = null;
 
@@ -241,6 +242,14 @@ const useBisetkaLocation = () => {
           neighborhood: storedNeighborhood,
           loading: false 
         }));
+
+        if (!forcePreciseLocation) {
+          return {
+            location: null,
+            neighborhood: storedNeighborhood,
+            bisetka: storedBisetkaForFallback,
+          };
+        }
       }
 
       console.log('📍 Trying GPS-based Bisetka lookup...');
@@ -331,7 +340,7 @@ const useBisetkaLocation = () => {
     bisetka: state.bisetka,
     loading: state.loading,
     error: state.error,
-    refreshLocation: loadBisetkaLocation,
+    refreshLocation: () => loadBisetkaLocation({ forcePreciseLocation: true }),
   };
 };
 
