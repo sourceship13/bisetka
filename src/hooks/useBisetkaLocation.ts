@@ -5,6 +5,10 @@ import axios from 'axios';
 import apiConfig from '../libs/utils/api.utils';
 import bisetkaStorageService from '../services/bisetkaStorage.service';
 
+const bundledLocationData = require('../../data/bisetka-locations-enriched.json') as {
+  neighborhoods?: Neighborhood[];
+};
+
 interface Location {
   latitude: number;
   longitude: number;
@@ -36,6 +40,51 @@ interface BisetkaLocationState {
   loading: boolean;
   error: string | null;
 }
+
+const toRadians = (value: number) => (value * Math.PI) / 180;
+
+const calculateDistanceKm = (
+  fromLat: number,
+  fromLng: number,
+  toLat: number,
+  toLng: number,
+) => {
+  const earthRadiusKm = 6371;
+  const deltaLat = toRadians(toLat - fromLat);
+  const deltaLng = toRadians(toLng - fromLng);
+  const lat1 = toRadians(fromLat);
+  const lat2 = toRadians(toLat);
+
+  const a =
+    Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2) +
+    Math.cos(lat1) * Math.cos(lat2) * Math.sin(deltaLng / 2) * Math.sin(deltaLng / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  return earthRadiusKm * c;
+};
+
+const findNearestNeighborhoodFromBundle = (
+  lat: number,
+  lng: number,
+): Neighborhood | null => {
+  const neighborhoods = bundledLocationData.neighborhoods || [];
+  if (neighborhoods.length === 0) {
+    return null;
+  }
+
+  let nearest: Neighborhood | null = null;
+  let nearestDistance = Number.POSITIVE_INFINITY;
+
+  neighborhoods.forEach((candidate) => {
+    const distance = calculateDistanceKm(lat, lng, candidate.lat, candidate.lng);
+    if (distance < nearestDistance) {
+      nearest = candidate;
+      nearestDistance = distance;
+    }
+  });
+
+  return nearest;
+};
 
 /**
  * Hook to get user's location, find their neighborhood, and connect to local Bisetka
@@ -93,23 +142,46 @@ const useBisetkaLocation = () => {
         params: { lat, lng },
       });
       return response.data.neighborhood;
-    } catch (error) {
+    } catch (error: any) {
+      console.warn('Remote nearest neighborhood lookup failed, using bundled fallback:', {
+        message: error?.message,
+        status: error?.response?.status,
+      });
+
+      const bundledNearest = findNearestNeighborhoodFromBundle(lat, lng);
+      if (bundledNearest) {
+        return bundledNearest;
+      }
+
       console.error('Error finding neighborhood:', error);
       throw new Error('Failed to find nearest neighborhood');
     }
   };
 
-  const findOrCreateBisetka = async (neighborhoodId: string): Promise<Bisetka> => {
+  const findOrCreateBisetka = async (neighborhoodId: string): Promise<Bisetka | null> => {
     try {
       const response = await axios.post(`${apiConfig.apiURL}/bisetka/find-or-create`, {
         neighborhood_id: neighborhoodId,
       });
       return response.data.bisetka;
-    } catch (error) {
-      console.error('Error finding/creating Bisetka:', error);
-      throw new Error('Failed to connect to local Bisetka');
+    } catch (error: any) {
+      console.warn('Remote find/create Bisetka failed, using local display fallback:', {
+        message: error?.message,
+        status: error?.response?.status,
+      });
+      return null;
     }
   };
+
+  const buildLocalBisetkaFallback = (neighborhood: Neighborhood): Bisetka => ({
+    id: `local:${neighborhood.id}`,
+    neighborhood_id: neighborhood.id,
+    neighborhood_name: neighborhood.name,
+    city: neighborhood.city,
+    country: neighborhood.country,
+    active_users: 0,
+    created_at: new Date().toISOString(),
+  });
 
   const getCurrentLocation = (): Promise<Location> => {
     return new Promise((resolve, reject) => {
@@ -207,18 +279,20 @@ const useBisetkaLocation = () => {
       setState(prev => ({ ...prev, neighborhood }));
 
       // 4. Find or create Bisetka for this neighborhood
-      const bisetka = await findOrCreateBisetka(neighborhood.id);
+      const remoteBisetka = await findOrCreateBisetka(neighborhood.id);
+      const bisetka = remoteBisetka || buildLocalBisetkaFallback(neighborhood);
       setState(prev => ({ ...prev, bisetka, loading: false }));
 
-      // Store for next time
-      await bisetkaStorageService.storeBisetka({
-        id: bisetka.id,
-        neighborhood: bisetka.neighborhood_name,
-        city: bisetka.city,
-        country: bisetka.country,
-        active_users: bisetka.active_users,
-        source: 'gps',
-      });
+      if (remoteBisetka) {
+        await bisetkaStorageService.storeBisetka({
+          id: bisetka.id,
+          neighborhood: bisetka.neighborhood_name,
+          city: bisetka.city,
+          country: bisetka.country,
+          active_users: bisetka.active_users,
+          source: 'gps',
+        });
+      }
 
       return { location, neighborhood, bisetka };
     } catch (error: any) {
