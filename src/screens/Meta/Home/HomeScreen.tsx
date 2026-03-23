@@ -322,22 +322,6 @@ const HomeScreen = ({navigation}: any) => {
       return;
     }
 
-    const playableBisetka = await bisetkaService.resolvePlayableBisetka({
-      id: resolvedBisetka?.id,
-      neighborhood_name: resolvedBisetka?.neighborhood_name || resolvedNeighborhood?.name,
-      city: resolvedBisetka?.city || resolvedNeighborhood?.city,
-      country: resolvedBisetka?.country || resolvedNeighborhood?.country,
-    });
-    if (playableBisetka) {
-      navigation.navigate('BisetkaDetail', {
-        bisetkaId: playableBisetka.id,
-        bisetkaName: playableBisetka.neighborhood_name,
-        city: playableBisetka.city,
-        country: playableBisetka.country,
-      });
-      return;
-    }
-
     if (bisetkaLoading) {
       BisetkaAlert.alert(
         'Finding Your Bisetka',
@@ -346,11 +330,15 @@ const HomeScreen = ({navigation}: any) => {
       return;
     }
 
-    if (resolvedBisetka || resolvedNeighborhood) {
-      BisetkaAlert.alert(
-        'Bisetka Still Syncing',
-        'We found your area, but the full Bisetka is not ready yet. Please try again shortly.',
-      );
+    // Try IP-based lookup on-demand (covers first open when background load hasn't resolved yet)
+    const ipResult = await bisetkaService.getByIpBisetka();
+    if (ipResult) {
+      navigation.navigate('BisetkaDetail', {
+        bisetkaId: ipResult.bisetka.id,
+        bisetkaName: ipResult.bisetka.neighborhood_name,
+        city: ipResult.bisetka.city,
+        country: ipResult.neighborhood.country,
+      });
       return;
     }
 
