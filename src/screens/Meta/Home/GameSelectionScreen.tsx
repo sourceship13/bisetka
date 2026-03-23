@@ -9,6 +9,7 @@ import {
   Dimensions,
   ImageBackground,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
@@ -25,73 +26,82 @@ const GAMES = [
     id: 'blot',
     name: 'Blot',
     description: 'Classic card game',
-    icon: '🃏',
+    icon: require('../../../../assets/game-icons/blot-icon.png'),
     gradient: ['#6366f1', '#8b5cf6'],
     gameType: 'blot',
+    isImage: true,
   },
   {
     id: 'baazar-blot',
     name: 'Baazar Blot',
     description: 'Fast variant',
-    icon: '⚡',
+    icon: require('../../../../assets/game-icons/baazar-blot-icon.png'),
     gradient: ['#ec4899', '#f472b6'],
     gameType: 'baazar-blot',
+    isImage: true,
   },
   {
     id: 'checkers',
     name: 'Checkers',
     description: 'Quick matches',
-    icon: '🔴',
+    icon: require('../../../../assets/game-icons/checkers-icon.png'),
     gradient: ['#f59e0b', '#fbbf24'],
     gameType: 'checkers',
+    isImage: true,
   },
   {
     id: 'chess',
     name: 'Chess',
     description: 'Strategy',
-    icon: '♟️',
+    icon: require('../../../../assets/game-icons/chess-icon.png'),
     gradient: ['#3b82f6', '#60a5fa'],
     gameType: 'chess',
+    isImage: true,
   },
   {
     id: 'poker',
     name: 'Poker',
     description: "Texas Hold'em",
-    icon: '♠️',
+    icon: require('../../../../assets/game-icons/poker-icon.png'),
     gradient: ['#10b981', '#34d399'],
     gameType: 'poker',
+    isImage: true,
   },
   {
     id: 'nardi',
     name: 'Nardi',
     description: 'Backgammon',
-    icon: '🎲',
+    icon: require('../../../../assets/game-icons/nardi-icon.png'),
     gradient: ['#8b5cf6', '#a78bfa'],
     gameType: 'nardi',
+    isImage: true,
   },
   {
     id: 'billiards',
     name: '8-Ball',
     description: 'Pool',
-    icon: '🎱',
+    icon: require('../../../../assets/game-icons/8ball-icon.png'),
     gradient: ['#06b6d4', '#22d3ee'],
     gameType: 'billiards',
+    isImage: true,
   },
   {
     id: '9-ball',
     name: '9-Ball',
     description: 'Race to 9',
-    icon: '9️⃣',
+    icon: require('../../../../assets/game-icons/9ball-icon.png'),
     gradient: ['#f59e0b', '#fbbf24'],
     gameType: '9-ball',
+    isImage: true,
   },
   {
     id: 'mrotsi',
     name: 'Mrotsi',
     description: 'Dice game',
-    icon: '🎯',
+    icon: require('../../../../assets/game-icons/mrotsi-icon.png'),
     gradient: ['#14b8a6', '#2dd4bf'],
     gameType: 'mrotsi',
+    isImage: true,
   },
   {
     id: 'slots',
@@ -100,14 +110,16 @@ const GAMES = [
     icon: '🎰',
     gradient: ['#ef4444', '#f87171'],
     gameType: 'slots',
+    isImage: false,
   },
   {
     id: 'blackjack',
     name: 'Blackjack',
     description: '21 Card Game',
-    icon: '🎴',
+    icon: require('../../../../assets/game-icons/blackjack-icon.png'),
     gradient: ['#7c3aed', '#a78bfa'],
     gameType: 'blackjack',
+    isImage: true,
   },
 ] as const;
 
@@ -143,7 +155,15 @@ const GameSelectionScreen = ({ navigation }: any) => {
           end={{ x: 1, y: 1 }}
           style={styles.gameCard}
         >
-          <Text style={styles.gameIcon}>{game.icon}</Text>
+          {(game as any).isImage ? (
+            <Image 
+              source={game.icon} 
+              style={styles.gameIconImage}
+              resizeMode="contain"
+            />
+          ) : (
+            <Text style={styles.gameIcon}>{game.icon}</Text>
+          )}
           <Text style={styles.gameName}>{game.name}</Text>
           <Text style={styles.gameDescription}>{game.description}</Text>
           {isComingSoon && (
@@ -408,6 +428,12 @@ const styles = StyleSheet.create({
     fontSize: 36,
     marginBottom: 8,
     textAlign: 'center',
+  },
+  gameIconImage: {
+    width: 120,
+    height: 120,
+    marginBottom: 8,
+    alignSelf: 'center',
   },
   gameName: {
     fontSize: 22,
