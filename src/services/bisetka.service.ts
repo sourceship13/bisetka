@@ -1,5 +1,9 @@
 import apiService from './api.service';
 
+const bundledLocationData = require('../../data/bisetka-locations-enriched.json') as {
+  neighborhoods?: Neighborhood[];
+};
+
 export interface Bisetka {
   id: string;
   neighborhood_id: string;
@@ -21,7 +25,124 @@ export interface Neighborhood {
   distance_km?: number;
 }
 
+type GlobeBisetka = Bisetka & { lat: number; lng: number };
+
+const normalizeLocationPart = (value?: string | null) =>
+  (value || '').trim().toLowerCase();
+
+const findBundledNeighborhoodForBisetka = (bisetka: Bisetka): Neighborhood | null => {
+  const neighborhoods = bundledLocationData.neighborhoods || [];
+
+  const byId = neighborhoods.find(
+    neighborhood => neighborhood.id === bisetka.neighborhood_id,
+  );
+  if (byId) {
+    return byId;
+  }
+
+  const neighborhoodName = normalizeLocationPart(bisetka.neighborhood_name);
+  const city = normalizeLocationPart(bisetka.city);
+  const country = normalizeLocationPart(bisetka.country);
+
+  return (
+    neighborhoods.find(
+      neighborhood =>
+        normalizeLocationPart(neighborhood.name) === neighborhoodName &&
+        normalizeLocationPart(neighborhood.city) === city &&
+        normalizeLocationPart(neighborhood.country) === country,
+    ) || null
+  );
+};
+
+const findBundledCoordinatesFallback = (bisetka: Bisetka): Pick<Neighborhood, 'lat' | 'lng'> | null => {
+  const neighborhoods = bundledLocationData.neighborhoods || [];
+  const exactNeighborhood = findBundledNeighborhoodForBisetka(bisetka);
+
+  if (exactNeighborhood) {
+    return {
+      lat: exactNeighborhood.lat,
+      lng: exactNeighborhood.lng,
+    };
+  }
+
+  const city = normalizeLocationPart(bisetka.city);
+  const country = normalizeLocationPart(bisetka.country);
+
+  const cityMatch = neighborhoods.find(
+    neighborhood =>
+      normalizeLocationPart(neighborhood.city) === city &&
+      normalizeLocationPart(neighborhood.country) === country,
+  );
+
+  if (cityMatch) {
+    return {
+      lat: cityMatch.lat,
+      lng: cityMatch.lng,
+    };
+  }
+
+  const countryMatch = neighborhoods.find(
+    neighborhood => normalizeLocationPart(neighborhood.country) === country,
+  );
+
+  if (countryMatch) {
+    return {
+      lat: countryMatch.lat,
+      lng: countryMatch.lng,
+    };
+  }
+
+  return null;
+};
+
+const dedupeGlobeBisetkas = (bisetkas: GlobeBisetka[]): GlobeBisetka[] => {
+  const unique = new Map<string, GlobeBisetka>();
+
+  bisetkas.forEach((bisetka) => {
+    const idKey = bisetka.id;
+    const neighborhoodKey = bisetka.neighborhood_id
+      ? `neighborhood:${bisetka.neighborhood_id}`
+      : null;
+
+    if (!unique.has(idKey)) {
+      unique.set(idKey, bisetka);
+    }
+
+    if (neighborhoodKey && !unique.has(neighborhoodKey)) {
+      unique.set(neighborhoodKey, bisetka);
+    }
+  });
+
+  return Array.from(new Set(unique.values()));
+};
+
 class BisetkaService {
+  private async getExistingBisetkasWithCoordinates(limit: number = 500): Promise<GlobeBisetka[]> {
+    const bisetkas = await this.getAllBisetkas(limit);
+    const enrichedBisetkas = bisetkas
+      .map((bisetka) => {
+        const coordinates = findBundledCoordinatesFallback(bisetka);
+        if (!coordinates) {
+          return null;
+        }
+
+        return {
+          ...bisetka,
+          lat: coordinates.lat,
+          lng: coordinates.lng,
+        };
+      })
+      .filter((bisetka): bisetka is GlobeBisetka => Boolean(bisetka));
+
+    console.log('🌍 [BisetkaService] Fallback existing Bisetkas:', {
+      requested: bisetkas.length,
+      mapped: enrichedBisetkas.length,
+      firstBisetka: enrichedBisetkas[0],
+    });
+
+    return enrichedBisetkas;
+  }
+
   /**
    * Get all active Bisetkas for GlobalView
    */
@@ -100,27 +221,44 @@ class BisetkaService {
   /**
    * Get Bisetkas with coordinates for mapping on GlobalView
    */
-  async getGlobeBisetkas(): Promise<Array<Bisetka & { lat: number; lng: number }>> {
+  async getGlobeBisetkas(): Promise<GlobeBisetka[]> {
     console.log('🌍 [BisetkaService] Fetching globe Bisetkas...');
+    const fallbackBisetkasPromise = this.getExistingBisetkasWithCoordinates();
+
     try {
       console.log('🌍 [BisetkaService] API URL:', apiService['baseURL']);
       const response = await apiService.get<{ 
-        bisetkas: Array<Bisetka & { lat: number; lng: number }>; 
+        bisetkas: GlobeBisetka[]; 
         count: number 
       }>('/bisetka/globe');
+      const fallbackBisetkas = await fallbackBisetkasPromise;
       console.log('✅ [BisetkaService] Got response:', {
         count: response.count,
         firstBisetka: response.bisetkas?.[0],
         totalReceived: response.bisetkas?.length
       });
-      return response.bisetkas || [];
+
+      const mergedBisetkas = dedupeGlobeBisetkas([
+        ...(response.bisetkas || []),
+        ...fallbackBisetkas,
+      ]);
+
+      console.log('🌍 [BisetkaService] Merged globe + existing Bisetkas:', {
+        globeCount: response.bisetkas?.length || 0,
+        existingCount: fallbackBisetkas.length,
+        mergedCount: mergedBisetkas.length,
+      });
+
+      return mergedBisetkas;
     } catch (error: any) {
+      const fallbackBisetkas = await fallbackBisetkasPromise;
       console.error('❌ [BisetkaService] Failed to get globe Bisetkas:', {
         error: error.message,
         response: error.response?.data,
         status: error.response?.status
       });
-      return [];
+
+      return fallbackBisetkas;
     }
   }
 }
