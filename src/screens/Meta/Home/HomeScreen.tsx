@@ -322,13 +322,18 @@ const HomeScreen = ({navigation}: any) => {
       return;
     }
 
-    const serverBisetka = await bisetkaService.getMyBisetka();
-    if (serverBisetka) {
+    const playableBisetka = await bisetkaService.resolvePlayableBisetka({
+      id: resolvedBisetka?.id,
+      neighborhood_name: resolvedBisetka?.neighborhood_name || resolvedNeighborhood?.name,
+      city: resolvedBisetka?.city || resolvedNeighborhood?.city,
+      country: resolvedBisetka?.country || resolvedNeighborhood?.country,
+    });
+    if (playableBisetka) {
       navigation.navigate('BisetkaDetail', {
-        bisetkaId: serverBisetka.id,
-        bisetkaName: serverBisetka.neighborhood_name,
-        city: serverBisetka.city,
-        country: serverBisetka.country,
+        bisetkaId: playableBisetka.id,
+        bisetkaName: playableBisetka.neighborhood_name,
+        city: playableBisetka.city,
+        country: playableBisetka.country,
       });
       return;
     }
