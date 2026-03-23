@@ -279,9 +279,11 @@ const HomeScreen = ({navigation}: any) => {
       return;
     }
 
+    const hasRemoteBisetka = Boolean(bisetka?.id && !bisetka.id.startsWith('local:'));
+
     // If we have a valid Bisetka connection, go directly to BisetkaDetail
     // Otherwise, show the GlobalView to explore all Bisetkas
-    if (bisetka && neighborhood) {
+    if (hasRemoteBisetka && bisetka && neighborhood) {
       navigation.navigate('BisetkaDetail', {
         bisetkaId: bisetka.id,
         bisetkaName: bisetka.neighborhood_name,
@@ -295,6 +297,7 @@ const HomeScreen = ({navigation}: any) => {
 
   const renderNearestBisetkaCard = () => {
     const hasNearestBisetka = Boolean(bisetka && neighborhood);
+    const hasRemoteBisetka = Boolean(bisetka?.id && !bisetka.id.startsWith('local:'));
 
     let title = 'Closest Bisetka';
     let subtitle = 'Checking which Bisetka you are physically closest to.';
@@ -313,10 +316,12 @@ const HomeScreen = ({navigation}: any) => {
       actionText = 'Retry';
     } else if (hasNearestBisetka) {
       title = `${bisetka!.neighborhood_name}, ${bisetka!.city}`;
-      subtitle = 'Tap to choose a game and start playing';
+      subtitle = hasRemoteBisetka
+        ? 'Tap to choose a game and start playing'
+        : 'Closest neighborhood found from your device location';
       metaText = `${neighborhood!.city}, ${neighborhood!.country}`;
-      pillText = `${bisetka!.active_users} active`;
-      actionText = '🎮 Play Games';
+      pillText = hasRemoteBisetka ? `${bisetka!.active_users} active` : 'Closest match';
+      actionText = hasRemoteBisetka ? '🎮 Play Games' : '🌍 View Map';
     }
 
     return (
