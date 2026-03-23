@@ -27,6 +27,14 @@ export interface Neighborhood {
 
 type GlobeBisetka = Bisetka & { lat: number; lng: number };
 
+type BisetkaLookupCandidate = {
+  id?: string | null;
+  neighborhood_id?: string | null;
+  neighborhood_name?: string | null;
+  city?: string | null;
+  country?: string | null;
+};
+
 const normalizeLocationPart = (value?: string | null) =>
   (value || '').trim().toLowerCase();
 
@@ -114,6 +122,59 @@ const dedupeGlobeBisetkas = (bisetkas: GlobeBisetka[]): GlobeBisetka[] => {
   });
 
   return Array.from(new Set(unique.values()));
+};
+
+const isRemoteBisetkaId = (id?: string | null) => Boolean(id && !id.startsWith('local:'));
+
+const findMatchingBisetka = (
+  bisetkas: Bisetka[],
+  candidate?: BisetkaLookupCandidate | null,
+): Bisetka | null => {
+  if (!candidate) {
+    return null;
+  }
+
+  const remoteId = isRemoteBisetkaId(candidate.id) ? candidate.id!.trim() : null;
+  if (remoteId) {
+    const byId = bisetkas.find((bisetka) => bisetka.id === remoteId);
+    if (byId) {
+      return byId;
+    }
+  }
+
+  const neighborhoodId = normalizeLocationPart(candidate.neighborhood_id);
+  if (neighborhoodId) {
+    const byNeighborhoodId = bisetkas.find(
+      (bisetka) => normalizeLocationPart(bisetka.neighborhood_id) === neighborhoodId,
+    );
+    if (byNeighborhoodId) {
+      return byNeighborhoodId;
+    }
+  }
+
+  const neighborhoodName = normalizeLocationPart(candidate.neighborhood_name);
+  const city = normalizeLocationPart(candidate.city);
+  const country = normalizeLocationPart(candidate.country);
+
+  if (!neighborhoodName && !city && !country) {
+    return null;
+  }
+
+  return (
+    bisetkas.find((bisetka) => {
+      const bisetkaNeighborhoodName = normalizeLocationPart(bisetka.neighborhood_name);
+      const bisetkaCity = normalizeLocationPart(bisetka.city);
+      const bisetkaCountry = normalizeLocationPart(bisetka.country);
+
+      const neighborhoodMatches = neighborhoodName
+        ? bisetkaNeighborhoodName === neighborhoodName
+        : true;
+      const cityMatches = city ? bisetkaCity === city : true;
+      const countryMatches = country ? bisetkaCountry === country : true;
+
+      return neighborhoodMatches && cityMatches && countryMatches;
+    }) || null
+  );
 };
 
 class BisetkaService {
@@ -216,6 +277,20 @@ class BisetkaService {
       console.error('Failed to get user Bisetka:', error);
       return null;
     }
+  }
+
+  async resolvePlayableBisetka(candidate?: BisetkaLookupCandidate | null): Promise<Bisetka | null> {
+    const currentBisetka = await this.getMyBisetka();
+    if (currentBisetka) {
+      return currentBisetka;
+    }
+
+    if (!candidate) {
+      return null;
+    }
+
+    const allBisetkas = await this.getAllBisetkas();
+    return findMatchingBisetka(allBisetkas, candidate);
   }
 
   /**
