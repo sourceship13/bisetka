@@ -13,6 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
+import { useAuth } from '../../../libs/hooks/useAuth';
 import bisetkaService from '../../../services/bisetka.service';
 import Config from 'react-native-config';
 
@@ -71,7 +72,36 @@ const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: numbe
   return R * c;
 };
 
+const findSessionForAccountBisetka = (
+  sessions: GameSession[],
+  accountBisetka: {
+    id: string;
+    neighborhood: string;
+    city: string;
+    country: string;
+  } | null | undefined,
+): GameSession | null => {
+  if (!accountBisetka) {
+    return null;
+  }
+
+  const exactMatch = sessions.find(session => session.id === accountBisetka.id);
+  if (exactMatch) {
+    return exactMatch;
+  }
+
+  const nameMatch = sessions.find(
+    session =>
+      session.roomName === accountBisetka.neighborhood &&
+      session.city === accountBisetka.city &&
+      session.country === accountBisetka.country,
+  );
+
+  return nameMatch || null;
+};
+
 const GlobalViewScreen = ({ navigation }: any) => {
+  const { user } = useAuth();
   const [sessions, setSessions] = useState<GameSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedSession, setSelectedSession] = useState<GameSession | null>(null);
@@ -144,6 +174,19 @@ const GlobalViewScreen = ({ navigation }: any) => {
         setNearestBisetka(nearest);
         setSelectedSession(current => current ?? nearest);
         console.log(`🏘️ Nearest Bisetka: ${nearest.roomName}, ${nearest.city} (${minDistance.toFixed(1)} km away)`);
+      } else if (allSessions.length > 0) {
+        const accountSession = findSessionForAccountBisetka(allSessions, user?.bisetka);
+
+        if (accountSession) {
+          setNearestBisetka(accountSession);
+          setSelectedSession(current => current ?? accountSession);
+          console.log(
+            `🏘️ [GlobalView] Using account/IP Bisetka fallback: ${accountSession.roomName}, ${accountSession.city}`,
+          );
+        } else {
+          setNearestBisetka(null);
+          setSelectedSession(current => current ?? allSessions[0] ?? null);
+        }
       } else {
         setNearestBisetka(null);
         setSelectedSession(null);
@@ -199,7 +242,7 @@ const GlobalViewScreen = ({ navigation }: any) => {
     return () => {
       clearInterval(interval);
     };
-  }, [userLocation]);
+  }, [userLocation, user?.bisetka?.id]);
 
   const handleSessionPress = (session: GameSession) => {
     // Navigate to BisetkaDetail screen to show Kings and leaderboard
@@ -439,45 +482,12 @@ const GlobalViewScreen = ({ navigation }: any) => {
       {mapboxAvailable ? (
         <>
           {renderMapView()}
-          {sessions.length === 0 && (
-            <View style={styles.emptyOverlay}>
-              {/* <Icon name="earth" size={60} color="rgba(255,255,255,0.4)" />
-              <Text style={styles.emptyTitle}>No Active Sessions</Text>
-              <Text style={styles.emptyText}>
-                No active rooms with saved location data yet.
-              </Text>
-              <TouchableOpacity
-                style={styles.emptyButton}
-                onPress={() => navigation.navigate('GameSelection')}>
-                <LinearGradient
-                  colors={['#6366f1', '#8b5cf6']}
-                  style={styles.emptyButtonGrad}>
-                  <Text style={styles.emptyButtonText}>Start a Game</Text>
-                </LinearGradient>
-              </TouchableOpacity> */}
-            </View>
-          )}
           {renderSessionDetail()}
         </>
       ) : sessions.length > 0 ? (
         renderSessionsList()
       ) : (
-        <View style={styles.emptyContainer}>
-          {/* <Icon name="earth" size={80} color="rgba(255,255,255,0.2)" />
-          <Text style={styles.emptyTitle}>No Active Sessions</Text>
-          <Text style={styles.emptyText}>
-            No active rooms with saved location data yet.
-          </Text>
-          <TouchableOpacity
-            style={styles.emptyButton}
-            onPress={() => navigation.navigate('GameSelection')}>
-            <LinearGradient
-              colors={['#6366f1', '#8b5cf6']}
-              style={styles.emptyButtonGrad}>
-              <Text style={styles.emptyButtonText}>Start a Game</Text>
-            </LinearGradient>
-          </TouchableOpacity> */}
-        </View>
+        renderSessionsList()
       )}
     </SafeAreaView>
   );

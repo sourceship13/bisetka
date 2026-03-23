@@ -27,6 +27,7 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { socketService } from '../../../services/SocketService';
 import tokenService from '../../../services/token.service';
 import useBisetkaLocation from '../../../hooks/useBisetkaLocation';
+import bisetkaService from '../../../services/bisetka.service';
 
 const bisetkaBackground = require('../../../../assets/backgrounds/bisetka.png');
 
@@ -137,6 +138,27 @@ const GAMES = [
 ] as const;
 
 type GameConfig = (typeof GAMES)[number];
+
+const buildAccountBisetkaFallback = (accountBisetka: {
+  id: string;
+  neighborhood: string;
+  city: string;
+  country: string;
+  active_users: number;
+}) => ({
+  bisetka: {
+    id: accountBisetka.id,
+    neighborhood_name: accountBisetka.neighborhood,
+    city: accountBisetka.city,
+    country: accountBisetka.country,
+    active_users: accountBisetka.active_users,
+  },
+  neighborhood: {
+    name: accountBisetka.neighborhood,
+    city: accountBisetka.city,
+    country: accountBisetka.country,
+  },
+});
 
 const HomeScreen = ({navigation}: any) => {
   const {user, signOut, refreshUser} = useAuth();
@@ -265,6 +287,15 @@ const HomeScreen = ({navigation}: any) => {
 
   const avatarSource = resolveAvatar(user?.avatar_url);
 
+  const accountFallback = user?.bisetka
+    ? buildAccountBisetkaFallback(user.bisetka)
+    : null;
+  const resolvedBisetka = bisetka || accountFallback?.bisetka || null;
+  const resolvedNeighborhood = neighborhood || accountFallback?.neighborhood || null;
+  const hasRemoteBisetka = Boolean(
+    resolvedBisetka?.id && !resolvedBisetka.id.startsWith('local:'),
+  );
+
   const handleGamePress = (game: GameConfig) => {
     // Navigate to GameInfo screen first to show rules and points
     navigation.navigate('GameInfo', {
@@ -273,31 +304,56 @@ const HomeScreen = ({navigation}: any) => {
     });
   };
 
-  const handleNearestBisetkaPress = () => {
+  const handleNearestBisetkaPress = async () => {
     if (bisetkaError) {
       refreshLocation();
       return;
     }
 
-    const hasRemoteBisetka = Boolean(bisetka?.id && !bisetka.id.startsWith('local:'));
-
     // If we have a valid Bisetka connection, go directly to BisetkaDetail
     // Otherwise, show the GlobalView to explore all Bisetkas
-    if (hasRemoteBisetka && bisetka && neighborhood) {
+    if (hasRemoteBisetka && resolvedBisetka && resolvedNeighborhood) {
       navigation.navigate('BisetkaDetail', {
-        bisetkaId: bisetka.id,
-        bisetkaName: bisetka.neighborhood_name,
-        city: bisetka.city,
-        country: neighborhood.country,
+        bisetkaId: resolvedBisetka.id,
+        bisetkaName: resolvedBisetka.neighborhood_name,
+        city: resolvedBisetka.city,
+        country: resolvedNeighborhood.country,
       });
-    } else {
-      navigation.navigate('GlobalView', { userId: user?.id });
+      return;
     }
+
+    const serverBisetka = await bisetkaService.getMyBisetka();
+    if (serverBisetka) {
+      navigation.navigate('BisetkaDetail', {
+        bisetkaId: serverBisetka.id,
+        bisetkaName: serverBisetka.neighborhood_name,
+        city: serverBisetka.city,
+        country: serverBisetka.country,
+      });
+      return;
+    }
+
+    if (bisetkaLoading) {
+      BisetkaAlert.alert(
+        'Finding Your Bisetka',
+        'Your nearest Bisetka is still syncing. Try again in a moment.',
+      );
+      return;
+    }
+
+    if (resolvedBisetka || resolvedNeighborhood) {
+      BisetkaAlert.alert(
+        'Bisetka Still Syncing',
+        'We found your area, but the full Bisetka is not ready yet. Please try again shortly.',
+      );
+      return;
+    }
+
+    navigation.navigate('GlobalView', { userId: user?.id });
   };
 
   const renderNearestBisetkaCard = () => {
-    const hasNearestBisetka = Boolean(bisetka && neighborhood);
-    const hasRemoteBisetka = Boolean(bisetka?.id && !bisetka.id.startsWith('local:'));
+    const hasNearestBisetka = Boolean(resolvedBisetka && resolvedNeighborhood);
 
     let title = 'Closest Bisetka';
     let subtitle = 'Using your saved or IP-based Bisetka when available.';
@@ -315,12 +371,12 @@ const HomeScreen = ({navigation}: any) => {
       pillText = 'Retry';
       actionText = 'Retry';
     } else if (hasNearestBisetka) {
-      title = `${bisetka!.neighborhood_name}, ${bisetka!.city}`;
+      title = `${resolvedBisetka!.neighborhood_name}, ${resolvedBisetka!.city}`;
       subtitle = hasRemoteBisetka
         ? 'Tap to choose a game and start playing'
         : 'Closest neighborhood found from your device location';
-      metaText = `${neighborhood!.city}, ${neighborhood!.country}`;
-      pillText = hasRemoteBisetka ? `${bisetka!.active_users} active` : 'Closest match';
+      metaText = `${resolvedNeighborhood!.city}, ${resolvedNeighborhood!.country}`;
+      pillText = hasRemoteBisetka ? `${resolvedBisetka!.active_users} active` : 'Closest match';
       actionText = hasRemoteBisetka ? '🎮 Play Games' : '🌍 View Map';
     }
 
