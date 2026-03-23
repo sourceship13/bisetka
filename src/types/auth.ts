@@ -19,6 +19,13 @@ export interface User {
     equipped: Record<string, AvatarClothing>;
     inventory: AvatarClothing[];
   };
+  bisetka?: {
+    id: string;
+    neighborhood: string;
+    city: string;
+    country: string;
+    active_users: number;
+  } | null;
 }
 
 export interface AuthResponse {
