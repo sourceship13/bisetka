@@ -142,11 +142,20 @@ const ChessScreen = ({navigation}: any) => {
         winner === 'white' ? 'win' : 
         'loss';
       
-      console.log(`🏆 Awarding prize for ${result}...`);
-      const prizeResult = await apiService.awardPrize('chess', result, gameIdRef.current || undefined);
+      console.log(`🏆 Awarding prize and logging game for ${result}...`);
+      
+      const prizeResult = await apiService.awardPrizeAndLog(
+        'chess',
+        result,
+        'ai', // Chess is always AI mode
+        {
+          gameId: gameIdRef.current,
+          playerScore: result === 'win' ? 1 : result === 'draw' ? 0.5 : 0,
+        }
+      );
       
       if (prizeResult.success) {
-        console.log(`✅ Prize awarded: +${prizeResult.prize} points. Balance: ${prizeResult.newBalance}`);
+        console.log(`✅ ${prizeResult.message}`);
         setUserPoints(prizeResult.newBalance);
         setPrizeAwarded(true);
         

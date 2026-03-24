@@ -13,11 +13,14 @@ import {
   Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import bisetkaLeaderboardService, {
   type BisetkaKing,
 } from '../../../services/bisetkaLeaderboard.service';
+import bisetkaService from '../../../services/bisetka.service';
+import { useAuth } from '../../../libs/hooks/useAuth';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 
 const { width } = Dimensions.get('window');
@@ -124,10 +127,10 @@ const GAMES = [
     id: 'slots',
     name: 'Slots',
     description: 'Arcade',
-    icon: '🎰',
+    icon: require('../../../../assets/game-icons/slots-icon.png'),
     gradient: ['#ef4444', '#f87171'],
     gameType: 'slots',
-    isImage: false,
+    isImage: true,
   },
 ] as const;
 
@@ -136,15 +139,30 @@ const BisetkaDetailScreen: React.FC<BisetkaDetailScreenProps> = ({
   navigation,
 }) => {
   const { bisetkaId, bisetkaName, city, country } = route.params;
+  const { user, refreshUser } = useAuth();
 
   const [allKings, setAllKings] = useState<BisetkaKing[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activePlayers, setActivePlayers] = useState(0);
+  const [recentScores, setRecentScores] = useState<Array<{
+    username: string;
+    game_type: string;
+    score: number;
+    timestamp: string;
+  }>>([]);
 
   useEffect(() => {
     loadBisetkaData();
   }, []);
+
+  // 🔄 Auto-refresh when screen comes back into focus (e.g., after playing a game)
+  useFocusEffect(
+    React.useCallback(() => {
+      console.log('🔄 BisetkaDetailScreen gained focus - refreshing data');
+      loadBisetkaData(true); // Silent refresh
+    }, [bisetkaId])
+  );
 
   const loadBisetkaData = async (isRefresh = false) => {
     if (isRefresh) {
@@ -154,6 +172,18 @@ const BisetkaDetailScreen: React.FC<BisetkaDetailScreenProps> = ({
     }
 
     try {
+      // TODO: Auto-join disabled temporarily due to endpoint issues
+      // Will re-enable after backend endpoint is verified working
+      // if (user && !user.current_bisetka_id) {
+      //   try {
+      //     await bisetkaService.joinBisetka(bisetkaId);
+      //     await refreshUser();
+      //     console.log('✅ Auto-joined user to Bisetka:', bisetkaName);
+      //   } catch (err) {
+      //     console.warn('⚠️ Could not auto-join Bisetka:', err);
+      //   }
+      // }
+      
       // Load all Kings for this Bisetka
       const kingsData = await bisetkaLeaderboardService.getAllKings(bisetkaId);
       setAllKings(kingsData);
@@ -161,6 +191,27 @@ const BisetkaDetailScreen: React.FC<BisetkaDetailScreenProps> = ({
       // Get active player count (unique players across all kings)
       const uniquePlayers = new Set(kingsData.map(k => k.user_id)).size;
       setActivePlayers(uniquePlayers);
+      
+      // Load recent high scores from all game types
+      const recentScoresList: typeof recentScores = [];
+      for (const game of GAMES) {
+        try {
+          const leaderboard = await bisetkaLeaderboardService.getLeaderboard(bisetkaId, game.gameType, 3);
+          leaderboard.forEach(entry => {
+            recentScoresList.push({
+              username: entry.username,
+              game_type: game.name,
+              score: entry.total_score,
+              timestamp: new Date().toISOString(), // We'll use current time as proxy
+            });
+          });
+        } catch (err) {
+          // Skip if leaderboard doesn't exist for this game
+        }
+      }
+      // Sort by score and take top 10
+      recentScoresList.sort((a, b) => b.score - a.score);
+      setRecentScores(recentScoresList.slice(0, 10));
     } catch (error: any) {
       console.error('Error loading Bisetka data:', error);
       if (!isRefresh) {
@@ -206,6 +257,46 @@ const BisetkaDetailScreen: React.FC<BisetkaDetailScreenProps> = ({
 
   );
 
+  const renderRecentScores = () => {
+    return (
+      <View style={styles.recentScoresSection}>
+        <View style={styles.recentScoresHeader}>
+          <Icon name="fire" size={18} color="#ef4444" />
+          <Text style={styles.recentScoresTitle}>Hot Scores - Can You Beat Them?</Text>
+        </View>
+        
+        {recentScores.length === 0 ? (
+          <View style={styles.emptyScoresCard}>
+            <Text style={styles.emptyScoresIcon}>🎯</Text>
+            <Text style={styles.emptyScoresText}>No scores yet!</Text>
+            <Text style={styles.emptyScoresSubtext}>Be the first to set a high score</Text>
+          </View>
+        ) : (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.recentScoresScroll}
+          >
+            {recentScores.map((score, index) => (
+              <LinearGradient
+                key={index}
+                colors={['rgba(239, 68, 68, 0.2)', 'rgba(220, 38, 38, 0.3)']}
+                style={styles.scoreCard}
+              >
+                <View style={styles.scoreCardContent}>
+                  <Text style={styles.scoreValue}>⭐ {score.score}</Text>
+                  <Text style={styles.scoreGame}>{score.game_type}</Text>
+                  <Text style={styles.scorePlayer}>{score.username}</Text>
+                  <Text style={styles.scoreChallengeText}>Beat this! 🎯</Text>
+                </View>
+              </LinearGradient>
+            ))}
+          </ScrollView>
+        )}
+      </View>
+    );
+  };
+
   const renderKingsSummary = () => {
     if (allKings.length === 0) {
       return (
@@ -229,9 +320,8 @@ const BisetkaDetailScreen: React.FC<BisetkaDetailScreenProps> = ({
           {allKings.map((king, index) => {
             const gameInfo = GAMES.find(g => g.id === king.game_type);
             return (
-              <LinearGradient
+              <View
                 key={index}
-                colors={['#ffd700', '#ffed4e']}
                 style={styles.kingCard}>
                 {gameInfo?.isImage ? (
                   <Image 
@@ -245,7 +335,7 @@ const BisetkaDetailScreen: React.FC<BisetkaDetailScreenProps> = ({
                 <Text style={styles.kingGameName}>{gameInfo?.name || king.game_type}</Text>
                 <Text style={styles.kingUsername}>{king.username}</Text>
                 <Text style={styles.kingScore}>⭐ {king.total_score}</Text>
-              </LinearGradient>
+              </View>
             );
           })}
         </ScrollView>
@@ -326,6 +416,7 @@ const BisetkaDetailScreen: React.FC<BisetkaDetailScreenProps> = ({
               />
             }
           >
+            {renderRecentScores()}
             {renderKingsSummary()}
             {renderGamesGrid()}
           </ScrollView>
@@ -397,11 +488,13 @@ const styles = StyleSheet.create({
     paddingRight: 16,
   },
   kingCard: {
+    backgroundColor: '#ffed4e',
     width: 140,
     padding: 16,
     borderRadius: 16,
     marginRight: 12,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   kingGameIcon: {
     fontSize: 32,
@@ -510,6 +603,81 @@ const styles = StyleSheet.create({
     marginTop: 16,
     fontSize: 16,
     color: 'rgba(255,255,255,0.7)',
+  },
+  recentScoresSection: {
+    marginTop: 16,
+    marginBottom: 12,
+  },
+  recentScoresHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: GRID_HORIZONTAL_PADDING,
+    marginBottom: 12,
+  },
+  recentScoresTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#fff',
+    marginLeft: 8,
+  },
+  recentScoresScroll: {
+    paddingHorizontal: GRID_HORIZONTAL_PADDING,
+    gap: 12,
+  },
+  scoreCard: {
+    width: 140,
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.3)',
+  },
+  scoreCardContent: {
+    alignItems: 'center',
+  },
+  scoreValue: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#fbbf24',
+    marginBottom: 4,
+  },
+  scoreGame: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#fff',
+    marginBottom: 4,
+  },
+  scorePlayer: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.7)',
+    marginBottom: 6,
+  },
+  scoreChallengeText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#ef4444',
+  },
+  emptyScoresCard: {
+    marginHorizontal: GRID_HORIZONTAL_PADDING,
+    padding: 20,
+    borderRadius: 12,
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.3)',
+    alignItems: 'center',
+  },
+  emptyScoresIcon: {
+    fontSize: 32,
+    marginBottom: 8,
+  },
+  emptyScoresText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#fff',
+    marginBottom: 4,
+  },
+  emptyScoresSubtext: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.6)',
   },
 });
 
