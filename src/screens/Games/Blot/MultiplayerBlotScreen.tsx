@@ -152,23 +152,39 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
     }
   };
 
-  // Prize award handler
+  // Prize award handler - UPDATED: Combined endpoint
   const handlePrizeAward = async (didWin: boolean) => {
     if (prizeAwarded || !user?.id || isSpectating) return;
 
     try {
       const result = didWin ? 'win' : 'loss';
-      console.log(`🏆 Awarding prize for ${result}...`);
-      const prizeResult = await apiService.awardPrize('blot', result, blotGameIdRef.current);
+      console.log(`🏆 Awarding prize and logging game for ${result}...`);
+      
+      // NEW: Use combined endpoint that awards prize + logs result + logs activity
+      const gameMode = initialMode === 'ai' ? 'ai' : 'random'; // 'ai', 'random', or 'private'
+      const prizeResult = await apiService.awardPrizeAndLog(
+        'blot',
+        result,
+        gameMode,
+        {
+          gameId: blotGameIdRef.current,
+          playerScore: gameState?.scores?.[0] || 0,
+          opponentScore: gameState?.scores?.[1] || 0,
+        }
+      );
       
       if (prizeResult.success) {
-        console.log(`✅ Prize awarded: +${prizeResult.prize} points. Balance: ${prizeResult.newBalance}`);
+        console.log(`✅ ${prizeResult.message}`);
+        console.log(`   Prize: +${prizeResult.prize} points`);
+        console.log(`   New balance: ${prizeResult.newBalance}`);
+        console.log(`   Game logged with ID: ${prizeResult.gameResultId}`);
+        
         setPrizeAwarded(true);
         refreshUser().catch(console.error);
         
         if (didWin) {
           setTimeout(() => {
-            Alert.alert('🏆 Victory!', `You won ${prizeResult.prize} points!\n\nNew balance: ${prizeResult.newBalance} points`);
+            Alert.alert('🏆 Victory!', `${prizeResult.message}\n\nNew balance: ${prizeResult.newBalance} points`);
           }, 2000);
         }
       }
