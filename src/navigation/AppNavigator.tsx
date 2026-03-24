@@ -42,6 +42,7 @@ import FontTestScreen from '../screens/Meta/Home/FontTestScreen';
 import AvatarSelectionScreen from '../screens/Meta/Onboarding/AvatarSelectionScreen';
 import ClothingStoreScreen from '../screens/Meta/Home/ClothingStoreScreen';
 import WardrobeScreen from '../screens/Meta/Home/WardrobeScreen';
+import TravelScreen from '../screens/Meta/Home/TravelScreen';
 import GlobalViewScreen from '../screens/Meta/GlobalView/GlobalViewScreen';
 import BisetkaDetailScreen from '../screens/Meta/BisetkaDetail/BisetkaDetailScreen';
 import DrawerContent from '../components/DrawerContent';
@@ -87,6 +88,7 @@ export type RootStackParamList = {
   AvatarSelection: undefined;
   ClothingStore: undefined;
   Wardrobe: undefined;
+  Travel: undefined;
   GlobalView: { userId?: string };
   BisetkaDetail: { bisetkaId: string; bisetkaName: string; city: string; country: string };
 };
@@ -288,6 +290,7 @@ const AppNavigator = () => {
               <Stack.Screen name="AvatarSelection" component={AvatarSelectionScreen} />
               <Stack.Screen name="ClothingStore" component={ClothingStoreScreen} />
               <Stack.Screen name="Wardrobe" component={WardrobeScreen} />
+              <Stack.Screen name="Travel" component={TravelScreen} />
               <Stack.Screen name="GlobalView" component={GlobalViewScreen} />
               <Stack.Screen name="BisetkaDetail" component={BisetkaDetailScreen} />
             </>

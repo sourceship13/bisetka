@@ -553,6 +553,16 @@ const HomeScreen = ({navigation}: any) => {
                   <Icon name="door-open" size={28} color="#fff" />
                 </LinearGradient>
               </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => navigation.navigate('Travel')}
+                style={styles.actionBtn}>
+                <LinearGradient
+                  colors={['rgba(99, 102, 241, 0.7)', 'rgba(139, 92, 246, 0.7)']}
+                  style={styles.actionGrad}>
+                  <Icon name="airplane-takeoff" size={28} color="#fff" />
+                </LinearGradient>
+              </TouchableOpacity>
             </View>
 
             {/* Row 2: Points + Leaderboard + ChatRooms */}
