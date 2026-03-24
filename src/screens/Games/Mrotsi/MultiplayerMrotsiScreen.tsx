@@ -15,7 +15,10 @@ import {
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import GameToolbar from '../../../components/global/GameToolbar';
+import GameToolbarControls from '../../../components/global/GameToolbarControls';
 import RoomNameModal from '../../../components/RoomNameModal';
+import ReAnimated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
+import ExpandableView from '../../../components/global/ExpandableView';
 import {socketService} from '../../../services/SocketService';
 import tokenService from '../../../services/token.service';
 import InGameChat from '../../../components/InGameChat';
@@ -179,6 +182,12 @@ const MultiplayerMrotsiScreen = ({navigation, route}: any) => {
 
   // UI state machine
   const [screen, setScreen] = useState<'menu' | 'matchmaking' | 'game'>('menu');
+  const [showBlur, setShowBlur] = useState(true);
+  const [showBackground, setShowBackground] = useState(true);
+  const toolbarExpanded = useSharedValue(false);
+  const chevronStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: withTiming(toolbarExpanded.value ? '180deg' : '0deg', { duration: 250 }) }],
+  }));
   const [gameStatus, setGameStatus] = useState('Waiting for opponent...');
   const [roomId, setRoomId] = useState('');
   const roomIdRef = useRef('');
@@ -564,31 +573,40 @@ const MultiplayerMrotsiScreen = ({navigation, route}: any) => {
 
   // ─── Game screen ─────────────────────────────────────────────────────────────
   return (
-    <ImageBackground source={require('../../../../assets/blot/park-background.png')} style={styles.backgroundImage} resizeMode="cover">
+    <ImageBackground source={require('../../../../assets/blot/park-background.png')} style={styles.backgroundImage} resizeMode="cover" blurRadius={showBlur ? 3 : 0}>
     <SafeAreaView style={styles.container}>
-      <GameToolbar
-        title={`Mrotsi — Round ${gameState?.currentRound ?? 1}/${gameState?.totalRounds ?? 5}`}
-        onBack={() =>
-          BisetkaAlert.alert('Resign?', 'Leave the game?', [
-            {text: 'Stay', style: 'cancel'},
-            {text: 'Leave', style: 'destructive', onPress: () => {
-              socketService.resignGame?.(roomIdRef.current, userId);
-              navigation.replace('GameMode', {gameType: 'mrotsi'});
-            }},
-          ])
-        }
-        backgroundColor="transparent"
-        rightElement={
-          screen === 'game' ? (
+      <View>
+        <GameToolbar
+          title={`Mrotsi — Round ${gameState?.currentRound ?? 1}/${gameState?.totalRounds ?? 5}`}
+          onBack={() =>
+            BisetkaAlert.alert('Resign?', 'Leave the game?', [
+              {text: 'Stay', style: 'cancel'},
+              {text: 'Leave', style: 'destructive', onPress: () => {
+                socketService.resignGame?.(roomIdRef.current, userId);
+                navigation.replace('GameMode', {gameType: 'mrotsi'});
+              }},
+            ])
+          }
+          backgroundColor="transparent"
+          rightElement={
             <TouchableOpacity
-              onPress={() => setShowRoomNameModal(true)}
+              onPress={() => { toolbarExpanded.value = !toolbarExpanded.value; }}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              style={{ padding: 8, borderRadius: 8, backgroundColor: 'rgba(255, 255, 255, 0.1)' }}>
-              <Text style={{ fontSize: 18 }}>✏️</Text>
+              style={{ padding: 6, borderRadius: 8 }}>
+              <ReAnimated.Text style={[{ fontSize: 22, color: '#FFD700' }, chevronStyle]}>⌄</ReAnimated.Text>
             </TouchableOpacity>
-          ) : undefined
-        }
-      />
+          }
+        />
+        <ExpandableView isExpanded={toolbarExpanded} viewKey="mpMrotsiToolbarControls" duration={300}>
+          <GameToolbarControls
+            buttons={[
+              { icon: showBlur ? '🌫️' : '✨', onPress: () => setShowBlur(!showBlur) },
+              { icon: showBackground ? '🖼️' : '🔲', onPress: () => setShowBackground(!showBackground) },
+              { icon: '✏️', onPress: () => setShowRoomNameModal(true) },
+            ]}
+          />
+        </ExpandableView>
+      </View>
 
       <ScrollView contentContainerStyle={styles.gameContent} showsVerticalScrollIndicator={false}>
         {/* Score bar */}

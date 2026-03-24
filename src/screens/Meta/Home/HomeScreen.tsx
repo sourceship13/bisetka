@@ -535,6 +535,15 @@ const HomeScreen = ({navigation}: any) => {
                 </LinearGradient>
               </TouchableOpacity>
               <TouchableOpacity
+                onPress={() => navigation.navigate('Achievements')}
+                style={styles.actionBtn}>
+                <LinearGradient
+                  colors={['rgba(139, 92, 246, 0.7)', 'rgba(124, 58, 237, 0.7)']}
+                  style={styles.actionGrad}>
+                  <Icon name="trophy-award" size={28} color="#fff" />
+                </LinearGradient>
+              </TouchableOpacity>
+              <TouchableOpacity
                 onPress={() => navigation.navigate('Leaderboard')}
                 style={styles.actionBtn}>
                 <LinearGradient
