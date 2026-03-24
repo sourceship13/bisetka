@@ -109,7 +109,7 @@ class ApiService {
 
       if (!response.ok) {
         throw {
-          message: data?.message || 'API request failed',
+          message: data?.message || data?.error || 'API request failed',
           code: data?.code,
           status: response.status,
         } as ApiError;
