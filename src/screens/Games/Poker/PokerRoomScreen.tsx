@@ -1,11 +1,15 @@
 import React, {useState, useEffect, useRef, useCallback} from 'react';
-import {View, Text, StyleSheet, TouchableOpacity, ScrollView, ImageBackground, ActivityIndicator, Clipboard, TextInput, Dimensions, Animated, ViewStyle, Alert} from 'react-native';
+import {View, Text, StyleSheet, TouchableOpacity, ScrollView, ImageBackground, ActivityIndicator, Clipboard, TextInput, Dimensions, Animated, ViewStyle, Alert, Image} from 'react-native';
 import { Snackbar } from 'react-native-paper';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { apiService } from '../../../services/api.service';
 import { useAuth } from '../../../libs/hooks/useAuth';
+import { resolveAvatar } from '../../../utils/avatars';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import GameToolbar from '../../../components/global/GameToolbar';
+import GameToolbarControls from '../../../components/global/GameToolbarControls';
+import ReAnimated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
+import ExpandableView from '../../../components/global/ExpandableView';
 import DynamicCard from '../../../components/DynamicCard';
 import CardShuffleAnimation from '../../../components/CardShuffleAnimation';
 import RiffleDealAnimation from '../../../components/RiffleDealAnimation';
@@ -106,6 +110,30 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
 
   // Multiplayer state
   const [tableId, setTableId] = useState<string | null>(null);
+  const [showBlur, setShowBlur] = useState(true);
+  const [showBackground, setShowBackground] = useState(true);
+  const toolbarExpanded = useSharedValue(false);
+  const chevronStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: withTiming(toolbarExpanded.value ? '180deg' : '0deg', { duration: 250 }) }],
+  }));
+  const [showPanel, setShowPanel] = useState(false);
+  const panelAnim = useRef(new Animated.Value(0)).current;
+
+  const togglePanel = () => {
+    const toValue = showPanel ? 0 : 1;
+    setShowPanel(!showPanel);
+    Animated.spring(panelAnim, {
+      toValue, useNativeDriver: true, speed: 20, bounciness: 4,
+    }).start();
+  };
+
+  const toggleLeave = () => {
+    BisetkaAlert.alert('Leave Game', 'Are you sure you want to leave the game?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Leave', style: 'destructive', onPress: () => navigation.goBack() },
+    ]);
+  };
+
   const tableIdRef = useRef<string | null>(null);
   const roomIdRef = useRef<string | null>(null);
   const [mySeat, setMySeat] = useState<number>(0);
@@ -1041,7 +1069,8 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
     <ImageBackground
       source={require('../../../../assets/blot/park-background.png')}
       style={styles.container}
-      resizeMode="cover">
+      resizeMode="cover"
+      blurRadius={showBlur ? 3 : 0}>
       <SafeAreaView style={styles.safeArea}>
 
       {/* ── Connecting / Waiting Room Overlay ── */}
@@ -1158,24 +1187,39 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
           </TouchableOpacity>
         </View>
       ) : (
-        <GameToolbar
-          title={roomName}
-          onBack={() => navigation.goBack()}
-          backgroundColor="transparent"
-          rightElement={
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-              <RoomInfoDrawer roomId={tableId} />
-              <Text style={styles.potAmount}>Pot: ${pot}</Text>
+        <View>
+          <GameToolbar
+            title={roomName}
+            onBack={() => navigation.goBack()}
+            backgroundColor="transparent"
+            rightElement={
               <TouchableOpacity
-                onPress={() => { setDraftRoomName(roomName); setEditingRoomName(true); }}
+                onPress={() => { toolbarExpanded.value = !toolbarExpanded.value; }}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                style={styles.editRoomButton}>
-                <Text style={styles.editRoomIcon}>✏️</Text>
+                style={{ padding: 6, borderRadius: 8 }}>
+                <ReAnimated.Text style={[{ fontSize: 22, color: '#FFD700' }, chevronStyle]}>⌄</ReAnimated.Text>
               </TouchableOpacity>
-            </View>
-          }
-        />
+            }
+          />
+          <ExpandableView isExpanded={toolbarExpanded} viewKey="pokerToolbarControls" duration={300}>
+            <GameToolbarControls
+              buttons={[
+                { icon: showBlur ? '🌫️' : '✨', onPress: () => setShowBlur(!showBlur) },
+                { icon: showBackground ? '🖼️' : '🔲', onPress: () => setShowBackground(!showBackground) },
+                { icon: '✏️', onPress: () => { setDraftRoomName(roomName); setEditingRoomName(true); } },
+                { icon: '👥', onPress: togglePanel },
+                { icon: '🚪', onPress: toggleLeave },
+              ]}
+            />
+          </ExpandableView>
+        </View>
       )}
+
+      {/* Pot amount */}
+      <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 12, paddingHorizontal: 16 }}>
+        <RoomInfoDrawer roomId={tableId} />
+        <Text style={styles.potAmount}>Pot: ${pot}</Text>
+      </View>
 
       <View style={styles.tableContainer}>
         <ImageBackground
@@ -1296,6 +1340,66 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
           ))}
         </View>
       )}
+
+      {/* Player Panel */}
+      {showPanel && (
+        <TouchableOpacity
+          style={styles.panelBackdrop}
+          activeOpacity={1}
+          onPress={togglePanel}
+        />
+      )}
+      <Animated.View
+        style={[
+          styles.sidePanel,
+          {
+            transform: [{
+              translateX: panelAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [280, 0],
+              }),
+            }],
+          },
+        ]}
+        pointerEvents={showPanel ? 'auto' : 'none'}
+      >
+        <View style={styles.panelHeader}>
+          <Text style={styles.panelTitle}>Players</Text>
+          <TouchableOpacity onPress={togglePanel} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+            <Text style={styles.panelClose}>✕</Text>
+          </TouchableOpacity>
+        </View>
+        <ScrollView style={styles.panelContent}>
+          <Text style={styles.panelSectionTitle}>🎮 In Game</Text>
+          {players.map((p, idx) => {
+            const isYou = idx === 0 && !isMultiplayer || (isMultiplayer && idx === mySeat);
+            return (
+              <View key={p.id} style={[styles.panelPlayerRow, activePlayerIndex === idx && styles.panelPlayerRowActive]}>
+                <View style={styles.panelAvatarClip}>
+                  {isYou && resolveAvatar(user?.avatar_url ?? null) ? (
+                    <Image source={resolveAvatar(user?.avatar_url ?? null)!} style={styles.panelAvatar} />
+                  ) : (
+                    <View style={styles.panelAvatarPlaceholder}>
+                      <Text style={styles.panelAvatarInitials}>
+                        {isYou ? (user?.username || 'Y')[0].toUpperCase() : p.name[0].toUpperCase()}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+                {activePlayerIndex === idx && <View style={styles.panelTurnDot} />}
+                <View style={styles.panelPlayerInfo}>
+                  <Text style={styles.panelPlayerName}>{isYou ? (user?.username || 'You') : p.name}</Text>
+                  <View style={[styles.panelTeamBadge, { backgroundColor: p.folded ? 'rgba(239,68,68,0.25)' : 'rgba(74,222,128,0.2)' }]}>
+                    <Text style={styles.panelTeamText}>
+                      {p.folded ? 'Folded' : `💰 ${p.chips}`}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            );
+          })}
+        </ScrollView>
+      </Animated.View>
 
     </SafeAreaView>
     </ImageBackground>
@@ -1737,6 +1841,24 @@ const styles = StyleSheet.create({
     color: '#4ade80',
     fontWeight: '700',
   },
+  panelBackdrop: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.45)' },
+  sidePanel: { position: 'absolute', top: 0, right: 0, bottom: 0, width: 270, backgroundColor: 'rgba(12,12,30,0.97)', borderLeftWidth: 1, borderLeftColor: 'rgba(255,255,255,0.12)', shadowColor: '#000', shadowOffset: { width: -4, height: 0 }, shadowOpacity: 0.5, shadowRadius: 12, elevation: 20 },
+  panelHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, paddingTop: 56, paddingBottom: 14, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.1)' },
+  panelTitle: { fontSize: 18, fontWeight: '700', color: '#fff' },
+  panelClose: { fontSize: 18, color: 'rgba(255,255,255,0.6)', fontWeight: '600' },
+  panelContent: { flex: 1, padding: 14 },
+  panelSectionTitle: { fontSize: 13, fontWeight: '700', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10, marginTop: 6 },
+  panelPlayerRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 8, borderRadius: 10, marginBottom: 4 },
+  panelPlayerRowActive: { backgroundColor: 'rgba(255,215,0,0.10)' },
+  panelAvatarClip: { width: 38, height: 38, borderRadius: 19, overflow: 'hidden', marginRight: 10, backgroundColor: 'rgba(255,255,255,0.08)' },
+  panelAvatar: { width: 38, height: 38, borderRadius: 19 },
+  panelAvatarPlaceholder: { width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(255,255,255,0.13)', justifyContent: 'center', alignItems: 'center' },
+  panelAvatarInitials: { fontSize: 17, fontWeight: '700', color: '#fff' },
+  panelTurnDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#FFD700', marginRight: 6 },
+  panelPlayerInfo: { flex: 1 },
+  panelPlayerName: { fontSize: 15, fontWeight: '600', color: '#fff', marginBottom: 2 },
+  panelTeamBadge: { alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
+  panelTeamText: { fontSize: 11, fontWeight: '700', color: '#fff' },
 });
 
 export default PokerRoomScreen;

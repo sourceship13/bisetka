@@ -21,6 +21,7 @@ import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import GameToolbar from '../../../components/global/GameToolbar';
+import GameToolbarControls from '../../../components/global/GameToolbarControls';
 import { CardType, Suit } from '../../../components/Card';
 import DynamicCard from '../../../components/DynamicCard';
 import RiffleDealAnimation from '../../../components/RiffleDealAnimation';
@@ -64,23 +65,22 @@ const BlotScreen = ({ navigation }: any) => {
   const [showRiffleDealAnimation, setShowRiffleDealAnimation] = useState(false);
   const isRoundTransitioningRef = useRef(false);
   const prevPhaseRef = useRef<string | null>(null);
+  const boardReadyRef = useRef(false);
   const [customTheme, setCustomTheme] = useState<CardTheme | undefined>(
     undefined,
   );
 
-  // Trigger animation after screen has fully rendered
-  useEffect(() => {
-    isRoundTransitioningRef.current = true;
-    const t = setTimeout(() => setShowRiffleDealAnimation(true), 300);
-    return () => clearTimeout(t);
-  }, []);
-
-  // Trigger deal animation when bidding transitions to playing
-  useEffect(() => {
-    if (gameState.phase === 'playing' && prevPhaseRef.current === 'bidding') {
+  // Trigger initial deal animation only after the game board is laid out
+  const handleBoardLayout = useCallback(() => {
+    if (!boardReadyRef.current) {
+      boardReadyRef.current = true;
       isRoundTransitioningRef.current = true;
       setShowRiffleDealAnimation(true);
     }
+  }, []);
+
+  // Track phase transitions (deal animation handled by mount effect and redeal logic)
+  useEffect(() => {
     prevPhaseRef.current = gameState.phase;
   }, [gameState.phase]);
 
@@ -128,6 +128,13 @@ const BlotScreen = ({ navigation }: any) => {
       speed: 20,
       bounciness: 4,
     }).start();
+  };
+
+  const toggleLeave = () => {
+    BisetkaAlert.alert('Leave Game', 'Are you sure you want to leave the game?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Leave', style: 'destructive', onPress: () => navigation.goBack() },
+    ]);
   };
   const { refreshOnGameEnd } = useGameEndRefresh(undefined, 'blot');
   const isPlayingCardRef = useRef(false);
@@ -569,7 +576,7 @@ const BlotScreen = ({ navigation }: any) => {
         colors={showBlur ? ['rgba(15,15,35,0.7)', 'rgba(26,23,66,0.6)'] : ['transparent', 'transparent']}
         style={styles.overlay}
       >
-        <SafeAreaView style={[styles.safeArea,]}>
+        <SafeAreaView style={[styles.safeArea,]} onLayout={handleBoardLayout}>
           <View>
             <GameToolbar
               title="🃏 Blot"
@@ -586,36 +593,15 @@ const BlotScreen = ({ navigation }: any) => {
               }
             />
             <ExpandableView isExpanded={toolbarExpanded} viewKey="blotToolbarControls" duration={300}>
-              <View style={styles.toolbarControls}>
-                <TouchableOpacity
-                  onPress={() => setShowCustomization(true)}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                  style={styles.editRoomButton}
-                >
-                  <Text style={styles.editRoomIcon}>🎨</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => setShowBlur(!showBlur)}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                  style={styles.editRoomButton}
-                >
-                  <Text style={styles.editRoomIcon}>{showBlur ? '🌫️' : '✨'}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => setShowBackground(!showBackground)}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                  style={styles.editRoomButton}
-                >
-                  <Text style={styles.editRoomIcon}>{showBackground ? '🖼️' : '🔲'}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={togglePanel}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                  style={styles.editRoomButton}
-                >
-                  <Text style={styles.editRoomIcon}>👥</Text>
-                </TouchableOpacity>
-              </View>
+              <GameToolbarControls
+                buttons={[
+                  { icon: '🎨', onPress: () => setShowCustomization(true) },
+                  { icon: showBlur ? '🌫️' : '✨', onPress: () => setShowBlur(!showBlur) },
+                  { icon: showBackground ? '🖼️' : '🔲', onPress: () => setShowBackground(!showBackground) },
+                  { icon: '👥', onPress: togglePanel },
+                  { icon: '🚪', onPress: toggleLeave },
+                ]}
+              />
             </ExpandableView>
           </View>
 
@@ -969,15 +955,6 @@ const styles = StyleSheet.create({
   editRoomIcon: {
     fontSize: 22,
     color: '#FFD700',
-  },
-  toolbarControls: {
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    paddingHorizontal: 3,
-    flexWrap: 'wrap',
-    alignSelf: 'flex-end',
   },
   scoreBoard: {
     flex: 1,

@@ -12,7 +12,10 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import GameToolbar from '../../../components/global/GameToolbar';
+import GameToolbarControls from '../../../components/global/GameToolbarControls';
 import RoomNameModal from '../../../components/RoomNameModal';
+import ReAnimated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
+import ExpandableView from '../../../components/global/ExpandableView';
 import { useGameEndRefresh } from '../../../libs/hooks/useGameEndRefresh';
 import LinearGradient from 'react-native-linear-gradient';
 import {
@@ -92,6 +95,12 @@ const NardiScreen = ({ navigation, route }: any) => {
   const opponentType: OpponentType = isMultiplayer ? 'local' : (routeMode === 'ai' ? 'ai' : 'local');
 
   const [gameState, setGameState] = useState<NardiGameState | null>(null);
+  const [showBlur, setShowBlur] = useState(true);
+  const [showBackground, setShowBackground] = useState(true);
+  const toolbarExpanded = useSharedValue(false);
+  const chevronStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: withTiming(toolbarExpanded.value ? '180deg' : '0deg', { duration: 250 }) }],
+  }));
   const [selectedPoint, setSelectedPoint] = useState<number | null>(null);
   const aiTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   useGameEndRefresh(gameState?.winner != null, 'nardi');
@@ -867,32 +876,41 @@ const NardiScreen = ({ navigation, route }: any) => {
     <ImageBackground
       source={require('../../../../assets/nardi/park-background.png')}
       style={styles.container}
-      blurRadius={3}>
+      blurRadius={showBlur ? 3 : 0}>
       <LinearGradient
-        colors={['rgba(15,15,35,0.7)', 'rgba(26,23,66,0.6)']}
+        colors={showBlur ? ['rgba(15,15,35,0.7)', 'rgba(26,23,66,0.6)'] : ['transparent', 'transparent']}
         style={styles.overlay}>
         
         <SafeAreaView style={styles.safeArea}>
-          <GameToolbar
-            title={isMultiplayer ? '🎲 Nardi (Online)' : '🎲 Nardi'}
-            onBack={() => {
-              if (isMultiplayer && roomIdRef.current) {
-                (socketService as any).resign?.(roomIdRef.current, userId);
-              }
-              navigation.goBack();
-            }}
-            backgroundColor="transparent"
-            rightElement={
-              isMultiplayer && mpStatus === 'playing' ? (
+          <View>
+            <GameToolbar
+              title={isMultiplayer ? '🎲 Nardi (Online)' : '🎲 Nardi'}
+              onBack={() => {
+                if (isMultiplayer && roomIdRef.current) {
+                  (socketService as any).resign?.(roomIdRef.current, userId);
+                }
+                navigation.goBack();
+              }}
+              backgroundColor="transparent"
+              rightElement={
                 <TouchableOpacity
-                  onPress={() => setShowRoomNameModal(true)}
+                  onPress={() => { toolbarExpanded.value = !toolbarExpanded.value; }}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                  style={{ padding: 8, borderRadius: 8, backgroundColor: 'rgba(255, 255, 255, 0.1)' }}>
-                  <Text style={{ fontSize: 18 }}>✏️</Text>
+                  style={{ padding: 6, borderRadius: 8 }}>
+                  <ReAnimated.Text style={[{ fontSize: 22, color: '#FFD700' }, chevronStyle]}>⌄</ReAnimated.Text>
                 </TouchableOpacity>
-              ) : undefined
-            }
-          />
+              }
+            />
+            <ExpandableView isExpanded={toolbarExpanded} viewKey="nardiToolbarControls" duration={300}>
+              <GameToolbarControls
+                buttons={[
+                  { icon: showBlur ? '🌫️' : '✨', onPress: () => setShowBlur(!showBlur) },
+                  { icon: showBackground ? '🖼️' : '🔲', onPress: () => setShowBackground(!showBackground) },
+                  ...(isMultiplayer && mpStatus === 'playing' ? [{ icon: '✏️', onPress: () => setShowRoomNameModal(true) }] : []),
+                ]}
+              />
+            </ExpandableView>
+          </View>
 
           {/* Matchmaking overlay */}
           {isMultiplayer && mpStatus !== 'playing' && mpStatus !== 'ended' && (

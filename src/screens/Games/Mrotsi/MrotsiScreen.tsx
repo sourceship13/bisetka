@@ -3,6 +3,9 @@ import {View, Text, StyleSheet, TouchableOpacity, Animated, ImageBackground, Dim
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import GameToolbar from '../../../components/global/GameToolbar';
+import GameToolbarControls from '../../../components/global/GameToolbarControls';
+import ReAnimated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
+import ExpandableView from '../../../components/global/ExpandableView';
 import { aiMoveLogService } from '../../../services/aiMoveLog.service';
 import { v4 as uuidv4 } from 'uuid';
 import { useGameEndRefresh } from '../../../libs/hooks/useGameEndRefresh';
@@ -30,6 +33,12 @@ const MrotsiScreen = ({navigation, route}: any) => {
   const {session, gameType, mode: routeMode} = route.params || {};
   const mode = routeMode ?? session?.mode ?? 'ai'; // fall back to session.mode; default to 'ai' so AI always works
   const [gameState, setGameState] = useState<GameState>(initializeGame(mode));
+  const [showBlur, setShowBlur] = useState(true);
+  const [showBackground, setShowBackground] = useState(true);
+  const toolbarExpanded = useSharedValue(false);
+  const chevronStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: withTiming(toolbarExpanded.value ? '180deg' : '0deg', { duration: 250 }) }],
+  }));
   const [diceAnimations] = useState(
     Array(5).fill(0).map(() => new Animated.Value(0))
   );
@@ -409,18 +418,33 @@ const MrotsiScreen = ({navigation, route}: any) => {
       source={require('../../../../assets/blot/park-background.png')}
       style={styles.backgroundImage}
       resizeMode="cover"
+      blurRadius={showBlur ? 3 : 0}
     >
       <SafeAreaView style={styles.container}>
-        <GameToolbar
-          title={`Mrotsi${gameState.gameMode === 'ai' ? ' (vs AI)' : ''}`}
-          onBack={() => navigation.goBack()}
-          backgroundColor="transparent"
-          rightElement={
-            <TouchableOpacity onPress={resetGame} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-              <Text style={styles.newGameText}>New Game</Text>
-            </TouchableOpacity>
-          }
-        />
+        <View>
+          <GameToolbar
+            title={`Mrotsi${gameState.gameMode === 'ai' ? ' (vs AI)' : ''}`}
+            onBack={() => navigation.goBack()}
+            backgroundColor="transparent"
+            rightElement={
+              <TouchableOpacity
+                onPress={() => { toolbarExpanded.value = !toolbarExpanded.value; }}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                style={{ padding: 6, borderRadius: 8 }}>
+                <ReAnimated.Text style={[{ fontSize: 22, color: '#FFD700' }, chevronStyle]}>⌄</ReAnimated.Text>
+              </TouchableOpacity>
+            }
+          />
+          <ExpandableView isExpanded={toolbarExpanded} viewKey="mrotsiToolbarControls" duration={300}>
+            <GameToolbarControls
+              buttons={[
+                { icon: showBlur ? '🌫️' : '✨', onPress: () => setShowBlur(!showBlur) },
+                { icon: showBackground ? '🖼️' : '🔲', onPress: () => setShowBackground(!showBackground) },
+                { icon: '🔄', onPress: resetGame },
+              ]}
+            />
+          </ExpandableView>
+        </View>
 
         {/* Score Display */}
         <View style={styles.scoreContainer}>
