@@ -121,6 +121,7 @@ const CheckersScreen = ({ navigation, route }: any) => {
   const { user, refreshUser } = useAuth();
   const [entryDeducted, setEntryDeducted] = useState(false);
   const [prizeAwarded, setPrizeAwarded] = useState(false);
+  const [gameStartTime, setGameStartTime] = useState<number>(Date.now());
 
   const handleApplyTheme = (theme: GameTheme) => {
     setGameTheme(theme);
@@ -152,23 +153,38 @@ const CheckersScreen = ({ navigation, route }: any) => {
     }
   };
 
-  // Prize award handler
+  // Prize award handler - NEW: Combined endpoint
   const handleGameEnd = async (didWin: boolean) => {
     if (prizeAwarded || !user?.id) return;
 
     try {
       const result = didWin ? 'win' : 'loss';
-      console.log(`🏆 Awarding prize for ${result}...`);
-      const prizeResult = await apiService.awardPrize('checkers', result, gameIdRef.current);
+      console.log(`🏆 Awarding prize and logging game for ${result}...`);
+      
+      // NEW: Use combined endpoint that awards prize + logs result + logs activity
+      const prizeResult = await apiService.awardPrizeAndLog(
+        'checkers',
+        result,
+        'ai', // game mode
+        {
+          gameId: gameIdRef.current,
+          playerScore: didWin ? 1 : 0, // Could track actual pieces captured
+          durationSeconds: Math.floor((Date.now() - (gameStartTime || Date.now())) / 1000),
+        }
+      );
       
       if (prizeResult.success) {
-        console.log(`✅ Prize awarded: +${prizeResult.prize} points. Balance: ${prizeResult.newBalance}`);
+        console.log(`✅ ${prizeResult.message}`);
+        console.log(`   Prize: +${prizeResult.prize} points`);
+        console.log(`   New balance: ${prizeResult.newBalance}`);
+        console.log(`   Game logged with ID: ${prizeResult.gameResultId}`);
+        
         setPrizeAwarded(true);
         refreshUser().catch(console.error);
         
         if (didWin) {
           setTimeout(() => {
-            Alert.alert('🏆 Victory!', `You won ${prizeResult.prize} points!\n\nNew balance: ${prizeResult.newBalance} points`);
+            Alert.alert('🏆 Victory!', `${prizeResult.message}\n\nNew balance: ${prizeResult.newBalance} points`);
           }, 2000);
         }
       }

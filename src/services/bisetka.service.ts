@@ -383,6 +383,19 @@ class BisetkaService {
       return neighborhoods;
     }
   }
+
+  /**
+   * Join user to a Bisetka (sets current_bisetka_id)
+   */
+  async joinBisetka(bisetkaId: string): Promise<void> {
+    try {
+      await apiService.post('/bisetka/join', { bisetka_id: bisetkaId }, true);
+      console.log('✅ [BisetkaService] Joined Bisetka:', bisetkaId);
+    } catch (error: any) {
+      console.error('❌ [BisetkaService] Failed to join Bisetka:', error);
+      throw error;
+    }
+  }
 }
 
 export const bisetkaService = new BisetkaService();

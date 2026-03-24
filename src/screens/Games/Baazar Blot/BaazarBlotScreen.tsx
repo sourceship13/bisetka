@@ -156,11 +156,20 @@ const BaazarBlotScreen = ({ navigation }: any) => {
 
     try {
       const result = didWin ? 'win' : 'loss';
-      console.log(`🏆 Awarding prize for ${result}...`);
-      const prizeResult = await apiService.awardPrize(GAME_TYPE, result, gameIdRef.current);
+      console.log(`🏆 Awarding prize and logging game for ${result}...`);
+      
+      const prizeResult = await apiService.awardPrizeAndLog(
+        GAME_TYPE,
+        result,
+        'ai',
+        {
+          gameId: gameIdRef.current,
+          playerScore: didWin ? 1 : 0,
+        }
+      );
       
       if (prizeResult.success) {
-        console.log(`✅ Prize awarded: +${prizeResult.prize} points. Balance: ${prizeResult.newBalance}`);
+        console.log(`✅ ${prizeResult.message}`);
         setPrizeAwarded(true);
         refreshUser().catch(console.error);
         
