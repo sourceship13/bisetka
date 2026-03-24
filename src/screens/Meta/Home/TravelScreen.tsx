@@ -111,21 +111,39 @@ export default function TravelScreen() {
     try {
       setTravelingTo(location.id);
       
+      console.log('🚀 Starting travel to:', location.name, location.city);
+      
       // Call API to change location and deduct points
       const response = await apiService.post<{ success: boolean; message?: string; user?: any; bisetka?: any; travel_stats?: any }>('/bisetka/travel', {
         neighborhood_id: location.id,
       }, true); // requireAuth
 
+      console.log('✅ Travel response:', response);
+
       if (response.success) {
-        // Refresh user data to get updated balance
+        // Refresh user data to get updated balance and location
         await refreshUser();
+        
+        // Also update stored bisetka for immediate display
+        const bisetkaStorageService = require('../../../services/bisetkaStorage.service').default;
+        if (response.bisetka) {
+          await bisetkaStorageService.storeBisetka({
+            id: response.bisetka.id,
+            neighborhood: response.bisetka.neighborhood_name,
+            city: response.bisetka.city,
+            country: response.bisetka.country,
+            active_users: response.bisetka.active_users || 0,
+            source: 'travel',
+          });
+          console.log('✅ Stored bisetka after travel:', response.bisetka.neighborhood_name);
+        }
         
         BisetkaAlert.success(
           'Travel Complete!',
           `You've traveled to ${location.name}, ${location.city}. ${TRAVEL_COST} points deducted.`
         );
         
-        // Navigate back to home
+        // Navigate back to home - it should now show new location
         setTimeout(() => {
           navigation.goBack();
         }, 1500);
@@ -133,10 +151,15 @@ export default function TravelScreen() {
         throw new Error(response.message || 'Travel failed');
       }
     } catch (error: any) {
-      console.error('Travel failed:', error);
+      console.error('❌ Travel failed:', error);
+      console.error('❌ Error details:', JSON.stringify(error, null, 2));
+      console.error('❌ Error message:', error.message);
+      console.error('❌ Error status:', error.status);
+      console.error('❌ Error code:', error.code);
+      
       BisetkaAlert.error(
         'Travel Failed',
-        error.message || 'Please try again.'
+        error.message || error.error || 'Please try again. Check console for details.'
       );
     } finally {
       setTravelingTo(null);
