@@ -23,6 +23,7 @@ import { resolveAvatar } from '../../../utils/avatars';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import GameToolbar from '../../../components/global/GameToolbar';
+import GameToolbarControls from '../../../components/global/GameToolbarControls';
 import { CardType, Suit } from '../../../components/Card';
 import DynamicCard from '../../../components/DynamicCard';
 import CardCustomizationModal from '../../../components/global/GameCustomizationModal';
@@ -67,6 +68,7 @@ const BaazarBlotScreen = ({ navigation }: any) => {
   const [pendingBidSuit, setPendingBidSuit] = useState<Suit | null>(null);
   const [isResolvingTrick, setIsResolvingTrick] = useState(false);
   const [showDealAnimation, setShowDealAnimation] = useState(false);
+  const pendingDealAnimRef = useRef(false);
   const resolutionInProgressRef = useRef(false);
   const resolutionStartTimeRef = useRef<number>(0);
   const dealtHandsRef = useRef<{ team: 1 | 2; hand: CardType[] }[]>([]);
@@ -236,13 +238,20 @@ const BaazarBlotScreen = ({ navigation }: any) => {
 
 
 
-  // Trigger animations on phase change
+  // Trigger animations on phase change — defer until playing board is laid out
   useEffect(() => {
     if (gameState?.phase === 'playing' && prevPhaseRef.current === 'bidding') {
-      setShowDealAnimation(true);
+      pendingDealAnimRef.current = true;
     }
     prevPhaseRef.current = gameState?.phase ?? null;
   }, [gameState?.phase]);
+
+  const handlePlayingLayout = useCallback(() => {
+    if (pendingDealAnimRef.current) {
+      pendingDealAnimRef.current = false;
+      setShowDealAnimation(true);
+    }
+  }, []);
 
   // AI bidding
   useEffect(() => {
@@ -771,7 +780,7 @@ const BaazarBlotScreen = ({ navigation }: any) => {
 
     return (
       <>
-        <View style={styles.playArea}>
+        <View style={styles.playArea} onLayout={handlePlayingLayout}>
           <Text style={styles.currentPlayerText}>
             {gameState.currentPlayer === 0
               ? '★ Your Turn (Team 1)'
@@ -1005,36 +1014,14 @@ const BaazarBlotScreen = ({ navigation }: any) => {
             }
           />
           <ExpandableView isExpanded={toolbarExpanded} viewKey="baazarToolbarControls" duration={300}>
-            <View style={styles.toolbarControls}>
-              <TouchableOpacity
-                onPress={() => setShowCustomization(true)}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                style={styles.editRoomButton}
-              >
-                <Text style={styles.editRoomIcon}>🎨</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => setShowBlur(!showBlur)}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                style={styles.editRoomButton}
-              >
-                <Text style={styles.editRoomIcon}>{showBlur ? '🌫️' : '✨'}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => setShowBackground(!showBackground)}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                style={styles.editRoomButton}
-              >
-                <Text style={styles.editRoomIcon}>{showBackground ? '🖼️' : '🔲'}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={togglePanel}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                style={styles.editRoomButton}
-              >
-                <Text style={styles.editRoomIcon}>👥</Text>
-              </TouchableOpacity>
-            </View>
+            <GameToolbarControls
+              buttons={[
+                { icon: '🎨', onPress: () => setShowCustomization(true) },
+                { icon: showBlur ? '🌫️' : '✨', onPress: () => setShowBlur(!showBlur) },
+                { icon: showBackground ? '🖼️' : '🔲', onPress: () => setShowBackground(!showBackground) },
+                { icon: '👥', onPress: togglePanel },
+              ]}
+            />
           </ExpandableView>
         </View>
 

@@ -13,8 +13,12 @@ import {
 } from 'react-native';
 import { apiService } from '../../../services/api.service';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import LinearGradient from 'react-native-linear-gradient';
 import GameToolbar from '../../../components/global/GameToolbar';
+import GameToolbarControls from '../../../components/global/GameToolbarControls';
 import RoomNameModal from '../../../components/RoomNameModal';
+import ReAnimated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
+import ExpandableView from '../../../components/global/ExpandableView';
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {RootStackParamList} from '../../../navigation/AppNavigator';
 import {aiMoveLogService} from '../../../services/aiMoveLog.service';
@@ -459,6 +463,12 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
   const [balls, setBalls] = useState<Ball[]>(
     variant === '9-ball' ? createRack9Ball() : createRack8Ball(),
   );
+  const [showBlur, setShowBlur] = useState(true);
+  const [showBackground, setShowBackground] = useState(true);
+  const toolbarExpanded = useSharedValue(false);
+  const chevronStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: withTiming(toolbarExpanded.value ? '180deg' : '0deg', { duration: 250 }) }],
+  }));
   const [isMoving, setIsMoving] = useState(false);
   const [playerTurn, setPlayerTurn] = useState(true); // true = human, false = AI
   const [roomName, setRoomName] = useState('Multiplayer Billiards');
@@ -1886,33 +1896,51 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
   };
 
   return (
+    <ImageBackground
+      source={require('../../../../assets/blot/park-background.png')}
+      style={{flex: 1}}
+      blurRadius={showBlur ? 3 : 0}>
+    <LinearGradient
+      colors={showBlur ? ['rgba(15,15,35,0.7)', 'rgba(26,23,66,0.6)'] : ['transparent', 'transparent']}
+      style={{flex: 1}}>
     <SafeAreaView style={styles.safeArea}>
-      <GameToolbar
-        title={variant === '9-ball' ? '9-Ball' : '8-Ball'}
-        onBack={() => navigation.goBack()}
-        backgroundColor="transparent"
-        rightElement={
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            {isMultiplayer && !gameOver && (
-              <TouchableOpacity
-                onPress={() => setShowRoomNameModal(true)}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                style={{ padding: 8, borderRadius: 8, backgroundColor: 'rgba(255, 255, 255, 0.1)' }}>
-                <Text style={{ fontSize: 18 }}>✏️</Text>
-              </TouchableOpacity>
-            )}
-            <Text style={styles.turnText}>
-              {gameOver
-                ? winner === 'player' ? '🏆 You Win!' : (isMultiplayer ? '💀 You Lose' : '💀 AI Wins')
-                : ballInHand ? '👆 Place cue ball'
-                : isMoving ? '⏳'
-                : isMultiplayer
-                  ? (isMyTurn ? '🎯 Your Shot' : '⏳ Opponent...')
-                  : (playerTurn ? '🎯 Your Shot' : '🤖 AI')}
-            </Text>
-          </View>
-        }
-      />
+      <View>
+        <GameToolbar
+          title={variant === '9-ball' ? '9-Ball' : '8-Ball'}
+          onBack={() => navigation.goBack()}
+          backgroundColor="transparent"
+          rightElement={
+            <TouchableOpacity
+              onPress={() => { toolbarExpanded.value = !toolbarExpanded.value; }}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              style={{ padding: 6, borderRadius: 8 }}>
+              <ReAnimated.Text style={[{ fontSize: 22, color: '#FFD700' }, chevronStyle]}>⌄</ReAnimated.Text>
+            </TouchableOpacity>
+          }
+        />
+        <ExpandableView isExpanded={toolbarExpanded} viewKey="billiardsToolbarControls" duration={300}>
+          <GameToolbarControls
+            buttons={[
+              { icon: showBlur ? '🌫️' : '✨', onPress: () => setShowBlur(!showBlur) },
+              { icon: showBackground ? '🖼️' : '🔲', onPress: () => setShowBackground(!showBackground) },
+              ...(isMultiplayer && !gameOver ? [{ icon: '✏️', onPress: () => setShowRoomNameModal(true) }] : []),
+            ]}
+          />
+        </ExpandableView>
+      </View>
+
+      {/* Turn status */}
+      <View style={{ alignItems: 'center', paddingVertical: 4 }}>
+        <Text style={styles.turnText}>
+          {gameOver
+            ? winner === 'player' ? '🏆 You Win!' : (isMultiplayer ? '💀 You Lose' : '💀 AI Wins')
+            : ballInHand ? '👆 Place cue ball'
+            : isMoving ? '⏳'
+            : isMultiplayer
+              ? (isMyTurn ? '🎯 Your Shot' : '⏳ Opponent...')
+              : (playerTurn ? '🎯 Your Shot' : '🤖 AI')}
+        </Text>
+      </View>
 
       {/* Power bar */}
       <View style={styles.powerRow}>
@@ -2220,11 +2248,13 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
         gameType="Billiards"
       />
     </SafeAreaView>
+    </LinearGradient>
+    </ImageBackground>
   );
 };
 
 const styles = StyleSheet.create({
-  safeArea: {flex: 1, backgroundColor: '#0C1F0C'},
+  safeArea: {flex: 1},
   header: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingHorizontal: 16, paddingVertical: 8,

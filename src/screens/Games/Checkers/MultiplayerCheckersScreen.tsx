@@ -12,7 +12,12 @@ import {
 import {BisetkaAlert} from '../../../utils/BisetkaAlert';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
+import ReAnimated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
+import ExpandableView from '../../../components/global/ExpandableView';
 import GameToolbar from '../../../components/global/GameToolbar';
+import GameToolbarControls from '../../../components/global/GameToolbarControls';
+import GameThemeCustomizer from '../../../components/global/GameThemeCustomizer';
+import type { GameTheme } from '../../../components/global/GameThemeCustomizer';
 import RoomNameModal from '../../../components/RoomNameModal';
 import {socketService} from '../../../services/SocketService';
 import tokenService from '../../../services/token.service';
@@ -122,6 +127,15 @@ const MultiplayerCheckersScreen = ({navigation, route}: any) => {
   // ── screen mode ────────────────────────────────────────────────────────────
   const [mode, setMode] = useState<'menu' | 'matchmaking' | 'private' | 'game'>('menu');
   const [isSpectating, setIsSpectating] = useState(false);
+  const [showBlur, setShowBlur] = useState(true);
+  const [showBackground, setShowBackground] = useState(true);
+  const [showCustomization, setShowCustomization] = useState(false);
+  const [gameTheme, setGameTheme] = useState<GameTheme>({});
+  const handleApplyTheme = (theme: GameTheme) => setGameTheme(theme);
+  const toolbarExpanded = useSharedValue(false);
+  const chevronStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: withTiming(toolbarExpanded.value ? '180deg' : '0deg', { duration: 250 }) }],
+  }));
 
   // ── game state ─────────────────────────────────────────────────────────────
   const [gameState, setGameState] = useState<GameState>(freshGame());
@@ -540,26 +554,36 @@ const MultiplayerCheckersScreen = ({navigation, route}: any) => {
     <ImageBackground
       source={require('../../../../assets/blot/park-background.png')}
       style={styles.container}
-      blurRadius={3}>
+      blurRadius={showBlur ? 3 : 0}>
       <LinearGradient
-        colors={['rgba(15,15,35,0.7)', 'rgba(26,23,66,0.6)']}
+        colors={showBlur ? ['rgba(15,15,35,0.7)', 'rgba(26,23,66,0.6)'] : ['transparent', 'transparent']}
         style={styles.overlay}>
         <SafeAreaView style={styles.safeArea}>
-          <GameToolbar
-            title={roomName}
-            onBack={() => navigation.goBack()}
-            backgroundColor="transparent"
-            rightElement={
-              mode === 'game' ? (
+          <View>
+            <GameToolbar
+              title={roomName}
+              onBack={() => navigation.goBack()}
+              backgroundColor="transparent"
+              rightElement={
                 <TouchableOpacity
-                  onPress={() => setShowRoomNameModal(true)}
+                  onPress={() => { toolbarExpanded.value = !toolbarExpanded.value; }}
                   hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}
                   style={styles.editRoomButton}>
-                  <Text style={styles.editRoomIcon}>✏️</Text>
+                  <ReAnimated.Text style={[styles.editRoomIcon, chevronStyle]}>⌄</ReAnimated.Text>
                 </TouchableOpacity>
-              ) : undefined
-            }
-          />
+              }
+            />
+            <ExpandableView isExpanded={toolbarExpanded} viewKey="mpCheckersToolbarControls" duration={300}>
+              <GameToolbarControls
+                buttons={[
+                  { icon: '🎨', onPress: () => setShowCustomization(true) },
+                  { icon: showBlur ? '🌫️' : '✨', onPress: () => setShowBlur(!showBlur) },
+                  { icon: showBackground ? '🖼️' : '🔲', onPress: () => setShowBackground(!showBackground) },
+                  { icon: '✏️', onPress: () => setShowRoomNameModal(true) },
+                ]}
+              />
+            </ExpandableView>
+          </View>
 
           {mode === 'menu' && renderMenu()}
           {mode === 'matchmaking' && renderMatchmaking()}
@@ -721,6 +745,14 @@ const MultiplayerCheckersScreen = ({navigation, route}: any) => {
           </View>
         </View>
       </Modal>
+
+      <GameThemeCustomizer
+        visible={showCustomization}
+        onClose={() => setShowCustomization(false)}
+        onApply={handleApplyTheme}
+        gameType="checkers"
+        initialTheme={gameTheme}
+      />
     </ImageBackground>
   );
 };

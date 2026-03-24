@@ -28,6 +28,7 @@ import CardHandFan from '../../../components/CardHandFan';
 import DynamicCard from '../../../components/DynamicCard';
 import InGameChat from '../../../components/InGameChat';
 import GameToolbar from '../../../components/global/GameToolbar';
+import GameToolbarControls from '../../../components/global/GameToolbarControls';
 import RoomNameModal from '../../../components/RoomNameModal';
 import RoomInfoDrawer from '../../../components/RoomInfoDrawer';
 import type { RoomInfoDrawerHandle } from '../../../components/RoomInfoDrawer';
@@ -1584,43 +1585,15 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
             }
           />
           <ExpandableView isExpanded={toolbarExpanded} viewKey="toolbarControls" duration={300}>
-            <View style={styles.toolbarControls}>
-              <TouchableOpacity
-                onPress={() => setShowCustomization(true)}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                style={styles.editRoomButton}
-              >
-                <Text style={styles.editRoomIcon}>🎨</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => setShowBlur(!showBlur)}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                style={styles.editRoomButton}
-              >
-                <Text style={styles.editRoomIcon}>{showBlur ? '🌫️' : '✨'}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => setShowBackground(!showBackground)}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                style={styles.editRoomButton}
-              >
-                <Text style={styles.editRoomIcon}>{showBackground ? '🖼️' : '🔲'}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => roomInfoRef.current?.open()}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                style={styles.editRoomButton}
-              >
-                <Text style={styles.editRoomIcon}>👥</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => setShowRoomNameModal(true)}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                style={styles.editRoomButton}
-              >
-                <Text style={styles.editRoomIcon}>✏️</Text>
-              </TouchableOpacity>
-            </View>
+            <GameToolbarControls
+              buttons={[
+                { icon: '🎨', onPress: () => setShowCustomization(true) },
+                { icon: showBlur ? '🌫️' : '✨', onPress: () => setShowBlur(!showBlur) },
+                { icon: showBackground ? '🖼️' : '🔲', onPress: () => setShowBackground(!showBackground) },
+                { icon: '👥', onPress: () => roomInfoRef.current?.open() },
+                { icon: '✏️', onPress: () => setShowRoomNameModal(true) },
+              ]}
+            />
           </ExpandableView>
         </View>
       )}

@@ -22,6 +22,7 @@ import { gameResultService } from '../../../../services/gameResult.service';
 import { useGameEndRefresh } from '../../../../libs/hooks/useGameEndRefresh';
 import ReAnimated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import ExpandableView from '../../../../components/global/ExpandableView';
+import GameToolbarControls from '../../../../components/global/GameToolbarControls';
 import LinearGradient from 'react-native-linear-gradient';
 
 interface Card {
@@ -463,29 +464,13 @@ const BlackjackScreen = ({ navigation }: any) => {
             }
           />
           <ExpandableView isExpanded={toolbarExpanded} viewKey="blackjackToolbarControls" duration={300}>
-            <View style={styles.toolbarControls}>
-              <TouchableOpacity
-                onPress={() => setShowCustomization(true)}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                style={styles.editRoomButton}
-              >
-                <Text style={styles.editRoomIcon}>🎨</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => setShowBlur(!showBlur)}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                style={styles.editRoomButton}
-              >
-                <Text style={styles.editRoomIcon}>{showBlur ? '🌫️' : '✨'}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => setShowBackground(!showBackground)}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                style={styles.editRoomButton}
-              >
-                <Text style={styles.editRoomIcon}>{showBackground ? '🖼️' : '🔲'}</Text>
-              </TouchableOpacity>
-            </View>
+            <GameToolbarControls
+              buttons={[
+                { icon: '🎨', onPress: () => setShowCustomization(true) },
+                { icon: showBlur ? '🌫️' : '✨', onPress: () => setShowBlur(!showBlur) },
+                { icon: showBackground ? '🖼️' : '🔲', onPress: () => setShowBackground(!showBackground) },
+              ]}
+            />
           </ExpandableView>
         </View>
 
