@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { useAuth } from '../../../libs/hooks/useAuth';
 import bisetkaService from '../../../services/bisetka.service';
+import { useFocusEffect } from '@react-navigation/native';
 import Config from 'react-native-config';
 
 const { width, height } = Dimensions.get('window');
@@ -42,6 +43,15 @@ interface GameSession {
   hostUsername?: string;
   guestUsername?: string;
 }
+
+const countryCodeToFlag = (country: string): string => {
+  if (country.length === 2) {
+    return String.fromCodePoint(
+      ...country.toUpperCase().split('').map(c => 0x1F1E6 + c.charCodeAt(0) - 65)
+    );
+  }
+  return '🌍';
+};
 
 const GAME_ICONS: Record<string, string> = {
   blot: '🃏',
@@ -154,7 +164,16 @@ const GlobalViewScreen = ({ navigation }: any) => {
       console.log('🌍 [GlobalView] First session:', allSessions[0]);
       setSessions(allSessions);
 
-      if (userLocation && allSessions.length > 0) {
+      // Always check if user has a current bisetka and select it
+      const accountSession = findSessionForAccountBisetka(allSessions, user?.bisetka);
+
+      if (accountSession) {
+        setNearestBisetka(accountSession);
+        setSelectedSession(accountSession);
+        console.log(
+          `🏘️ [GlobalView] Your Bisetka: ${accountSession.roomName}, ${accountSession.city}`,
+        );
+      } else if (userLocation && allSessions.length > 0) {
         let nearest = allSessions[0];
         let minDistance = Infinity;
 
@@ -175,18 +194,8 @@ const GlobalViewScreen = ({ navigation }: any) => {
         setSelectedSession(current => current ?? nearest);
         console.log(`🏘️ Nearest Bisetka: ${nearest.roomName}, ${nearest.city} (${minDistance.toFixed(1)} km away)`);
       } else if (allSessions.length > 0) {
-        const accountSession = findSessionForAccountBisetka(allSessions, user?.bisetka);
-
-        if (accountSession) {
-          setNearestBisetka(accountSession);
-          setSelectedSession(current => current ?? accountSession);
-          console.log(
-            `🏘️ [GlobalView] Using account/IP Bisetka fallback: ${accountSession.roomName}, ${accountSession.city}`,
-          );
-        } else {
-          setNearestBisetka(null);
-          setSelectedSession(current => current ?? allSessions[0] ?? null);
-        }
+        setNearestBisetka(null);
+        setSelectedSession(current => current ?? allSessions[0] ?? null);
       } else {
         setNearestBisetka(null);
         setSelectedSession(null);
@@ -243,6 +252,13 @@ const GlobalViewScreen = ({ navigation }: any) => {
       clearInterval(interval);
     };
   }, [userLocation, user?.bisetka?.id]);
+
+  // Reload when screen comes into focus (e.g. after traveling)
+  useFocusEffect(
+    useCallback(() => {
+      void loadBisetkas();
+    }, [user?.bisetka?.id])
+  );
 
   const handleSessionPress = (session: GameSession) => {
     // Navigate to BisetkaDetail screen to show Kings and leaderboard
@@ -340,48 +356,68 @@ const GlobalViewScreen = ({ navigation }: any) => {
     );
   };
 
-  const renderSessionsList = () => (
-    <View style={styles.listContainer}>
-      <ScrollView style={styles.sessionsList}>
-        {sessions.map((session) => (
-          <TouchableOpacity
-            key={session.id}
-            style={styles.sessionCard}
-            onPress={() => handleJoinSession(session)}
-            activeOpacity={0.8}>
-            <LinearGradient
-              colors={['rgba(0,0,0,0.6)', 'rgba(0,0,0,0.8)']}
-              style={styles.sessionCardGrad}>
-              <View style={styles.sessionHeader}>
-                <Text style={styles.sessionIcon}>
-                  {GAME_ICONS[session.gameType] || '🎮'}
-                </Text>
-                <View style={styles.sessionInfo}>
-                  <Text style={styles.sessionName}>
-                    {session.roomName || session.gameType.toUpperCase()}
-                  </Text>
-                  <Text style={styles.sessionHost}>
-                    {session.hostUsername
-                      ? `Host: ${session.hostUsername}`
-                      : 'Host location'}
-                  </Text>
-                  <Text style={styles.sessionLocation}>
-                    📍 {session.city || 'Unknown'}, {session.country || 'World'}
-                  </Text>
-                </View>
-                <View style={styles.sessionPlayers}>
-                  <Text style={styles.playersText}>
-                    {session.playerCount}/{session.maxPlayers}
-                  </Text>
-                  <Text style={styles.playersLabel}>Players</Text>
-                </View>
+  const renderSessionsList = () => {
+    // Group sessions by country
+    const grouped: Record<string, GameSession[]> = {};
+    for (const session of sessions) {
+      const key = session.country || 'World';
+      if (!grouped[key]) grouped[key] = [];
+      grouped[key].push(session);
+    }
+    const countries = Object.keys(grouped).sort();
+
+    return (
+      <View style={styles.listContainer}>
+        <ScrollView style={styles.sessionsList}>
+          {countries.map(country => (
+            <View key={country}>
+              <View style={styles.countryHeader}>
+                <Text style={styles.countryFlag}>{countryCodeToFlag(country)}</Text>
+                <Text style={styles.countryName}>{country}</Text>
+                <Text style={styles.countryCount}>{grouped[country].length}</Text>
               </View>
-            </LinearGradient>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-    </View>
-  );
+              {grouped[country].map(session => (
+                <TouchableOpacity
+                  key={session.id}
+                  style={styles.sessionCard}
+                  onPress={() => handleJoinSession(session)}
+                  activeOpacity={0.8}>
+                  <LinearGradient
+                    colors={['rgba(0,0,0,0.6)', 'rgba(0,0,0,0.8)']}
+                    style={styles.sessionCardGrad}>
+                    <View style={styles.sessionHeader}>
+                      <Text style={styles.sessionIcon}>
+                        {GAME_ICONS[session.gameType] || '🎮'}
+                      </Text>
+                      <View style={styles.sessionInfo}>
+                        <Text style={styles.sessionName}>
+                          {session.roomName || session.gameType.toUpperCase()}
+                        </Text>
+                        <Text style={styles.sessionHost}>
+                          {session.hostUsername
+                            ? `Host: ${session.hostUsername}`
+                            : 'Host location'}
+                        </Text>
+                        <Text style={styles.sessionLocation}>
+                          📍 {session.city || 'Unknown'}
+                        </Text>
+                      </View>
+                      <View style={styles.sessionPlayers}>
+                        <Text style={styles.playersText}>
+                          {session.playerCount}/{session.maxPlayers}
+                        </Text>
+                        <Text style={styles.playersLabel}>Players</Text>
+                      </View>
+                    </View>
+                  </LinearGradient>
+                </TouchableOpacity>
+              ))}
+            </View>
+          ))}
+        </ScrollView>
+      </View>
+    );
+  };
 
   const renderSessionDetail = () => {
     if (!selectedSession) return null;
@@ -621,6 +657,28 @@ const styles = StyleSheet.create({
   sessionLocation: {
     fontSize: 14,
     color: 'rgba(255,255,255,0.7)',
+  },
+  countryHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 8,
+  },
+  countryFlag: {
+    fontSize: 22,
+    marginRight: 8,
+  },
+  countryName: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#ffffff',
+    flex: 1,
+  },
+  countryCount: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.5)',
   },
   sessionPlayers: {
     alignItems: 'center',
