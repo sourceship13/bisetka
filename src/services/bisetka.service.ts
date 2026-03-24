@@ -357,6 +357,22 @@ class BisetkaService {
       return fallbackBisetkas;
     }
   }
+
+  /**
+   * Get all neighborhoods for travel selection
+   * Returns bundled neighborhood data
+   */
+  async getAllNeighborhoods(): Promise<Neighborhood[]> {
+    try {
+      // Return bundled neighborhood data
+      const neighborhoods = bundledLocationData.neighborhoods || [];
+      console.log('📍 [BisetkaService] Loaded neighborhoods:', neighborhoods.length);
+      return neighborhoods;
+    } catch (error: any) {
+      console.error('❌ [BisetkaService] Failed to load neighborhoods:', error);
+      throw error;
+    }
+  }
 }
 
 export const bisetkaService = new BisetkaService();

@@ -1921,7 +1921,7 @@
       "city_id": "us-los-angeles",
       "city": "Los Angeles",
       "country": "US",
-      "name": "City Center",
+      "name": "Los Feliz",
       "lat": 34.0536909,
       "lng": -118.242766,
       "type": "city_center"
@@ -1931,7 +1931,7 @@
       "city_id": "us-chicago",
       "city": "Chicago",
       "country": "US",
-      "name": "City Center",
+      "name": "Logan Square",
       "lat": 41.8755616,
       "lng": -87.6244212,
       "type": "city_center"
@@ -1941,7 +1941,7 @@
       "city_id": "us-phoenix",
       "city": "Phoenix",
       "country": "US",
-      "name": "City Center",
+      "name": "Biltmore",
       "lat": 33.4484367,
       "lng": -112.074141,
       "type": "city_center"
@@ -1951,7 +1951,7 @@
       "city_id": "us-philadelphia",
       "city": "Philadelphia",
       "country": "US",
-      "name": "City Center",
+      "name": "Fishtown",
       "lat": 39.9527237,
       "lng": -75.1635262,
       "type": "city_center"
@@ -1961,7 +1961,7 @@
       "city_id": "us-san-antonio",
       "city": "San Antonio",
       "country": "US",
-      "name": "City Center",
+      "name": "Southtown",
       "lat": 29.4246002,
       "lng": -98.4951405,
       "type": "city_center"
@@ -1971,7 +1971,7 @@
       "city_id": "us-san-diego",
       "city": "San Diego",
       "country": "US",
-      "name": "City Center",
+      "name": "Little Italy",
       "lat": 32.7174202,
       "lng": -117.162772,
       "type": "city_center"
@@ -1981,7 +1981,7 @@
       "city_id": "us-dallas",
       "city": "Dallas",
       "country": "US",
-      "name": "City Center",
+      "name": "Design District",
       "lat": 32.7762719,
       "lng": -96.7968559,
       "type": "city_center"
@@ -1991,7 +1991,7 @@
       "city_id": "us-san-jose",
       "city": "San Jose",
       "country": "US",
-      "name": "City Center",
+      "name": "Downtown San Jose",
       "lat": 37.3361663,
       "lng": -121.890591,
       "type": "city_center"
@@ -2001,7 +2001,7 @@
       "city_id": "us-austin",
       "city": "Austin",
       "country": "US",
-      "name": "City Center",
+      "name": "Clarksville",
       "lat": 30.2711286,
       "lng": -97.7436995,
       "type": "city_center"
@@ -2011,7 +2011,7 @@
       "city_id": "us-jacksonville",
       "city": "Jacksonville",
       "country": "US",
-      "name": "City Center",
+      "name": "Historic District Jacksonville",
       "lat": 30.3262247,
       "lng": -81.6579179,
       "type": "city_center"
@@ -2021,7 +2021,7 @@
       "city_id": "us-fort-worth",
       "city": "Fort Worth",
       "country": "US",
-      "name": "City Center",
+      "name": "Midtown Fort Worth",
       "lat": 32.753177,
       "lng": -97.3327459,
       "type": "city_center"
@@ -2031,7 +2031,7 @@
       "city_id": "us-columbus",
       "city": "Columbus",
       "country": "US",
-      "name": "City Center",
+      "name": "Old Town Columbus",
       "lat": 39.9622601,
       "lng": -83.0007065,
       "type": "city_center"
@@ -2041,7 +2041,7 @@
       "city_id": "us-charlotte",
       "city": "Charlotte",
       "country": "US",
-      "name": "City Center",
+      "name": "Uptown Charlotte",
       "lat": 35.2272086,
       "lng": -80.8430827,
       "type": "city_center"
@@ -2051,7 +2051,7 @@
       "city_id": "us-san-francisco",
       "city": "San Francisco",
       "country": "US",
-      "name": "City Center",
+      "name": "Marina",
       "lat": 37.7879363,
       "lng": -122.4075201,
       "type": "city_center"
@@ -2061,7 +2061,7 @@
       "city_id": "us-indianapolis",
       "city": "Indianapolis",
       "country": "US",
-      "name": "City Center",
+      "name": "Old Town Indianapolis",
       "lat": 39.7683331,
       "lng": -86.1583502,
       "type": "city_center"
@@ -2071,7 +2071,7 @@
       "city_id": "us-seattle",
       "city": "Seattle",
       "country": "US",
-      "name": "City Center",
+      "name": "Fremont Seattle",
       "lat": 47.6038321,
       "lng": -122.330062,
       "type": "city_center"
@@ -2081,7 +2081,7 @@
       "city_id": "us-denver",
       "city": "Denver",
       "country": "US",
-      "name": "City Center",
+      "name": "Five Points",
       "lat": 39.7392364,
       "lng": -104.984862,
       "type": "city_center"
@@ -2091,7 +2091,7 @@
       "city_id": "us-washington",
       "city": "Washington",
       "country": "US",
-      "name": "City Center",
+      "name": "Uptown Washington",
       "lat": 38.8950368,
       "lng": -77.0365427,
       "type": "city_center"
@@ -2101,7 +2101,7 @@
       "city_id": "us-boston",
       "city": "Boston",
       "country": "US",
-      "name": "City Center",
+      "name": "Cambridge",
       "lat": 42.3588336,
       "lng": -71.0578303,
       "type": "city_center"
@@ -2111,7 +2111,7 @@
       "city_id": "us-el-paso",
       "city": "El Paso",
       "country": "US",
-      "name": "City Center",
+      "name": "Riverside El Paso",
       "lat": 31.7601001,
       "lng": -106.4870476,
       "type": "city_center"
@@ -2121,7 +2121,7 @@
       "city_id": "us-nashville",
       "city": "Nashville",
       "country": "US",
-      "name": "City Center",
+      "name": "East Nashville",
       "lat": 36.1622767,
       "lng": -86.7742984,
       "type": "city_center"
@@ -2131,7 +2131,7 @@
       "city_id": "us-detroit",
       "city": "Detroit",
       "country": "US",
-      "name": "City Center",
+      "name": "Greektown",
       "lat": 42.3315509,
       "lng": -83.0466403,
       "type": "city_center"
@@ -2141,7 +2141,7 @@
       "city_id": "us-oklahoma-city",
       "city": "Oklahoma City",
       "country": "US",
-      "name": "City Center",
+      "name": "Downtown Oklahoma City",
       "lat": 35.4729886,
       "lng": -97.5170536,
       "type": "city_center"
@@ -2151,7 +2151,7 @@
       "city_id": "us-portland",
       "city": "Portland",
       "country": "US",
-      "name": "City Center",
+      "name": "Division",
       "lat": 45.5202471,
       "lng": -122.674194,
       "type": "city_center"
@@ -2161,7 +2161,7 @@
       "city_id": "us-las-vegas",
       "city": "Las Vegas",
       "country": "US",
-      "name": "City Center",
+      "name": "Green Valley",
       "lat": 36.1674263,
       "lng": -115.1484131,
       "type": "city_center"
@@ -2171,7 +2171,7 @@
       "city_id": "us-memphis",
       "city": "Memphis",
       "country": "US",
-      "name": "City Center",
+      "name": "Arts District Memphis",
       "lat": 35.1460249,
       "lng": -90.0517638,
       "type": "city_center"
@@ -2181,7 +2181,7 @@
       "city_id": "us-louisville",
       "city": "Louisville",
       "country": "US",
-      "name": "City Center",
+      "name": "Downtown Louisville",
       "lat": 38.2542376,
       "lng": -85.759407,
       "type": "city_center"
@@ -2191,7 +2191,7 @@
       "city_id": "us-baltimore",
       "city": "Baltimore",
       "country": "US",
-      "name": "City Center",
+      "name": "Fells Point",
       "lat": 39.2908816,
       "lng": -76.610759,
       "type": "city_center"
@@ -2201,7 +2201,7 @@
       "city_id": "us-milwaukee",
       "city": "Milwaukee",
       "country": "US",
-      "name": "City Center",
+      "name": "Brewers Hill",
       "lat": 43.0386475,
       "lng": -87.9090751,
       "type": "city_center"
@@ -2211,7 +2211,7 @@
       "city_id": "us-albuquerque",
       "city": "Albuquerque",
       "country": "US",
-      "name": "City Center",
+      "name": "Lakeside Albuquerque",
       "lat": 35.0841034,
       "lng": -106.650985,
       "type": "city_center"
@@ -2221,7 +2221,7 @@
       "city_id": "us-tucson",
       "city": "Tucson",
       "country": "US",
-      "name": "City Center",
+      "name": "Downtown Tucson",
       "lat": 32.2228765,
       "lng": -110.974847,
       "type": "city_center"
@@ -2231,7 +2231,7 @@
       "city_id": "us-fresno",
       "city": "Fresno",
       "country": "US",
-      "name": "City Center",
+      "name": "Uptown Fresno",
       "lat": 36.7394421,
       "lng": -119.78483,
       "type": "city_center"
@@ -2241,7 +2241,7 @@
       "city_id": "us-mesa",
       "city": "Mesa",
       "country": "US",
-      "name": "City Center",
+      "name": "Lakeside Mesa",
       "lat": 33.4151005,
       "lng": -111.831455,
       "type": "city_center"
@@ -2251,7 +2251,7 @@
       "city_id": "us-sacramento",
       "city": "Sacramento",
       "country": "US",
-      "name": "City Center",
+      "name": "Downtown Sacramento",
       "lat": 38.5810606,
       "lng": -121.493895,
       "type": "city_center"
@@ -2261,7 +2261,7 @@
       "city_id": "us-atlanta",
       "city": "Atlanta",
       "country": "US",
-      "name": "City Center",
+      "name": "Inman Park",
       "lat": 33.7544657,
       "lng": -84.3898151,
       "type": "city_center"
@@ -2271,7 +2271,7 @@
       "city_id": "us-kansas-city",
       "city": "Kansas City",
       "country": "US",
-      "name": "City Center",
+      "name": "Lakeside Kansas City",
       "lat": 39.100105,
       "lng": -94.5781416,
       "type": "city_center"
@@ -2281,7 +2281,7 @@
       "city_id": "us-colorado-springs",
       "city": "Colorado Springs",
       "country": "US",
-      "name": "City Center",
+      "name": "Historic District Colorado Springs",
       "lat": 38.8339578,
       "lng": -104.825348,
       "type": "city_center"
@@ -2291,7 +2291,7 @@
       "city_id": "us-omaha",
       "city": "Omaha",
       "country": "US",
-      "name": "City Center",
+      "name": "Uptown Omaha",
       "lat": 41.2587459,
       "lng": -95.9383758,
       "type": "city_center"
@@ -2301,7 +2301,7 @@
       "city_id": "us-raleigh",
       "city": "Raleigh",
       "country": "US",
-      "name": "City Center",
+      "name": "Downtown Raleigh",
       "lat": 35.7803977,
       "lng": -78.6390989,
       "type": "city_center"
@@ -2311,7 +2311,7 @@
       "city_id": "us-miami",
       "city": "Miami",
       "country": "US",
-      "name": "City Center",
+      "name": "Wynwood",
       "lat": 25.7741566,
       "lng": -80.1935973,
       "type": "city_center"
@@ -2321,7 +2321,7 @@
       "city_id": "us-long-beach",
       "city": "Long Beach",
       "country": "US",
-      "name": "City Center",
+      "name": "Midtown Long Beach",
       "lat": 33.7690164,
       "lng": -118.191604,
       "type": "city_center"
@@ -2331,7 +2331,7 @@
       "city_id": "us-virginia-beach",
       "city": "Virginia Beach",
       "country": "US",
-      "name": "City Center",
+      "name": "Uptown Virginia Beach",
       "lat": 36.8496579,
       "lng": -75.9760751,
       "type": "city_center"
@@ -2341,7 +2341,7 @@
       "city_id": "us-oakland",
       "city": "Oakland",
       "country": "US",
-      "name": "City Center",
+      "name": "Arts District Oakland",
       "lat": 37.8044557,
       "lng": -122.271356,
       "type": "city_center"
@@ -2351,7 +2351,7 @@
       "city_id": "us-minneapolis",
       "city": "Minneapolis",
       "country": "US",
-      "name": "City Center",
+      "name": "Mill District",
       "lat": 44.9772995,
       "lng": -93.2654692,
       "type": "city_center"
@@ -2361,7 +2361,7 @@
       "city_id": "us-tulsa",
       "city": "Tulsa",
       "country": "US",
-      "name": "City Center",
+      "name": "Lakeside Tulsa",
       "lat": 36.1563122,
       "lng": -95.9927516,
       "type": "city_center"
@@ -2371,7 +2371,7 @@
       "city_id": "us-tampa",
       "city": "Tampa",
       "country": "US",
-      "name": "City Center",
+      "name": "Lakeside Tampa",
       "lat": 27.9449854,
       "lng": -82.4583107,
       "type": "city_center"
@@ -2381,7 +2381,7 @@
       "city_id": "us-arlington",
       "city": "Arlington",
       "country": "US",
-      "name": "City Center",
+      "name": "Old Town Arlington",
       "lat": 32.7355816,
       "lng": -97.1071186,
       "type": "city_center"
@@ -2391,7 +2391,7 @@
       "city_id": "us-new-orleans",
       "city": "New Orleans",
       "country": "US",
-      "name": "City Center",
+      "name": "Uptown New Orleans",
       "lat": 29.9561422,
       "lng": -90.0733934,
       "type": "city_center"
@@ -2401,7 +2401,7 @@
       "city_id": "us-wichita",
       "city": "Wichita",
       "country": "US",
-      "name": "City Center",
+      "name": "Midtown Wichita",
       "lat": 37.6922361,
       "lng": -97.3375448,
       "type": "city_center"
@@ -2411,7 +2411,7 @@
       "city_id": "us-cleveland",
       "city": "Cleveland",
       "country": "US",
-      "name": "City Center",
+      "name": "Arts District Cleveland",
       "lat": 41.4996574,
       "lng": -81.6936772,
       "type": "city_center"
@@ -2421,7 +2421,7 @@
       "city_id": "us-bakersfield",
       "city": "Bakersfield",
       "country": "US",
-      "name": "City Center",
+      "name": "Historic District Bakersfield",
       "lat": 35.3738712,
       "lng": -119.019463,
       "type": "city_center"
@@ -2431,7 +2431,7 @@
       "city_id": "us-aurora",
       "city": "Aurora",
       "country": "US",
-      "name": "City Center",
+      "name": "Riverside Aurora",
       "lat": 39.7405111,
       "lng": -104.830994,
       "type": "city_center"
@@ -2441,7 +2441,7 @@
       "city_id": "us-anaheim",
       "city": "Anaheim",
       "country": "US",
-      "name": "City Center",
+      "name": "Arts District Anaheim",
       "lat": 33.8347516,
       "lng": -117.911732,
       "type": "city_center"
@@ -2451,7 +2451,7 @@
       "city_id": "us-honolulu",
       "city": "Honolulu",
       "country": "US",
-      "name": "City Center",
+      "name": "Lakeside Honolulu",
       "lat": 21.304547,
       "lng": -157.855676,
       "type": "city_center"
@@ -2461,7 +2461,7 @@
       "city_id": "us-santa-ana",
       "city": "Santa Ana",
       "country": "US",
-      "name": "City Center",
+      "name": "Midtown Santa Ana",
       "lat": 33.7494951,
       "lng": -117.873221,
       "type": "city_center"
@@ -2471,7 +2471,7 @@
       "city_id": "us-riverside",
       "city": "Riverside",
       "country": "US",
-      "name": "City Center",
+      "name": "Arts District Riverside",
       "lat": 33.9824949,
       "lng": -117.374238,
       "type": "city_center"
@@ -2481,7 +2481,7 @@
       "city_id": "us-corpus-christi",
       "city": "Corpus Christi",
       "country": "US",
-      "name": "City Center",
+      "name": "Riverside Corpus Christi",
       "lat": 27.7635302,
       "lng": -97.4033191,
       "type": "city_center"
@@ -2491,7 +2491,7 @@
       "city_id": "us-lexington",
       "city": "Lexington",
       "country": "US",
-      "name": "City Center",
+      "name": "Uptown Lexington",
       "lat": 38.0464066,
       "lng": -84.4970393,
       "type": "city_center"
@@ -2501,7 +2501,7 @@
       "city_id": "us-henderson",
       "city": "Henderson",
       "country": "US",
-      "name": "City Center",
+      "name": "Old Town Henderson",
       "lat": 36.0319602,
       "lng": -114.9822716,
       "type": "city_center"
@@ -2521,7 +2521,7 @@
       "city_id": "us-saint-paul",
       "city": "Saint Paul",
       "country": "US",
-      "name": "City Center",
+      "name": "Uptown Saint Paul",
       "lat": 44.9497487,
       "lng": -93.0931028,
       "type": "city_center"
@@ -2531,7 +2531,7 @@
       "city_id": "us-cincinnati",
       "city": "Cincinnati",
       "country": "US",
-      "name": "City Center",
+      "name": "Riverside Cincinnati",
       "lat": 39.1014537,
       "lng": -84.5124602,
       "type": "city_center"
@@ -2541,7 +2541,7 @@
       "city_id": "us-st.-louis",
       "city": "St. Louis",
       "country": "US",
-      "name": "City Center",
+      "name": "Riverside St. Louis",
       "lat": 38.6254063,
       "lng": -90.190009,
       "type": "city_center"
@@ -2551,7 +2551,7 @@
       "city_id": "us-pittsburgh",
       "city": "Pittsburgh",
       "country": "US",
-      "name": "City Center",
+      "name": "Riverside Pittsburgh",
       "lat": 40.4406968,
       "lng": -80.0025666,
       "type": "city_center"
@@ -2561,7 +2561,7 @@
       "city_id": "us-greensboro",
       "city": "Greensboro",
       "country": "US",
-      "name": "City Center",
+      "name": "Midtown Greensboro",
       "lat": 36.0726355,
       "lng": -79.7919754,
       "type": "city_center"
@@ -2571,7 +2571,7 @@
       "city_id": "us-anchorage",
       "city": "Anchorage",
       "country": "US",
-      "name": "City Center",
+      "name": "Lakeside Anchorage",
       "lat": 61.2163129,
       "lng": -149.894852,
       "type": "city_center"
@@ -2581,7 +2581,7 @@
       "city_id": "us-plano",
       "city": "Plano",
       "country": "US",
-      "name": "City Center",
+      "name": "Downtown Plano",
       "lat": 33.0136764,
       "lng": -96.6925096,
       "type": "city_center"
@@ -2591,7 +2591,7 @@
       "city_id": "us-lincoln",
       "city": "Lincoln",
       "country": "US",
-      "name": "City Center",
+      "name": "Historic District Lincoln",
       "lat": 40.8088861,
       "lng": -96.7077751,
       "type": "city_center"
@@ -2601,7 +2601,7 @@
       "city_id": "us-orlando",
       "city": "Orlando",
       "country": "US",
-      "name": "City Center",
+      "name": "Audubon Park",
       "lat": 28.5421218,
       "lng": -81.379045,
       "type": "city_center"
@@ -2611,7 +2611,7 @@
       "city_id": "us-irvine",
       "city": "Irvine",
       "country": "US",
-      "name": "City Center",
+      "name": "Riverside Irvine",
       "lat": 33.6856969,
       "lng": -117.825981,
       "type": "city_center"
@@ -2621,7 +2621,7 @@
       "city_id": "us-newark",
       "city": "Newark",
       "country": "US",
-      "name": "City Center",
+      "name": "Downtown Newark",
       "lat": 40.735657,
       "lng": -74.1723667,
       "type": "city_center"
@@ -2631,7 +2631,7 @@
       "city_id": "us-toledo",
       "city": "Toledo",
       "country": "US",
-      "name": "City Center",
+      "name": "Old Town Toledo",
       "lat": 41.6529143,
       "lng": -83.5378173,
       "type": "city_center"
@@ -2641,7 +2641,7 @@
       "city_id": "us-durham",
       "city": "Durham",
       "country": "US",
-      "name": "City Center",
+      "name": "Downtown Durham",
       "lat": 35.996653,
       "lng": -78.9018053,
       "type": "city_center"
@@ -2651,7 +2651,7 @@
       "city_id": "us-chula-vista",
       "city": "Chula Vista",
       "country": "US",
-      "name": "City Center",
+      "name": "Midtown Chula Vista",
       "lat": 32.6400541,
       "lng": -117.084195,
       "type": "city_center"
@@ -2661,7 +2661,7 @@
       "city_id": "us-fort-wayne",
       "city": "Fort Wayne",
       "country": "US",
-      "name": "City Center",
+      "name": "Uptown Fort Wayne",
       "lat": 41.0799898,
       "lng": -85.1386015,
       "type": "city_center"
@@ -2671,7 +2671,7 @@
       "city_id": "us-jersey-city",
       "city": "Jersey City",
       "country": "US",
-      "name": "City Center",
+      "name": "Uptown Jersey City",
       "lat": 40.7215682,
       "lng": -74.047455,
       "type": "city_center"
@@ -2681,7 +2681,7 @@
       "city_id": "us-st.-petersburg",
       "city": "St. Petersburg",
       "country": "US",
-      "name": "City Center",
+      "name": "Downtown St. Petersburg",
       "lat": 27.7712264,
       "lng": -82.6340259,
       "type": "city_center"
@@ -2691,7 +2691,7 @@
       "city_id": "us-laredo",
       "city": "Laredo",
       "country": "US",
-      "name": "City Center",
+      "name": "Downtown Laredo",
       "lat": 27.5079211,
       "lng": -99.5069834,
       "type": "city_center"
@@ -2701,7 +2701,7 @@
       "city_id": "us-madison",
       "city": "Madison",
       "country": "US",
-      "name": "City Center",
+      "name": "Riverside Madison",
       "lat": 43.07469,
       "lng": -89.3841663,
       "type": "city_center"
@@ -2711,7 +2711,7 @@
       "city_id": "us-chandler",
       "city": "Chandler",
       "country": "US",
-      "name": "City Center",
+      "name": "Lakeside Chandler",
       "lat": 33.3062031,
       "lng": -111.841185,
       "type": "city_center"
@@ -2721,7 +2721,7 @@
       "city_id": "us-buffalo",
       "city": "Buffalo",
       "country": "US",
-      "name": "City Center",
+      "name": "Midtown Buffalo",
       "lat": 42.8864163,
       "lng": -78.8781493,
       "type": "city_center"
@@ -2731,7 +2731,7 @@
       "city_id": "us-lubbock",
       "city": "Lubbock",
       "country": "US",
-      "name": "City Center",
+      "name": "Midtown Lubbock",
       "lat": 33.5855677,
       "lng": -101.8470215,
       "type": "city_center"
@@ -2741,7 +2741,7 @@
       "city_id": "us-scottsdale",
       "city": "Scottsdale",
       "country": "US",
-      "name": "City Center",
+      "name": "Midtown Scottsdale",
       "lat": 33.4942189,
       "lng": -111.926018,
       "type": "city_center"
@@ -2751,7 +2751,7 @@
       "city_id": "us-reno",
       "city": "Reno",
       "country": "US",
-      "name": "City Center",
+      "name": "Old Town Reno",
       "lat": 39.5261788,
       "lng": -119.812658,
       "type": "city_center"
@@ -2761,7 +2761,7 @@
       "city_id": "us-glendale",
       "city": "Glendale",
       "country": "US",
-      "name": "City Center",
+      "name": "Uptown Glendale",
       "lat": 33.5386858,
       "lng": -112.185994,
       "type": "city_center"
@@ -2771,7 +2771,7 @@
       "city_id": "us-gilbert",
       "city": "Gilbert",
       "country": "US",
-      "name": "City Center",
+      "name": "Uptown Gilbert",
       "lat": 33.3527632,
       "lng": -111.789037,
       "type": "city_center"
@@ -2781,7 +2781,7 @@
       "city_id": "us-winston-salem",
       "city": "Winston-Salem",
       "country": "US",
-      "name": "City Center",
+      "name": "Arts District Winston-Salem",
       "lat": 36.0998131,
       "lng": -80.2440518,
       "type": "city_center"
@@ -2791,7 +2791,7 @@
       "city_id": "us-north-las-vegas",
       "city": "North Las Vegas",
       "country": "US",
-      "name": "City Center",
+      "name": "Historic District North Las Vegas",
       "lat": 36.2005191,
       "lng": -115.1214745,
       "type": "city_center"
@@ -2801,7 +2801,7 @@
       "city_id": "us-norfolk",
       "city": "Norfolk",
       "country": "US",
-      "name": "City Center",
+      "name": "Old Town Norfolk",
       "lat": 36.8493695,
       "lng": -76.2899539,
       "type": "city_center"
@@ -2811,7 +2811,7 @@
       "city_id": "us-chesapeake",
       "city": "Chesapeake",
       "country": "US",
-      "name": "City Center",
+      "name": "Arts District Chesapeake",
       "lat": 36.7168315,
       "lng": -76.2494453,
       "type": "city_center"
@@ -2821,7 +2821,7 @@
       "city_id": "us-garland",
       "city": "Garland",
       "country": "US",
-      "name": "City Center",
+      "name": "Uptown Garland",
       "lat": 32.912624,
       "lng": -96.6388833,
       "type": "city_center"
@@ -2831,7 +2831,7 @@
       "city_id": "us-irving",
       "city": "Irving",
       "country": "US",
-      "name": "City Center",
+      "name": "Lakeside Irving",
       "lat": 32.8295183,
       "lng": -96.9442177,
       "type": "city_center"
@@ -2841,7 +2841,7 @@
       "city_id": "us-hialeah",
       "city": "Hialeah",
       "country": "US",
-      "name": "City Center",
+      "name": "Historic District Hialeah",
       "lat": 25.8267775,
       "lng": -80.2814009,
       "type": "city_center"
@@ -2851,7 +2851,7 @@
       "city_id": "us-fremont",
       "city": "Fremont",
       "country": "US",
-      "name": "City Center",
+      "name": "Historic District Fremont",
       "lat": 37.5482697,
       "lng": -121.988571,
       "type": "city_center"
@@ -2861,7 +2861,7 @@
       "city_id": "us-boise",
       "city": "Boise",
       "country": "US",
-      "name": "City Center",
+      "name": "Historic District Boise",
       "lat": 43.6166163,
       "lng": -116.200886,
       "type": "city_center"
@@ -2871,7 +2871,7 @@
       "city_id": "us-richmond",
       "city": "Richmond",
       "country": "US",
-      "name": "City Center",
+      "name": "Old Town Richmond",
       "lat": 37.5385087,
       "lng": -77.43428,
       "type": "city_center"
@@ -2881,7 +2881,7 @@
       "city_id": "us-baton-rouge",
       "city": "Baton Rouge",
       "country": "US",
-      "name": "City Center",
+      "name": "Arts District Baton Rouge",
       "lat": 30.4494155,
       "lng": -91.1869659,
       "type": "city_center"
@@ -2891,7 +2891,7 @@
       "city_id": "ru-saint-petersburg",
       "city": "Saint Petersburg",
       "country": "RU",
-      "name": "City Center",
+      "name": "Central District",
       "lat": 59.8554978,
       "lng": 30.5080418,
       "type": "city_center"
@@ -2901,7 +2901,7 @@
       "city_id": "ru-novosibirsk",
       "city": "Novosibirsk",
       "country": "RU",
-      "name": "City Center",
+      "name": "Historic District Novosibirsk",
       "lat": 55.0288307,
       "lng": 82.9226887,
       "type": "city_center"
@@ -2911,7 +2911,7 @@
       "city_id": "ru-yekaterinburg",
       "city": "Yekaterinburg",
       "country": "RU",
-      "name": "City Center",
+      "name": "Old Town Yekaterinburg",
       "lat": 56.8382071,
       "lng": 60.6007886,
       "type": "city_center"
@@ -2921,7 +2921,7 @@
       "city_id": "ru-kazan",
       "city": "Kazan",
       "country": "RU",
-      "name": "City Center",
+      "name": "Historic District Kazan",
       "lat": 55.7946485,
       "lng": 49.1115022,
       "type": "city_center"
@@ -2931,7 +2931,7 @@
       "city_id": "ru-nizhny-novgorod",
       "city": "Nizhny Novgorod",
       "country": "RU",
-      "name": "City Center",
+      "name": "Old Town Nizhny Novgorod",
       "lat": 56.1301421,
       "lng": 44.1364688,
       "type": "city_center"
@@ -2941,7 +2941,7 @@
       "city_id": "ru-chelyabinsk",
       "city": "Chelyabinsk",
       "country": "RU",
-      "name": "City Center",
+      "name": "Uptown Chelyabinsk",
       "lat": 55.1598408,
       "lng": 61.4025547,
       "type": "city_center"
@@ -2951,7 +2951,7 @@
       "city_id": "ru-omsk",
       "city": "Omsk",
       "country": "RU",
-      "name": "City Center",
+      "name": "Old Town Omsk",
       "lat": 54.9830067,
       "lng": 73.3745224,
       "type": "city_center"
@@ -2961,7 +2961,7 @@
       "city_id": "ru-rostov-on-don",
       "city": "Rostov-on-Don",
       "country": "RU",
-      "name": "City Center",
+      "name": "Uptown Rostov-on-Don",
       "lat": 47.2610441,
       "lng": 39.7249086,
       "type": "city_center"
@@ -2971,7 +2971,7 @@
       "city_id": "ru-ufa",
       "city": "Ufa",
       "country": "RU",
-      "name": "City Center",
+      "name": "Midtown Ufa",
       "lat": 54.7261409,
       "lng": 55.947499,
       "type": "city_center"
@@ -2981,7 +2981,7 @@
       "city_id": "ru-krasnoyarsk",
       "city": "Krasnoyarsk",
       "country": "RU",
-      "name": "City Center",
+      "name": "Arts District Krasnoyarsk",
       "lat": 56.0091173,
       "lng": 92.872586,
       "type": "city_center"
@@ -2991,7 +2991,7 @@
       "city_id": "ru-voronezh",
       "city": "Voronezh",
       "country": "RU",
-      "name": "City Center",
+      "name": "Uptown Voronezh",
       "lat": 51.6800081,
       "lng": 39.183725,
       "type": "city_center"
@@ -3001,7 +3001,7 @@
       "city_id": "ru-perm",
       "city": "Perm",
       "country": "RU",
-      "name": "City Center",
+      "name": "Lakeside Perm",
       "lat": 58.0108531,
       "lng": 56.2318528,
       "type": "city_center"
@@ -3011,7 +3011,7 @@
       "city_id": "ru-volgograd",
       "city": "Volgograd",
       "country": "RU",
-      "name": "City Center",
+      "name": "Midtown Volgograd",
       "lat": 48.7081906,
       "lng": 44.5153353,
       "type": "city_center"
@@ -3021,7 +3021,7 @@
       "city_id": "ru-krasnodar",
       "city": "Krasnodar",
       "country": "RU",
-      "name": "City Center",
+      "name": "Lakeside Krasnodar",
       "lat": 45.0351532,
       "lng": 38.9772396,
       "type": "city_center"
@@ -3031,7 +3031,7 @@
       "city_id": "ru-saratov",
       "city": "Saratov",
       "country": "RU",
-      "name": "City Center",
+      "name": "Downtown Saratov",
       "lat": 51.530018,
       "lng": 46.034683,
       "type": "city_center"
@@ -3041,7 +3041,7 @@
       "city_id": "ru-tyumen",
       "city": "Tyumen",
       "country": "RU",
-      "name": "City Center",
+      "name": "Riverside Tyumen",
       "lat": 57.153534,
       "lng": 65.542274,
       "type": "city_center"
@@ -3051,7 +3051,7 @@
       "city_id": "ru-tolyatti",
       "city": "Tolyatti",
       "country": "RU",
-      "name": "City Center",
+      "name": "Historic District Tolyatti",
       "lat": 53.5098845,
       "lng": 49.4189187,
       "type": "city_center"
@@ -3061,7 +3061,7 @@
       "city_id": "ru-izhevsk",
       "city": "Izhevsk",
       "country": "RU",
-      "name": "City Center",
+      "name": "Old Town Izhevsk",
       "lat": 56.8605175,
       "lng": 53.1977307,
       "type": "city_center"
@@ -3071,7 +3071,7 @@
       "city_id": "ru-barnaul",
       "city": "Barnaul",
       "country": "RU",
-      "name": "City Center",
+      "name": "Arts District Barnaul",
       "lat": 53.3475493,
       "lng": 83.7788448,
       "type": "city_center"
@@ -3081,7 +3081,7 @@
       "city_id": "ru-ulyanovsk",
       "city": "Ulyanovsk",
       "country": "RU",
-      "name": "City Center",
+      "name": "Lakeside Ulyanovsk",
       "lat": 54.3150278,
       "lng": 48.403373,
       "type": "city_center"
@@ -3091,7 +3091,7 @@
       "city_id": "ru-irkutsk",
       "city": "Irkutsk",
       "country": "RU",
-      "name": "City Center",
+      "name": "Riverside Irkutsk",
       "lat": 52.2891225,
       "lng": 104.279829,
       "type": "city_center"
@@ -3101,7 +3101,7 @@
       "city_id": "ru-khabarovsk",
       "city": "Khabarovsk",
       "country": "RU",
-      "name": "City Center",
+      "name": "Lakeside Khabarovsk",
       "lat": 48.4812568,
       "lng": 135.0762968,
       "type": "city_center"
@@ -3111,7 +3111,7 @@
       "city_id": "ru-yaroslavl",
       "city": "Yaroslavl",
       "country": "RU",
-      "name": "City Center",
+      "name": "Arts District Yaroslavl",
       "lat": 57.6508433,
       "lng": 39.8718634,
       "type": "city_center"
@@ -3121,7 +3121,7 @@
       "city_id": "ru-vladivostok",
       "city": "Vladivostok",
       "country": "RU",
-      "name": "City Center",
+      "name": "Downtown Vladivostok",
       "lat": 43.1150678,
       "lng": 131.8855768,
       "type": "city_center"
@@ -3131,7 +3131,7 @@
       "city_id": "ru-makhachkala",
       "city": "Makhachkala",
       "country": "RU",
-      "name": "City Center",
+      "name": "Midtown Makhachkala",
       "lat": 42.9830241,
       "lng": 47.5048717,
       "type": "city_center"
@@ -3141,7 +3141,7 @@
       "city_id": "ru-tomsk",
       "city": "Tomsk",
       "country": "RU",
-      "name": "City Center",
+      "name": "Arts District Tomsk",
       "lat": 56.4887526,
       "lng": 84.9523434,
       "type": "city_center"
@@ -3151,7 +3151,7 @@
       "city_id": "ru-orenburg",
       "city": "Orenburg",
       "country": "RU",
-      "name": "City Center",
+      "name": "Downtown Orenburg",
       "lat": 51.7671248,
       "lng": 55.0978517,
       "type": "city_center"
@@ -3161,7 +3161,7 @@
       "city_id": "ru-kemerovo",
       "city": "Kemerovo",
       "country": "RU",
-      "name": "City Center",
+      "name": "Downtown Kemerovo",
       "lat": 54.7264651,
       "lng": 86.2186718,
       "type": "city_center"
@@ -3171,7 +3171,7 @@
       "city_id": "ru-novokuznetsk",
       "city": "Novokuznetsk",
       "country": "RU",
-      "name": "City Center",
+      "name": "Historic District Novokuznetsk",
       "lat": 53.7575903,
       "lng": 87.1358494,
       "type": "city_center"
@@ -3181,7 +3181,7 @@
       "city_id": "ru-ryazan",
       "city": "Ryazan",
       "country": "RU",
-      "name": "City Center",
+      "name": "Uptown Ryazan",
       "lat": 54.6295687,
       "lng": 39.7425039,
       "type": "city_center"
@@ -3191,7 +3191,7 @@
       "city_id": "ru-naberezhnye-chelny",
       "city": "Naberezhnye Chelny",
       "country": "RU",
-      "name": "City Center",
+      "name": "Old Town Naberezhnye Chelny",
       "lat": 55.7419774,
       "lng": 52.399207,
       "type": "city_center"
@@ -3201,7 +3201,7 @@
       "city_id": "ru-astrakhan",
       "city": "Astrakhan",
       "country": "RU",
-      "name": "City Center",
+      "name": "Midtown Astrakhan",
       "lat": 46.3498308,
       "lng": 48.0326203,
       "type": "city_center"
@@ -3211,7 +3211,7 @@
       "city_id": "ru-penza",
       "city": "Penza",
       "country": "RU",
-      "name": "City Center",
+      "name": "Midtown Penza",
       "lat": 53.1953477,
       "lng": 45.0190437,
       "type": "city_center"
@@ -3221,7 +3221,7 @@
       "city_id": "ru-kirov",
       "city": "Kirov",
       "country": "RU",
-      "name": "City Center",
+      "name": "Lakeside Kirov",
       "lat": 58.6035661,
       "lng": 49.6666241,
       "type": "city_center"
@@ -3231,7 +3231,7 @@
       "city_id": "ru-lipetsk",
       "city": "Lipetsk",
       "country": "RU",
-      "name": "City Center",
+      "name": "Riverside Lipetsk",
       "lat": 52.6051488,
       "lng": 39.5963775,
       "type": "city_center"
@@ -3241,7 +3241,7 @@
       "city_id": "ru-balashikha",
       "city": "Balashikha",
       "country": "RU",
-      "name": "City Center",
+      "name": "Uptown Balashikha",
       "lat": 55.7997662,
       "lng": 37.9373707,
       "type": "city_center"
@@ -3251,7 +3251,7 @@
       "city_id": "ru-cheboksary",
       "city": "Cheboksary",
       "country": "RU",
-      "name": "City Center",
+      "name": "Midtown Cheboksary",
       "lat": 56.1399598,
       "lng": 47.2480999,
       "type": "city_center"
@@ -3261,7 +3261,7 @@
       "city_id": "ru-kaliningrad",
       "city": "Kaliningrad",
       "country": "RU",
-      "name": "City Center",
+      "name": "Midtown Kaliningrad",
       "lat": 54.7046485,
       "lng": 20.4565666,
       "type": "city_center"
@@ -3271,7 +3271,7 @@
       "city_id": "ru-tula",
       "city": "Tula",
       "country": "RU",
-      "name": "City Center",
+      "name": "Uptown Tula",
       "lat": 54.1930321,
       "lng": 37.61754,
       "type": "city_center"
@@ -3281,7 +3281,7 @@
       "city_id": "ru-kursk",
       "city": "Kursk",
       "country": "RU",
-      "name": "City Center",
+      "name": "Arts District Kursk",
       "lat": 51.7270357,
       "lng": 36.192248,
       "type": "city_center"
@@ -3291,7 +3291,7 @@
       "city_id": "ru-stavropol",
       "city": "Stavropol",
       "country": "RU",
-      "name": "City Center",
+      "name": "Midtown Stavropol",
       "lat": 45.0442234,
       "lng": 41.9897172,
       "type": "city_center"
@@ -3301,7 +3301,7 @@
       "city_id": "ru-sevastopol",
       "city": "Sevastopol",
       "country": "RU",
-      "name": "City Center",
+      "name": "Historic District Sevastopol",
       "lat": 44.5878744,
       "lng": 33.4797193,
       "type": "city_center"
@@ -3311,7 +3311,7 @@
       "city_id": "ru-ulan-ude",
       "city": "Ulan-Ude",
       "country": "RU",
-      "name": "City Center",
+      "name": "Lakeside Ulan-Ude",
       "lat": 51.8357841,
       "lng": 107.5839105,
       "type": "city_center"
@@ -3321,7 +3321,7 @@
       "city_id": "ru-tver",
       "city": "Tver",
       "country": "RU",
-      "name": "City Center",
+      "name": "Old Town Tver",
       "lat": 56.858675,
       "lng": 35.9208284,
       "type": "city_center"
@@ -3331,7 +3331,7 @@
       "city_id": "ru-magnitogorsk",
       "city": "Magnitogorsk",
       "country": "RU",
-      "name": "City Center",
+      "name": "Lakeside Magnitogorsk",
       "lat": 53.4070173,
       "lng": 58.9811297,
       "type": "city_center"
@@ -3341,7 +3341,7 @@
       "city_id": "ru-ivanovo",
       "city": "Ivanovo",
       "country": "RU",
-      "name": "City Center",
+      "name": "Midtown Ivanovo",
       "lat": 56.9956855,
       "lng": 40.9812104,
       "type": "city_center"
@@ -3351,7 +3351,7 @@
       "city_id": "ru-bryansk",
       "city": "Bryansk",
       "country": "RU",
-      "name": "City Center",
+      "name": "Arts District Bryansk",
       "lat": 53.2423778,
       "lng": 34.3668288,
       "type": "city_center"
@@ -3361,7 +3361,7 @@
       "city_id": "ru-belgorod",
       "city": "Belgorod",
       "country": "RU",
-      "name": "City Center",
+      "name": "Riverside Belgorod",
       "lat": 50.5955595,
       "lng": 36.5873394,
       "type": "city_center"
@@ -3371,7 +3371,7 @@
       "city_id": "ru-surgut",
       "city": "Surgut",
       "country": "RU",
-      "name": "City Center",
+      "name": "Downtown Surgut",
       "lat": 61.2419217,
       "lng": 73.3952717,
       "type": "city_center"
@@ -3381,7 +3381,7 @@
       "city_id": "ru-vladimir",
       "city": "Vladimir",
       "country": "RU",
-      "name": "City Center",
+      "name": "Old Town Vladimir",
       "lat": 56.1288899,
       "lng": 40.4075203,
       "type": "city_center"
@@ -3391,7 +3391,7 @@
       "city_id": "ru-nizhny-tagil",
       "city": "Nizhny Tagil",
       "country": "RU",
-      "name": "City Center",
+      "name": "Riverside Nizhny Tagil",
       "lat": 57.9076001,
       "lng": 59.97077,
       "type": "city_center"
@@ -3401,7 +3401,7 @@
       "city_id": "ru-arkhangelsk",
       "city": "Arkhangelsk",
       "country": "RU",
-      "name": "City Center",
+      "name": "Midtown Arkhangelsk",
       "lat": 64.543022,
       "lng": 40.537121,
       "type": "city_center"
@@ -3411,7 +3411,7 @@
       "city_id": "ru-chita",
       "city": "Chita",
       "country": "RU",
-      "name": "City Center",
+      "name": "Uptown Chita",
       "lat": 52.033409,
       "lng": 113.500893,
       "type": "city_center"
@@ -3421,7 +3421,7 @@
       "city_id": "ru-smolensk",
       "city": "Smolensk",
       "country": "RU",
-      "name": "City Center",
+      "name": "Downtown Smolensk",
       "lat": 54.7814057,
       "lng": 32.0461261,
       "type": "city_center"
@@ -3431,7 +3431,7 @@
       "city_id": "ru-kaluga",
       "city": "Kaluga",
       "country": "RU",
-      "name": "City Center",
+      "name": "Historic District Kaluga",
       "lat": 54.5101087,
       "lng": 36.2598115,
       "type": "city_center"
@@ -3441,7 +3441,7 @@
       "city_id": "ru-volzhsky",
       "city": "Volzhsky",
       "country": "RU",
-      "name": "City Center",
+      "name": "Arts District Volzhsky",
       "lat": 48.829992,
       "lng": 44.7654586,
       "type": "city_center"
@@ -3451,7 +3451,7 @@
       "city_id": "ru-cherepovets",
       "city": "Cherepovets",
       "country": "RU",
-      "name": "City Center",
+      "name": "Riverside Cherepovets",
       "lat": 59.1242181,
       "lng": 37.9123351,
       "type": "city_center"
@@ -3461,7 +3461,7 @@
       "city_id": "ru-saransk",
       "city": "Saransk",
       "country": "RU",
-      "name": "City Center",
+      "name": "Riverside Saransk",
       "lat": 54.18671,
       "lng": 45.18383,
       "type": "city_center"
@@ -3471,7 +3471,7 @@
       "city_id": "ru-vologda",
       "city": "Vologda",
       "country": "RU",
-      "name": "City Center",
+      "name": "Lakeside Vologda",
       "lat": 59.2264585,
       "lng": 39.8722391,
       "type": "city_center"
@@ -3481,7 +3481,7 @@
       "city_id": "ru-yakutsk",
       "city": "Yakutsk",
       "country": "RU",
-      "name": "City Center",
+      "name": "Uptown Yakutsk",
       "lat": 62.0274078,
       "lng": 129.7319787,
       "type": "city_center"
@@ -3491,7 +3491,7 @@
       "city_id": "ru-tambov",
       "city": "Tambov",
       "country": "RU",
-      "name": "City Center",
+      "name": "Riverside Tambov",
       "lat": 52.7216164,
       "lng": 41.4523988,
       "type": "city_center"
@@ -3501,7 +3501,7 @@
       "city_id": "ru-sterlitamak",
       "city": "Sterlitamak",
       "country": "RU",
-      "name": "City Center",
+      "name": "Uptown Sterlitamak",
       "lat": 53.6194416,
       "lng": 55.9616172,
       "type": "city_center"
@@ -3511,7 +3511,7 @@
       "city_id": "ru-kostroma",
       "city": "Kostroma",
       "country": "RU",
-      "name": "City Center",
+      "name": "Downtown Kostroma",
       "lat": 57.7679158,
       "lng": 40.9269141,
       "type": "city_center"
@@ -3521,7 +3521,7 @@
       "city_id": "ru-petrozavodsk",
       "city": "Petrozavodsk",
       "country": "RU",
-      "name": "City Center",
+      "name": "Old Town Petrozavodsk",
       "lat": 61.789221,
       "lng": 34.3688041,
       "type": "city_center"
@@ -3531,7 +3531,7 @@
       "city_id": "ru-nizhnevartovsk",
       "city": "Nizhnevartovsk",
       "country": "RU",
-      "name": "City Center",
+      "name": "Midtown Nizhnevartovsk",
       "lat": 60.9384134,
       "lng": 76.5590829,
       "type": "city_center"
@@ -3541,7 +3541,7 @@
       "city_id": "ru-novorossiysk",
       "city": "Novorossiysk",
       "country": "RU",
-      "name": "City Center",
+      "name": "Uptown Novorossiysk",
       "lat": 44.7239578,
       "lng": 37.7690711,
       "type": "city_center"
@@ -3551,7 +3551,7 @@
       "city_id": "ru-yoshkar-ola",
       "city": "Yoshkar-Ola",
       "country": "RU",
-      "name": "City Center",
+      "name": "Riverside Yoshkar-Ola",
       "lat": 56.6315556,
       "lng": 47.8868803,
       "type": "city_center"
@@ -3561,7 +3561,7 @@
       "city_id": "ru-murmansk",
       "city": "Murmansk",
       "country": "RU",
-      "name": "City Center",
+      "name": "Downtown Murmansk",
       "lat": 68.970665,
       "lng": 33.07497,
       "type": "city_center"
@@ -3571,7 +3571,7 @@
       "city_id": "ru-taganrog",
       "city": "Taganrog",
       "country": "RU",
-      "name": "City Center",
+      "name": "Historic District Taganrog",
       "lat": 47.2153657,
       "lng": 38.9285216,
       "type": "city_center"
@@ -3581,7 +3581,7 @@
       "city_id": "ru-komsomolsk-on-amur",
       "city": "Komsomolsk-on-Amur",
       "country": "RU",
-      "name": "City Center",
+      "name": "Old Town Komsomolsk-on-Amur",
       "lat": 50.5497277,
       "lng": 137.0099189,
       "type": "city_center"
@@ -3591,7 +3591,7 @@
       "city_id": "ru-syktyvkar",
       "city": "Syktyvkar",
       "country": "RU",
-      "name": "City Center",
+      "name": "Historic District Syktyvkar",
       "lat": 61.6685237,
       "lng": 50.8352024,
       "type": "city_center"
@@ -3601,7 +3601,7 @@
       "city_id": "ru-nizhny-novgorod",
       "city": "Nizhny Novgorod",
       "country": "RU",
-      "name": "City Center",
+      "name": "Midtown Nizhny Novgorod",
       "lat": 56.1301421,
       "lng": 44.1364688,
       "type": "city_center"
@@ -3611,7 +3611,7 @@
       "city_id": "ru-bratsk",
       "city": "Bratsk",
       "country": "RU",
-      "name": "City Center",
+      "name": "Midtown Bratsk",
       "lat": 56.1517085,
       "lng": 101.6334907,
       "type": "city_center"
@@ -3621,7 +3621,7 @@
       "city_id": "ru-oryol",
       "city": "Oryol",
       "country": "RU",
-      "name": "City Center",
+      "name": "Uptown Oryol",
       "lat": 52.9709262,
       "lng": 36.0642127,
       "type": "city_center"
@@ -3631,7 +3631,7 @@
       "city_id": "ru-nalchik",
       "city": "Nalchik",
       "country": "RU",
-      "name": "City Center",
+      "name": "Riverside Nalchik",
       "lat": 43.4769604,
       "lng": 43.5966578,
       "type": "city_center"
@@ -3641,7 +3641,7 @@
       "city_id": "ru-mytishchi",
       "city": "Mytishchi",
       "country": "RU",
-      "name": "City Center",
+      "name": "Midtown Mytishchi",
       "lat": 55.9094928,
       "lng": 37.7339358,
       "type": "city_center"
@@ -3651,7 +3651,7 @@
       "city_id": "ru-shakhty",
       "city": "Shakhty",
       "country": "RU",
-      "name": "City Center",
+      "name": "Lakeside Shakhty",
       "lat": 47.7094622,
       "lng": 40.2154859,
       "type": "city_center"
@@ -3661,7 +3661,7 @@
       "city_id": "ru-angarsk",
       "city": "Angarsk",
       "country": "RU",
-      "name": "City Center",
+      "name": "Riverside Angarsk",
       "lat": 52.5443167,
       "lng": 103.8882138,
       "type": "city_center"
@@ -3671,7 +3671,7 @@
       "city_id": "ru-blagoveshchensk",
       "city": "Blagoveshchensk",
       "country": "RU",
-      "name": "City Center",
+      "name": "Arts District Blagoveshchensk",
       "lat": 50.2600417,
       "lng": 127.5337378,
       "type": "city_center"
@@ -3681,7 +3681,7 @@
       "city_id": "ru-stary-oskol",
       "city": "Stary Oskol",
       "country": "RU",
-      "name": "City Center",
+      "name": "Lakeside Stary Oskol",
       "lat": 51.298038,
       "lng": 37.833202,
       "type": "city_center"
@@ -3691,7 +3691,7 @@
       "city_id": "ru-podolsk",
       "city": "Podolsk",
       "country": "RU",
-      "name": "City Center",
+      "name": "Uptown Podolsk",
       "lat": 55.4308841,
       "lng": 37.5453056,
       "type": "city_center"
@@ -3701,7 +3701,7 @@
       "city_id": "ru-orsk",
       "city": "Orsk",
       "country": "RU",
-      "name": "City Center",
+      "name": "Riverside Orsk",
       "lat": 51.2305015,
       "lng": 58.4738015,
       "type": "city_center"
@@ -3711,7 +3711,7 @@
       "city_id": "ru-noginsk",
       "city": "Noginsk",
       "country": "RU",
-      "name": "City Center",
+      "name": "Midtown Noginsk",
       "lat": 55.8553511,
       "lng": 38.4411898,
       "type": "city_center"
@@ -3721,7 +3721,7 @@
       "city_id": "ru-khimki",
       "city": "Khimki",
       "country": "RU",
-      "name": "City Center",
+      "name": "Riverside Khimki",
       "lat": 55.8917293,
       "lng": 37.4396994,
       "type": "city_center"
@@ -3731,7 +3731,7 @@
       "city_id": "ru-engels",
       "city": "Engels",
       "country": "RU",
-      "name": "City Center",
+      "name": "Lakeside Engels",
       "lat": 51.5013775,
       "lng": 46.1233093,
       "type": "city_center"
@@ -3741,7 +3741,7 @@
       "city_id": "ru-grozny",
       "city": "Grozny",
       "country": "RU",
-      "name": "City Center",
+      "name": "Riverside Grozny",
       "lat": 43.3086383,
       "lng": 45.7065735,
       "type": "city_center"
@@ -3751,7 +3751,7 @@
       "city_id": "ru-pskov",
       "city": "Pskov",
       "country": "RU",
-      "name": "City Center",
+      "name": "Historic District Pskov",
       "lat": 57.8173923,
       "lng": 28.3343465,
       "type": "city_center"
@@ -3761,7 +3761,7 @@
       "city_id": "ru-biysk",
       "city": "Biysk",
       "country": "RU",
-      "name": "City Center",
+      "name": "Historic District Biysk",
       "lat": 52.5394905,
       "lng": 85.2148673,
       "type": "city_center"
@@ -3771,7 +3771,7 @@
       "city_id": "ru-balakovo",
       "city": "Balakovo",
       "country": "RU",
-      "name": "City Center",
+      "name": "Old Town Balakovo",
       "lat": 52.01812,
       "lng": 47.819141,
       "type": "city_center"
@@ -3781,7 +3781,7 @@
       "city_id": "ru-armavir",
       "city": "Armavir",
       "country": "RU",
-      "name": "City Center",
+      "name": "Riverside Armavir",
       "lat": 44.9993585,
       "lng": 41.1294061,
       "type": "city_center"
@@ -3791,7 +3791,7 @@
       "city_id": "ru-korolev",
       "city": "Korolev",
       "country": "RU",
-      "name": "City Center",
+      "name": "Old Town Korolev",
       "lat": 55.9190049,
       "lng": 37.8150443,
       "type": "city_center"
@@ -3801,7 +3801,7 @@
       "city_id": "ru-petropavlovsk-kamchatsky",
       "city": "Petropavlovsk-Kamchatsky",
       "country": "RU",
-      "name": "City Center",
+      "name": "Midtown Petropavlovsk-Kamchatsky",
       "lat": 53.0199838,
       "lng": 158.6471356,
       "type": "city_center"
@@ -3811,7 +3811,7 @@
       "city_id": "ru-lyubertsy",
       "city": "Lyubertsy",
       "country": "RU",
-      "name": "City Center",
+      "name": "Old Town Lyubertsy",
       "lat": 55.6783142,
       "lng": 37.89377,
       "type": "city_center"
@@ -3821,7 +3821,7 @@
       "city_id": "ru-prokopyevsk",
       "city": "Prokopyevsk",
       "country": "RU",
-      "name": "City Center",
+      "name": "Riverside Prokopyevsk",
       "lat": 53.8879117,
       "lng": 86.7492072,
       "type": "city_center"
@@ -3831,7 +3831,7 @@
       "city_id": "am-gyumri",
       "city": "Gyumri",
       "country": "AM",
-      "name": "City Center",
+      "name": "Riverside Gyumri",
       "lat": 40.7852085,
       "lng": 43.8416095,
       "type": "city_center"
@@ -3841,7 +3841,7 @@
       "city_id": "am-vanadzor",
       "city": "Vanadzor",
       "country": "AM",
-      "name": "City Center",
+      "name": "Downtown Vanadzor",
       "lat": 40.8136308,
       "lng": 44.4821035,
       "type": "city_center"
@@ -3851,7 +3851,7 @@
       "city_id": "am-vagharshapat",
       "city": "Vagharshapat",
       "country": "AM",
-      "name": "City Center",
+      "name": "Riverside Vagharshapat",
       "lat": 40.1627757,
       "lng": 44.2931665,
       "type": "city_center"
@@ -3861,7 +3861,7 @@
       "city_id": "am-hrazdan",
       "city": "Hrazdan",
       "country": "AM",
-      "name": "City Center",
+      "name": "Downtown Hrazdan",
       "lat": 40.5196871,
       "lng": 44.7500706,
       "type": "city_center"
@@ -3871,7 +3871,7 @@
       "city_id": "am-abovyan",
       "city": "Abovyan",
       "country": "AM",
-      "name": "City Center",
+      "name": "Midtown Abovyan",
       "lat": 40.2714761,
       "lng": 44.6333951,
       "type": "city_center"
@@ -3881,7 +3881,7 @@
       "city_id": "am-kapan",
       "city": "Kapan",
       "country": "AM",
-      "name": "City Center",
+      "name": "Midtown Kapan",
       "lat": 39.207636,
       "lng": 46.4049074,
       "type": "city_center"
@@ -3891,7 +3891,7 @@
       "city_id": "am-armavir",
       "city": "Armavir",
       "country": "AM",
-      "name": "City Center",
+      "name": "Downtown Armavir",
       "lat": 40.1555485,
       "lng": 44.0387565,
       "type": "city_center"
@@ -3901,7 +3901,7 @@
       "city_id": "am-gavar",
       "city": "Gavar",
       "country": "AM",
-      "name": "City Center",
+      "name": "Old Town Gavar",
       "lat": 40.3513976,
       "lng": 45.1273162,
       "type": "city_center"
@@ -3911,7 +3911,7 @@
       "city_id": "am-artashat",
       "city": "Artashat",
       "country": "AM",
-      "name": "City Center",
+      "name": "Riverside Artashat",
       "lat": 39.9566633,
       "lng": 44.5471007,
       "type": "city_center"
@@ -3921,7 +3921,7 @@
       "city_id": "am-goris",
       "city": "Goris",
       "country": "AM",
-      "name": "City Center",
+      "name": "Lakeside Goris",
       "lat": 39.5052419,
       "lng": 46.3442334,
       "type": "city_center"
@@ -3931,7 +3931,7 @@
       "city_id": "am-ashtarak",
       "city": "Ashtarak",
       "country": "AM",
-      "name": "City Center",
+      "name": "Riverside Ashtarak",
       "lat": 40.2886849,
       "lng": 44.3613061,
       "type": "city_center"
@@ -3941,7 +3941,7 @@
       "city_id": "am-sevan",
       "city": "Sevan",
       "country": "AM",
-      "name": "City Center",
+      "name": "Uptown Sevan",
       "lat": 40.3925199,
       "lng": 45.3460867,
       "type": "city_center"
@@ -3951,7 +3951,7 @@
       "city_id": "am-ijevan",
       "city": "Ijevan",
       "country": "AM",
-      "name": "City Center",
+      "name": "Midtown Ijevan",
       "lat": 40.8779943,
       "lng": 45.1437542,
       "type": "city_center"
@@ -3961,7 +3961,7 @@
       "city_id": "am-charentsavan",
       "city": "Charentsavan",
       "country": "AM",
-      "name": "City Center",
+      "name": "Old Town Charentsavan",
       "lat": 40.4029877,
       "lng": 44.6469349,
       "type": "city_center"
@@ -4044,7 +4044,7 @@
       "city_id": "us-houston",
       "city": "Houston",
       "country": "US",
-      "name": "Downtown",
+      "name": "Downtown Houston",
       "lat": 29.7589,
       "lng": -95.3677
     },
@@ -4053,7 +4053,7 @@
       "city_id": "us-houston",
       "city": "Houston",
       "country": "US",
-      "name": "Midtown",
+      "name": "Midtown Houston",
       "lat": 29.7423,
       "lng": -95.3846
     },
@@ -4210,6 +4210,1278 @@
       "name": "Kanaker-Zeytun",
       "lat": 40.2035,
       "lng": 44.5344
+    },
+    {
+      "id": "f0368bd7-ed1f-4c9c-9808-b26d518c7f1a",
+      "name": "Glendale Los Angeles",
+      "city": "Los Angeles",
+      "country": "US",
+      "lat": 34.1425,
+      "lng": -118.2551
+    },
+    {
+      "id": "a535cd93-dfa4-4e8d-b592-c181daf6e481",
+      "name": "Pasadena Los Angeles",
+      "city": "Los Angeles",
+      "country": "US",
+      "lat": 34.1478,
+      "lng": -118.1445
+    },
+    {
+      "id": "1ea9cf1d-e03b-4a0a-bf67-50266e24dd0a",
+      "name": "Burbank",
+      "city": "Los Angeles",
+      "country": "US",
+      "lat": 34.1808,
+      "lng": -118.309
+    },
+    {
+      "id": "d5502f49-fb43-4484-bd7e-8ebb8393ead5",
+      "name": "Long Beach",
+      "city": "Los Angeles",
+      "country": "US",
+      "lat": 33.7701,
+      "lng": -118.1937
+    },
+    {
+      "id": "dfb1dd33-6b36-43d2-9ea7-b6bca37b838f",
+      "name": "Torrance",
+      "city": "Los Angeles",
+      "country": "US",
+      "lat": 33.8358,
+      "lng": -118.3406
+    },
+    {
+      "id": "b9f96f7c-959d-4320-80f1-77aeebb82ba3",
+      "name": "Santa Clarita",
+      "city": "Los Angeles",
+      "country": "US",
+      "lat": 34.3917,
+      "lng": -118.5426
+    },
+    {
+      "id": "ea4a96d3-7722-4b96-b6db-17a02e71c257",
+      "name": "Pomona",
+      "city": "Los Angeles",
+      "country": "US",
+      "lat": 34.0551,
+      "lng": -117.75
+    },
+    {
+      "id": "8b71b5ce-116a-403c-adb9-00377b05f3b3",
+      "name": "El Monte",
+      "city": "Los Angeles",
+      "country": "US",
+      "lat": 34.0686,
+      "lng": -118.0276
+    },
+    {
+      "id": "deb9a799-06bc-48ac-aa6b-3a12807618b6",
+      "name": "Inglewood",
+      "city": "Los Angeles",
+      "country": "US",
+      "lat": 33.9617,
+      "lng": -118.3531
+    },
+    {
+      "id": "d56444b9-4a3b-4732-83af-6dbb8a9e142a",
+      "name": "Downey",
+      "city": "Los Angeles",
+      "country": "US",
+      "lat": 33.9401,
+      "lng": -118.1332
+    },
+    {
+      "id": "0ebeea7c-037c-4745-a4f7-a5154c944f94",
+      "name": "West Covina",
+      "city": "Los Angeles",
+      "country": "US",
+      "lat": 34.0686,
+      "lng": -117.939
+    },
+    {
+      "id": "23c0a74c-96d9-43cf-abd9-72e806040820",
+      "name": "Norwalk",
+      "city": "Los Angeles",
+      "country": "US",
+      "lat": 33.9022,
+      "lng": -118.0817
+    },
+    {
+      "id": "78da6c9e-9dca-4201-8f9f-8aed80102843",
+      "name": "Compton",
+      "city": "Los Angeles",
+      "country": "US",
+      "lat": 33.8958,
+      "lng": -118.2201
+    },
+    {
+      "id": "fda21461-4aa4-4809-a18d-e9f7d7481244",
+      "name": "Carson",
+      "city": "Los Angeles",
+      "country": "US",
+      "lat": 33.8314,
+      "lng": -118.282
+    },
+    {
+      "id": "1530571a-d055-431f-b890-ab97c770f876",
+      "name": "Alhambra",
+      "city": "Los Angeles",
+      "country": "US",
+      "lat": 34.0953,
+      "lng": -118.127
+    },
+    {
+      "id": "5e22da8a-3d54-4044-9130-e5998fcc74ee",
+      "name": "Hawthorne",
+      "city": "Los Angeles",
+      "country": "US",
+      "lat": 33.9164,
+      "lng": -118.3526
+    },
+    {
+      "id": "88791066-af60-4261-b723-041cc9b2703d",
+      "name": "Lakewood Los Angeles",
+      "city": "Los Angeles",
+      "country": "US",
+      "lat": 33.8536,
+      "lng": -118.1339
+    },
+    {
+      "id": "a3f27235-f1bd-4fd4-b901-629c7561c332",
+      "name": "Redondo Beach",
+      "city": "Los Angeles",
+      "country": "US",
+      "lat": 33.8492,
+      "lng": -118.3884
+    },
+    {
+      "id": "13082705-5023-4e4c-a67c-c4299865c832",
+      "name": "Whittier",
+      "city": "Los Angeles",
+      "country": "US",
+      "lat": 33.9792,
+      "lng": -118.0329
+    },
+    {
+      "id": "45ae9232-3c43-4d4c-9b53-ba37fc4dc662",
+      "name": "South Gate",
+      "city": "Los Angeles",
+      "country": "US",
+      "lat": 33.9547,
+      "lng": -118.212
+    },
+    {
+      "id": "31eb6295-afa5-486d-a174-61868714fabe",
+      "name": "Beverly Hills",
+      "city": "Los Angeles",
+      "country": "US",
+      "lat": 34.0736,
+      "lng": -118.4004
+    },
+    {
+      "id": "33b24769-1a0d-4519-a0bd-4199cc2110d7",
+      "name": "West Hollywood",
+      "city": "Los Angeles",
+      "country": "US",
+      "lat": 34.09,
+      "lng": -118.3617
+    },
+    {
+      "id": "037ed09c-fe3f-432a-a065-766546f86d52",
+      "name": "Culver City",
+      "city": "Los Angeles",
+      "country": "US",
+      "lat": 34.0211,
+      "lng": -118.3965
+    },
+    {
+      "id": "0de32aeb-191a-48be-8d37-6a27f409bc5f",
+      "name": "Manhattan Beach",
+      "city": "Los Angeles",
+      "country": "US",
+      "lat": 33.8847,
+      "lng": -118.4109
+    },
+    {
+      "id": "ce9e8004-348e-44a4-a0a4-ed1e29ad2a13",
+      "name": "Hermosa Beach",
+      "city": "Los Angeles",
+      "country": "US",
+      "lat": 33.8622,
+      "lng": -118.3996
+    },
+    {
+      "id": "ab31c64c-2c61-470f-ae4e-0191dc07db07",
+      "name": "El Segundo",
+      "city": "Los Angeles",
+      "country": "US",
+      "lat": 33.9192,
+      "lng": -118.4165
+    },
+    {
+      "id": "350b6540-f434-4fd2-8b46-e9e9c21ba435",
+      "name": "Van Nuys",
+      "city": "Los Angeles",
+      "country": "US",
+      "lat": 34.19,
+      "lng": -118.4514
+    },
+    {
+      "id": "d6f1e0e5-8046-444d-a0c1-97f97308e010",
+      "name": "North Hollywood",
+      "city": "Los Angeles",
+      "country": "US",
+      "lat": 34.172,
+      "lng": -118.3815
+    },
+    {
+      "id": "7ae187bc-c438-43e1-b905-17123a85dc3e",
+      "name": "Sherman Oaks",
+      "city": "Los Angeles",
+      "country": "US",
+      "lat": 34.1508,
+      "lng": -118.449
+    },
+    {
+      "id": "b47430e1-d6e2-41b9-adcb-5ee70d280687",
+      "name": "Encino",
+      "city": "Los Angeles",
+      "country": "US",
+      "lat": 34.1592,
+      "lng": -118.5012
+    },
+    {
+      "id": "1a0dba5a-277c-4051-8fca-bda4c6a18569",
+      "name": "Woodland Hills",
+      "city": "Los Angeles",
+      "country": "US",
+      "lat": 34.1683,
+      "lng": -118.6059
+    },
+    {
+      "id": "21f8bdc7-7bd5-4547-9452-6bd4da0f092d",
+      "name": "Canoga Park",
+      "city": "Los Angeles",
+      "country": "US",
+      "lat": 34.2014,
+      "lng": -118.5996
+    },
+    {
+      "id": "18a3f7de-2d1b-475d-9449-d8230d68fb60",
+      "name": "Arcadia",
+      "city": "Los Angeles",
+      "country": "US",
+      "lat": 34.1397,
+      "lng": -118.0354
+    },
+    {
+      "id": "2798a7fd-9abc-4552-b244-0f1c0228f744",
+      "name": "Monrovia",
+      "city": "Los Angeles",
+      "country": "US",
+      "lat": 34.1442,
+      "lng": -118.0019
+    },
+    {
+      "id": "ee9b118b-e1f7-491e-a5f6-81fa232a0b82",
+      "name": "San Gabriel",
+      "city": "Los Angeles",
+      "country": "US",
+      "lat": 34.0961,
+      "lng": -118.1058
+    },
+    {
+      "id": "5b522c02-49dc-4635-a6aa-d7b1571e1394",
+      "name": "Temple City",
+      "city": "Los Angeles",
+      "country": "US",
+      "lat": 34.1072,
+      "lng": -118.0579
+    },
+    {
+      "id": "e35c4555-3e9b-4cc2-acc6-54f0c2136e42",
+      "name": "Rosemead",
+      "city": "Los Angeles",
+      "country": "US",
+      "lat": 34.0806,
+      "lng": -118.0728
+    },
+    {
+      "id": "885dc265-215c-40d5-9003-5dbe4f193858",
+      "name": "Monterey Park",
+      "city": "Los Angeles",
+      "country": "US",
+      "lat": 34.0625,
+      "lng": -118.1228
+    },
+    {
+      "id": "17a5f7bc-f3e0-4fce-a2d8-918962be432a",
+      "name": "Hempstead",
+      "city": "New York",
+      "country": "US",
+      "lat": 40.7062,
+      "lng": -73.6187
+    },
+    {
+      "id": "a7f112db-aa2a-4dab-9077-b902e68446a0",
+      "name": "Levittown",
+      "city": "New York",
+      "country": "US",
+      "lat": 40.7259,
+      "lng": -73.5143
+    },
+    {
+      "id": "af65b22c-9b52-4bd4-903c-68be3123380b",
+      "name": "Freeport",
+      "city": "New York",
+      "country": "US",
+      "lat": 40.6576,
+      "lng": -73.5832
+    },
+    {
+      "id": "e6981c89-051e-4edc-b27f-ead3ddf5f864",
+      "name": "Yonkers",
+      "city": "New York",
+      "country": "US",
+      "lat": 40.9312,
+      "lng": -73.8987
+    },
+    {
+      "id": "aecf0ec2-5250-44c4-b95c-26f0837b9bc8",
+      "name": "White Plains",
+      "city": "New York",
+      "country": "US",
+      "lat": 41.034,
+      "lng": -73.7629
+    },
+    {
+      "id": "586b7c31-e158-40c4-a5c3-76f32606bc5b",
+      "name": "New Rochelle",
+      "city": "New York",
+      "country": "US",
+      "lat": 40.9115,
+      "lng": -73.7823
+    },
+    {
+      "id": "705494fd-339e-453e-af5e-d64057379d52",
+      "name": "Mount Vernon",
+      "city": "New York",
+      "country": "US",
+      "lat": 40.9126,
+      "lng": -73.837
+    },
+    {
+      "id": "c0b55851-7d34-4500-9688-2f0bdd47a786",
+      "name": "Newark",
+      "city": "New York",
+      "country": "US",
+      "lat": 40.7357,
+      "lng": -74.1724
+    },
+    {
+      "id": "3b79f135-2037-4952-81bd-d25d456864c3",
+      "name": "Jersey City",
+      "city": "New York",
+      "country": "US",
+      "lat": 40.7178,
+      "lng": -74.0431
+    },
+    {
+      "id": "8bd51f70-284c-49d8-b079-bbe08608894e",
+      "name": "Hoboken",
+      "city": "New York",
+      "country": "US",
+      "lat": 40.7439,
+      "lng": -74.0324
+    },
+    {
+      "id": "66ded65a-d73f-42ed-80c7-f72fab751784",
+      "name": "Paterson",
+      "city": "New York",
+      "country": "US",
+      "lat": 40.9168,
+      "lng": -74.1718
+    },
+    {
+      "id": "fff70248-4b49-4d0c-9fcb-b42ae9b5f559",
+      "name": "Naperville",
+      "city": "Chicago",
+      "country": "US",
+      "lat": 41.7508,
+      "lng": -88.1535
+    },
+    {
+      "id": "d8fb09aa-fd81-463a-900d-9743f21e6c20",
+      "name": "Aurora Chicago",
+      "city": "Chicago",
+      "country": "US",
+      "lat": 41.7606,
+      "lng": -88.3201
+    },
+    {
+      "id": "52e327e2-3fe7-4fc6-88b4-8b8b225b0c5d",
+      "name": "Joliet",
+      "city": "Chicago",
+      "country": "US",
+      "lat": 41.525,
+      "lng": -88.0817
+    },
+    {
+      "id": "1a8e64d9-3063-4e50-9b38-8e2d428f9af5",
+      "name": "Evanston",
+      "city": "Chicago",
+      "country": "US",
+      "lat": 42.0451,
+      "lng": -87.6877
+    },
+    {
+      "id": "afab1c77-bde6-4053-92d0-b54fcf668b7a",
+      "name": "Cicero",
+      "city": "Chicago",
+      "country": "US",
+      "lat": 41.8456,
+      "lng": -87.7539
+    },
+    {
+      "id": "2825624c-b241-4831-a260-69e219705f16",
+      "name": "Arlington Heights",
+      "city": "Chicago",
+      "country": "US",
+      "lat": 42.0883,
+      "lng": -87.9806
+    },
+    {
+      "id": "2def86c8-ad48-448f-bb28-4205e8f9d1cb",
+      "name": "Schaumburg",
+      "city": "Chicago",
+      "country": "US",
+      "lat": 42.0334,
+      "lng": -88.0834
+    },
+    {
+      "id": "fca0150b-f1c3-41a6-9158-e49a8f46b296",
+      "name": "Palatine",
+      "city": "Chicago",
+      "country": "US",
+      "lat": 42.1103,
+      "lng": -88.0342
+    },
+    {
+      "id": "8a0deff6-cb4b-4e4a-88ad-dea855b9130d",
+      "name": "Skokie",
+      "city": "Chicago",
+      "country": "US",
+      "lat": 42.0324,
+      "lng": -87.7417
+    },
+    {
+      "id": "2cc7ce8a-dac3-4a4e-84f7-7211aaa4d23e",
+      "name": "Oak Lawn",
+      "city": "Chicago",
+      "country": "US",
+      "lat": 41.7195,
+      "lng": -87.7479
+    },
+    {
+      "id": "b9819766-2699-4e24-8e90-9de12f279eca",
+      "name": "Oak Park",
+      "city": "Chicago",
+      "country": "US",
+      "lat": 41.885,
+      "lng": -87.7845
+    },
+    {
+      "id": "0ac79173-3ca3-40ba-bda4-e006b5ddddd0",
+      "name": "Pasadena Houston",
+      "city": "Houston",
+      "country": "US",
+      "lat": 29.6911,
+      "lng": -95.2091
+    },
+    {
+      "id": "2afa2772-d241-4c9b-9641-f4b2aea6f3ff",
+      "name": "Pearland",
+      "city": "Houston",
+      "country": "US",
+      "lat": 29.5636,
+      "lng": -95.2861
+    },
+    {
+      "id": "f3e4bcf7-8c87-4cd0-a0a3-c0bba91ab3b6",
+      "name": "Sugar Land",
+      "city": "Houston",
+      "country": "US",
+      "lat": 29.6196,
+      "lng": -95.6349
+    },
+    {
+      "id": "cfd5aeb5-0806-40f3-b4e6-d93fd724ff9d",
+      "name": "Katy",
+      "city": "Houston",
+      "country": "US",
+      "lat": 29.7858,
+      "lng": -95.8244
+    },
+    {
+      "id": "d0bfb976-b681-4168-8654-cb05b6b129ba",
+      "name": "The Woodlands",
+      "city": "Houston",
+      "country": "US",
+      "lat": 30.1658,
+      "lng": -95.4613
+    },
+    {
+      "id": "a3ea1c1d-5765-43d4-aff5-75e744737a95",
+      "name": "League City",
+      "city": "Houston",
+      "country": "US",
+      "lat": 29.5074,
+      "lng": -95.0949
+    },
+    {
+      "id": "7beb2d3b-0f4b-46bc-986d-9eb61d96330b",
+      "name": "Missouri City",
+      "city": "Houston",
+      "country": "US",
+      "lat": 29.6185,
+      "lng": -95.5377
+    },
+    {
+      "id": "4ffbbc55-87d3-4cea-9278-14c1e35578d4",
+      "name": "Friendswood",
+      "city": "Houston",
+      "country": "US",
+      "lat": 29.5294,
+      "lng": -95.201
+    },
+    {
+      "id": "16798fd9-b44c-49e4-96b9-3be66fe47911",
+      "name": "Humble",
+      "city": "Houston",
+      "country": "US",
+      "lat": 29.9988,
+      "lng": -95.2621
+    },
+    {
+      "id": "b8dc00e9-eb80-41f0-bf8b-b30e65e673dd",
+      "name": "Spring",
+      "city": "Houston",
+      "country": "US",
+      "lat": 30.0799,
+      "lng": -95.4172
+    },
+    {
+      "id": "f74f34fe-227f-4eeb-8804-75809c9cfada",
+      "name": "Mesa",
+      "city": "Phoenix",
+      "country": "US",
+      "lat": 33.4152,
+      "lng": -111.8315
+    },
+    {
+      "id": "1dd36245-d203-47ab-9b91-09cedb6687b3",
+      "name": "Chandler",
+      "city": "Phoenix",
+      "country": "US",
+      "lat": 33.3062,
+      "lng": -111.8413
+    },
+    {
+      "id": "81d0f06f-5c31-4982-bbab-03abb4ed3d96",
+      "name": "Scottsdale",
+      "city": "Phoenix",
+      "country": "US",
+      "lat": 33.4942,
+      "lng": -111.9261
+    },
+    {
+      "id": "18a57c80-3b14-43e0-8bb5-7bddfb9abc1e",
+      "name": "Glendale Phoenix",
+      "city": "Phoenix",
+      "country": "US",
+      "lat": 33.5387,
+      "lng": -112.186
+    },
+    {
+      "id": "fc678228-017e-497d-b69d-678b774b759c",
+      "name": "Tempe",
+      "city": "Phoenix",
+      "country": "US",
+      "lat": 33.4255,
+      "lng": -111.94
+    },
+    {
+      "id": "8b41d888-8712-429e-9a88-9e8b2efa498c",
+      "name": "Peoria",
+      "city": "Phoenix",
+      "country": "US",
+      "lat": 33.5806,
+      "lng": -112.2374
+    },
+    {
+      "id": "e5fdfe37-3c0d-4366-b32e-6577a453afb0",
+      "name": "Gilbert",
+      "city": "Phoenix",
+      "country": "US",
+      "lat": 33.3528,
+      "lng": -111.789
+    },
+    {
+      "id": "9585676e-fb06-4a4f-8f6e-a8db880c95e0",
+      "name": "Surprise",
+      "city": "Phoenix",
+      "country": "US",
+      "lat": 33.6292,
+      "lng": -112.3679
+    },
+    {
+      "id": "982dbb1f-dec4-4790-aead-a83577a2aea6",
+      "name": "Avondale",
+      "city": "Phoenix",
+      "country": "US",
+      "lat": 33.4356,
+      "lng": -112.3496
+    },
+    {
+      "id": "8ba2783a-4204-4a7e-8ede-7cad82fc91f4",
+      "name": "Bensalem",
+      "city": "Philadelphia",
+      "country": "US",
+      "lat": 40.1043,
+      "lng": -74.951
+    },
+    {
+      "id": "e0d75b88-0f7d-457f-aa69-dff253a32194",
+      "name": "Upper Darby",
+      "city": "Philadelphia",
+      "country": "US",
+      "lat": 39.9581,
+      "lng": -75.2866
+    },
+    {
+      "id": "6284b108-78cb-4500-b151-d2fb4e174b4c",
+      "name": "Norristown",
+      "city": "Philadelphia",
+      "country": "US",
+      "lat": 40.1215,
+      "lng": -75.3399
+    },
+    {
+      "id": "ddb1dadb-2c70-4f0f-8382-41109aaf82a3",
+      "name": "Chester",
+      "city": "Philadelphia",
+      "country": "US",
+      "lat": 39.8496,
+      "lng": -75.3557
+    },
+    {
+      "id": "41a42672-bf30-4c69-8a5e-82a4ffb66354",
+      "name": "King of Prussia",
+      "city": "Philadelphia",
+      "country": "US",
+      "lat": 40.0893,
+      "lng": -75.3799
+    },
+    {
+      "id": "809f2564-250b-4f4c-b5dd-928a99571b9e",
+      "name": "Lansdale",
+      "city": "Philadelphia",
+      "country": "US",
+      "lat": 40.2415,
+      "lng": -75.2838
+    },
+    {
+      "id": "b8a9c184-ce62-4fda-80a8-464f158c0522",
+      "name": "New Braunfels",
+      "city": "San Antonio",
+      "country": "US",
+      "lat": 29.703,
+      "lng": -98.1245
+    },
+    {
+      "id": "9efdc12c-68a2-4a54-be60-960680e19937",
+      "name": "Schertz",
+      "city": "San Antonio",
+      "country": "US",
+      "lat": 29.5519,
+      "lng": -98.2547
+    },
+    {
+      "id": "438a314b-ef8c-4601-b450-7ad1d454272d",
+      "name": "Converse",
+      "city": "San Antonio",
+      "country": "US",
+      "lat": 29.518,
+      "lng": -98.3153
+    },
+    {
+      "id": "58951706-8d4f-4306-8fa2-015cc13f2b7a",
+      "name": "Universal City",
+      "city": "San Antonio",
+      "country": "US",
+      "lat": 29.548,
+      "lng": -98.2897
+    },
+    {
+      "id": "d86ca6c4-2e1e-43fd-9949-5c4352e68952",
+      "name": "Live Oak",
+      "city": "San Antonio",
+      "country": "US",
+      "lat": 29.5641,
+      "lng": -98.3375
+    },
+    {
+      "id": "5ed15408-d1f8-4332-873b-abbb2877850c",
+      "name": "Seguin",
+      "city": "San Antonio",
+      "country": "US",
+      "lat": 29.5688,
+      "lng": -97.9647
+    },
+    {
+      "id": "89ed57bf-3bdf-4268-a3c4-bcac5cd5bb88",
+      "name": "Chula Vista",
+      "city": "San Diego",
+      "country": "US",
+      "lat": 32.6401,
+      "lng": -117.0842
+    },
+    {
+      "id": "e76f3d4d-90ad-4441-a6d9-7d2961dfe51d",
+      "name": "Oceanside",
+      "city": "San Diego",
+      "country": "US",
+      "lat": 33.1959,
+      "lng": -117.3795
+    },
+    {
+      "id": "b7b148b0-13ad-4e1c-a2b3-f3c2c90537ac",
+      "name": "Escondido",
+      "city": "San Diego",
+      "country": "US",
+      "lat": 33.1192,
+      "lng": -117.0864
+    },
+    {
+      "id": "70d5025c-30bd-4570-803a-5eef3257ac7a",
+      "name": "Carlsbad",
+      "city": "San Diego",
+      "country": "US",
+      "lat": 33.1581,
+      "lng": -117.3506
+    },
+    {
+      "id": "5d2f9dbc-15e4-4107-8446-54505a1d7247",
+      "name": "El Cajon",
+      "city": "San Diego",
+      "country": "US",
+      "lat": 32.7948,
+      "lng": -116.9625
+    },
+    {
+      "id": "b98ae23e-9752-4c87-9bed-7459c5b6c4fd",
+      "name": "Vista",
+      "city": "San Diego",
+      "country": "US",
+      "lat": 33.2,
+      "lng": -117.2425
+    },
+    {
+      "id": "f76b6f83-7193-4a7e-b5ea-c7939739e117",
+      "name": "San Marcos San Diego",
+      "city": "San Diego",
+      "country": "US",
+      "lat": 33.1434,
+      "lng": -117.1661
+    },
+    {
+      "id": "0501bee7-91f6-4213-be5c-ebd08a37b1fa",
+      "name": "Encinitas",
+      "city": "San Diego",
+      "country": "US",
+      "lat": 33.037,
+      "lng": -117.292
+    },
+    {
+      "id": "a6f4228a-cd7e-4f61-8316-8746c2cdcfa1",
+      "name": "Fort Worth",
+      "city": "Dallas",
+      "country": "US",
+      "lat": 32.7555,
+      "lng": -97.3308
+    },
+    {
+      "id": "47519126-fda7-4171-a44c-e1290edfb2f7",
+      "name": "Arlington",
+      "city": "Dallas",
+      "country": "US",
+      "lat": 32.7357,
+      "lng": -97.1081
+    },
+    {
+      "id": "04b659d0-492d-426d-9aea-1be65328914e",
+      "name": "Plano",
+      "city": "Dallas",
+      "country": "US",
+      "lat": 33.0198,
+      "lng": -96.6989
+    },
+    {
+      "id": "788891e2-3b9e-47b9-8f2a-c747212f8042",
+      "name": "Irving",
+      "city": "Dallas",
+      "country": "US",
+      "lat": 32.814,
+      "lng": -96.9489
+    },
+    {
+      "id": "98b939bf-3c7d-4bd8-a2ee-b28a3dc2500c",
+      "name": "Garland",
+      "city": "Dallas",
+      "country": "US",
+      "lat": 32.9126,
+      "lng": -96.6389
+    },
+    {
+      "id": "fbaab818-81cd-479a-ad1e-f444685a7cca",
+      "name": "Frisco",
+      "city": "Dallas",
+      "country": "US",
+      "lat": 33.1507,
+      "lng": -96.8236
+    },
+    {
+      "id": "43e32f76-67d0-4d7e-958f-0b040683248c",
+      "name": "McKinney",
+      "city": "Dallas",
+      "country": "US",
+      "lat": 33.1972,
+      "lng": -96.6397
+    },
+    {
+      "id": "18cb8816-f6cf-4f2b-bf5e-b2f2435f946f",
+      "name": "Mesquite",
+      "city": "Dallas",
+      "country": "US",
+      "lat": 32.7668,
+      "lng": -96.5992
+    },
+    {
+      "id": "1f21c956-8378-41ce-839d-d6b9bc070d5b",
+      "name": "Carrollton",
+      "city": "Dallas",
+      "country": "US",
+      "lat": 32.9537,
+      "lng": -96.8903
+    },
+    {
+      "id": "bba5e56f-ce0c-4f22-9744-910cded548fa",
+      "name": "Richardson",
+      "city": "Dallas",
+      "country": "US",
+      "lat": 32.9483,
+      "lng": -96.7299
+    },
+    {
+      "id": "85f8a402-da8b-4597-a826-d564b296559a",
+      "name": "Allen",
+      "city": "Dallas",
+      "country": "US",
+      "lat": 33.1031,
+      "lng": -96.6705
+    },
+    {
+      "id": "efb31502-0522-4972-a1bd-33877474b272",
+      "name": "Denton",
+      "city": "Dallas",
+      "country": "US",
+      "lat": 33.2148,
+      "lng": -97.1331
+    },
+    {
+      "id": "57ba1644-faa6-4656-82c4-4d253fff221c",
+      "name": "Lewisville",
+      "city": "Dallas",
+      "country": "US",
+      "lat": 33.0462,
+      "lng": -96.9942
+    },
+    {
+      "id": "3ef88969-b409-4cae-bc47-bb8def5e2dc8",
+      "name": "Round Rock",
+      "city": "Austin",
+      "country": "US",
+      "lat": 30.5083,
+      "lng": -97.6789
+    },
+    {
+      "id": "77e87119-0961-49f4-bb30-f9f1dcb498a2",
+      "name": "Cedar Park",
+      "city": "Austin",
+      "country": "US",
+      "lat": 30.5052,
+      "lng": -97.8203
+    },
+    {
+      "id": "f58ac9ca-2f94-4e16-ad53-5e3b3d367b6a",
+      "name": "Georgetown",
+      "city": "Austin",
+      "country": "US",
+      "lat": 30.6327,
+      "lng": -97.677
+    },
+    {
+      "id": "e3c4642d-8b73-46bf-b7d2-6fcb188a4349",
+      "name": "Pflugerville",
+      "city": "Austin",
+      "country": "US",
+      "lat": 30.4393,
+      "lng": -97.62
+    },
+    {
+      "id": "7079f627-ee87-4847-9d22-c4a618b2d254",
+      "name": "San Marcos Austin",
+      "city": "Austin",
+      "country": "US",
+      "lat": 29.8833,
+      "lng": -97.9414
+    },
+    {
+      "id": "376247e7-118c-49f6-b322-7833f090c49b",
+      "name": "Leander",
+      "city": "Austin",
+      "country": "US",
+      "lat": 30.5788,
+      "lng": -97.8531
+    },
+    {
+      "id": "2f98ead5-0bfb-4fb9-89ba-bea2d01e6bda",
+      "name": "Oakland",
+      "city": "San Francisco",
+      "country": "US",
+      "lat": 37.8044,
+      "lng": -122.2712
+    },
+    {
+      "id": "a6d1a0e5-b1f1-4924-b737-bb2f7362f028",
+      "name": "San Jose",
+      "city": "San Francisco",
+      "country": "US",
+      "lat": 37.3382,
+      "lng": -121.8863
+    },
+    {
+      "id": "8a7eff33-1b5d-484c-8bff-92295c447631",
+      "name": "Fremont San Francisco",
+      "city": "San Francisco",
+      "country": "US",
+      "lat": 37.5485,
+      "lng": -121.9886
+    },
+    {
+      "id": "fc6868b1-2af0-4a31-bc9b-e128d85930ed",
+      "name": "Berkeley",
+      "city": "San Francisco",
+      "country": "US",
+      "lat": 37.8715,
+      "lng": -122.273
+    },
+    {
+      "id": "d5223612-e0ea-4f5b-bdb8-78fbceea49d9",
+      "name": "Hayward",
+      "city": "San Francisco",
+      "country": "US",
+      "lat": 37.6688,
+      "lng": -122.0808
+    },
+    {
+      "id": "db48f3a1-f835-45c6-95de-458a691b3369",
+      "name": "Sunnyvale",
+      "city": "San Francisco",
+      "country": "US",
+      "lat": 37.3688,
+      "lng": -122.0363
+    },
+    {
+      "id": "6a1e0a5c-7a35-43ee-992d-61724f817160",
+      "name": "Santa Clara",
+      "city": "San Francisco",
+      "country": "US",
+      "lat": 37.3541,
+      "lng": -121.9552
+    },
+    {
+      "id": "856a0f03-683b-49c4-a9a2-7850a01dba70",
+      "name": "Palo Alto",
+      "city": "San Francisco",
+      "country": "US",
+      "lat": 37.4419,
+      "lng": -122.143
+    },
+    {
+      "id": "1e51bb34-8f0f-4fb8-b95e-14b0b966afd7",
+      "name": "Mountain View",
+      "city": "San Francisco",
+      "country": "US",
+      "lat": 37.3861,
+      "lng": -122.0839
+    },
+    {
+      "id": "c28f7420-97ef-4fa1-add9-19c6f206038b",
+      "name": "Tacoma",
+      "city": "Seattle",
+      "country": "US",
+      "lat": 47.2529,
+      "lng": -122.4443
+    },
+    {
+      "id": "5e0bb41f-3540-4751-b7c5-f745e78d01f1",
+      "name": "Bellevue",
+      "city": "Seattle",
+      "country": "US",
+      "lat": 47.6101,
+      "lng": -122.2015
+    },
+    {
+      "id": "db5e7e3e-688d-487d-84cd-3d006833e277",
+      "name": "Spokane",
+      "city": "Seattle",
+      "country": "US",
+      "lat": 47.6588,
+      "lng": -117.426
+    },
+    {
+      "id": "2eb885c8-4b82-480d-a3e6-2fbd1a5b22b8",
+      "name": "Kent",
+      "city": "Seattle",
+      "country": "US",
+      "lat": 47.3809,
+      "lng": -122.2348
+    },
+    {
+      "id": "9f97b9d8-b4c8-4119-9fae-7063a9155ccf",
+      "name": "Everett",
+      "city": "Seattle",
+      "country": "US",
+      "lat": 47.979,
+      "lng": -122.2021
+    },
+    {
+      "id": "b03f55f2-8e6c-4d94-9897-8bfbf3ebd865",
+      "name": "Renton",
+      "city": "Seattle",
+      "country": "US",
+      "lat": 47.4829,
+      "lng": -122.2171
+    },
+    {
+      "id": "d2b9529c-f12e-493f-a146-2a822a8a4713",
+      "name": "Redmond",
+      "city": "Seattle",
+      "country": "US",
+      "lat": 47.674,
+      "lng": -122.1215
+    },
+    {
+      "id": "8d037e70-c512-4a76-b141-311e17a2d84b",
+      "name": "Aurora Denver",
+      "city": "Denver",
+      "country": "US",
+      "lat": 39.7294,
+      "lng": -104.8319
+    },
+    {
+      "id": "848739fb-4e50-4ac1-b42f-7cbaa04113f6",
+      "name": "Lakewood Denver",
+      "city": "Denver",
+      "country": "US",
+      "lat": 39.7047,
+      "lng": -105.0814
+    },
+    {
+      "id": "7c536a67-9352-4df9-8384-1a536cd585bc",
+      "name": "Thornton",
+      "city": "Denver",
+      "country": "US",
+      "lat": 39.8681,
+      "lng": -104.972
+    },
+    {
+      "id": "65613a32-0fb6-4225-a9b2-4a35067961d0",
+      "name": "Arvada",
+      "city": "Denver",
+      "country": "US",
+      "lat": 39.8028,
+      "lng": -105.0875
+    },
+    {
+      "id": "ce1aa25c-9d21-4eed-aaee-cfa588b8eced",
+      "name": "Westminster",
+      "city": "Denver",
+      "country": "US",
+      "lat": 39.8367,
+      "lng": -105.0372
+    },
+    {
+      "id": "a5733330-8e25-4f11-9bbb-5b02ab8a0332",
+      "name": "Centennial",
+      "city": "Denver",
+      "country": "US",
+      "lat": 39.5807,
+      "lng": -104.8767
+    },
+    {
+      "id": "eb514562-f477-41a3-bcb9-a11f38232b1f",
+      "name": "Boulder",
+      "city": "Denver",
+      "country": "US",
+      "lat": 40.015,
+      "lng": -105.2705
+    },
+    {
+      "id": "4308eb23-7f04-4ed0-be59-a4270f36b275",
+      "name": "Quincy",
+      "city": "Boston",
+      "country": "US",
+      "lat": 42.2529,
+      "lng": -71.0023
+    },
+    {
+      "id": "8cf5cf16-a79b-4657-a846-8b14a2eb7df6",
+      "name": "Newton",
+      "city": "Boston",
+      "country": "US",
+      "lat": 42.337,
+      "lng": -71.2092
+    },
+    {
+      "id": "f349ec72-1e6c-49aa-bd8d-36947a270513",
+      "name": "Somerville",
+      "city": "Boston",
+      "country": "US",
+      "lat": 42.3876,
+      "lng": -71.0995
+    },
+    {
+      "id": "4bffbf2b-d7fb-4ac2-9d7e-3d82dd3cb813",
+      "name": "Brookline",
+      "city": "Boston",
+      "country": "US",
+      "lat": 42.3318,
+      "lng": -71.1212
+    },
+    {
+      "id": "ab3441b8-1e45-4073-aed8-e7534a91f637",
+      "name": "Waltham",
+      "city": "Boston",
+      "country": "US",
+      "lat": 42.3765,
+      "lng": -71.2356
+    },
+    {
+      "id": "f437ac8f-2138-4016-915a-a6529102bad5",
+      "name": "Hialeah",
+      "city": "Miami",
+      "country": "US",
+      "lat": 25.8576,
+      "lng": -80.2781
+    },
+    {
+      "id": "a103192a-4454-45fe-8ede-ca16a700a721",
+      "name": "Fort Lauderdale",
+      "city": "Miami",
+      "country": "US",
+      "lat": 26.1224,
+      "lng": -80.1373
+    },
+    {
+      "id": "eee6eb13-0a1c-4644-b6e6-a9624dec07e1",
+      "name": "Pembroke Pines",
+      "city": "Miami",
+      "country": "US",
+      "lat": 26.0073,
+      "lng": -80.3397
+    },
+    {
+      "id": "1f131aca-2327-4025-858f-2d13a11fb896",
+      "name": "Hollywood",
+      "city": "Miami",
+      "country": "US",
+      "lat": 26.0112,
+      "lng": -80.1495
+    },
+    {
+      "id": "4e646925-5f5c-4fdf-87b7-48d4288d3ee6",
+      "name": "Coral Springs",
+      "city": "Miami",
+      "country": "US",
+      "lat": 26.2709,
+      "lng": -80.2706
+    },
+    {
+      "id": "ddf715b3-ef0c-4032-b6b4-f30b785ef414",
+      "name": "Miramar",
+      "city": "Miami",
+      "country": "US",
+      "lat": 25.9873,
+      "lng": -80.3323
+    },
+    {
+      "id": "5a970488-97b4-416a-a112-c73ea6beaa0b",
+      "name": "Pompano Beach",
+      "city": "Miami",
+      "country": "US",
+      "lat": 26.2379,
+      "lng": -80.1248
+    },
+    {
+      "id": "b0a7c7cb-e50b-4ecc-92a2-c7f9078c33fc",
+      "name": "Marietta",
+      "city": "Atlanta",
+      "country": "US",
+      "lat": 33.9526,
+      "lng": -84.5499
+    },
+    {
+      "id": "f44c3b76-2862-4880-874b-8f0a73b2ae72",
+      "name": "Roswell",
+      "city": "Atlanta",
+      "country": "US",
+      "lat": 34.0232,
+      "lng": -84.3616
+    },
+    {
+      "id": "66cd73cc-5ee7-4411-8261-ca6e37828e36",
+      "name": "Sandy Springs",
+      "city": "Atlanta",
+      "country": "US",
+      "lat": 33.9304,
+      "lng": -84.3785
+    },
+    {
+      "id": "955f24c0-a982-48d9-a492-b30e845ee3f2",
+      "name": "Johns Creek",
+      "city": "Atlanta",
+      "country": "US",
+      "lat": 34.0289,
+      "lng": -84.1986
+    },
+    {
+      "id": "df2f7514-6526-4755-b066-2870af2980c7",
+      "name": "Alpharetta",
+      "city": "Atlanta",
+      "country": "US",
+      "lat": 34.0754,
+      "lng": -84.2941
+    },
+    {
+      "id": "c651ced1-0f8a-417f-b410-00c0ed439835",
+      "name": "Smyrna",
+      "city": "Atlanta",
+      "country": "US",
+      "lat": 33.884,
+      "lng": -84.5144
     }
   ]
 }
