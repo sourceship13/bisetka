@@ -37,6 +37,7 @@ import {apiConfig} from '../../../libs/utils/api.utils';
 import NardiDice from '../../../components/Games/NardiDice';
 import { apiService } from '../../../services/api.service';
 import { useAuth } from '../../../libs/hooks/useAuth';
+import { useAchievements } from '../../../contexts/AchievementContext';
 import { v4 as uuidv4 } from 'uuid';
 
 const { width, height } = Dimensions.get('window');
@@ -120,6 +121,7 @@ const NardiScreen = ({ navigation, route }: any) => {
 
   // Entry fee and prize tracking
   const { user, refreshUser } = useAuth();
+  const { showAchievements } = useAchievements();
   const [entryDeducted, setEntryDeducted] = useState(false);
   const [prizeAwarded, setPrizeAwarded] = useState(false);
   const gameIdRef = useRef<string>(dbSessionId || uuidv4());
@@ -174,6 +176,9 @@ const NardiScreen = ({ navigation, route }: any) => {
       if (prizeResult.success) {
         console.log(`✅ ${prizeResult.message}`);
         setPrizeAwarded(true);
+        if (prizeResult.unlockedAchievements?.length > 0) {
+          showAchievements(prizeResult.unlockedAchievements);
+        }
         refreshUser().catch(console.error);
         
         if (didWin) {

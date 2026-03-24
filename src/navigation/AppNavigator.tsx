@@ -46,6 +46,7 @@ import TravelScreen from '../screens/Meta/Home/TravelScreen';
 import GlobalViewScreen from '../screens/Meta/GlobalView/GlobalViewScreen';
 import BisetkaDetailScreen from '../screens/Meta/BisetkaDetail/BisetkaDetailScreen';
 import AchievementsScreen from '../screens/Meta/Achievements/AchievementsScreen';
+import AchievementTestScreen from '../screens/Meta/AchievementTestScreen';
 import DrawerContent from '../components/DrawerContent';
 import {useAuth} from '../libs/hooks/useAuth';
 import {ActivityIndicator, View, StyleSheet, Dimensions} from 'react-native';
@@ -93,6 +94,7 @@ export type RootStackParamList = {
   GlobalView: { userId?: string };
   BisetkaDetail: { bisetkaId: string; bisetkaName: string; city: string; country: string };
   Achievements: undefined;
+  AchievementTest: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -295,6 +297,7 @@ const AppNavigator = () => {
               <Stack.Screen name="Travel" component={TravelScreen} />
               <Stack.Screen name="GlobalView" component={GlobalViewScreen} />
               <Stack.Screen name="Achievements" component={AchievementsScreen} />
+              <Stack.Screen name="AchievementTest" component={AchievementTestScreen} />
               <Stack.Screen name="BisetkaDetail" component={BisetkaDetailScreen} />
             </>
           )}

@@ -207,7 +207,9 @@ export default function AchievementsScreen({ navigation }: any) {
           <Icon name="arrow-left" size={24} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Achievements</Text>
-        <View style={styles.headerSpacer} />
+        <TouchableOpacity onPress={() => navigation.navigate('AchievementTest')} style={styles.testButton}>
+          <Icon name="eye" size={20} color="#8b5cf6" />
+        </TouchableOpacity>
       </View>
 
       {loading ? (
@@ -344,8 +346,8 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#fff',
   },
-  headerSpacer: {
-    width: 40,
+  testButton: {
+    padding: 8,
   },
   loadingContainer: {
     flex: 1,

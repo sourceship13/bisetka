@@ -35,6 +35,7 @@ import type { RoomInfoDrawerHandle } from '../../../components/RoomInfoDrawer';
 import {apiConfig} from '../../../libs/utils/api.utils';
 import apiService from '../../../services/api.service';
 import { useAuth } from '../../../libs/hooks/useAuth';
+import { useAchievements } from '../../../contexts/AchievementContext';
 import CardCustomizationModal from '../../../components/global/GameCustomizationModal';
 import type { CardTheme } from '../../../components/global/GameCustomizationModal';
 import ExpandableView from '../../../components/global/ExpandableView';
@@ -124,6 +125,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
 
   // Entry fee and prize tracking
   const { user, refreshUser } = useAuth();
+  const { showAchievements } = useAchievements();
   const [entryDeducted, setEntryDeducted] = useState(false);
   const [prizeAwarded, setPrizeAwarded] = useState(false);
 
@@ -177,6 +179,9 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
       if (prizeResult.success) {
         console.log(`✅ ${prizeResult.message}`);
         console.log(`   Prize: +${prizeResult.prize} points`);
+        if (prizeResult.unlockedAchievements?.length > 0) {
+          showAchievements(prizeResult.unlockedAchievements);
+        }
         console.log(`   New balance: ${prizeResult.newBalance}`);
         console.log(`   Game logged with ID: ${prizeResult.gameResultId}`);
         
