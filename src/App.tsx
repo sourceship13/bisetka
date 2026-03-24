@@ -8,15 +8,15 @@ import 'react-native-gesture-handler';
 
 function App(): React.JSX.Element {
   return (
-    <AuthProvider>
-      <AchievementProvider>
-        <View style={styles.root}>
+    <View style={styles.root}>
+      <AuthProvider>
+        <AchievementProvider>
           <AppNavigator />
           {/* Renders above everything — shows push banners when app is foregrounded */}
           <InAppNotificationBanner />
-        </View>
-      </AchievementProvider>
-    </AuthProvider>
+        </AchievementProvider>
+      </AuthProvider>
+    </View>
   );
 }
 

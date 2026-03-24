@@ -3,7 +3,9 @@ import { Text, StyleSheet } from 'react-native';
 import BootSplash from 'react-native-bootsplash';
 import AppNavigator from './src/navigation/AppNavigator';
 import { AuthProvider } from './src/libs/hooks/useAuth';
+import { AchievementProvider } from './src/contexts/AchievementContext';
 import { BisetkaAlertContainer } from './src/utils/BisetkaAlert';
+import InAppNotificationBanner from './src/components/InAppNotificationBanner';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
 import * as Sentry from '@sentry/react-native';
 import Config from 'react-native-config';
@@ -30,9 +32,12 @@ function App(): React.JSX.Element {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <AuthProvider>
-        <AppNavigator />
-        <BisetkaAlertContainer />
-        <Text style={styles.versionFooter}>v{version}</Text>
+        <AchievementProvider>
+          <AppNavigator />
+          <InAppNotificationBanner />
+          <BisetkaAlertContainer />
+          <Text style={styles.versionFooter}>v{version}</Text>
+        </AchievementProvider>
       </AuthProvider>
     </GestureHandlerRootView>
   );

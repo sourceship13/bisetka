@@ -28,6 +28,21 @@ let cachedLocalURL: string | null = null;
 let cachedStagingURL: string | null = null;
 let cachedProductionURL: string | null = null;
 
+function normalizeHttpUrl(value: string, defaultPort: number): string {
+  const trimmedValue = value.trim();
+
+  if (!trimmedValue) {
+    return '';
+  }
+
+  if (trimmedValue.startsWith('http://') || trimmedValue.startsWith('https://')) {
+    return trimmedValue;
+  }
+
+  const hasPort = /:\d+$/.test(trimmedValue);
+  return hasPort ? `http://${trimmedValue}` : `http://${trimmedValue}:${defaultPort}`;
+}
+
 function getConfigValue(key: string, fallback: string): string {
   try {
     const ConfigModule = require('react-native-config');
@@ -75,15 +90,31 @@ const getLocalURL = () => {
       }
     } catch (_) { /* SourceCode module unavailable — fall through */ }
 
-    // ── 2. Explicit override in .env / .env.staging ───────────────────────────
+    // ── 2. Explicit full backend URL in .env / .env.staging ──────────────────
+    const backendURL = normalizeHttpUrl(getConfigValue('BACKEND_URL', ''), 3000);
+    if (backendURL && !backendURL.includes('localhost')) {
+      cachedLocalURL = backendURL;
+      console.log(`📡 Local API URL (from BACKEND_URL): ${cachedLocalURL}`);
+      return cachedLocalURL;
+    }
+
+    // ── 3. Explicit Metro/dev-machine host in .env / .env.staging ────────────
+    const metroHost = getConfigValue('METRO_HOST', '');
+    if (metroHost && metroHost !== 'localhost' && metroHost !== '127.0.0.1') {
+      cachedLocalURL = normalizeHttpUrl(metroHost, 3000);
+      console.log(`📡 Local API URL (from METRO_HOST): ${cachedLocalURL}`);
+      return cachedLocalURL;
+    }
+
+    // ── 4. Explicit override in .env / .env.staging ───────────────────────────
     const envURL = getConfigValue('LOCAL_API_URL', '');
     if (envURL) {
-      cachedLocalURL = envURL.startsWith('http') ? envURL : `http://${envURL}:3000`;
+      cachedLocalURL = normalizeHttpUrl(envURL, 3000);
       console.log(`📡 Local API URL (from .env): ${cachedLocalURL}`);
       return cachedLocalURL;
     }
 
-    // ── 3. Platform defaults (simulator / emulator) ───────────────────────────
+    // ── 5. Platform defaults (simulator / emulator) ───────────────────────────
     if (Platform.OS === 'android') {
       cachedLocalURL = 'http://10.0.2.2:3000';  // Android emulator → host loopback
     } else {
@@ -155,10 +186,6 @@ function getEnvironment(): Environment {
 }
 
 function getBaseURL(env: Environment): string {
-  // TEMPORARY: Force localhost for testing new endpoints
-  // Remove this after deploying to staging
-  return 'http://localhost:3000';
-  
   switch (env) {
     case 'local':
       return getLocalURL();

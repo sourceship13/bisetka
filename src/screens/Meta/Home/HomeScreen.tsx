@@ -14,15 +14,19 @@ import {
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
-import {useAuth} from '../../../libs/hooks/useAuth';
+import { useAuth } from '../../../libs/hooks/useAuth';
 import apiService from '../../../services/api.service';
 import pushNotificationService from '../../../services/pushNotification.service';
-import {iOSUIKit} from 'react-native-typography';
-import {colors} from '../../../theme';
+import { iOSUIKit } from 'react-native-typography';
+import { colors } from '../../../theme';
 import packageJson from '../../../../package.json';
-import {useNavigation, DrawerActions, useFocusEffect} from '@react-navigation/native';
+import {
+  useNavigation,
+  DrawerActions,
+  useFocusEffect,
+} from '@react-navigation/native';
 import OnlinePlayersList from '../../../components/OnlinePlayersList';
-import AVATARS, {resolveAvatar} from '../../../utils/avatars';
+import AVATARS, { resolveAvatar } from '../../../utils/avatars';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { socketService } from '../../../services/SocketService';
 import tokenService from '../../../services/token.service';
@@ -31,7 +35,7 @@ import bisetkaService from '../../../services/bisetka.service';
 
 const bisetkaBackground = require('../../../../assets/backgrounds/bisetka.png');
 
-const {width} = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 42) / 2; // 2 columns with gap
 
 // Game configurations with PushBird-style colors
@@ -72,7 +76,7 @@ const GAMES = [
     gameType: 'chess',
     isImage: true,
   },
-   {
+  {
     id: 'poker',
     name: 'Poker',
     description: "Texas Hold'em",
@@ -160,8 +164,8 @@ const buildAccountBisetkaFallback = (accountBisetka: {
   },
 });
 
-const HomeScreen = ({navigation}: any) => {
-  const {user, signOut, refreshUser} = useAuth();
+const HomeScreen = ({ navigation }: any) => {
+  const { user, signOut, refreshUser } = useAuth();
   const drawerNav = useNavigation();
 
   // Auto-connect to local Bisetka based on GPS location
@@ -177,7 +181,9 @@ const HomeScreen = ({navigation}: any) => {
   // Log Bisetka connection
   useEffect(() => {
     if (bisetka) {
-      console.log(`🏘️ Connected to Bisetka: ${bisetka.neighborhood_name}, ${bisetka.city} (${bisetka.active_users} active users)`);
+      console.log(
+        `🏘️ Connected to Bisetka: ${bisetka.neighborhood_name}, ${bisetka.city} (${bisetka.active_users} active users)`,
+      );
     }
     if (bisetkaError) {
       console.warn('⚠️ Bisetka connection error:', bisetkaError);
@@ -186,23 +192,19 @@ const HomeScreen = ({navigation}: any) => {
 
   // Refresh profile data and upsert device info every time HomeScreen mounts
   useEffect(() => {
-    refreshUser().catch(err =>
-      console.warn('Profile refresh failed:', err)
-    );
+    refreshUser().catch(err => console.warn('Profile refresh failed:', err));
 
-    apiService.upsertDeviceData().catch(err =>
-      console.warn('Device data upsert failed:', err)
-    );
+    apiService
+      .upsertDeviceData()
+      .catch(err => console.warn('Device data upsert failed:', err));
   }, []);
 
   // Refresh user data every time screen gains focus (e.g., returning from a game)
   useFocusEffect(
     React.useCallback(() => {
       console.log('🔄 HomeScreen gained focus - refreshing user data');
-      refreshUser().catch(err =>
-        console.warn('Focus refresh failed:', err)
-      );
-    }, [refreshUser])
+      refreshUser().catch(err => console.warn('Focus refresh failed:', err));
+    }, [refreshUser]),
   );
 
   // Ensure push permission is granted and the FCM token is registered.
@@ -248,9 +250,7 @@ const HomeScreen = ({navigation}: any) => {
       await pushNotificationService.silentInit();
     };
 
-    setupPush().catch(err =>
-      console.warn('Push setup failed:', err)
-    );
+    setupPush().catch(err => console.warn('Push setup failed:', err));
   }, []);
 
   // Connect to Socket.IO for presence tracking
@@ -259,7 +259,7 @@ const HomeScreen = ({navigation}: any) => {
 
     const connectSocket = async () => {
       try {
-        const token = await tokenService.getAccessToken() || 'temp-token';
+        const token = (await tokenService.getAccessToken()) || 'temp-token';
         if (!socketService.isConnected()) {
           await socketService.connect(user.id, token);
           console.log('✅ Socket connected for presence tracking');
@@ -274,14 +274,16 @@ const HomeScreen = ({navigation}: any) => {
     // Heartbeat: Update presence every 1 minute to stay online
     const heartbeat = setInterval(() => {
       if (socketService.isConnected()) {
-        socketService.getSocket()?.emit('presence_heartbeat', { userId: user.id });
+        socketService
+          .getSocket()
+          ?.emit('presence_heartbeat', { userId: user.id });
       }
     }, 60 * 1000); // 1 minute
 
     return () => {
       clearInterval(heartbeat);
     };
-    // Note: We don't disconnect on unmount because the socket should remain 
+    // Note: We don't disconnect on unmount because the socket should remain
     // connected while the app is open to track online presence
   }, [user?.id]);
 
@@ -291,7 +293,8 @@ const HomeScreen = ({navigation}: any) => {
     ? buildAccountBisetkaFallback(user.bisetka)
     : null;
   const resolvedBisetka = bisetka || accountFallback?.bisetka || null;
-  const resolvedNeighborhood = neighborhood || accountFallback?.neighborhood || null;
+  const resolvedNeighborhood =
+    neighborhood || accountFallback?.neighborhood || null;
   const hasRemoteBisetka = Boolean(
     resolvedBisetka?.id && !resolvedBisetka.id.startsWith('local:'),
   );
@@ -368,8 +371,12 @@ const HomeScreen = ({navigation}: any) => {
       subtitle = hasRemoteBisetka
         ? 'Tap to choose a game and start playing'
         : 'Closest neighborhood found from your device location';
-      metaText = `${resolvedNeighborhood!.city}, ${resolvedNeighborhood!.country}`;
-      pillText = hasRemoteBisetka ? `${resolvedBisetka!.active_users} active` : 'Closest match';
+      metaText = `${resolvedNeighborhood!.city}, ${
+        resolvedNeighborhood!.country
+      }`;
+      pillText = hasRemoteBisetka
+        ? `${resolvedBisetka!.active_users} active`
+        : 'Closest match';
       actionText = hasRemoteBisetka ? '🎮 Play Games' : '🌍 View Map';
     }
 
@@ -378,21 +385,25 @@ const HomeScreen = ({navigation}: any) => {
         <TouchableOpacity
           activeOpacity={0.85}
           onPress={handleNearestBisetkaPress}
-          style={styles.closestBisetkaButton}>
+          style={styles.closestBisetkaButton}
+        >
           <LinearGradient
             colors={
-              hasNearestBisetka 
+              hasNearestBisetka
                 ? ['rgba(0, 0 , 0, 0.75)', 'rgba(100, 92, 222, 0.65)']
                 : ['rgba(0, 0, 0, 0.72)', 'rgba(18, 52, 46, 0.72)']
             }
-            start={{x: 0, y: 0}}
-            end={{x: 1, y: 1}}
-            style={styles.closestBisetkaGradient}>
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.closestBisetkaGradient}
+          >
             <View style={styles.closestBisetkaIconWrap}>
-              <Icon 
-                name={hasNearestBisetka ? "controller-classic" : "map-marker-radius"} 
-                size={hasNearestBisetka ? 32 : 26} 
-                color="#ffffff" 
+              <Icon
+                name={
+                  hasNearestBisetka ? 'controller-classic' : 'map-marker-radius'
+                }
+                size={hasNearestBisetka ? 32 : 26}
+                color="#ffffff"
               />
             </View>
 
@@ -420,7 +431,8 @@ const HomeScreen = ({navigation}: any) => {
   };
 
   const renderGameCard = (game: GameConfig) => {
-    const isComingSoon: boolean = 'comingSoon' in game && (game as any).comingSoon === true;
+    const isComingSoon: boolean =
+      'comingSoon' in game && (game as any).comingSoon === true;
 
     return (
       <TouchableOpacity
@@ -428,15 +440,17 @@ const HomeScreen = ({navigation}: any) => {
         activeOpacity={0.85}
         disabled={isComingSoon}
         onPress={() => handleGamePress(game)}
-        style={[styles.gameCardWrapper, isComingSoon && styles.cardDisabled]}>
+        style={[styles.gameCardWrapper, isComingSoon && styles.cardDisabled]}
+      >
         <LinearGradient
           colors={game.gradient as unknown as string[]}
-          start={{x: 0, y: 0}}
-          end={{x: 1, y: 1}}
-          style={styles.gameCard}>
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.gameCard}
+        >
           {(game as any).isImage ? (
-            <Image 
-              source={game.icon} 
+            <Image
+              source={game.icon}
               style={styles.gameIconImage}
               resizeMode="contain"
             />
@@ -460,162 +474,214 @@ const HomeScreen = ({navigation}: any) => {
       <ImageBackground
         source={bisetkaBackground}
         style={styles.backgroundImage}
-        resizeMode="cover">
-        <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+        resizeMode="cover"
+      >
+        <StatusBar
+          barStyle="light-content"
+          backgroundColor="transparent"
+          translucent
+        />
         <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
           <ScrollView
             contentContainerStyle={styles.scrollContent}
-            showsVerticalScrollIndicator={false}>
-        {/* Header */}
-        <LinearGradient
-          // colors={['#6366f1', '#8b5cf6']}
-          colors={['rgba(0, 0, 0, 0.6)', 'rgba(0, 0, 0, 0.6)']}
-          start={{x: 0, y: 0}}
-          end={{x: 1, y: 0}}
-          style={styles.header}>
-          <TouchableOpacity onPress={() => drawerNav.dispatch(DrawerActions.openDrawer())} style={styles.hamburgerBtn}>
-            <Text style={styles.hamburgerText}>☰</Text>
-          </TouchableOpacity>
-          <View style={[styles.headerContent, {minHeight: 80  }]}>
-            <Text style={styles.welcomeText}>Welcome back,</Text>
-            <Text style={styles.userName}>
-              {user?.username || 'Player'}! 👋
-            </Text>
-          </View>
-          <TouchableOpacity onPress={() => signOut()} style={styles.logoutBtn}>
-            <Text style={styles.logoutText}>Log Out</Text>
-          </TouchableOpacity>
-        </LinearGradient>
-
-        {/* Avatar + Action Buttons + Points */}
-        <View style={styles.quickRow}>
-          {/* Left 1/3 — Avatar */}
-          <TouchableOpacity
-            onPress={() => navigation.navigate('Profile')}
-            style={styles.avatarCol}
-            activeOpacity={0.85}>
-            <Image
-              source={avatarSource || AVATARS[0].source}
-              style={styles.homeAvatarImg}
-              resizeMode="contain"
-            />
-          </TouchableOpacity>
-
-          {/* Right 2/3 — buttons row + points row */}
-          <View style={styles.rightCol}>
-            {/* Row 1: 2 icon buttons */}
-            <View style={styles.actionBtns}>
+            showsVerticalScrollIndicator={false}
+          >
+            {/* Header */}
+            <LinearGradient
+              // colors={['#6366f1', '#8b5cf6']}
+              colors={['rgba(0, 0, 0, 0.6)', 'rgba(0, 0, 0, 0.6)']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.header}
+            >
               <TouchableOpacity
-                onPress={() => navigation.navigate('GlobalView', { userId: user?.id })}
-                style={styles.actionBtn}>
-                <LinearGradient
-                  colors={['rgba(16, 185, 129, 0.7)', 'rgba(52, 211, 153, 0.7)']}
-                  style={styles.actionGrad}>
-                  <Icon name="earth" size={28} color="#fff" />
-                </LinearGradient>
+                onPress={() => drawerNav.dispatch(DrawerActions.openDrawer())}
+                style={styles.hamburgerBtn}
+              >
+                <Text style={styles.hamburgerText}>☰</Text>
               </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={() => navigation.navigate('GlobalChat')}
-                style={styles.actionBtn}>
-                <LinearGradient
-                  colors={['rgba(0, 0, 0, 0.6)', 'rgba(0, 0, 0, 0.6)']}
-                  style={styles.actionGrad}>
-                  <Icon name="forum" size={28} color="#fff" />
-                </LinearGradient>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={() => navigation.navigate('DMList')}
-                style={styles.actionBtn}>
-                <LinearGradient
-                  colors={['rgba(0, 0, 0, 0.6)', 'rgba(0, 0, 0, 0.6)']}
-                  style={styles.actionGrad}>
-                  <Icon name="message" size={28} color="#fff" />
-                </LinearGradient>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => navigation.navigate('Achievements')}
-                style={styles.actionBtn}>
-                <LinearGradient
-                  colors={['rgba(139, 92, 246, 0.7)', 'rgba(124, 58, 237, 0.7)']}
-                  style={styles.actionGrad}>
-                  <Icon name="trophy-award" size={28} color="#fff" />
-                </LinearGradient>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => navigation.navigate('Leaderboard')}
-                style={styles.actionBtn}>
-                <LinearGradient
-                  colors={['rgba(0, 0, 0, 0.6)', 'rgba(0, 0, 0, 0.6)']}
-                  style={styles.actionGrad}>
-                  <Icon name="trophy" size={28} color="#fff" />
-                </LinearGradient>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={() => navigation.navigate('ChatRoomsList')}
-                style={styles.actionBtn}>
-                <LinearGradient
-                  colors={['rgba(0, 0, 0, 0.6)', 'rgba(0, 0, 0, 0.6)']}
-                  style={styles.actionGrad}>
-                  <Icon name="door-open" size={28} color="#fff" />
-                </LinearGradient>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={() => navigation.navigate('Travel')}
-                style={styles.actionBtn}>
-                <LinearGradient
-                  colors={['rgba(99, 102, 241, 0.7)', 'rgba(139, 92, 246, 0.7)']}
-                  style={styles.actionGrad}>
-                  <Icon name="airplane-takeoff" size={28} color="#fff" />
-                </LinearGradient>
-              </TouchableOpacity>
-            </View>
-
-            {/* Row 2: Points + Leaderboard + ChatRooms */}
-            <View style={styles.bottomRow}>
-              <LinearGradient
-                colors={['rgba(0, 0, 0, 0.6)', 'rgba(0, 0, 0, 0.6)']}
-                start={{x: 0, y: 0}}
-                end={{x: 1, y: 1}}
-                style={styles.balanceGrad}>
-                <Text style={[styles.balanceLabel, iOSUIKit.bodyEmphasizedWhite]}>Points 🏆 </Text>
-                <Text style={styles.balanceAmount}>
-                  {Math.floor(user?.balance || 0).toLocaleString()}
+              <View style={[styles.headerContent, { minHeight: 80 }]}>
+                <Text style={styles.welcomeText}>Welcome back,</Text>
+                <Text style={styles.userName}>
+                  {user?.username || 'Player'}! 👋
                 </Text>
-              </LinearGradient>
-
+              </View>
               <TouchableOpacity
-                onPress={() => navigation.navigate('Wardrobe')}
-                style={styles.placeholderBtn}
-                activeOpacity={0.85}>
-                <LinearGradient
-                  colors={['rgba(0, 0, 0, 0.6)', 'rgba(0, 0, 0, 0.6)']}
-                  style={styles.actionGrad}>
-                  <Icon name="hanger" size={28} color="#fff" />
-                </LinearGradient>
+                onPress={() => signOut()}
+                style={styles.logoutBtn}
+              >
+                <Text style={styles.logoutText}>Log Out</Text>
               </TouchableOpacity>
+            </LinearGradient>
 
-              <TouchableOpacity
-                onPress={() => navigation.navigate('ClothingStore')}
-                style={styles.placeholderBtn}
-                activeOpacity={0.85}>
-                <LinearGradient
-                  colors={['rgba(0, 0, 0, 0.6)', 'rgba(0, 0, 0, 0.6)']}
-                  style={styles.actionGrad}>
-                  <Icon name="shopping" size={28} color="#fff" />
-                </LinearGradient>
-              </TouchableOpacity>
+            {/* Avatar + Action Buttons + Points */}
+            <View style={styles.quickRow}>
+              {/* Left 1/3 — Avatar */}
+              <View style={{ flexDirection: 'column', flex: 1}}>
+                <TouchableOpacity
+                  onPress={() => navigation.navigate('Profile')}
+                  style={styles.avatarCol}
+                  activeOpacity={0.85}
+                >
+                  <Image
+                    source={avatarSource || AVATARS[0].source}
+                    style={styles.homeAvatarImg}
+                    resizeMode="contain"
+                  />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => navigation.navigate('Profile')}
+                  style={[
+                    styles.avatarCol,
+                    {
+                      marginTop: 10,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    },
+                  ]}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.achievementsText}> Achievements</Text>
+                </TouchableOpacity>
+              </View>
+              {/* Right 2/3 — buttons row + points row */}
+              <View style={styles.rightCol}>
+                {/* Row 1: 2 icon buttons */}
+                <View style={styles.actionBtns}>
+                  <TouchableOpacity
+                    onPress={() =>
+                      navigation.navigate('GlobalView', { userId: user?.id })
+                    }
+                    style={styles.actionBtn}
+                  >
+                    <LinearGradient
+                      colors={[
+                        'rgba(16, 185, 129, 0.7)',
+                        'rgba(52, 211, 153, 0.7)',
+                      ]}
+                      style={styles.actionGrad}
+                    >
+                      <Icon name="earth" size={28} color="#fff" />
+                    </LinearGradient>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    onPress={() => navigation.navigate('GlobalChat')}
+                    style={styles.actionBtn}
+                  >
+                    <LinearGradient
+                      colors={['rgba(0, 0, 0, 0.6)', 'rgba(0, 0, 0, 0.6)']}
+                      style={styles.actionGrad}
+                    >
+                      <Icon name="forum" size={28} color="#fff" />
+                    </LinearGradient>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    onPress={() => navigation.navigate('DMList')}
+                    style={styles.actionBtn}
+                  >
+                    <LinearGradient
+                      colors={['rgba(0, 0, 0, 0.6)', 'rgba(0, 0, 0, 0.6)']}
+                      style={styles.actionGrad}
+                    >
+                      <Icon name="message" size={28} color="#fff" />
+                    </LinearGradient>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => navigation.navigate('Leaderboard')}
+                    style={styles.actionBtn}
+                  >
+                    <LinearGradient
+                      colors={['rgba(0, 0, 0, 0.6)', 'rgba(0, 0, 0, 0.6)']}
+                      style={styles.actionGrad}
+                    >
+                      <Icon name="trophy" size={28} color="#fff" />
+                    </LinearGradient>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    onPress={() => navigation.navigate('ChatRoomsList')}
+                    style={styles.actionBtn}
+                  >
+                    <LinearGradient
+                      colors={['rgba(0, 0, 0, 0.6)', 'rgba(0, 0, 0, 0.6)']}
+                      style={styles.actionGrad}
+                    >
+                      <Icon name="door-open" size={28} color="#fff" />
+                    </LinearGradient>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    onPress={() => navigation.navigate('Travel')}
+                    style={styles.actionBtn}
+                  >
+                    <LinearGradient
+                      colors={[
+                        'rgba(99, 102, 241, 0.7)',
+                        'rgba(139, 92, 246, 0.7)',
+                      ]}
+                      style={styles.actionGrad}
+                    >
+                      <Icon name="airplane-takeoff" size={28} color="#fff" />
+                    </LinearGradient>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Row 2: Points + Leaderboard + ChatRooms */}
+                <View style={styles.bottomRow}>
+                  <LinearGradient
+                    colors={['rgba(0, 0, 0, 0.6)', 'rgba(0, 0, 0, 0.6)']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.balanceGrad}
+                  >
+                    <Text
+                      style={[
+                        styles.balanceLabel,
+                        iOSUIKit.bodyEmphasizedWhite,
+                      ]}
+                    >
+                      Points 🏆{' '}
+                    </Text>
+                    <Text style={styles.balanceAmount}>
+                      {Math.floor(user?.balance || 0).toLocaleString()}
+                    </Text>
+                  </LinearGradient>
+
+                  <TouchableOpacity
+                    onPress={() => navigation.navigate('Wardrobe')}
+                    style={styles.placeholderBtn}
+                    activeOpacity={0.85}
+                  >
+                    <LinearGradient
+                      colors={['rgba(0, 0, 0, 0.6)', 'rgba(0, 0, 0, 0.6)']}
+                      style={styles.actionGrad}
+                    >
+                      <Icon name="hanger" size={28} color="#fff" />
+                    </LinearGradient>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    onPress={() => navigation.navigate('ClothingStore')}
+                    style={styles.placeholderBtn}
+                    activeOpacity={0.85}
+                  >
+                    <LinearGradient
+                      colors={['rgba(0, 0, 0, 0.6)', 'rgba(0, 0, 0, 0.6)']}
+                      style={styles.actionGrad}
+                    >
+                      <Icon name="shopping" size={28} color="#fff" />
+                    </LinearGradient>
+                  </TouchableOpacity>
+                </View>
+              </View>
             </View>
-          </View>
-        </View>
 
-        {renderNearestBisetkaCard()}
+            {renderNearestBisetkaCard()}
 
-        {/* Active Rooms Button */}
-        {/* <View style={styles.activeRoomsContainer}>
+            {/* Active Rooms Button */}
+            {/* <View style={styles.activeRoomsContainer}>
           <TouchableOpacity
             onPress={() => navigation.navigate('ActiveRooms')}
             style={styles.activeRoomsButton}
@@ -637,24 +703,21 @@ const HomeScreen = ({navigation}: any) => {
             </LinearGradient>
           </TouchableOpacity>
         </View> */}
-        {/* Online Players */}
-        <View style={styles.onlinePlayersContainer}>
-          <View style={styles.onlinePlayersHeader}>
-            <Text style={styles.onlinePlayersTitle}>🟢 Online Players</Text>
-          </View>
-          <OnlinePlayersList maxPlayers={20} />
-        </View>
+            {/* Online Players */}
+            <View style={styles.onlinePlayersContainer}>
+              <View style={styles.onlinePlayersHeader}>
+                <Text style={styles.onlinePlayersTitle}>🟢 Online Players</Text>
+              </View>
+              <OnlinePlayersList maxPlayers={20} />
+            </View>
 
-        {/* Footer */}
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>🇦🇲 Bisetka</Text>
-        </View>
-      </ScrollView>
+            {/* Footer */}
+            <View style={styles.footer}>
+              <Text style={styles.footerText}>🇦🇲 Bisetka</Text>
+            </View>
+          </ScrollView>
         </SafeAreaView>
       </ImageBackground>
-
-
-
     </View>
   );
 };
@@ -701,7 +764,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.2)',
     paddingHorizontal: 14,
     paddingVertical: 8,
-    marginRight:26,
+    marginRight: 26,
     borderRadius: 14,
   },
   logoutText: {
@@ -726,6 +789,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
     alignItems: 'stretch',
+    flex:1
   },
   avatarCol: {
     flex: 1,
@@ -749,21 +813,19 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     alignItems: 'flex-start',
     justifyContent: 'center',
-
-
   },
   balanceLabel: {
     fontSize: 14,
     color: 'rgba(255,255,255,0.8)',
     marginBottom: 2,
-    marginLeft:16
+    marginLeft: 16,
   },
   balanceAmount: {
     fontSize: 28,
     fontWeight: '800',
-    fontFamily: Platform.OS === 'ios' ? 'System' : 'Roboto',    
+    fontFamily: Platform.OS === 'ios' ? 'System' : 'Roboto',
     color: '#fff',
-    marginLeft:20
+    marginLeft: 20,
   },
   actionBtns: {
     flexDirection: 'row',
@@ -785,7 +847,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     overflow: 'hidden',
     shadowColor: '#6366f1',
-    shadowOffset: {width: 0, height: 3},
+    shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.3,
     shadowRadius: 6,
     elevation: 3,
@@ -810,7 +872,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     overflow: 'hidden',
     shadowColor: '#10b981',
-    shadowOffset: {width: 0, height: 4},
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.22,
     shadowRadius: 8,
     elevation: 5,
@@ -834,7 +896,6 @@ const styles = StyleSheet.create({
   },
   closestBisetkaContent: {
     flex: 1,
-    paddingRight: 10,
   },
   closestBisetkaEyebrow: {
     fontSize: 11,
@@ -863,12 +924,11 @@ const styles = StyleSheet.create({
   closestBisetkaSide: {
     alignItems: 'flex-end',
     justifyContent: 'space-between',
-    minHeight: 72,
   },
   closestBisetkaPill: {
     backgroundColor: 'rgba(255,255,255,0.16)',
     borderRadius: 999,
-    paddingHorizontal: 10,
+    marginHorizontal: 30,
     paddingVertical: 5,
   },
   closestBisetkaPillText: {
@@ -884,7 +944,7 @@ const styles = StyleSheet.create({
   actionButton: {
     backgroundColor: 'rgba(99, 102, 241, 0.9)',
     borderRadius: 12,
-    paddingHorizontal: 16,
+    marginHorizontal: 30,
     paddingVertical: 10,
     marginTop: 8,
     shadowColor: '#6366f1',
@@ -909,7 +969,6 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   activeRoomsGradient: {
-
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -934,7 +993,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     color: '#fff',
-
   },
   activeRoomsSubtitle: {
     fontSize: 12,
@@ -1001,7 +1059,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     overflow: 'hidden',
     shadowColor: '#6366f1',
-    shadowOffset: {width: 0, height: 4},
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
     shadowRadius: 8,
     elevation: 4,
@@ -1013,7 +1071,6 @@ const styles = StyleSheet.create({
     padding: 2,
     minHeight: 130,
     justifyContent: 'center',
-
   },
   gameIcon: {
     fontSize: 36,
@@ -1031,13 +1088,13 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#fff',
     marginBottom: 3,
-    margin:10,
+    margin: 10,
     textAlign: 'center',
   },
   gameDescription: {
     fontSize: 18,
     color: 'rgba(255,255,255,0.85)',
-    marginHorizontal:10
+    marginHorizontal: 10,
   },
   comingSoonBadge: {
     position: 'absolute',
@@ -1097,7 +1154,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
-
+  achievementsText: {
+    fontSize: 20,
+    color: '#FFF',
+    paddingTop:4,
+    paddingBottom:8
+  },
 });
 
 export default HomeScreen;

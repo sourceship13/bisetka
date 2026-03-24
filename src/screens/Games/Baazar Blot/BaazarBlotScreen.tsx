@@ -19,6 +19,7 @@ import ReAnimated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-
 import ExpandableView from '../../../components/global/ExpandableView';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../../../libs/hooks/useAuth';
+import { useAchievements } from '../../../contexts/AchievementContext';
 import { resolveAvatar } from '../../../utils/avatars';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
@@ -125,6 +126,7 @@ const BaazarBlotScreen = ({ navigation }: any) => {
   const panelAnim = useRef(new Animated.Value(0)).current;
   const toolbarExpanded = useSharedValue(false);
   const { user: currentUser, refreshUser } = useAuth();
+  const { showAchievements } = useAchievements();
 
   // Entry fee deduction handler
   const handleGameStart = async () => {
@@ -173,6 +175,9 @@ const BaazarBlotScreen = ({ navigation }: any) => {
       if (prizeResult.success) {
         console.log(`✅ ${prizeResult.message}`);
         setPrizeAwarded(true);
+        if (prizeResult.unlockedAchievements?.length > 0) {
+          showAchievements(prizeResult.unlockedAchievements);
+        }
         refreshUser().catch(console.error);
         
         if (didWin) {
