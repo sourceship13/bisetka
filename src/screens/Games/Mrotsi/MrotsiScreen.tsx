@@ -12,6 +12,7 @@ import { useGameEndRefresh } from '../../../libs/hooks/useGameEndRefresh';
 import Dice3DSimple from '../../../components/Games/Dice3DSimple';
 import { apiService } from '../../../services/api.service';
 import { useAuth } from '../../../libs/hooks/useAuth';
+import { useAchievements } from '../../../contexts/AchievementContext';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -44,27 +45,73 @@ const MrotsiScreen = ({navigation, route}: any) => {
   );
   const [rollingDice, setRollingDice] = useState<number[]>([1, 1, 1, 1, 1]);
   const [isRolling, setIsRolling] = useState(false);
+  const [opponentRollingDice, setOpponentRollingDice] = useState<number[]>([1, 1, 1, 1, 1]);
+  const [isOpponentRolling, setIsOpponentRolling] = useState(false);
   const gameIdRef = useRef<string>(uuidv4());
   const lastPlayerDiceRef = useRef<{ dice: number[]; score: number } | null>(null);
-  const rollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  useGameEndRefresh(gameState.isGameOver, 'mrotsi');
+  const rollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const opponentRollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const { refreshOnGameEnd, isRefreshing: isRefreshingGameEnd } = useGameEndRefresh(undefined, 'mrotsi');
 
   // Entry fee and prize tracking
-  const { user, refreshUser } = useAuth();
+  const { user, setUser, refreshUser } = useAuth();
+  const { showAchievements } = useAchievements();
   const [entryDeducted, setEntryDeducted] = useState(false);
   const [prizeAwarded, setPrizeAwarded] = useState(false);
+  const [isFinalizingGame, setIsFinalizingGame] = useState(false);
+
+  const isPostGameSyncing = isFinalizingGame || isRefreshingGameEnd;
+
+  const syncUserBalance = (newBalance: number) => {
+    setUser(currentUser => {
+      if (!currentUser) {
+        return currentUser;
+      }
+
+      return {
+        ...currentUser,
+        balance: newBalance,
+        playerStats: currentUser.playerStats
+          ? {
+              ...currentUser.playerStats,
+              available_points: newBalance,
+            }
+          : currentUser.playerStats,
+      };
+    });
+  };
+
+  const handleBackPress = () => {
+    if (gameState.isGameOver && isPostGameSyncing) {
+      BisetkaAlert.alert(
+        'Updating Profile',
+        'Finishing your points sync before returning home.'
+      );
+      return;
+    }
+
+    navigation.goBack();
+  };
 
   // Entry fee deduction handler
   const handleGameStart = async () => {
-    if (entryDeducted || !user?.id) return;
+    if (entryDeducted) return;
+
+    if (!user?.id) {
+      console.log('⏳ Waiting for authenticated user before deducting Mrotsi entry fee');
+      return;
+    }
 
     try {
       console.log('💰 Deducting mrotsi entry fee...');
+      console.log('   User ID:', user.id);
+      console.log('   Game ID:', gameIdRef.current);
       const result = await apiService.deductEntry('mrotsi', gameIdRef.current);
       
       if (result.success) {
         console.log(`✅ Entry deducted: -50 points. Balance: ${result.newBalance}`);
         setEntryDeducted(true);
+        syncUserBalance(result.newBalance);
         refreshUser().catch(console.error);
       } else {
         console.error('❌ Insufficient points:', result.error);
@@ -74,7 +121,10 @@ const MrotsiScreen = ({navigation, route}: any) => {
       }
     } catch (error: any) {
       console.error('❌ Entry deduction error:', error);
-      Alert.alert('Error', 'Failed to deduct entry fee.', [
+      console.error('   Error message:', error?.message);
+      console.error('   Error status:', error?.status);
+      console.error('   Full error:', JSON.stringify(error, null, 2));
+      Alert.alert('Error', `Failed to deduct entry fee: ${error?.message || 'Unknown error'}`, [
         { text: 'OK', onPress: () => navigation.goBack() }
       ]);
     }
@@ -85,6 +135,7 @@ const MrotsiScreen = ({navigation, route}: any) => {
     if (prizeAwarded || !user?.id) return;
 
     try {
+      setIsFinalizingGame(true);
       const result = didWin ? 'win' : 'loss';
       console.log(`🏆 Awarding prize and logging game for ${result}...`);
       
@@ -101,7 +152,12 @@ const MrotsiScreen = ({navigation, route}: any) => {
       if (prizeResult.success) {
         console.log(`✅ ${prizeResult.message}`);
         setPrizeAwarded(true);
-        refreshUser().catch(console.error);
+        syncUserBalance(prizeResult.newBalance);
+        const unlockedAchievements = prizeResult.unlockedAchievements ?? [];
+        if (unlockedAchievements.length > 0) {
+          showAchievements(unlockedAchievements);
+        }
+        await refreshOnGameEnd();
         
         if (didWin) {
           setTimeout(() => {
@@ -111,16 +167,18 @@ const MrotsiScreen = ({navigation, route}: any) => {
       }
     } catch (error: any) {
       console.error('❌ Prize award error:', error);
+    } finally {
+      setIsFinalizingGame(false);
     }
   };
 
   // Entry fee & prize logic
   // Deduct entry when game starts
   useEffect(() => {
-    if (!entryDeducted) {
+    if (!entryDeducted && user?.id) {
       handleGameStart();
     }
-  }, [entryDeducted]);
+  }, [entryDeducted, user?.id]);
 
   // Award prize when game ends
   useEffect(() => {
@@ -136,6 +194,9 @@ const MrotsiScreen = ({navigation, route}: any) => {
       if (rollingIntervalRef.current) {
         clearInterval(rollingIntervalRef.current);
       }
+      if (opponentRollingIntervalRef.current) {
+        clearInterval(opponentRollingIntervalRef.current);
+      }
     };
   }, []);
 
@@ -143,6 +204,7 @@ const MrotsiScreen = ({navigation, route}: any) => {
     // AI opponent's turn - use full gameState to avoid stale closures in production builds
     if (gameState.gameMode === 'ai' && gameState.playerRolled && !gameState.opponentRolled && !gameState.isGameOver) {
       const currentRound = gameState.currentRound;
+      animateOpponentDice();
       const timer = setTimeout(() => {
         // Calculate AI dice roll inline to avoid stale closure
         const newDice = [
@@ -152,7 +214,14 @@ const MrotsiScreen = ({navigation, route}: any) => {
           Math.floor(Math.random() * 6) + 1,
           Math.floor(Math.random() * 6) + 1,
         ];
-        
+
+        if (opponentRollingIntervalRef.current) {
+          clearInterval(opponentRollingIntervalRef.current);
+          opponentRollingIntervalRef.current = null;
+        }
+        setOpponentRollingDice(newDice);
+        setIsOpponentRolling(false);
+
         // Calculate score for the dice
         const counts: {[key: number]: number} = {};
         newDice.forEach(d => { counts[d] = (counts[d] || 0) + 1; });
@@ -166,22 +235,22 @@ const MrotsiScreen = ({navigation, route}: any) => {
         if (aiScore === 0) {
           aiScore = Math.max(...newDice);
         }
-        
+
         setGameState(prevState => {
           // Double-check we should still make this move
           if (prevState.opponentRolled || prevState.isGameOver) {
             return prevState;
           }
-          
+
           const newOpponentScore = prevState.opponentScore + aiScore;
           const newPlayerScore = prevState.playerScore;
-          
+
           // Log AI move
           if (lastPlayerDiceRef.current) {
             const playerDiceData = lastPlayerDiceRef.current;
             const roundWinner = playerDiceData.score > aiScore ? 'player' : 
                                playerDiceData.score < aiScore ? 'opponent' : 'tie';
-            
+
             aiMoveLogService.logMrotsiMove({
               gameId: gameIdRef.current,
               roundNumber: currentRound,
@@ -195,7 +264,7 @@ const MrotsiScreen = ({navigation, route}: any) => {
             });
             lastPlayerDiceRef.current = null;
           }
-          
+
           return {
             ...prevState,
             opponentDice: newDice,
@@ -204,7 +273,14 @@ const MrotsiScreen = ({navigation, route}: any) => {
           };
         });
       }, 1000);
-      return () => clearTimeout(timer);
+      return () => {
+        clearTimeout(timer);
+        if (opponentRollingIntervalRef.current) {
+          clearInterval(opponentRollingIntervalRef.current);
+          opponentRollingIntervalRef.current = null;
+        }
+        setIsOpponentRolling(false);
+      };
     }
   }, [gameState]);
 
@@ -340,6 +416,20 @@ const MrotsiScreen = ({navigation, route}: any) => {
     Animated.stagger(30, animations).start();
   }
 
+  function animateOpponentDice() {
+    setIsOpponentRolling(true);
+
+    opponentRollingIntervalRef.current = setInterval(() => {
+      setOpponentRollingDice([
+        Math.floor(Math.random() * 6) + 1,
+        Math.floor(Math.random() * 6) + 1,
+        Math.floor(Math.random() * 6) + 1,
+        Math.floor(Math.random() * 6) + 1,
+        Math.floor(Math.random() * 6) + 1,
+      ]);
+    }, 80);
+  }
+
   function rollPlayerDice() {
     if (gameState.playerRolled || gameState.isGameOver) return;
 
@@ -424,7 +514,7 @@ const MrotsiScreen = ({navigation, route}: any) => {
         <View>
           <GameToolbar
             title={`Mrotsi${gameState.gameMode === 'ai' ? ' (vs AI)' : ''}`}
-            onBack={() => navigation.goBack()}
+            onBack={handleBackPress}
             backgroundColor="transparent"
             rightElement={
               <TouchableOpacity
@@ -473,11 +563,13 @@ const MrotsiScreen = ({navigation, route}: any) => {
             <View style={styles.opponentDiceArea}>
               <Text style={styles.areaLabel}>Opponent</Text>
               <View style={styles.diceRow}>
-                {(gameState.opponentDice.length === 5 ? gameState.opponentDice : [1, 1, 1, 1, 1]).map((d, i) => (
-                  <Dice3DSimple key={i} value={d} isRolling={false} index={i} size={Math.floor(SCREEN_WIDTH / 5)} />
+                {((isOpponentRolling ? opponentRollingDice : gameState.opponentDice).length === 5
+                  ? (isOpponentRolling ? opponentRollingDice : gameState.opponentDice)
+                  : [1, 1, 1, 1, 1]).map((d, i) => (
+                  <Dice3DSimple key={i} value={d} isRolling={isOpponentRolling} index={i} size={Math.floor(SCREEN_WIDTH / 5)} />
                 ))}
               </View>
-              {gameState.opponentRolled && (
+              {gameState.opponentRolled && !isOpponentRolling && (
                 <Text style={styles.handNameText}>{getScoreName(gameState.opponentDice)}</Text>
               )}
             </View>
@@ -551,10 +643,13 @@ const MrotsiScreen = ({navigation, route}: any) => {
                 
                 <TouchableOpacity
                   style={styles.closeButtonModal}
-                  onPress={() => navigation.goBack()}
+                  onPress={handleBackPress}
+                  disabled={isPostGameSyncing}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
-                  <Text style={styles.closeModalText}>✕ Close</Text>
+                  <Text style={styles.closeModalText}>
+                    {isPostGameSyncing ? 'Syncing...' : '✕ Close'}
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>

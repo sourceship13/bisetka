@@ -26,6 +26,7 @@ import {v4 as uuidv4} from 'uuid';
 import { useGameEndRefresh } from '../../../libs/hooks/useGameEndRefresh';
 import {socketService} from '../../../services/SocketService';
 import {useAuth} from '../../../libs/hooks/useAuth';
+import {useAchievements} from '../../../contexts/AchievementContext';
 import BisetkaAlert from '../../../utils/BisetkaAlert';
 import InGameChat from '../../../components/InGameChat';
 import {apiConfig} from '../../../libs/utils/api.utils';
@@ -458,6 +459,7 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
 
   // Auth / user ID
   const {user, refreshUser} = useAuth();
+  const {showAchievements} = useAchievements();
   const userId: string = (user as any)?.id || session?.user?.id || session?.id || 'guest';
 
   const [balls, setBalls] = useState<Ball[]>(
@@ -623,6 +625,9 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
       if (prizeResult.success) {
         console.log(`✅ ${prizeResult.message}`);
         setPrizeAwarded(true);
+        if (prizeResult.unlockedAchievements?.length > 0) {
+          showAchievements(prizeResult.unlockedAchievements);
+        }
         refreshUser().catch(console.error);
         
         if (didWin) {

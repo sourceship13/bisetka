@@ -626,6 +626,14 @@ class ApiService {
     transactionId: string;
     gameResultId: string;
     message: string;
+    unlockedAchievements?: Array<{
+      achievement_id: string;
+      name: string;
+      description: string;
+      icon: string;
+      tier: string;
+      points_reward: number;
+    }>;
     error?: string;
   }> {
     console.log('🎯 awardPrizeAndLog called:', { gameType, result, gameMode, options });
@@ -645,6 +653,14 @@ class ApiService {
         transactionId: string;
         gameResultId: string;
         message: string;
+        unlockedAchievements?: Array<{
+          achievement_id: string;
+          name: string;
+          description: string;
+          icon: string;
+          tier: string;
+          points_reward: number;
+        }>;
         error?: string;
       }>(
         '/game/award-and-log',

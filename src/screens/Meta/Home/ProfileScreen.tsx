@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import {useAuth} from '../../../libs/hooks/useAuth';
 import {colors, spacing} from '../../../theme';
 import AVATARS, {resolveAvatar} from '../../../utils/avatars';
@@ -22,11 +23,49 @@ import apiService from '../../../services/api.service';
 const {width} = Dimensions.get('window');
 const AVATAR_GRID_SIZE = (width - spacing.md * 2 - 20) / 4;
 
+
+function formatGameName(gameType: string): string {
+  const names: Record<string, string> = {
+    chess: "Chess",
+    checkers: "Checkers",
+    nardi: "Nardi",
+    mrotsi: "Mrotsi",
+    blot: "Blot",
+    "baazar-blot": "Baazar Blot",
+    billiards: "Billiards",
+    poker: "Poker",
+    slots: "Slots",
+  };
+  return names[gameType] || gameType;
+}
 const ProfileScreen = ({navigation}: any) => {
   const {user, setUser} = useAuth();
   const [pickerOpen, setPickerOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [detailedStats, setDetailedStats] = useState<any>(null);
+  const [loadingStats, setLoadingStats] = useState(true);
+  
   const stats = user?.playerStats ?? null;
+
+  useEffect(() => {
+    if (user?.id) {
+      loadUserStats();
+    }
+  }, [user?.id]);
+
+  const loadUserStats = async () => {
+    try {
+      setLoadingStats(true);
+      const response = await apiService.get(`/users/${user?.id}/stats`);
+      if (response.success) {
+        setDetailedStats(response.stats);
+      }
+    } catch (error) {
+      console.error('Failed to load detailed stats:', error);
+    } finally {
+      setLoadingStats(false);
+    }
+  };
 
   const handleSelectAvatar = async (avatar: AvatarOption) => {
     setSaving(true);
@@ -92,6 +131,16 @@ const ProfileScreen = ({navigation}: any) => {
               </View>
             </View>
           </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('Achievements')}
+            activeOpacity={0.85}
+            style={styles.achievementsLink}>
+            <View style={styles.achievementsLinkContent}>
+              <Icon name="trophy-award" size={20} color="#fff" />
+              <Text style={styles.achievementsLinkText}>Achievements</Text>
+            </View>
+            <Icon name="chevron-right" size={22} color="rgba(255,255,255,0.85)" />
+          </TouchableOpacity>
           <Text style={styles.displayName}>{displayName}</Text>
           {user?.username && (
             <Text style={styles.usernameText}>@{user.username}</Text>
@@ -118,17 +167,77 @@ const ProfileScreen = ({navigation}: any) => {
           </View> */}
         </View>
 
-        {/* Stats */}
+        {/* Overall Stats */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Game Stats</Text>
+          <Text style={styles.sectionTitle}>Overall Stats</Text>
 
           <View style={styles.statsGrid}>
-            <StatBox label="Games" value={stats?.total_games ?? '—'} gradient={['#6366f1', '#8b5cf6']} />
-            <StatBox label="Wins" value={stats?.total_wins ?? '—'} gradient={['#10b981', '#34d399']} />
-            <StatBox label="Win Rate" value={stats ? `${Math.round(stats.win_rate)}%` : '—'} gradient={['#ec4899', '#f472b6']} />
-            <StatBox label="Best Streak" value={stats?.best_win_streak ?? '—'} gradient={['#f59e0b', '#fbbf24']} />
+            <StatBox 
+              label="Games" 
+              value={loadingStats ? '...' : (detailedStats?.overall?.total_games ?? 0)} 
+              gradient={['#6366f1', '#8b5cf6']} 
+            />
+            <StatBox 
+              label="Wins" 
+              value={loadingStats ? '...' : (detailedStats?.overall?.total_wins ?? 0)} 
+              gradient={['#10b981', '#34d399']} 
+            />
+            <StatBox 
+              label="Draws" 
+              value={loadingStats ? '...' : (detailedStats?.overall?.total_draws ?? 0)} 
+              gradient={['#f59e0b', '#fbbf24']} 
+            />
+            <StatBox 
+              label="Losses" 
+              value={loadingStats ? '...' : (detailedStats?.overall?.total_losses ?? 0)} 
+              gradient={['#ef4444', '#f87171']} 
+            />
+          </View>
+
+          <View style={[styles.statsGrid, {marginTop: 12}]}>
+            <StatBox 
+              label="Win Rate" 
+              value={loadingStats ? '...' : `${detailedStats?.overall?.win_rate?.toFixed(1) ?? 0}%`} 
+              gradient={['#ec4899', '#f472b6']} 
+            />
+            <StatBox 
+              label="Current Streak" 
+              value={loadingStats ? '...' : (detailedStats?.overall?.current_streak ?? 0)} 
+              gradient={['#8b5cf6', '#a78bfa']} 
+            />
+            <StatBox 
+              label="Best Streak" 
+              value={loadingStats ? '...' : (detailedStats?.overall?.best_streak ?? 0)} 
+              gradient={['#f59e0b', '#fbbf24']} 
+            />
+            <StatBox 
+              label="Achievements" 
+              value={loadingStats ? '...' : (detailedStats?.overall?.achievements_unlocked ?? 0)} 
+              gradient={['#06b6d4', '#22d3ee']} 
+            />
           </View>
         </View>
+
+        {/* Per-Game Stats */}
+        {!loadingStats && detailedStats?.per_game && detailedStats.per_game.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Stats by Game</Text>
+            {detailedStats.per_game.map((game: any) => (
+              <View key={game.game_type} style={styles.gameStatRow}>
+                <View style={styles.gameStatHeader}>
+                  <Text style={styles.gameStatName}>{formatGameName(game.game_type)}</Text>
+                  <Text style={styles.gameStatWinRate}>{game.win_rate?.toFixed(1)}% WR</Text>
+                </View>
+                <View style={styles.gameStatDetails}>
+                  <Text style={styles.gameStatDetail}>
+                    {game.games_played} games · {game.wins}W {game.draws}D {game.losses}L
+                  </Text>
+                  <Text style={styles.gameStatPoints}>+{game.points_earned} pts</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
 
         {/* Points */}
         <View style={styles.section}>
@@ -273,6 +382,27 @@ const styles = StyleSheet.create({
   avatarWrap: {
     marginBottom: spacing.sm,
     alignItems: 'center',
+  },
+  achievementsLink: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(0,0,0,0.18)',
+    borderRadius: 14,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  achievementsLinkContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  achievementsLinkText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#fff',
   },
   avatar: {
     width: 140,
@@ -479,6 +609,42 @@ const styles = StyleSheet.create({
     color: colors.text.tertiary,
     marginTop: 4,
     textAlign: 'center',
+  },
+  gameStatRow: {
+    backgroundColor: '#1a1a1a',
+    padding: 12,
+    borderRadius: 10,
+    marginBottom: 8,
+  },
+  gameStatHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  gameStatName: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  gameStatWinRate: {
+    color: '#10b981',
+    fontSize: 13,
+    fontWeight: 'bold',
+  },
+  gameStatDetails: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  gameStatDetail: {
+    color: '#888',
+    fontSize: 12,
+  },
+  gameStatPoints: {
+    color: '#fbbf24',
+    fontSize: 12,
+    fontWeight: '600',
   },
   savingText: {
     textAlign: 'center',

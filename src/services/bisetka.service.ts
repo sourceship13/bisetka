@@ -387,6 +387,30 @@ class BisetkaService {
   /**
    * Join user to a Bisetka (sets current_bisetka_id)
    */
+
+  /**
+   * Travel to a different Bisetka (costs points)
+   */
+  async travelToBisetka(bisetkaId: string, cost: number): Promise<{ success: boolean; newPoints?: number; error?: string }> {
+    try {
+      const response = await apiService.post('/bisetka/travel', { 
+        bisetka_id: bisetkaId, 
+        cost 
+      }, true);
+      
+      console.log('✅ [BisetkaService] Traveled to Bisetka:', bisetkaId);
+      return { 
+        success: true, 
+        newPoints: response.newPoints || response.new_points 
+      };
+    } catch (error: any) {
+      console.error('❌ [BisetkaService] Failed to travel:', error);
+      return { 
+        success: false, 
+        error: error?.response?.data?.error || error?.message || 'Failed to travel' 
+      };
+    }
+  }
   async joinBisetka(bisetkaId: string): Promise<void> {
     try {
       await apiService.post('/bisetka/join', { bisetka_id: bisetkaId }, true);
