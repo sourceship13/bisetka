@@ -27,10 +27,12 @@ import { v4 as uuidv4 } from 'uuid';
 import { useGameEndRefresh } from '../../../libs/hooks/useGameEndRefresh';
 import { apiService } from '../../../services/api.service';
 import { useAuth } from '../../../libs/hooks/useAuth';
+import { useAchievements } from '../../../contexts/AchievementContext';
 import { resolveAvatar } from '../../../utils/avatars';
 
 const ChessScreen = ({navigation}: any) => {
   const { user, refreshUser } = useAuth();
+  const { showAchievements } = useAchievements();
   const [difficulty, setDifficulty] = useState<Difficulty | null>(null);
   const [gameState, setGameState] = useState<ChessGameState | null>(null);
   const gameIdRef = useRef<string | null>(null);
@@ -185,6 +187,12 @@ const ChessScreen = ({navigation}: any) => {
         console.log(`✅ ${prizeResult.message}`);
         setUserPoints(prizeResult.newBalance);
         setPrizeAwarded(true);
+        
+        // Show unlocked achievements
+        if (prizeResult.unlockedAchievements && prizeResult.unlockedAchievements.length > 0) {
+          console.log('🏆 Unlocked achievements:', prizeResult.unlockedAchievements);
+          showAchievements(prizeResult.unlockedAchievements);
+        }
         
         // Refresh user data in Auth context (so HomeScreen sees updated balance)
         refreshUser().catch(err => console.error('Failed to refresh user after game:', err));
