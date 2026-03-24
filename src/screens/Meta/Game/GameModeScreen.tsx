@@ -30,6 +30,10 @@ const SOCKET_BASED_GAMES = new Set([
   'nardi',
 ]);
 
+const GAMES_WITHOUT_LOCATION = new Set([
+  'mrotsi',
+]);
+
 // Map game types to their actual game screens
 const GAME_SCREEN_MAP: Record<string, keyof RootStackParamList> = {
   // Card games
@@ -110,7 +114,9 @@ const GameModeScreen: React.FC<Props> = ({route, navigation}) => {
 
   /** Fetch location silently — never blocks the user if denied or slow. */
   const getGameLocation = (): Promise<UserLocation | null> =>
-    locationService.getLocationForGame();
+    GAMES_WITHOUT_LOCATION.has(gameType)
+      ? Promise.resolve(null)
+      : locationService.getLocationForGame();
 
   const prepareSocketLocation = (location: UserLocation | null) => {
     socketService.setPendingLocation(location);

@@ -16,6 +16,7 @@ import { useGameEndRefresh } from '../../../libs/hooks/useGameEndRefresh';
 import InGameChat from '../../../components/InGameChat';
 import { apiService } from '../../../services/api.service';
 import { useAuth } from '../../../libs/hooks/useAuth';
+import { useAchievements } from '../../../contexts/AchievementContext';
 import { resolveAvatar } from '../../../utils/avatars';
 
 type PieceType = 'regular' | 'king';
@@ -149,6 +150,7 @@ const CheckersScreen = ({ navigation, route }: any) => {
 
   // Entry fee and prize tracking
   const { user, refreshUser } = useAuth();
+  const { showAchievements } = useAchievements();
   const [entryDeducted, setEntryDeducted] = useState(false);
   const [prizeAwarded, setPrizeAwarded] = useState(false);
   const [gameStartTime, setGameStartTime] = useState<number>(Date.now());
@@ -207,6 +209,10 @@ const CheckersScreen = ({ navigation, route }: any) => {
         console.log(`✅ ${prizeResult.message}`);
         console.log(`   Prize: +${prizeResult.prize} points`);
         console.log(`   New balance: ${prizeResult.newBalance}`);
+        
+        if (prizeResult.unlockedAchievements?.length > 0) {
+          showAchievements(prizeResult.unlockedAchievements);
+        }
         console.log(`   Game logged with ID: ${prizeResult.gameResultId}`);
         
         setPrizeAwarded(true);

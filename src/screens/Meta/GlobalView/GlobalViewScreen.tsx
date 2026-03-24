@@ -111,7 +111,7 @@ const findSessionForAccountBisetka = (
 };
 
 const GlobalViewScreen = ({ navigation }: any) => {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [sessions, setSessions] = useState<GameSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedSession, setSelectedSession] = useState<GameSession | null>(null);
@@ -164,12 +164,11 @@ const GlobalViewScreen = ({ navigation }: any) => {
       console.log('🌍 [GlobalView] First session:', allSessions[0]);
       setSessions(allSessions);
 
-      // Always check if user has a current bisetka and select it
+      // Don't auto-select, just find nearest for reference
       const accountSession = findSessionForAccountBisetka(allSessions, user?.bisetka);
 
       if (accountSession) {
         setNearestBisetka(accountSession);
-        setSelectedSession(accountSession);
         console.log(
           `🏘️ [GlobalView] Your Bisetka: ${accountSession.roomName}, ${accountSession.city}`,
         );
@@ -191,14 +190,9 @@ const GlobalViewScreen = ({ navigation }: any) => {
         }
 
         setNearestBisetka(nearest);
-        setSelectedSession(current => current ?? nearest);
         console.log(`🏘️ Nearest Bisetka: ${nearest.roomName}, ${nearest.city} (${minDistance.toFixed(1)} km away)`);
-      } else if (allSessions.length > 0) {
-        setNearestBisetka(null);
-        setSelectedSession(current => current ?? allSessions[0] ?? null);
       } else {
         setNearestBisetka(null);
-        setSelectedSession(null);
       }
     } catch (error: any) {
       console.warn('Failed to load Bisetkas', error);
@@ -256,23 +250,131 @@ const GlobalViewScreen = ({ navigation }: any) => {
   // Reload when screen comes into focus (e.g. after traveling)
   useFocusEffect(
     useCallback(() => {
+      console.log('🌍 GlobalView focused, refreshing data...');
       void loadBisetkas();
-    }, [user?.bisetka?.id])
+      // Refresh user to get latest points and bisetka
+      refreshUser().catch(err => console.error('Failed to refresh user:', err));
+    }, [])
   );
 
-  const handleSessionPress = (session: GameSession) => {
-    // Navigate to BisetkaDetail screen to show Kings and leaderboard
-    navigation.navigate('BisetkaDetail', {
-      bisetkaId: session.id,
-      bisetkaName: session.roomName || 'Unknown',
-      city: session.city || 'Unknown',
-      country: session.country || 'World',
-    });
+  const handleSessionPress = async (session: GameSession) => {
+    console.log('🌍 Bisetka pressed:', session.roomName, session.city);
+    
+    // Set selected session to show bottom sheet
+    setSelectedSession(session);
+    
+    // Check if this is the user's current bisetka
+    const isCurrentBisetka = user?.bisetka?.id === session.id;
+    
+    if (isCurrentBisetka) {
+      // Just view if it's their current bisetka - user can tap "View" button
+      console.log('📍 This is your current Bisetka');
+      return;
+    }
+
+    // For other bisetkas, show bottom sheet with travel option
+    console.log('✈️ Different Bisetka - tap View to see or Travel to join');
   };
 
-  const handleJoinSession = (session: GameSession) => {
-    // Same as handleSessionPress - go to BisetkaDetail
-    handleSessionPress(session);
+  const handleJoinSession = async (session: GameSession) => {
+    console.log('🔘 Join/Travel button pressed for:', session.roomName);
+    console.log('📍 Current bisetka:', user?.bisetka?.id);
+    console.log('🎯 Target bisetka:', session.id);
+    
+    const isCurrentBisetka = user?.bisetka?.id === session.id;
+    console.log('✅ Is current bisetka?', isCurrentBisetka);
+    
+    // If it's current bisetka, just view
+    if (isCurrentBisetka) {
+      console.log('➡️ Navigating to current bisetka detail');
+      navigation.navigate('BisetkaDetail', {
+        bisetkaId: session.id,
+        bisetkaName: session.roomName || 'Unknown',
+        city: session.city || 'Unknown',
+        country: session.country || 'World',
+      });
+      return;
+    }
+
+    console.log('🚀 Showing travel confirmation...');
+    console.log('💰 User points:', user?.points);
+    console.log('💰 Points check:', (user?.points || 0) < 100);
+    
+    // Check if user has enough points first
+    const currentPoints = user?.points || 0;
+    if (currentPoints < 100) {
+      console.log('❌ Insufficient points - user has:', currentPoints);
+      BisetkaAlert.error(
+        'Insufficient Points',
+        `You need 100 points to travel to a different Bisetka.\n\nYou currently have: ${currentPoints} points`
+      );
+      return;
+    }
+    
+    console.log('✅ Points check passed, showing dialog');
+    
+    // Show travel confirmation with cost using alert with buttons
+    BisetkaAlert.alert(
+      `✈️ Travel to ${session.roomName}?`,
+      `${session.city}, ${session.country}\n\nTravel cost: 100 points\nYour points: ${user.points}`,
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+          onPress: () => console.log('Travel cancelled'),
+        },
+        {
+          text: 'Travel',
+          style: 'default',
+          onPress: async () => {
+            console.log('✈️ Confirmed travel, processing...');
+            try {
+              setLoading(true);
+              
+              // Deduct points and travel
+              const result = await bisetkaService.travelToBisetka(session.id, 100);
+              console.log('📡 Travel result:', result);
+              
+              if (result.success) {
+                console.log('✅ Travel successful, refreshing user...');
+                // Refresh user data to update bisetka and points
+                await refreshUser();
+                
+                // Close the bottom sheet
+                setSelectedSession(null);
+                
+                // Navigate to the new bisetka
+                console.log('➡️ Navigating to BisetkaDetail');
+                navigation.navigate('BisetkaDetail', {
+                  bisetkaId: session.id,
+                  bisetkaName: session.roomName || 'Unknown',
+                  city: session.city || 'Unknown',
+                  country: session.country || 'World',
+                });
+                
+                // Show success message
+                setTimeout(() => {
+                  BisetkaAlert.success(
+                    'Travel Complete!',
+                    `Welcome to ${session.roomName}, ${session.city}!\n\nPoints remaining: ${result.newPoints}`
+                  );
+                }, 500);
+              } else {
+                throw new Error(result.error || 'Failed to travel');
+              }
+            } catch (error: any) {
+              console.error('❌ Travel error:', error);
+              BisetkaAlert.error(
+                'Travel Failed',
+                error?.message || 'Unable to travel to this Bisetka.'
+              );
+            } finally {
+              setLoading(false);
+            }
+          },
+        },
+      ]
+    );
   };
 
   const renderMapView = () => {
@@ -459,8 +561,10 @@ const GlobalViewScreen = ({ navigation }: any) => {
               <TouchableOpacity
                 style={styles.detailBtn}
                 onPress={() => handleJoinSession(selectedSession)}>
-                <View style={{backgroundColor: '#10b981', paddingVertical: 14, borderRadius: 8, alignItems: 'center'}}>
-                  <Text style={styles.detailBtnText}>Join Game</Text>
+                <View style={{backgroundColor: user?.bisetka?.id === selectedSession.id ? '#6366f1' : '#10b981', paddingVertical: 14, borderRadius: 8, alignItems: 'center'}}>
+                  <Text style={styles.detailBtnText}>
+                    {user?.bisetka?.id === selectedSession.id ? 'View Details' : '✈️ Travel (100 pts)'}
+                  </Text>
                 </View>
               </TouchableOpacity>
               <TouchableOpacity
