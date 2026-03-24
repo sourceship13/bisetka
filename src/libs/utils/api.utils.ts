@@ -155,6 +155,10 @@ function getEnvironment(): Environment {
 }
 
 function getBaseURL(env: Environment): string {
+  // TEMPORARY: Force localhost for testing new endpoints
+  // Remove this after deploying to staging
+  return 'http://localhost:3000';
+  
   switch (env) {
     case 'local':
       return getLocalURL();

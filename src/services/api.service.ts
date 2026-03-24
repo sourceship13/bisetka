@@ -600,6 +600,68 @@ class ApiService {
       // Non-fatal — logging should never crash the game
     }
   }
+
+  /**
+   * Combined: Award prize + Log game result + Log activity
+   * POST /api/game/award-and-log
+   */
+  async awardPrizeAndLog(
+    gameType: string,
+    result: 'win' | 'draw' | 'loss',
+    gameMode: 'ai' | 'random' | 'private',
+    options?: {
+      gameId?: string;
+      playerScore?: number;
+      opponentId?: string;
+      opponentScore?: number;
+      customPrize?: number;
+      durationSeconds?: number;
+      movesCount?: number;
+      monetaryResult?: number;
+    }
+  ): Promise<{
+    success: boolean;
+    prize: number;
+    newBalance: number;
+    transactionId: string;
+    gameResultId: string;
+    message: string;
+    error?: string;
+  }> {
+    console.log('🎯 awardPrizeAndLog called:', { gameType, result, gameMode, options });
+    
+    try {
+      const body = {
+        gameType,
+        result,
+        gameMode,
+        ...options,
+      };
+
+      const response = await this.request<{
+        success: boolean;
+        prize: number;
+        newBalance: number;
+        transactionId: string;
+        gameResultId: string;
+        message: string;
+        error?: string;
+      }>(
+        '/game/award-and-log',
+        {
+          method: 'POST',
+          body: JSON.stringify(body),
+        },
+        true
+      );
+      
+      console.log('✅ awardPrizeAndLog result:', response);
+      return response;
+    } catch (error) {
+      console.error('❌ awardPrizeAndLog error:', error);
+      throw error;
+    }
+  }
 }
 
 // ========== EXPORT ==========
