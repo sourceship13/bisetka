@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { Text, StyleSheet } from 'react-native';
 import BootSplash from 'react-native-bootsplash';
 import AppNavigator from './src/navigation/AppNavigator';
 import { AuthProvider } from './src/libs/hooks/useAuth';
@@ -6,6 +7,7 @@ import { BisetkaAlertContainer } from './src/utils/BisetkaAlert';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
 import * as Sentry from '@sentry/react-native';
 import Config from 'react-native-config';
+import { version } from './package.json';
 
 Sentry.init({
   dsn: Config.SENTRY_DSN,
@@ -30,9 +32,20 @@ function App(): React.JSX.Element {
       <AuthProvider>
         <AppNavigator />
         <BisetkaAlertContainer />
+        <Text style={styles.versionFooter}>v{version}</Text>
       </AuthProvider>
     </GestureHandlerRootView>
   );
 }
 
 export default Sentry.wrap(App);
+
+const styles = StyleSheet.create({
+  versionFooter: {
+    position: 'absolute',
+    bottom: 4,
+    alignSelf: 'center',
+    fontSize: 10,
+    color: 'rgba(255,255,255,0.25)',
+  },
+});
