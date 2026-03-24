@@ -1,9 +1,12 @@
 import React, {useState, useEffect, useRef} from 'react';
-import {View, Text, StyleSheet, TouchableOpacity, ImageBackground, Alert} from 'react-native';
+import {View, Text, StyleSheet, TouchableOpacity, ImageBackground, Alert, Animated, ScrollView, Image} from 'react-native';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
+import ReAnimated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
+import ExpandableView from '../../../components/global/ExpandableView';
 import GameToolbar from '../../../components/global/GameToolbar';
+import GameToolbarControls from '../../../components/global/GameToolbarControls';
 import {
   Difficulty,
   ChessGameState,
@@ -24,6 +27,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { useGameEndRefresh } from '../../../libs/hooks/useGameEndRefresh';
 import { apiService } from '../../../services/api.service';
 import { useAuth } from '../../../libs/hooks/useAuth';
+import { resolveAvatar } from '../../../utils/avatars';
 
 const ChessScreen = ({navigation}: any) => {
   const { user, refreshUser } = useAuth();
@@ -34,8 +38,31 @@ const ChessScreen = ({navigation}: any) => {
   const lastPlayerMoveRef = useRef<{ from: Position; to: Position; piece: string; captured?: string } | null>(null);
   useGameEndRefresh(!!(gameState?.isCheckmate || gameState?.isStalemate), 'chess');
   const [showCustomization, setShowCustomization] = useState(false);
+  const [showBlur, setShowBlur] = useState(true);
+  const [showBackground, setShowBackground] = useState(true);
   const [gameTheme, setGameTheme] = useState<GameTheme>({});
-  
+  const toolbarExpanded = useSharedValue(false);
+  const chevronStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: withTiming(toolbarExpanded.value ? '180deg' : '0deg', { duration: 250 }) }],
+  }));
+  const [showPanel, setShowPanel] = useState(false);
+  const panelAnim = useRef(new Animated.Value(0)).current;
+
+  const togglePanel = () => {
+    const toValue = showPanel ? 0 : 1;
+    setShowPanel(!showPanel);
+    Animated.spring(panelAnim, {
+      toValue, useNativeDriver: true, speed: 20, bounciness: 4,
+    }).start();
+  };
+
+  const toggleLeave = () => {
+    BisetkaAlert.alert('Leave Game', 'Are you sure you want to leave the game?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Leave', style: 'destructive', onPress: () => navigation.goBack() },
+    ]);
+  };
+
   // Entry fee and prize tracking
   const [entryDeducted, setEntryDeducted] = useState(false);
   const [prizeAwarded, setPrizeAwarded] = useState(false);
@@ -441,27 +468,40 @@ const ChessScreen = ({navigation}: any) => {
     <ImageBackground
       source={require('../../../../assets/blot/park-background.png')}
       style={styles.container}
-      blurRadius={3}
+      blurRadius={showBlur ? 3 : 0}
     >
       <LinearGradient
-        colors={['rgba(15,15,35,0.7)', 'rgba(26,23,66,0.6)']}
+        colors={showBlur ? ['rgba(15,15,35,0.7)', 'rgba(26,23,66,0.6)'] : ['transparent', 'transparent']}
         style={styles.overlay}
       >
         <SafeAreaView style={styles.safeArea}>
-          <GameToolbar
-            title={`Chess - ${difficulty}`}
-            onBack={resetGame}
-            backgroundColor="transparent"
-            rightElement={
-              <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
+          <View>
+            <GameToolbar
+              title={`Chess - ${difficulty}`}
+              onBack={resetGame}
+              backgroundColor="transparent"
+              rightElement={
                 <TouchableOpacity
-                  onPress={() => setShowCustomization(true)}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                  <Text style={styles.customizeText}>🎨</Text>
+                  onPress={() => { toolbarExpanded.value = !toolbarExpanded.value; }}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  style={styles.editRoomButton}
+                >
+                  <ReAnimated.Text style={[styles.editRoomIcon, chevronStyle]}>⌄</ReAnimated.Text>
                 </TouchableOpacity>
-              </View>
-            }
-          />
+              }
+            />
+            <ExpandableView isExpanded={toolbarExpanded} viewKey="chessToolbarControls" duration={300}>
+               <GameToolbarControls
+                buttons={[
+                  { icon: '🎨', onPress: () => setShowCustomization(true) },
+                  { icon: showBlur ? '🌫️' : '✨', onPress: () => setShowBlur(!showBlur) },
+                  { icon: showBackground ? '🖼️' : '🔲', onPress: () => setShowBackground(!showBackground) },
+                  { icon: '👥', onPress: togglePanel },
+                  { icon: '🚪', onPress: toggleLeave },
+                ]}
+              />
+            </ExpandableView>
+          </View>
 
       <View style={styles.statusBar}>
         <Text style={styles.turnText}>
@@ -527,6 +567,77 @@ const ChessScreen = ({navigation}: any) => {
           </View>
         </View>
       )}
+
+      {/* Player Panel */}
+      {showPanel && (
+        <TouchableOpacity
+          style={styles.panelBackdrop}
+          activeOpacity={1}
+          onPress={togglePanel}
+        />
+      )}
+      <Animated.View
+        style={[
+          styles.sidePanel,
+          {
+            transform: [{
+              translateX: panelAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [280, 0],
+              }),
+            }],
+          },
+        ]}
+        pointerEvents={showPanel ? 'auto' : 'none'}
+      >
+        <View style={styles.panelHeader}>
+          <Text style={styles.panelTitle}>Players</Text>
+          <TouchableOpacity onPress={togglePanel} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+            <Text style={styles.panelClose}>✕</Text>
+          </TouchableOpacity>
+        </View>
+        <ScrollView style={styles.panelContent}>
+          <Text style={styles.panelSectionTitle}>🎮 In Game</Text>
+
+          {/* Player (White) */}
+          <View style={[styles.panelPlayerRow, gameState.currentPlayer === 'white' && styles.panelPlayerRowActive]}>
+            <View style={styles.panelAvatarClip}>
+              {resolveAvatar(user?.avatar_url ?? null) ? (
+                <Image source={resolveAvatar(user?.avatar_url ?? null)!} style={styles.panelAvatar} />
+              ) : (
+                <View style={styles.panelAvatarPlaceholder}>
+                  <Text style={styles.panelAvatarInitials}>
+                    {(user?.username || 'Y')[0].toUpperCase()}
+                  </Text>
+                </View>
+              )}
+            </View>
+            {gameState.currentPlayer === 'white' && <View style={styles.panelTurnDot} />}
+            <View style={styles.panelPlayerInfo}>
+              <Text style={styles.panelPlayerName}>{user?.username || 'You'}</Text>
+              <View style={[styles.panelTeamBadge, { backgroundColor: 'rgba(255,255,255,0.15)' }]}>
+                <Text style={styles.panelTeamText}>♔ White</Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Computer (Black) */}
+          <View style={[styles.panelPlayerRow, gameState.currentPlayer === 'black' && styles.panelPlayerRowActive]}>
+            <View style={styles.panelAvatarClip}>
+              <View style={styles.panelAvatarPlaceholder}>
+                <Text style={styles.panelAvatarInitials}>🤖</Text>
+              </View>
+            </View>
+            {gameState.currentPlayer === 'black' && <View style={styles.panelTurnDot} />}
+            <View style={styles.panelPlayerInfo}>
+              <Text style={styles.panelPlayerName}>Computer ({difficulty})</Text>
+              <View style={[styles.panelTeamBadge, { backgroundColor: 'rgba(0,0,0,0.4)' }]}>
+                <Text style={styles.panelTeamText}>♚ Black</Text>
+              </View>
+            </View>
+          </View>
+        </ScrollView>
+      </Animated.View>
         </SafeAreaView>
       </LinearGradient>
 
@@ -703,6 +814,126 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: '#1C1917',
+  },
+  panelBackdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+  },
+  sidePanel: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    width: 270,
+    backgroundColor: 'rgba(12,12,30,0.97)',
+    borderLeftWidth: 1,
+    borderLeftColor: 'rgba(255,255,255,0.12)',
+    shadowColor: '#000',
+    shadowOffset: { width: -4, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 12,
+    elevation: 20,
+  },
+  panelHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 18,
+    paddingTop: 56,
+    paddingBottom: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.1)',
+  },
+  panelTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  panelClose: {
+    fontSize: 18,
+    color: 'rgba(255,255,255,0.6)',
+    fontWeight: '600',
+  },
+  panelContent: {
+    flex: 1,
+    padding: 14,
+  },
+  panelSectionTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: 'rgba(255,255,255,0.5)',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginBottom: 10,
+    marginTop: 6,
+  },
+  panelPlayerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    borderRadius: 10,
+    marginBottom: 4,
+  },
+  panelPlayerRowActive: {
+    backgroundColor: 'rgba(255,215,0,0.10)',
+  },
+  panelAvatarClip: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    overflow: 'hidden',
+    marginRight: 10,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+  },
+  panelAvatar: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+  },
+  panelAvatarPlaceholder: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: 'rgba(255,255,255,0.13)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  panelAvatarInitials: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  panelTurnDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#FFD700',
+    marginRight: 6,
+  },
+  panelPlayerInfo: {
+    flex: 1,
+  },
+  panelPlayerName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#fff',
+    marginBottom: 2,
+  },
+  panelTeamBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  panelTeamText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#fff',
   },
 });
 

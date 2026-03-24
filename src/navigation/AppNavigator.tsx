@@ -45,6 +45,7 @@ import WardrobeScreen from '../screens/Meta/Home/WardrobeScreen';
 import TravelScreen from '../screens/Meta/Home/TravelScreen';
 import GlobalViewScreen from '../screens/Meta/GlobalView/GlobalViewScreen';
 import BisetkaDetailScreen from '../screens/Meta/BisetkaDetail/BisetkaDetailScreen';
+import AchievementsScreen from '../screens/Meta/Achievements/AchievementsScreen';
 import DrawerContent from '../components/DrawerContent';
 import {useAuth} from '../libs/hooks/useAuth';
 import {ActivityIndicator, View, StyleSheet, Dimensions} from 'react-native';
@@ -91,6 +92,7 @@ export type RootStackParamList = {
   Travel: undefined;
   GlobalView: { userId?: string };
   BisetkaDetail: { bisetkaId: string; bisetkaName: string; city: string; country: string };
+  Achievements: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -258,21 +260,21 @@ const AppNavigator = () => {
               )}
               <Stack.Screen name="Home" component={HomeDrawerScreen} />
               <Stack.Screen name="GameSelection" component={GameSelectionScreen} />
-              <Stack.Screen name="Blot" component={BlotScreen} />
-              <Stack.Screen name="MultiplayerBlot" component={MultiplayerBlotScreen} />
-              <Stack.Screen name="BaazarBlot" component={BaazarBlotScreen} />
-              <Stack.Screen name="MultiplayerBaazarBlot" component={MultiplayerBaazarBlotScreen} />
-              <Stack.Screen name="Chess" component={ChessScreen} />
-              <Stack.Screen name="MultiplayerChess" component={MultiplayerChessScreen} />
-              <Stack.Screen name="Checkers" component={CheckersScreen} />
-              <Stack.Screen name="MultiplayerCheckers" component={MultiplayerCheckersScreen} />
-              <Stack.Screen name="Nardi" component={NardiScreen} />
-              <Stack.Screen name="Mrotsi" component={MrotsiScreen} />
-              <Stack.Screen name="MultiplayerMrotsi" component={MultiplayerMrotsiScreen} />
-              <Stack.Screen name="PokerRoom" component={PokerRoomScreen} />
-              <Stack.Screen name="BilliardsGame" component={BilliardsGameScreen} />
-              <Stack.Screen name="Slots" component={SlotsScreen} />
-              <Stack.Screen name="Blackjack" component={BlackjackScreen} />
+              <Stack.Screen name="Blot" component={BlotScreen} options={{ gestureEnabled: false }} />
+              <Stack.Screen name="MultiplayerBlot" component={MultiplayerBlotScreen} options={{ gestureEnabled: false }} />
+              <Stack.Screen name="BaazarBlot" component={BaazarBlotScreen} options={{ gestureEnabled: false }} />
+              <Stack.Screen name="MultiplayerBaazarBlot" component={MultiplayerBaazarBlotScreen} options={{ gestureEnabled: false }} />
+              <Stack.Screen name="Chess" component={ChessScreen} options={{ gestureEnabled: false }} />
+              <Stack.Screen name="MultiplayerChess" component={MultiplayerChessScreen} options={{ gestureEnabled: false }} />
+              <Stack.Screen name="Checkers" component={CheckersScreen} options={{ gestureEnabled: false }} />
+              <Stack.Screen name="MultiplayerCheckers" component={MultiplayerCheckersScreen} options={{ gestureEnabled: false }} />
+              <Stack.Screen name="Nardi" component={NardiScreen} options={{ gestureEnabled: false }} />
+              <Stack.Screen name="Mrotsi" component={MrotsiScreen} options={{ gestureEnabled: false }} />
+              <Stack.Screen name="MultiplayerMrotsi" component={MultiplayerMrotsiScreen} options={{ gestureEnabled: false }} />
+              <Stack.Screen name="PokerRoom" component={PokerRoomScreen} options={{ gestureEnabled: false }} />
+              <Stack.Screen name="BilliardsGame" component={BilliardsGameScreen} options={{ gestureEnabled: false }} />
+              <Stack.Screen name="Slots" component={SlotsScreen} options={{ gestureEnabled: false }} />
+              <Stack.Screen name="Blackjack" component={BlackjackScreen} options={{ gestureEnabled: false }} />
               <Stack.Screen name="GameInfo" component={GameInfoScreen} />
               <Stack.Screen name="GameMode" component={GameModeScreen} />
               <Stack.Screen name="SessionStatus" component={SessionStatusScreen} />
@@ -292,6 +294,7 @@ const AppNavigator = () => {
               <Stack.Screen name="Wardrobe" component={WardrobeScreen} />
               <Stack.Screen name="Travel" component={TravelScreen} />
               <Stack.Screen name="GlobalView" component={GlobalViewScreen} />
+              <Stack.Screen name="Achievements" component={AchievementsScreen} />
               <Stack.Screen name="BisetkaDetail" component={BisetkaDetailScreen} />
             </>
           )}

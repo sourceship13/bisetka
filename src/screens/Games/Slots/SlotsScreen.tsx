@@ -16,6 +16,9 @@ import Svg, { Polyline } from 'react-native-svg';
 import apiConfig from '../../../libs/utils/api.utils';
 import tokenService from '../../../services/token.service';
 import GameToolbar from '../../../components/global/GameToolbar';
+import GameToolbarControls from '../../../components/global/GameToolbarControls';
+import ReAnimated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
+import ExpandableView from '../../../components/global/ExpandableView';
 import { apiService } from '../../../services/api.service';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -71,6 +74,12 @@ const SlotsScreen = ({ navigation }: any) => {
   // Use user's actual balance - no entry fee, real money gameplay
   const [balance, setBalance] = useState(Math.floor((user as any)?.balance || 0));
   const [betAmount, setBetAmount] = useState(10);
+  const [showBlur, setShowBlur] = useState(true);
+  const [showBackground, setShowBackground] = useState(true);
+  const toolbarExpanded = useSharedValue(false);
+  const chevronStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: withTiming(toolbarExpanded.value ? '180deg' : '0deg', { duration: 250 }) }],
+  }));
   const [spinning, setSpinning] = useState(false);
   // 5 reels × 3 rows — what shows at the bottom of each reel strip (the result)
   const [reelSymbols, setReelSymbols] = useState<string[][]>([
@@ -278,14 +287,32 @@ const SlotsScreen = ({ navigation }: any) => {
   return (
     <SafeAreaView style={styles.container}>
       <LinearGradient
-        colors={['#0f0f23', '#1a1742', '#0f0f23']}
+        colors={showBackground ? ['#0f0f23', '#1a1742', '#0f0f23'] : ['#1a1a2e', '#1a1a2e', '#1a1a2e']}
         style={styles.gradient}
       >
-        <GameToolbar
-          title="🎰 SLOTS"
-          onBack={() => navigation.goBack()}
-          backgroundColor="transparent"
-        />
+        <View>
+          <GameToolbar
+            title="🎰 SLOTS"
+            onBack={() => navigation.goBack()}
+            backgroundColor="transparent"
+            rightElement={
+              <TouchableOpacity
+                onPress={() => { toolbarExpanded.value = !toolbarExpanded.value; }}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                style={{ padding: 6, borderRadius: 8 }}>
+                <ReAnimated.Text style={[{ fontSize: 22, color: '#FFD700' }, chevronStyle]}>⌄</ReAnimated.Text>
+              </TouchableOpacity>
+            }
+          />
+          <ExpandableView isExpanded={toolbarExpanded} viewKey="slotsToolbarControls" duration={300}>
+            <GameToolbarControls
+              buttons={[
+                { icon: showBlur ? '🌫️' : '✨', onPress: () => setShowBlur(!showBlur) },
+                { icon: showBackground ? '🖼️' : '🔲', onPress: () => setShowBackground(!showBackground) },
+              ]}
+            />
+          </ExpandableView>
+        </View>
 
         <View style={styles.balanceCard}>
           <LinearGradient
