@@ -360,17 +360,27 @@ class BisetkaService {
 
   /**
    * Get all neighborhoods for travel selection
-   * Returns bundled neighborhood data
+   * Fetches live bisetka list from the API so IDs always match the DB
    */
   async getAllNeighborhoods(): Promise<Neighborhood[]> {
     try {
-      // Return bundled neighborhood data
-      const neighborhoods = bundledLocationData.neighborhoods || [];
-      console.log('📍 [BisetkaService] Loaded neighborhoods:', neighborhoods.length);
+      const bisetkas = await this.getAllBisetkas(500);
+      const neighborhoods: Neighborhood[] = bisetkas.map(b => ({
+        id: b.neighborhood_id,
+        name: b.neighborhood_name,
+        city: b.city,
+        country: b.country,
+        lat: 0,
+        lng: 0,
+      }));
+      console.log('📍 [BisetkaService] Loaded neighborhoods from API:', neighborhoods.length);
       return neighborhoods;
     } catch (error: any) {
       console.error('❌ [BisetkaService] Failed to load neighborhoods:', error);
-      throw error;
+      // Fall back to bundled data if API fails
+      const neighborhoods = bundledLocationData.neighborhoods || [];
+      console.log('📍 [BisetkaService] Falling back to bundled neighborhoods:', neighborhoods.length);
+      return neighborhoods;
     }
   }
 }
