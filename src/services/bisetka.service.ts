@@ -503,7 +503,7 @@ class BisetkaService {
    */
   async travelToBisetka(bisetkaId: string, cost: number): Promise<{ success: boolean; newPoints?: number; error?: string }> {
     try {
-      const response = await apiService.post('/bisetka/travel', { 
+      const response = await apiService.post('/bisetka/travel-bisetka', { 
         bisetka_id: bisetkaId, 
         cost 
       }, true);

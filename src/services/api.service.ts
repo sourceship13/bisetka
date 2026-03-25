@@ -605,6 +605,26 @@ class ApiService {
   }
 
   /**
+   * Generate or fetch a cached bisetka background image for a city.
+   * POST /api/images/bisetka-background
+   */
+  async getOrGenerateBisetkaBackground(data: {
+    city: string;
+    neighborhood?: string;
+    promptTemplate?: string;
+    forceRegenerate?: boolean;
+  }): Promise<{ url: string | null; prompt: string | null; city: string | null; cached: boolean; disabled?: boolean }> {
+    return this.request<{ url: string | null; prompt: string | null; city: string | null; cached: boolean; disabled?: boolean }>(
+      '/images/bisetka-background',
+      {
+        method: 'POST',
+        body: JSON.stringify(data),
+      },
+      true,
+    );
+  }
+
+  /**
    * Generate a card face background image via AI
    * POST /api/images/card-face
    */
