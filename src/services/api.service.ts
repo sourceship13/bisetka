@@ -40,6 +40,18 @@ export interface ApiError {
   status?: number;
 }
 
+export interface PointsPurchaseResponse {
+  success: boolean;
+  packId: string;
+  pointsAdded: number;
+  basePoints: number;
+  bonusPoints: number;
+  newBalance: number;
+  transactionId: string;
+  message: string;
+  error?: string;
+}
+
 // ========== API SERVICE CLASS ==========
 
 class ApiService {
@@ -453,6 +465,21 @@ class ApiService {
       `/game/transaction-history?limit=${limit}&offset=${offset}`,
       { method: 'GET' },
       true
+    );
+  }
+
+  /**
+   * Purchase a points pack and credit the user's account
+   * POST /api/game/purchase-points
+   */
+  async purchasePoints(packId: string): Promise<PointsPurchaseResponse> {
+    return this.request<PointsPurchaseResponse>(
+      '/game/purchase-points',
+      {
+        method: 'POST',
+        body: JSON.stringify({ packId }),
+      },
+      true,
     );
   }
 
