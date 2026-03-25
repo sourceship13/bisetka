@@ -19,9 +19,8 @@ import {colors, spacing} from '../../../theme';
 import AVATARS, {resolveAvatar} from '../../../utils/avatars';
 import type {AvatarOption} from '../../../utils/avatars';
 import apiService from '../../../services/api.service';
-
-const {width} = Dimensions.get('window');
-const AVATAR_GRID_SIZE = (width - spacing.md * 2 - 20) / 4;
+import useDeviceType from '../../../hooks/useDeviceType';
+import { getSpacing } from '../../../theme/responsive';
 
 
 function formatGameName(gameType: string): string {
@@ -40,10 +39,16 @@ function formatGameName(gameType: string): string {
 }
 const ProfileScreen = ({navigation}: any) => {
   const {user, setUser} = useAuth();
+  const { isTablet, width: screenWidth } = useDeviceType();
   const [pickerOpen, setPickerOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [detailedStats, setDetailedStats] = useState<any>(null);
   const [loadingStats, setLoadingStats] = useState(true);
+  
+  // Calculate responsive avatar grid size
+  const gridPadding = getSpacing('md', isTablet);
+  const avatarColumns = isTablet ? 6 : 4;
+  const avatarGridSize = (screenWidth - gridPadding * 2 - 20) / avatarColumns;
   
   const stats = user?.playerStats ?? null;
 
@@ -281,7 +286,8 @@ const ProfileScreen = ({navigation}: any) => {
             <Text style={styles.categoryLabel}>Men</Text>
             <FlatList
               data={AVATARS.filter(a => a.category === 'men')}
-              numColumns={4}
+              numColumns={avatarColumns}
+              key={avatarColumns}
               scrollEnabled={false}
               keyExtractor={a => a.key}
               contentContainerStyle={styles.avatarGrid}
@@ -291,9 +297,14 @@ const ProfileScreen = ({navigation}: any) => {
                   activeOpacity={0.7}
                   style={[
                     styles.avatarGridItem,
+                    { width: avatarGridSize },
                     user?.avatar_url === item.key && styles.avatarGridSelected,
                   ]}>
-                  <Image source={item.source} style={styles.avatarGridImage} />
+                  <Image source={item.source} style={[styles.avatarGridImage, { 
+                    width: avatarGridSize - 20, 
+                    height: avatarGridSize - 20,
+                    borderRadius: (avatarGridSize - 20) / 2
+                  }]} />
                   <Text style={styles.avatarGridLabel}>{item.label}</Text>
                 </TouchableOpacity>
               )}
@@ -303,7 +314,8 @@ const ProfileScreen = ({navigation}: any) => {
             <Text style={styles.categoryLabel}>Women</Text>
             <FlatList
               data={AVATARS.filter(a => a.category === 'women')}
-              numColumns={4}
+              numColumns={avatarColumns}
+              key={`women-${avatarColumns}`}
               scrollEnabled={false}
               keyExtractor={a => a.key}
               contentContainerStyle={styles.avatarGrid}
@@ -313,9 +325,14 @@ const ProfileScreen = ({navigation}: any) => {
                   activeOpacity={0.7}
                   style={[
                     styles.avatarGridItem,
+                    { width: avatarGridSize },
                     user?.avatar_url === item.key && styles.avatarGridSelected,
                   ]}>
-                  <Image source={item.source} style={styles.avatarGridImage} />
+                  <Image source={item.source} style={[styles.avatarGridImage, { 
+                    width: avatarGridSize - 20, 
+                    height: avatarGridSize - 20,
+                    borderRadius: (avatarGridSize - 20) / 2
+                  }]} />
                   <Text style={styles.avatarGridLabel}>{item.label}</Text>
                 </TouchableOpacity>
               )}
@@ -477,7 +494,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: colors.text.primary,
-    maxWidth: width * 0.5,
+    maxWidth: '50%',
     textAlign: 'right',
   },
   mono: {
@@ -489,7 +506,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   statBox: {
-    width: (width - spacing.md * 2 - 10) / 2,
+    width: '48%',
     borderRadius: 14,
     padding: 6,
     alignItems: 'center',
@@ -588,7 +605,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   avatarGridItem: {
-    width: AVATAR_GRID_SIZE,
+    // Width set dynamically via inline style
     alignItems: 'center',
     padding: 6,
     borderRadius: 12,
@@ -600,9 +617,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(99,102,241,0.15)',
   },
   avatarGridImage: {
-    width: AVATAR_GRID_SIZE - 20,
-    height: AVATAR_GRID_SIZE - 20,
-    borderRadius: (AVATAR_GRID_SIZE - 20) / 2,
+    // Dimensions set dynamically via inline style
   },
   avatarGridLabel: {
     fontSize: 10,

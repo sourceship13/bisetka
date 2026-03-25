@@ -30,6 +30,7 @@ import {useAchievements} from '../../../contexts/AchievementContext';
 import BisetkaAlert from '../../../utils/BisetkaAlert';
 import InGameChat from '../../../components/InGameChat';
 import {apiConfig} from '../../../libs/utils/api.utils';
+import useDeviceType from '../../../hooks/useDeviceType';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'BilliardsGame'>;
 
@@ -451,6 +452,7 @@ const GameOverOverlay: React.FC<{
 };
 
 const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
+  const { isTablet, isLandscape } = useDeviceType();
   const {session} = route.params;
   const variant: GameVariant = session?.gameType === '9-ball' ? '9-ball' : '8-ball';
   const difficulty = session?.difficulty || 'medium';

@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../libs/hooks/useAuth';
 import bisetkaService, { Bisetka } from '../services/bisetka.service';
-import bisetkaStorageService from '../services/bisetkaStorage.service';
-import locationService, { UserLocation } from '../services/location.service';
 
 type PublicIPLocation = {
   city?: string;
@@ -21,8 +19,7 @@ type ResolvedNeighborhood = {
 type ResolvedBisetkaPayload = {
   bisetka: Bisetka;
   neighborhood: ResolvedNeighborhood;
-  location?: UserLocation | null;
-  source: 'account' | 'gps' | 'ip' | 'server';
+  source: 'account' | 'ip' | 'server';
 };
 
 const buildAccountBisetkaFallback = (accountBisetka: {
@@ -47,7 +44,6 @@ const buildAccountBisetkaFallback = (accountBisetka: {
     city: accountBisetka.city,
     country: accountBisetka.country,
   },
-  location: null,
   source: 'account',
 });
 
@@ -58,7 +54,6 @@ const buildServerBisetkaFallback = (bisetka: Bisetka): ResolvedBisetkaPayload =>
     city: bisetka.city,
     country: bisetka.country,
   },
-  location: null,
   source: 'server',
 });
 
@@ -68,19 +63,7 @@ const buildIpBisetkaFallback = (ipBisetka: {
 }): ResolvedBisetkaPayload => ({
   bisetka: ipBisetka.bisetka,
   neighborhood: ipBisetka.neighborhood,
-  location: null,
   source: 'ip',
-});
-
-const buildGpsBisetkaFallback = (
-  bisetka: Bisetka,
-  neighborhood: ResolvedNeighborhood,
-  location: UserLocation,
-): ResolvedBisetkaPayload => ({
-  bisetka,
-  neighborhood,
-  location,
-  source: 'gps',
 });
 
 const resolveFromCoordinates = async (params: {
@@ -88,8 +71,6 @@ const resolveFromCoordinates = async (params: {
   lng: number;
   city?: string;
   country?: string;
-  source: 'gps' | 'ip';
-  location?: UserLocation;
 }): Promise<ResolvedBisetkaPayload | null> => {
   const resolved = await bisetkaService.resolveFromCoordinates(params.lat, params.lng, {
     city: params.city,
@@ -107,8 +88,7 @@ const resolveFromCoordinates = async (params: {
       city: resolved.neighborhood.city,
       country: resolved.neighborhood.country,
     },
-    location: params.location || null,
-    source: params.source,
+    source: 'ip',
   };
 };
 
@@ -143,11 +123,10 @@ const resolveFromPublicIP = async (): Promise<ResolvedBisetkaPayload | null> => 
     lng: publicLocation.longitude!,
     city: publicLocation.city,
     country: publicLocation.country,
-    source: 'ip',
   });
 };
 
-export const useBisetkaLocation = () => {
+export const useIPLocation = () => {
   const { user } = useAuth();
   const [resolvedBisetka, setResolvedBisetka] = useState<ResolvedBisetkaPayload | null>(
     user?.bisetka ? buildAccountBisetkaFallback(user.bisetka) : null,
@@ -166,66 +145,6 @@ export const useBisetkaLocation = () => {
     setError(null);
 
     try {
-      const deviceLocation = await locationService.getLocationForBisetka();
-      if (deviceLocation) {
-        const gpsNeighborhoodPromise = bisetkaService.findNearestNeighborhood(
-          deviceLocation.latitude,
-          deviceLocation.longitude,
-        );
-        const gpsBisetkaPromise = bisetkaService.autoConnect(
-          deviceLocation.latitude,
-          deviceLocation.longitude,
-        );
-
-        const [gpsNeighborhood, gpsBisetka] = await Promise.all([
-          gpsNeighborhoodPromise,
-          gpsBisetkaPromise,
-        ]);
-
-        const refinedGpsBisetka = await resolveFromCoordinates({
-          lat: deviceLocation.latitude,
-          lng: deviceLocation.longitude,
-          city: gpsNeighborhood?.city,
-          country: gpsNeighborhood?.country,
-          source: 'gps',
-          location: deviceLocation,
-        });
-
-        const gpsResolved = gpsBisetka
-          ? buildGpsBisetkaFallback(
-              gpsBisetka,
-              {
-                name: gpsNeighborhood?.name || gpsBisetka.neighborhood_name,
-                city: gpsNeighborhood?.city || gpsBisetka.city,
-                country: gpsNeighborhood?.country || gpsBisetka.country,
-              },
-              deviceLocation,
-            )
-          : refinedGpsBisetka;
-
-        if (gpsResolved) {
-          setResolvedBisetka(gpsResolved);
-          await bisetkaStorageService.storeBisetka({
-            id: gpsResolved.bisetka.id,
-            neighborhood: gpsResolved.bisetka.neighborhood_name,
-            city: gpsResolved.bisetka.city,
-            country: gpsResolved.bisetka.country,
-            active_users: gpsResolved.bisetka.active_users,
-            source: 'gps',
-          });
-          setLoading(false);
-          return gpsResolved;
-        }
-      }
-
-      const currentBisetka = await bisetkaService.getMyBisetka();
-      if (currentBisetka) {
-        const serverBisetka = buildServerBisetkaFallback(currentBisetka);
-        setResolvedBisetka(serverBisetka);
-        setLoading(false);
-        return serverBisetka;
-      }
-
       const ipResult = await bisetkaService.getByIpBisetka();
       if (ipResult) {
         const refinedIpBisetka = ipResult.location
@@ -234,7 +153,6 @@ export const useBisetkaLocation = () => {
               lng: ipResult.location.lng,
               city: ipResult.location.city || ipResult.neighborhood.city,
               country: ipResult.location.country || ipResult.neighborhood.country,
-              source: 'ip',
             })
           : null;
 
@@ -251,6 +169,14 @@ export const useBisetkaLocation = () => {
         return publicIpBisetka;
       }
 
+      const currentBisetka = await bisetkaService.getMyBisetka();
+      if (currentBisetka) {
+        const serverBisetka = buildServerBisetkaFallback(currentBisetka);
+        setResolvedBisetka(serverBisetka);
+        setLoading(false);
+        return serverBisetka;
+      }
+
       if (accountBisetka) {
         setResolvedBisetka(accountBisetka);
         setLoading(false);
@@ -258,7 +184,7 @@ export const useBisetkaLocation = () => {
       }
 
       setResolvedBisetka(null);
-      setError('Unable to determine your Bisetka from your location right now.');
+      setError('Unable to determine your Bisetka from your connection right now.');
       setLoading(false);
       return null;
     } catch (lookupError: any) {
@@ -271,7 +197,7 @@ export const useBisetkaLocation = () => {
 
       setResolvedBisetka(null);
       setError(
-        lookupError?.message || 'Unable to determine your Bisetka from your location right now.',
+        lookupError?.message || 'Unable to determine your Bisetka from your connection right now.',
       );
       setLoading(false);
       return null;
@@ -286,11 +212,10 @@ export const useBisetkaLocation = () => {
     bisetka: resolvedBisetka?.bisetka || null,
     neighborhood: resolvedBisetka?.neighborhood || null,
     source: resolvedBisetka?.source || null,
-    location: resolvedBisetka?.location || null,
     loading,
     error,
     refreshLocation: loadBisetka,
   };
 };
 
-export default useBisetkaLocation;
+export default useIPLocation;

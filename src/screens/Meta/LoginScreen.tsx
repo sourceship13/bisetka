@@ -83,11 +83,15 @@ const LoginScreen = ({navigation}: any) => {
     <LinearGradient
       colors={[colors.background.primary, colors.background.secondary, colors.background.tertiary]}
       style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
+      <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.keyboardView}>
-          <View style={styles.content}>
+          <ScrollView 
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}>
+            <View style={styles.content}>
             <View style={styles.headerSection}>
               <Text style={styles.logo}>🎮</Text>
               <Text style={styles.title}>Bisetka</Text>
@@ -209,6 +213,7 @@ const LoginScreen = ({navigation}: any) => {
             </View>
           )}
         </View>
+          </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   </LinearGradient>
@@ -225,10 +230,13 @@ const styles = StyleSheet.create({
   keyboardView: {
     flex: 1,
   },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: spacing.xl,
+  },
   content: {
-    flex: 1,
-    justifyContent: 'center',
     paddingHorizontal: spacing.xl,
+    paddingTop: spacing.xl,
   },
   headerSection: {
     alignItems: 'center',

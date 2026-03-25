@@ -25,6 +25,13 @@ export interface Neighborhood {
   distance_km?: number;
 }
 
+export interface IpLocationHint {
+  lat: number;
+  lng: number;
+  city?: string;
+  country?: string;
+}
+
 type GlobeBisetka = Bisetka & { lat: number; lng: number };
 
 type BisetkaLookupCandidate = {
@@ -33,6 +40,22 @@ type BisetkaLookupCandidate = {
   neighborhood_name?: string | null;
   city?: string | null;
   country?: string | null;
+};
+
+const toRadians = (value: number) => (value * Math.PI) / 180;
+
+const calculateDistanceKm = (fromLat: number, fromLng: number, toLat: number, toLng: number) => {
+  const earthRadiusKm = 6371;
+  const deltaLat = toRadians(toLat - fromLat);
+  const deltaLng = toRadians(toLng - fromLng);
+  const a =
+    Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2) +
+    Math.cos(toRadians(fromLat)) *
+      Math.cos(toRadians(toLat)) *
+      Math.sin(deltaLng / 2) *
+      Math.sin(deltaLng / 2);
+
+  return 2 * earthRadiusKm * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 };
 
 const normalizeLocationPart = (value?: string | null) =>
@@ -234,6 +257,79 @@ class BisetkaService {
     }
   }
 
+  findNearestBundledNeighborhood(
+    lat: number,
+    lng: number,
+    hint?: { city?: string; country?: string },
+  ): Neighborhood | null {
+    const neighborhoods = bundledLocationData.neighborhoods || [];
+    if (!neighborhoods.length) {
+      return null;
+    }
+
+    const hintCity = normalizeLocationPart(hint?.city);
+    const hintCountry = normalizeLocationPart(hint?.country);
+
+    const scopedNeighborhoods = neighborhoods.filter((neighborhood) => {
+      if (hintCountry && normalizeLocationPart(neighborhood.country) !== hintCountry) {
+        return false;
+      }
+
+      if (!hintCity) {
+        return true;
+      }
+
+      return normalizeLocationPart(neighborhood.city) === hintCity;
+    });
+
+    const candidates = scopedNeighborhoods.length ? scopedNeighborhoods : neighborhoods;
+
+    return candidates.reduce<Neighborhood | null>((closest, neighborhood) => {
+      if (typeof neighborhood.lat !== 'number' || typeof neighborhood.lng !== 'number') {
+        return closest;
+      }
+
+      if (!closest) {
+        return neighborhood;
+      }
+
+      const currentDistance = calculateDistanceKm(lat, lng, neighborhood.lat, neighborhood.lng);
+      const closestDistance = calculateDistanceKm(lat, lng, closest.lat, closest.lng);
+
+      return currentDistance < closestDistance ? neighborhood : closest;
+    }, null);
+  }
+
+  async resolveFromCoordinates(
+    lat: number,
+    lng: number,
+    hint?: { city?: string; country?: string },
+  ): Promise<{ bisetka: Bisetka; neighborhood: Neighborhood } | null> {
+    const nearestNeighborhood = this.findNearestBundledNeighborhood(lat, lng, hint);
+    if (!nearestNeighborhood) {
+      return null;
+    }
+
+    const bisetka = await this.findOrCreateBisetka(nearestNeighborhood.id);
+    if (bisetka) {
+      return { bisetka, neighborhood: nearestNeighborhood };
+    }
+
+    return {
+      bisetka: {
+        id: `local:${nearestNeighborhood.id}`,
+        neighborhood_id: nearestNeighborhood.id,
+        neighborhood_name: nearestNeighborhood.name,
+        city: nearestNeighborhood.city,
+        country: nearestNeighborhood.country,
+        active_users: 0,
+        created_at: '',
+        updated_at: '',
+      },
+      neighborhood: nearestNeighborhood,
+    };
+  }
+
   /**
    * Find or create Bisetka for a neighborhood
    */
@@ -257,7 +353,8 @@ class BisetkaService {
     try {
       const response = await apiService.post<{ bisetka: Bisetka; message: string }>(
         '/bisetka/auto-connect',
-        { lat, lng }
+        { lat, lng },
+        true,
       );
       return response.bisetka || null;
     } catch (error) {
@@ -271,7 +368,7 @@ class BisetkaService {
    */
   async getMyBisetka(): Promise<Bisetka | null> {
     try {
-      const response = await apiService.get<{ bisetka: Bisetka }>('/bisetka/my');
+      const response = await apiService.get<{ bisetka: Bisetka }>('/bisetka/my', true);
       return response.bisetka || null;
     } catch (error) {
       console.error('Failed to get user Bisetka:', error);
@@ -283,18 +380,31 @@ class BisetkaService {
    * Find the nearest Bisetka by the device's IP address — no GPS needed.
    * Used as the first-open fallback when there is no stored or profile bisetka.
    */
-  async getByIpBisetka(): Promise<{ bisetka: Bisetka; neighborhood: Neighborhood } | null> {
+  async getByIpBisetka(): Promise<{
+    bisetka: Bisetka;
+    neighborhood: Neighborhood;
+    location?: IpLocationHint;
+  } | null> {
     try {
       const response = await apiService.get<{
         bisetka: Bisetka;
         neighborhood: Neighborhood;
         source: string;
-      }>('/bisetka/by-ip');
+        location?: IpLocationHint;
+      }>('/bisetka/by-ip', false, { suppressErrorLogging: true });
       if (response.bisetka) {
-        return { bisetka: response.bisetka, neighborhood: response.neighborhood };
+        return {
+          bisetka: response.bisetka,
+          neighborhood: response.neighborhood,
+          location: response.location,
+        };
       }
       return null;
-    } catch (error) {
+    } catch (error: any) {
+      if (error?.status === 422) {
+        console.warn('IP-based bisetka lookup unavailable for this connection');
+        return null;
+      }
       console.warn('IP-based bisetka lookup failed:', error);
       return null;
     }

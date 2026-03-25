@@ -32,12 +32,10 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { socketService } from '../../../services/SocketService';
 import tokenService from '../../../services/token.service';
 import useBisetkaLocation from '../../../hooks/useBisetkaLocation';
-import bisetkaService from '../../../services/bisetka.service';
+import useDeviceType from '../../../hooks/useDeviceType';
+import { getGridColumns, getSpacing, getFontSize } from '../../../theme/responsive';
 
 const bisetkaBackground = require('../../../../assets/backgrounds/bisetka.png');
-
-const { width } = Dimensions.get('window');
-const CARD_WIDTH = (width - 42) / 2; // 2 columns with gap
 
 // Game configurations with PushBird-style colors
 const GAMES = [
@@ -144,53 +142,25 @@ const GAMES = [
 
 type GameConfig = (typeof GAMES)[number];
 
-const buildAccountBisetkaFallback = (accountBisetka: {
-  id: string;
-  neighborhood: string;
-  city: string;
-  country: string;
-  active_users: number;
-}) => ({
-  bisetka: {
-    id: accountBisetka.id,
-    neighborhood_name: accountBisetka.neighborhood,
-    city: accountBisetka.city,
-    country: accountBisetka.country,
-    active_users: accountBisetka.active_users,
-  },
-  neighborhood: {
-    name: accountBisetka.neighborhood,
-    city: accountBisetka.city,
-    country: accountBisetka.country,
-  },
-});
-
 const HomeScreen = ({ navigation }: any) => {
   const { user, signOut, refreshUser } = useAuth();
   const drawerNav = useNavigation();
   const refreshUserRef = useRef(refreshUser);
-
-  // Auto-connect to local Bisetka based on GPS location
   const {
-    location,
-    neighborhood,
-    bisetka,
-    loading: bisetkaLoading,
-    error: bisetkaError,
+    bisetka: resolvedBisetka,
+    neighborhood: resolvedNeighborhood,
+    source: bisetkaSource,
+    loading: ipLookupLoading,
+    error: ipLookupError,
     refreshLocation,
   } = useBisetkaLocation();
+  const { isTablet, isLandscape, width: screenWidth } = useDeviceType();
 
-  // Log Bisetka connection
-  useEffect(() => {
-    if (bisetka) {
-      console.log(
-        `🏘️ Connected to Bisetka: ${bisetka.neighborhood_name}, ${bisetka.city} (${bisetka.active_users} active users)`,
-      );
-    }
-    if (bisetkaError) {
-      console.warn('⚠️ Bisetka connection error:', bisetkaError);
-    }
-  }, [bisetka, bisetkaError]);
+  // Calculate responsive values
+  const columns = getGridColumns(isTablet, isLandscape);
+  const cardGap = getSpacing('md', isTablet);
+  const horizontalPadding = getSpacing('lg', isTablet);
+  const cardWidth = (screenWidth - (horizontalPadding * 2) - (cardGap * (columns - 1))) / columns;
 
   useEffect(() => {
     refreshUserRef.current = refreshUser;
@@ -295,12 +265,6 @@ const HomeScreen = ({ navigation }: any) => {
 
   const avatarSource = resolveAvatar(user?.avatar_url);
 
-  const accountFallback = user?.bisetka
-    ? buildAccountBisetkaFallback(user.bisetka)
-    : null;
-  const resolvedBisetka = bisetka || accountFallback?.bisetka || null;
-  const resolvedNeighborhood =
-    neighborhood || accountFallback?.neighborhood || null;
   const hasRemoteBisetka = Boolean(
     resolvedBisetka?.id && !resolvedBisetka.id.startsWith('local:'),
   );
@@ -314,11 +278,6 @@ const HomeScreen = ({ navigation }: any) => {
   };
 
   const handleNearestBisetkaPress = async () => {
-    if (bisetkaError) {
-      refreshLocation();
-      return;
-    }
-
     // If we have a valid Bisetka connection, go directly to BisetkaDetail
     // Otherwise, show the GlobalView to explore all Bisetkas
     if (hasRemoteBisetka && resolvedBisetka && resolvedNeighborhood) {
@@ -331,22 +290,21 @@ const HomeScreen = ({ navigation }: any) => {
       return;
     }
 
-    if (bisetkaLoading) {
+    if (ipLookupLoading) {
       BisetkaAlert.alert(
         'Finding Your Bisetka',
-        'Your nearest Bisetka is still syncing. Try again in a moment.',
+        'Your Bisetka from your connection is still syncing. Try again in a moment.',
       );
       return;
     }
 
-    // Try IP-based lookup on-demand (covers first open when background load hasn't resolved yet)
-    const ipResult = await bisetkaService.getByIpBisetka();
-    if (ipResult) {
+    const refreshedBisetka = await refreshLocation();
+    if (refreshedBisetka?.bisetka && refreshedBisetka?.neighborhood) {
       navigation.navigate('BisetkaDetail', {
-        bisetkaId: ipResult.bisetka.id,
-        bisetkaName: ipResult.bisetka.neighborhood_name,
-        city: ipResult.bisetka.city,
-        country: ipResult.neighborhood.country,
+        bisetkaId: refreshedBisetka.bisetka.id,
+        bisetkaName: refreshedBisetka.bisetka.neighborhood_name,
+        city: refreshedBisetka.bisetka.city,
+        country: refreshedBisetka.neighborhood.country,
       });
       return;
     }
@@ -358,25 +316,29 @@ const HomeScreen = ({ navigation }: any) => {
     const hasNearestBisetka = Boolean(resolvedBisetka && resolvedNeighborhood);
 
     let title = 'Closest Bisetka';
-    let subtitle = 'Using your saved or IP-based Bisetka when available.';
-    let metaText = location
-      ? `${location.latitude.toFixed(3)}, ${location.longitude.toFixed(3)}`
-      : 'Open the map or allow location for a precise nearby match';
+    let subtitle = 'Using your device location first, with account and IP fallback if needed.';
+    let metaText = 'Open the map to browse Bisetkas worldwide';
     let pillText = 'Browse';
     let actionText = 'View Map';
 
-    if (bisetkaLoading) {
-      subtitle = 'Checking your saved and account Bisetka.';
-    } else if (bisetkaError) {
-      subtitle = bisetkaError;
-      metaText = 'Tap to retry location lookup';
+    if (ipLookupLoading) {
+      subtitle = 'Checking your device location to match you to the nearest Bisetka.';
+    } else if (ipLookupError) {
+      subtitle = ipLookupError;
+      metaText = 'Tap to retry device-location lookup';
       pillText = 'Retry';
       actionText = 'Retry';
     } else if (hasNearestBisetka) {
       title = `${resolvedBisetka!.neighborhood_name}, ${resolvedBisetka!.city}`;
       subtitle = hasRemoteBisetka
-        ? 'Tap to choose a game and start playing'
-        : 'Closest neighborhood found from your device location';
+        ? bisetkaSource === 'gps'
+          ? 'Matched from your device location. Tap to choose a game and start playing'
+          : bisetkaSource === 'ip'
+          ? 'Matched from your current connection. Tap to choose a game and start playing'
+          : 'Tap to choose a game and start playing'
+        : bisetkaSource === 'gps'
+          ? 'Matched from your device location'
+          : 'Matched from your current connection';
       metaText = `${resolvedNeighborhood!.city}, ${
         resolvedNeighborhood!.country
       }`;
@@ -446,7 +408,11 @@ const HomeScreen = ({ navigation }: any) => {
         activeOpacity={0.85}
         disabled={isComingSoon}
         onPress={() => handleGamePress(game)}
-        style={[styles.gameCardWrapper, isComingSoon && styles.cardDisabled]}
+        style={[
+          styles.gameCardWrapper,
+          { width: cardWidth },
+          isComingSoon && styles.cardDisabled,
+        ]}
       >
         <LinearGradient
           colors={game.gradient as unknown as string[]}
@@ -1020,7 +986,6 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   gameCardWrapper: {
-    width: CARD_WIDTH,
     borderRadius: 20,
     overflow: 'hidden',
     shadowColor: '#6366f1',

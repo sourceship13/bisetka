@@ -345,25 +345,21 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
         socket.emit('create_baazar_private_room', {
           userId,
           desiredCode: initialJoinCode,
-          location: route.params?.location,
         });
       } else if (initialMode === 'private-join' && initialJoinCode) {
         socket.emit('join_baazar_private_room', {
           roomCode: initialJoinCode,
           userId,
-          location: route.params?.location,
         });
       } else if (initialMode === 'random') {
         if (teamMode === 'full-multiplayer') {
           socket.emit('find_baazar_teams_match', {
             userId,
-            location: route.params?.location,
           });
         } else {
           socket.emit('find_baazar_match', {
             userId,
             allowReplaceAI,
-            location: route.params?.location,
           });
         }
       } else if (initialMode === 'replace-ai' && dbSessionId) {
