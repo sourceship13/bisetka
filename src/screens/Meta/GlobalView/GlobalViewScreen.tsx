@@ -67,21 +67,6 @@ const GAME_ICONS: Record<string, string> = {
   bisetka: '🏘️', // Bisetka neighborhood icon
 };
 
-// Calculate distance between two coordinates (Haversine formula)
-const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number): number => {
-  const R = 6371; // Earth's radius in km
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLng = ((lng2 - lng1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLng / 2) *
-      Math.sin(dLng / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-};
-
 const findSessionForAccountBisetka = (
   sessions: GameSession[],
   accountBisetka: {
@@ -117,7 +102,6 @@ const GlobalViewScreen = ({ navigation }: any) => {
   const [selectedSession, setSelectedSession] = useState<GameSession | null>(null);
   const [mapboxAvailable] = useState(!!MapboxGL);
   const [refreshing, setRefreshing] = useState(false);
-  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [nearestBisetka, setNearestBisetka] = useState<GameSession | null>(null);
 
   const loadBisetkas = async (options?: {
@@ -172,25 +156,8 @@ const GlobalViewScreen = ({ navigation }: any) => {
         console.log(
           `🏘️ [GlobalView] Your Bisetka: ${accountSession.roomName}, ${accountSession.city}`,
         );
-      } else if (userLocation && allSessions.length > 0) {
-        let nearest = allSessions[0];
-        let minDistance = Infinity;
-
-        for (const session of allSessions) {
-          const distance = calculateDistance(
-            userLocation.lat,
-            userLocation.lng,
-            session.latitude,
-            session.longitude
-          );
-          if (distance < minDistance) {
-            minDistance = distance;
-            nearest = session;
-          }
-        }
-
-        setNearestBisetka(nearest);
-        console.log(`🏘️ Nearest Bisetka: ${nearest.roomName}, ${nearest.city} (${minDistance.toFixed(1)} km away)`);
+      } else if (allSessions.length > 0) {
+        setNearestBisetka(allSessions[0]);
       } else {
         setNearestBisetka(null);
       }
@@ -208,33 +175,6 @@ const GlobalViewScreen = ({ navigation }: any) => {
     }
   };
 
-  // Get user's current location
-  useEffect(() => {
-    const getUserLocation = async () => {
-      try {
-        const Geolocation = require('@react-native-community/geolocation').default;
-        Geolocation.getCurrentPosition(
-          (position: any) => {
-            const location = {
-              lat: position.coords.latitude,
-              lng: position.coords.longitude,
-            };
-            setUserLocation(location);
-            console.log('📍 User location:', location);
-          },
-          (error: any) => {
-            console.warn('Failed to get user location:', error);
-          },
-          { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
-        );
-      } catch (error) {
-        console.warn('Geolocation not available:', error);
-      }
-    };
-
-    getUserLocation();
-  }, []);
-
   useEffect(() => {
     void loadBisetkas({showLoader: true});
 
@@ -245,7 +185,7 @@ const GlobalViewScreen = ({ navigation }: any) => {
     return () => {
       clearInterval(interval);
     };
-  }, [userLocation, user?.bisetka?.id]);
+  }, [user?.bisetka?.id]);
 
   // Reload when screen comes into focus (e.g. after traveling)
   useFocusEffect(
@@ -297,11 +237,11 @@ const GlobalViewScreen = ({ navigation }: any) => {
     }
 
     console.log('🚀 Showing travel confirmation...');
-    console.log('💰 User points:', user?.points);
-    console.log('💰 Points check:', (user?.points || 0) < 100);
+    console.log('💰 User balance:', user?.balance);
+    console.log('💰 Points check:', (user?.balance || 0) < 100);
     
     // Check if user has enough points first
-    const currentPoints = user?.points || 0;
+    const currentPoints = user?.balance || 0;
     if (currentPoints < 100) {
       console.log('❌ Insufficient points - user has:', currentPoints);
       BisetkaAlert.error(
@@ -316,7 +256,7 @@ const GlobalViewScreen = ({ navigation }: any) => {
     // Show travel confirmation with cost using alert with buttons
     BisetkaAlert.alert(
       `✈️ Travel to ${session.roomName}?`,
-      `${session.city}, ${session.country}\n\nTravel cost: 100 points\nYour points: ${user.points}`,
+      `${session.city}, ${session.country}\n\nTravel cost: 100 points\nYour points: ${user?.balance || 0}`,
       [
         {
           text: 'Cancel',

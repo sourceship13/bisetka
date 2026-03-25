@@ -32,6 +32,8 @@ import {
 } from '../../../game/nardiLogic';
 import {socketService} from '../../../services/SocketService';
 import InGameChat from '../../../components/InGameChat';
+import useDeviceType from '../../../hooks/useDeviceType';
+import { getGameBoardSize } from '../../../utils/gameBoardSize';
 import {BisetkaAlert} from '../../../utils/BisetkaAlert';
 import {apiConfig} from '../../../libs/utils/api.utils';
 import NardiDice from '../../../components/Games/NardiDice';
@@ -87,6 +89,9 @@ const getPointCoords = (pointNum: number): { x: number; y: number; isTop: boolea
 type OpponentType = 'ai' | 'local';
 
 const NardiScreen = ({ navigation, route }: any) => {
+  const { isTablet, isLandscape } = useDeviceType();
+  const boardSize = getGameBoardSize(isTablet, isLandscape, 600, 32);
+  
   const routeMode = route?.params?.mode;
   const session = route?.params?.session;
   const dbSessionId: string | undefined = route?.params?.dbSessionId;
@@ -997,7 +1002,7 @@ const NardiScreen = ({ navigation, route }: any) => {
           <View style={styles.boardContainer}>
             <ImageBackground
               source={require('../../../../assets/nardi/board-futuristic.png')}
-              style={[styles.board, { width: BOARD_SIZE, height: BOARD_SIZE, overflow: 'hidden' }]}
+              style={[styles.board, { width: boardSize, height: boardSize, overflow: 'hidden' }]}
               imageStyle={{ borderRadius: 16 }}>
               
               {/* Render all points (1-24) */}

@@ -1,6 +1,5 @@
 import apiConfig from '../libs/utils/api.utils';
 import tokenService from './token.service';
-import type {UserLocation} from './location.service';
 
 type GameOpponentType = 'random' | 'ai' | 'private';
 
@@ -71,22 +70,20 @@ export const gameSessionsService = {
       method: 'GET',
     }),
 
-  createRandomMatch: (gameType: GameType, location?: UserLocation | null) =>
+  createRandomMatch: (gameType: GameType) =>
     request(`/games/${gameType}/matchmaking`, {
       method: 'POST',
-      body: location ? JSON.stringify({location}) : undefined,
     }),
 
-  createPrivateMatch: (gameType: GameType, location?: UserLocation | null) =>
+  createPrivateMatch: (gameType: GameType) =>
     request(`/games/${gameType}/private`, {
       method: 'POST',
-      body: location ? JSON.stringify({location}) : undefined,
     }).then((s: any) => ({ ...s, code: s.access_code ?? s.code })),
 
-  joinPrivateMatch: (gameType: GameType, code: string, location?: UserLocation | null) =>
+  joinPrivateMatch: (gameType: GameType, code: string) =>
     request(`/games/${gameType}/private/join`, {
       method: 'POST',
-      body: JSON.stringify({code, ...(location ? {location} : {})}),
+      body: JSON.stringify({code}),
     }).then((s: any) => ({ ...s, code: s.access_code ?? s.code })),
 
   createAiMatch: (gameType: GameType, difficulty: 'easy' | 'medium' | 'hard' = 'medium', allowReplaceAI: boolean = false) =>

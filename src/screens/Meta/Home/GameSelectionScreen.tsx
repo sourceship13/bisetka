@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -14,9 +14,27 @@ import {
 import AppVersionFooter from '../../../components/global/AppVersionFooter';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
-import { useBisetkaLocation } from '../../../hooks/useBisetkaLocation';
+import { useAuth } from '../../../libs/hooks/useAuth';
+import bisetkaService, { Bisetka } from '../../../services/bisetka.service';
 
 const bisetkaBackground = require('../../../../assets/backgrounds/bisetka.png');
+
+const buildAccountBisetka = (accountBisetka: {
+  id: string;
+  neighborhood: string;
+  city: string;
+  country: string;
+  active_users: number;
+}): Bisetka => ({
+  id: accountBisetka.id,
+  neighborhood_id: accountBisetka.id,
+  neighborhood_name: accountBisetka.neighborhood,
+  city: accountBisetka.city,
+  country: accountBisetka.country,
+  active_users: accountBisetka.active_users,
+  created_at: '',
+  updated_at: '',
+});
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 42) / 2; // 2 columns with gap
@@ -127,7 +145,40 @@ const GAMES = [
 type GameConfig = (typeof GAMES)[number];
 
 const GameSelectionScreen = ({ navigation }: any) => {
-  const { bisetka, loading: bisetkaLoading } = useBisetkaLocation();
+  const { user } = useAuth();
+  const [bisetka, setBisetka] = useState<Bisetka | null>(
+    user?.bisetka ? buildAccountBisetka(user.bisetka) : null,
+  );
+  const [bisetkaLoading, setBisetkaLoading] = useState(!user?.bisetka);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadBisetka = async () => {
+      if (user?.bisetka) {
+        setBisetka(buildAccountBisetka(user.bisetka));
+        setBisetkaLoading(false);
+        return;
+      }
+
+      setBisetkaLoading(true);
+      const currentBisetka = await bisetkaService.getMyBisetka();
+      const ipResult = currentBisetka ? null : await bisetkaService.getByIpBisetka();
+
+      if (!isMounted) {
+        return;
+      }
+
+      setBisetka(currentBisetka || ipResult?.bisetka || null);
+      setBisetkaLoading(false);
+    };
+
+    void loadBisetka();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user?.bisetka]);
 
   const handleGamePress = (game: GameConfig) => {
     // Navigate to GameInfo screen first to show rules and points
@@ -250,7 +301,7 @@ const GameSelectionScreen = ({ navigation }: any) => {
                         {bisetka.neighborhood_name}, {bisetka.city}
                       </Text>
                       <Text style={styles.bisetkaCardDescription}>
-                        This is the Bisetka closest to where your device is right now.
+                        This is the Bisetka matched from your account or current connection.
                       </Text>
                     </View>
                     <View style={styles.bisetkaCardBadge}>
