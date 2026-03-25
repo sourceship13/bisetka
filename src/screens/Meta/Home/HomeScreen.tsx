@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import {
   View,
   Text,
+  ActivityIndicator,
   TouchableOpacity,
   StyleSheet,
   ScrollView,
@@ -31,11 +32,10 @@ import AVATARS, { resolveAvatar } from '../../../utils/avatars';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { socketService } from '../../../services/SocketService';
 import tokenService from '../../../services/token.service';
+import useBisetkaBackground, { DEFAULT_BISETKA_BACKGROUND_PROMPT } from '../../../hooks/useBisetkaBackground';
 import useBisetkaLocation from '../../../hooks/useBisetkaLocation';
 import useDeviceType from '../../../hooks/useDeviceType';
 import { getGridColumns, getSpacing, getFontSize } from '../../../theme/responsive';
-
-const bisetkaBackground = require('../../../../assets/backgrounds/bisetka.png');
 
 // Game configurations with PushBird-style colors
 const GAMES = [
@@ -154,6 +154,26 @@ const HomeScreen = ({ navigation }: any) => {
     error: ipLookupError,
     refreshLocation,
   } = useBisetkaLocation();
+  const currentCity = resolvedBisetka?.city || user?.bisetka?.city || null;
+  
+  console.log('🏙️  [HomeScreen] Current city for background:', {
+    currentCity,
+    resolvedBisetkaCity: resolvedBisetka?.city,
+    userBisetkaCity: user?.bisetka?.city,
+    userBisetkaNeighborhood: user?.bisetka?.neighborhood,
+  });
+
+  const { 
+    imageSource: bisetkaBackgroundSource,
+    isLoading: isBackgroundLoading,
+    error: backgroundError,
+  } = useBisetkaBackground({
+    city: currentCity,
+    neighborhood: resolvedBisetka?.neighborhood_name || user?.bisetka?.neighborhood || null,
+    cacheKey: resolvedBisetka?.id || user?.bisetka?.id || null,
+    promptTemplate: DEFAULT_BISETKA_BACKGROUND_PROMPT,
+    enabled: Boolean(currentCity),
+  });
   const { isTablet, isLandscape, width: screenWidth } = useDeviceType();
 
   // Calculate responsive values
@@ -175,12 +195,17 @@ const HomeScreen = ({ navigation }: any) => {
       .catch(err => console.warn('Device data upsert failed:', err));
   }, []);
 
-  // Refresh user data every time screen gains focus (e.g., returning from a game)
+  // Refresh user data every time screen gains focus (e.g., returning from a game or after traveling)
   useFocusEffect(
     React.useCallback(() => {
-      console.log('🔄 HomeScreen gained focus - refreshing user data');
-      refreshUserRef.current().catch(err => console.warn('Focus refresh failed:', err));
-    }, []),
+      console.log('🔄 HomeScreen gained focus - refreshing user data and bisetka location');
+      const refreshAll = async () => {
+        await refreshUserRef.current();
+        await refreshLocation();
+        console.log('✅ HomeScreen refresh complete');
+      };
+      refreshAll().catch(err => console.warn('Focus refresh failed:', err));
+    }, [refreshLocation]),
   );
 
   // Ensure push permission is granted and the FCM token is registered.
@@ -321,8 +346,10 @@ const HomeScreen = ({ navigation }: any) => {
     let pillText = 'Browse';
     let actionText = 'View Map';
 
-    if (ipLookupLoading) {
-      subtitle = 'Checking your device location to match you to the nearest Bisetka.';
+    // Show loading skeleton with fixed height to prevent jumping
+    if (ipLookupLoading && !hasNearestBisetka) {
+      subtitle = 'Loading your nearest Bisetka...';
+      title = '⏳ Loading...';
     } else if (ipLookupError) {
       subtitle = ipLookupError;
       metaText = 'Tap to retry device-location lookup';
@@ -444,10 +471,18 @@ const HomeScreen = ({ navigation }: any) => {
   return (
     <View style={styles.container}>
       <ImageBackground
-        source={bisetkaBackground}
+        source={bisetkaBackgroundSource}
         style={styles.backgroundImage}
         resizeMode="cover"
       >
+        {isBackgroundLoading && (
+          <View style={styles.backgroundLoadingOverlay}>
+            <ActivityIndicator size="large" color="#fff" />
+            <Text style={styles.backgroundLoadingText}>
+              Generating {resolvedBisetka?.city || user?.bisetka?.city} background...
+            </Text>
+          </View>
+        )}
         <StatusBar
           barStyle="light-content"
           backgroundColor="transparent"
@@ -669,6 +704,23 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
+  backgroundLoadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 9999,
+  },
+  backgroundLoadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#fff',
+    fontWeight: '600',
+  },
   safeArea: {
     flex: 1,
   },
@@ -815,6 +867,7 @@ const styles = StyleSheet.create({
   },
   closestBisetkaContainer: {
     marginTop: 10,
+    height: 140, // Fixed height to prevent jumping
   },
   closestBisetkaButton: {
     borderRadius: 16,

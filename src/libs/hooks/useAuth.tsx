@@ -364,11 +364,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const refreshUser = async () => {
     try {
+      console.log('🔄 [refreshUser] Fetching fresh user profile...');
       const freshUser = await apiService.getProfile();
+      console.log('🔄 [refreshUser] Fresh user data:', {
+        username: freshUser.username,
+        bisetka: freshUser.bisetka,
+      });
       await persistBisetkaFromUser(freshUser);
       setUser(mapBackendUser(freshUser));
+      console.log('✅ [refreshUser] User context updated successfully');
     } catch (error: any) {
-      console.error('Error refreshing user:', error);
+      console.error('❌ [refreshUser] Error refreshing user:', error);
 
       // If the server says the user doesn't exist (stale token), clear the session
       if (error?.status === 404 || error?.message?.includes('404')) {

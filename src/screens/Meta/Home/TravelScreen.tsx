@@ -24,6 +24,9 @@ type NavigationProp = NativeStackNavigationProp<any>;
 
 const TRAVEL_COST = 100; // Points required to travel
 
+const formatTravelLocationName = (location: Neighborhood) =>
+  `${location.name}, ${location.city}`;
+
 export default function TravelScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { user, refreshUser } = useAuth();
@@ -44,6 +47,7 @@ export default function TravelScreen() {
       const filtered = locations.filter(
         (loc) =>
           loc.name.toLowerCase().includes(query) ||
+          formatTravelLocationName(loc).toLowerCase().includes(query) ||
           loc.city.toLowerCase().includes(query) ||
           loc.country.toLowerCase().includes(query)
       );
@@ -96,7 +100,7 @@ export default function TravelScreen() {
 
     Alert.alert(
       'Travel to Bisetka',
-      `Travel to ${location.name}, ${location.city}?\n\nCost: ${TRAVEL_COST} points`,
+      `Travel to ${formatTravelLocationName(location)}?\n\nCost: ${TRAVEL_COST} points`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -111,7 +115,7 @@ export default function TravelScreen() {
     try {
       setTravelingTo(location.id);
       
-      console.log('🚀 Starting travel to:', location.name, location.city);
+      console.log('🚀 Starting travel to:', formatTravelLocationName(location));
       
       // Call API to change location and deduct points
       const response = await apiService.post<{ success: boolean; message?: string; user?: any; bisetka?: any; travel_stats?: any }>('/bisetka/travel', {
@@ -140,10 +144,10 @@ export default function TravelScreen() {
         
         BisetkaAlert.success(
           'Travel Complete!',
-          `You've traveled to ${location.name}, ${location.city}. ${TRAVEL_COST} points deducted.`
+          `You've traveled to ${formatTravelLocationName(location)}. ${TRAVEL_COST} points deducted.`
         );
         
-        // Navigate back to home - it should now show new location
+        // Return to Home; its focus effect will refresh the bisetka and background.
         setTimeout(() => {
           navigation.goBack();
         }, 1500);
@@ -195,9 +199,9 @@ export default function TravelScreen() {
                 color="#fff"
               />
               <View style={styles.locationTextContainer}>
-                <Text style={styles.locationName}>{location.name}</Text>
+                <Text style={styles.locationName}>{formatTravelLocationName(location)}</Text>
                 <Text style={styles.locationCity}>
-                  {location.city}, {location.country}
+                  {location.country}
                 </Text>
               </View>
             </View>

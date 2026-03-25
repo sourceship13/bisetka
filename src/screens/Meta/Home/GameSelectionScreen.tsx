@@ -14,10 +14,9 @@ import {
 import AppVersionFooter from '../../../components/global/AppVersionFooter';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
+import useBisetkaBackground, { DEFAULT_BISETKA_BACKGROUND_PROMPT } from '../../../hooks/useBisetkaBackground';
 import { useAuth } from '../../../libs/hooks/useAuth';
 import bisetkaService, { Bisetka } from '../../../services/bisetka.service';
-
-const bisetkaBackground = require('../../../../assets/backgrounds/bisetka.png');
 
 const buildAccountBisetka = (accountBisetka: {
   id: string;
@@ -150,6 +149,13 @@ const GameSelectionScreen = ({ navigation }: any) => {
     user?.bisetka ? buildAccountBisetka(user.bisetka) : null,
   );
   const [bisetkaLoading, setBisetkaLoading] = useState(!user?.bisetka);
+  const { imageSource: bisetkaBackgroundSource } = useBisetkaBackground({
+    city: bisetka?.city || user?.bisetka?.city || null,
+    neighborhood: bisetka?.neighborhood_name || user?.bisetka?.neighborhood || null,
+    cacheKey: bisetka?.id || user?.bisetka?.id || null,
+    promptTemplate: DEFAULT_BISETKA_BACKGROUND_PROMPT,
+    enabled: Boolean(bisetka?.city || user?.bisetka?.city),
+  });
 
   useEffect(() => {
     let isMounted = true;
@@ -231,7 +237,7 @@ const GameSelectionScreen = ({ navigation }: any) => {
   return (
     <View style={styles.container}>
       <ImageBackground
-        source={bisetkaBackground}
+        source={bisetkaBackgroundSource}
         style={styles.backgroundImage}
         resizeMode="cover"
       >
