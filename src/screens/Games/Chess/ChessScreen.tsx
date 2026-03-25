@@ -29,10 +29,17 @@ import { apiService } from '../../../services/api.service';
 import { useAuth } from '../../../libs/hooks/useAuth';
 import { useAchievements } from '../../../contexts/AchievementContext';
 import { resolveAvatar } from '../../../utils/avatars';
+import useDeviceType from '../../../hooks/useDeviceType';
+import { getGameBoardSize } from '../../../utils/gameBoardSize';
 
 const ChessScreen = ({navigation}: any) => {
   const { user, refreshUser } = useAuth();
   const { showAchievements } = useAchievements();
+  const { isTablet, isLandscape } = useDeviceType();
+  
+  // Calculate responsive board size
+  const boardSize = getGameBoardSize(isTablet, isLandscape, 600, 32);
+  const squareSize = boardSize / 8;
   const [difficulty, setDifficulty] = useState<Difficulty | null>(null);
   const [gameState, setGameState] = useState<ChessGameState | null>(null);
   const gameIdRef = useRef<string | null>(null);
@@ -521,7 +528,7 @@ const ChessScreen = ({navigation}: any) => {
       <View style={styles.boardContainer}>
         <ImageBackground
           source={require('../../../../assets/chess/board.png')}
-          style={styles.board}
+          style={[styles.board, { width: boardSize, height: boardSize }]}
           resizeMode="stretch"
         >
           <View style={styles.gridContainer}>
@@ -747,8 +754,7 @@ const styles = StyleSheet.create({
   },
   board: {
     aspectRatio: 1,
-    width: '100%',
-    maxWidth: 500,
+    // Width and height set dynamically via inline style
   },
   gridContainer: {
     flex: 1,

@@ -22,11 +22,8 @@ import bisetkaLeaderboardService, {
 import bisetkaService from '../../../services/bisetka.service';
 import { useAuth } from '../../../libs/hooks/useAuth';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
-
-const { width } = Dimensions.get('window');
-const GRID_HORIZONTAL_PADDING = 16;
-const GRID_GAP = 8;
-const CARD_WIDTH = (width - GRID_HORIZONTAL_PADDING * 2 - GRID_GAP) / 2;
+import useDeviceType from '../../../hooks/useDeviceType';
+import { getGridColumns, getSpacing } from '../../../theme/responsive';
 
 interface BisetkaDetailScreenProps {
   route: {
@@ -140,6 +137,13 @@ const BisetkaDetailScreen: React.FC<BisetkaDetailScreenProps> = ({
 }) => {
   const { bisetkaId, bisetkaName, city, country } = route.params;
   const { user, refreshUser } = useAuth();
+  const { isTablet, isLandscape, width: screenWidth } = useDeviceType();
+
+  // Calculate responsive grid
+  const columns = getGridColumns(isTablet, isLandscape);
+  const horizontalPadding = getSpacing('lg', isTablet);
+  const cardGap = getSpacing('sm', isTablet);
+  const cardWidth = (screenWidth - (horizontalPadding * 2) - (cardGap * (columns - 1))) / columns;
 
   const [allKings, setAllKings] = useState<BisetkaKing[]>([]);
   const [loading, setLoading] = useState(true);
@@ -349,7 +353,7 @@ const BisetkaDetailScreen: React.FC<BisetkaDetailScreenProps> = ({
         key={game.id}
         activeOpacity={0.85}
         onPress={() => handleGamePress(game)}
-        style={styles.gameCardWrapper}
+        style={[styles.gameCardWrapper, { width: cardWidth }]}
       >
         <View style={{ ...styles.gameCard, backgroundColor: "rgba(0,0,0,0.5)" }}>
           <View style={styles.gameCardContent}>
@@ -377,10 +381,11 @@ const BisetkaDetailScreen: React.FC<BisetkaDetailScreenProps> = ({
         data={GAMES}
         keyExtractor={(game) => game.id}
         renderItem={({ item }) => renderGameCard(item)}
-        numColumns={2}
+        numColumns={columns}
+        key={columns} // Force re-render when columns change
         scrollEnabled={false}
-        columnWrapperStyle={styles.gamesRow}
-        contentContainerStyle={styles.gamesGrid}
+        columnWrapperStyle={[styles.gamesRow, { gap: cardGap }]}
+        contentContainerStyle={[styles.gamesGrid, { paddingHorizontal: horizontalPadding }]}
       />
     </View>
   );
@@ -546,14 +551,14 @@ const styles = StyleSheet.create({
     paddingTop: 8,
   },
   gamesGrid: {
-    paddingBottom: GRID_GAP,
+    paddingBottom: 8,
   },
   gamesRow: {
     justifyContent: 'space-between',
-    marginBottom: GRID_GAP,
+    marginBottom: 8,
   },
   gameCardWrapper: {
-    width: CARD_WIDTH,
+    // Width set dynamically via inline style
   },
   gameCard: {
     aspectRatio: 1,
@@ -611,7 +616,7 @@ const styles = StyleSheet.create({
   recentScoresHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: GRID_HORIZONTAL_PADDING,
+    paddingHorizontal: 16,
     marginBottom: 12,
   },
   recentScoresTitle: {
@@ -621,7 +626,7 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   recentScoresScroll: {
-    paddingHorizontal: GRID_HORIZONTAL_PADDING,
+    paddingHorizontal: 16,
     gap: 12,
   },
   scoreCard: {
@@ -657,7 +662,7 @@ const styles = StyleSheet.create({
     color: '#ef4444',
   },
   emptyScoresCard: {
-    marginHorizontal: GRID_HORIZONTAL_PADDING,
+    marginHorizontal: 16,
     padding: 20,
     borderRadius: 12,
     backgroundColor: 'rgba(239, 68, 68, 0.1)',

@@ -40,6 +40,10 @@ export interface ApiError {
   status?: number;
 }
 
+interface RequestBehavior {
+  suppressErrorLogging?: boolean;
+}
+
 export interface PointsPurchaseResponse {
   success: boolean;
   packId: string;
@@ -89,7 +93,8 @@ class ApiService {
     endpoint: string,
     options: RequestInit = {},
     requireAuth: boolean = false,
-    retry: boolean = true
+    retry: boolean = true,
+    behavior: RequestBehavior = {},
   ): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
     console.log('🌐 API Request:', url);
@@ -125,7 +130,7 @@ class ApiService {
           console.log('🔄 Token expired, attempting refresh...');
           await tokenService.refreshSession();
           console.log('✅ Token refreshed, retrying request');
-          return this.request<T>(endpoint, options, true, false);
+          return this.request<T>(endpoint, options, true, false, behavior);
         } catch (refreshError: any) {
           console.warn('❌ Token refresh failed:', refreshError.message);
           // If refresh failed, return the original 401 error
@@ -162,7 +167,9 @@ class ApiService {
 
       return data as T;
     } catch (error: any) {
-      console.error('❌ API Error:', error);
+      if (!behavior.suppressErrorLogging) {
+        console.error('❌ API Error:', error);
+      }
       if (error.message && error.status !== undefined) {
         throw error;
       }
@@ -174,8 +181,12 @@ class ApiService {
     }
   }
 
-  async get<T>(endpoint: string, requireAuth: boolean = false): Promise<T> {
-    return this.request<T>(endpoint, { method: 'GET' }, requireAuth);
+  async get<T>(
+    endpoint: string,
+    requireAuth: boolean = false,
+    behavior: RequestBehavior = {},
+  ): Promise<T> {
+    return this.request<T>(endpoint, { method: 'GET' }, requireAuth, true, behavior);
   }
 
   async post<T>(
