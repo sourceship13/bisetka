@@ -680,29 +680,6 @@ const HomeScreen = ({ navigation }: any) => {
 
             {renderNearestBisetkaCard()}
 
-            {/* Active Rooms Button */}
-            {/* <View style={styles.activeRoomsContainer}>
-          <TouchableOpacity
-            onPress={() => navigation.navigate('ActiveRooms')}
-            style={styles.activeRoomsButton}
-            activeOpacity={0.85}>
-            <LinearGradient
-              // colors={['#ec4899', '#f472b6']}
-                            colors={['rgba(0, 0, 0, 0.6)', 'rgba(0, 0, 0, 0.6)']}
-
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.activeRoomsGradient}>
-                <View style={{flex:1, padding:10,}}>
-                    <Text style={styles.activeRoomsTitle}>Active Rooms</Text>
-                    <Text style={styles.activeRoomsSubtitle}>
-                      Watch or join multiplayer games
-                    </Text>
-                  </View>
-                <Text style={styles.activeRoomsArrow}>→</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-        </View> */}
             {/* Online Players */}
             <View style={styles.onlinePlayersContainer}>
               <View style={styles.onlinePlayersHeader}>
