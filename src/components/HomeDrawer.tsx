@@ -10,6 +10,7 @@ import {
   Dimensions,
   Image,
 } from 'react-native';
+import AppVersionFooter from './global/AppVersionFooter';
 import LinearGradient from 'react-native-linear-gradient';
 import {useAuth} from '../libs/hooks/useAuth';
 import {colors, spacing} from '../theme';
@@ -220,9 +221,7 @@ const HomeDrawer: React.FC<HomeDrawerProps> = ({visible, onClose, onOpen, onNavi
         </View>
 
         {/* Footer */}
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>🇦🇲 Bisetka</Text>
-        </View>
+        <AppVersionFooter containerStyle={styles.footer} />
       </Animated.View>
     </View>
   );
@@ -308,10 +307,6 @@ flex:1,
   },
   footer: {
     alignItems: 'center',
-  },
-  footerText: {
-    color: 'rgba(255,255,255,0.3)',
-    fontSize: 13,
   },
 });
 

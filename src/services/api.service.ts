@@ -63,6 +63,28 @@ class ApiService {
 
   // ========== HELPER METHODS ==========
 
+  private parseResponseBody(text: string, contentType: string | null): unknown {
+    if (!text) {
+      return null;
+    }
+
+    const trimmedText = text.trim();
+    const looksLikeJson =
+      contentType?.includes('application/json') ||
+      trimmedText.startsWith('{') ||
+      trimmedText.startsWith('[');
+
+    if (!looksLikeJson) {
+      return trimmedText;
+    }
+
+    try {
+      return JSON.parse(text);
+    } catch {
+      return trimmedText;
+    }
+  }
+
   private async request<T>(
     endpoint: string,
     options: RequestInit = {},
@@ -117,12 +139,23 @@ class ApiService {
       }
 
       const text = await response.text();
-      const data = text ? JSON.parse(text) : null;
+      const contentType = response.headers.get('content-type');
+      const data = this.parseResponseBody(text, contentType);
 
       if (!response.ok) {
+        const errorPayload = typeof data === 'object' && data !== null
+          ? (data as Record<string, unknown>)
+          : null;
+
         throw {
-          message: data?.message || data?.error || 'API request failed',
-          code: data?.code,
+          message:
+            (errorPayload?.message || errorPayload?.error) ||
+            (typeof data === 'string' && data.startsWith('<')
+              ? `Server returned HTML instead of JSON for ${endpoint}`
+              : typeof data === 'string'
+                ? data
+                : 'API request failed'),
+          code: typeof errorPayload?.code === 'string' ? errorPayload.code : undefined,
           status: response.status,
         } as ApiError;
       }
