@@ -2,6 +2,15 @@ apply plugin: "com.android.application"
 apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
 
+project.ext.envConfigFiles = [
+    debug            : ".env",
+    release          : ".env.production",
+    stagingdebug     : ".env.staging",
+    stagingrelease   : ".env.staging",
+    productiondebug  : ".env.production",
+    productionrelease: ".env.production",
+]
+
 /**
  * This is the configuration block to customize your React Native Android app.
  * By default you don't need to apply any configuration, just uncomment the lines you need.
@@ -21,7 +30,7 @@ react {
     //   The list of variants to that are debuggable. For those we're going to
     //   skip the bundling of the JS bundle and the assets. By default is just 'debug'.
     //   If you add flavors like lite, prod, etc. you'll have to list your debuggableVariants.
-    // debuggableVariants = ["liteDebug", "prodDebug"]
+    debuggableVariants = ["stagingDebug", "productionDebug"]
 
     /* Bundling */
     //   A list containing the node command and its flags. Default is just 'node'.
@@ -72,6 +81,16 @@ def enableProguardInReleaseBuilds = false
  */
 def jscFlavor = 'io.github.react-native-community:jsc-android:2026004.+'
 
+def releaseKeystorePath = System.getenv("ANDROID_KEYSTORE_PATH") ?: "bisetka-release.keystore"
+def releaseStoreFile = file(releaseKeystorePath)
+def hasReleaseSigning =
+    releaseStoreFile.exists() &&
+    System.getenv("ANDROID_KEYSTORE_PASSWORD") &&
+    System.getenv("ANDROID_KEY_ALIAS") &&
+    System.getenv("ANDROID_KEY_PASSWORD")
+
+apply from: project(':react-native-config').projectDir.getPath() + "/dotenv.gradle"
+
 apply from: new File(["node", "--print", "require.resolve('@sentry/react-native/package.json')"].execute().text.trim(), "../sentry.gradle")
 apply from: "../../node_modules/react-native-vector-icons/fonts.gradle"
 android {
@@ -80,13 +99,33 @@ android {
     compileSdk rootProject.ext.compileSdkVersion
 
     namespace "com.sera.dev.bisetka"
+
+    buildFeatures {
+        buildConfig true
+    }
+
     defaultConfig {
         applicationId "com.sera.dev.bisetka"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0"
+        resValue "string", "build_config_package", "com.sera.dev.bisetka"
     }
+
+    flavorDimensions "environment"
+
+    productFlavors {
+        staging {
+            dimension "environment"
+            applicationIdSuffix ".staging"
+            versionNameSuffix "-staging"
+        }
+        production {
+            dimension "environment"
+        }
+    }
+
     signingConfigs {
         debug {
             storeFile file('debug.keystore')
@@ -94,15 +133,24 @@ android {
             keyAlias 'androiddebugkey'
             keyPassword 'android'
         }
+        release {
+            if (hasReleaseSigning) {
+                storeFile releaseStoreFile
+                storePassword System.getenv("ANDROID_KEYSTORE_PASSWORD")
+                keyAlias System.getenv("ANDROID_KEY_ALIAS")
+                keyPassword System.getenv("ANDROID_KEY_PASSWORD")
+            }
+        }
     }
+
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
+            manifestPlaceholders = [usesCleartextTraffic: "true"]
         }
         release {
-            // Caution! In production, you need to generate your own keystore file.
-            // see https://reactnative.dev/docs/signed-apk-android.
-            signingConfig signingConfigs.debug
+            signingConfig hasReleaseSigning ? signingConfigs.release : signingConfigs.debug
+            manifestPlaceholders = [usesCleartextTraffic: "false"]
             minifyEnabled enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
         }
