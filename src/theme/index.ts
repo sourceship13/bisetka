@@ -1,11 +1,13 @@
 import colors from './colors';
 import spacing from './spacing';
 import typography from './typography';
+import responsive from './responsive';
 
 export const theme = {
   colors,
   spacing,
   typography,
+  responsive,
   
   // Border radius
   borderRadius: {
@@ -50,5 +52,5 @@ export const theme = {
   },
 };
 
-export { colors, spacing, typography };
+export { colors, spacing, typography, responsive };
 export default theme;

@@ -13,6 +13,8 @@ import Dice3DSimple from '../../../components/Games/Dice3DSimple';
 import { apiService } from '../../../services/api.service';
 import { useAuth } from '../../../libs/hooks/useAuth';
 import { useAchievements } from '../../../contexts/AchievementContext';
+import useDeviceType from '../../../hooks/useDeviceType';
+import { getSpacing, getFontSize } from '../../../theme/responsive';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -31,6 +33,7 @@ interface GameState {
 }
 
 const MrotsiScreen = ({navigation, route}: any) => {
+  const { isTablet } = useDeviceType();
   const {session, gameType, mode: routeMode} = route.params || {};
   const mode = routeMode ?? session?.mode ?? 'ai'; // fall back to session.mode; default to 'ai' so AI always works
   const [gameState, setGameState] = useState<GameState>(initializeGame(mode));

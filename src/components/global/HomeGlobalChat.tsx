@@ -13,6 +13,9 @@ import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { BisetkaAlert } from '../../utils/BisetkaAlert';
 import chatService from '../../services/chat.service';
+import apiService from '../../services/api.service';
+import useDeviceType from '../../hooks/useDeviceType';
+import { getSpacing, getFontSize } from '../../theme/responsive';
 
 type HomeGlobalChatProps = {
   onOpenFullChat: () => void;
@@ -30,8 +33,10 @@ const HomeGlobalChat = ({
   onOpenFullChat,
   initialExpanded = true,
 }: HomeGlobalChatProps) => {
+  const { isTablet } = useDeviceType();
   const [recentMessages, setRecentMessages] = useState<RecentMessage[]>([]);
-  const [chatExpanded, setChatExpanded] = useState(initialExpanded);
+  // On tablets, always expanded. On phones, controlled state
+  const [chatExpanded, setChatExpanded] = useState(isTablet ? true : initialExpanded);
   const [chatId, setChatId] = useState<string | null>(null);
   const [newMessage, setNewMessage] = useState('');
   const [sendingMessage, setSendingMessage] = useState(false);
@@ -131,6 +136,9 @@ const HomeGlobalChat = ({
   }, [chatExpanded, chatId, fetchRecentMessages, newMessage, scrollToBottom, sendingMessage]);
 
   const toggleChatExpanded = useCallback(() => {
+    // On tablets, chat is always expanded - don't allow collapse
+    if (isTablet) return;
+    
     const nextExpanded = !chatExpanded;
     setChatExpanded(nextExpanded);
 
@@ -141,7 +149,7 @@ const HomeGlobalChat = ({
     fetchRecentMessages(nextExpanded).catch(err =>
       console.warn('Failed to fetch chat messages:', err),
     );
-  }, [chatExpanded, chatId, fetchRecentMessages, loadGlobalChat]);
+  }, [isTablet, chatExpanded, chatId, fetchRecentMessages, loadGlobalChat]);
 
   return (
     <View style={styles.globalChatContainer}>
@@ -158,13 +166,16 @@ const HomeGlobalChat = ({
           </View>
 
           <View style={styles.headerActions}>
-            <TouchableOpacity onPress={toggleChatExpanded} style={styles.expandButton}>
-              <Icon
-                name={chatExpanded ? 'chevron-down' : 'chevron-up'}
-                size={24}
-                color="#94a3b8"
-              />
-            </TouchableOpacity>
+            {/* Only show collapse button on phones */}
+            {!isTablet && (
+              <TouchableOpacity onPress={toggleChatExpanded} style={styles.expandButton}>
+                <Icon
+                  name={chatExpanded ? 'chevron-down' : 'chevron-up'}
+                  size={24}
+                  color="#94a3b8"
+                />
+              </TouchableOpacity>
+            )}
 
             <TouchableOpacity onPress={onOpenFullChat} style={styles.expandButton}>
               <Icon name="arrow-expand" size={18} color="#94a3b8" />

@@ -18,6 +18,8 @@ import { apiService } from '../../../services/api.service';
 import { useAuth } from '../../../libs/hooks/useAuth';
 import { useAchievements } from '../../../contexts/AchievementContext';
 import { resolveAvatar } from '../../../utils/avatars';
+import useDeviceType from '../../../hooks/useDeviceType';
+import { getGameBoardSize } from '../../../utils/gameBoardSize';
 
 type PieceType = 'regular' | 'king';
 type PieceColor = 'red' | 'black';
@@ -98,6 +100,12 @@ function deserializeBoard(raw: any[][]): (Piece | null)[][] {
 
 const CheckersScreen = ({ navigation, route }: any) => {
   const { session, mode } = route.params;
+  const { isTablet, isLandscape } = useDeviceType();
+  
+  // Calculate responsive board size
+  const boardSize = getGameBoardSize(isTablet, isLandscape, 600, 32);
+  const squareSize = boardSize / 8;
+  
   // Stabilise userId for the lifetime of this component — never let it change between renders
   const userIdRef = useRef<string>(
     session?.user?.id || session?.id || ('guest-' + Math.random().toString(36).substr(2, 6))
@@ -587,7 +595,7 @@ const CheckersScreen = ({ navigation, route }: any) => {
       <View style={styles.boardContainer}>
         <ImageBackground
           source={require('../../../../assets/chess/board.png')}
-          style={styles.board}
+          style={[styles.board, { width: boardSize, height: boardSize }]}
           resizeMode="stretch"
         >
           <View style={styles.gridContainer}>
@@ -762,7 +770,7 @@ const styles = StyleSheet.create({
   turnText:           { fontSize:16, fontWeight:'600', color:'#ecf0f1' },
   colorBadge:         { fontSize:13, color:'#bdc3c7', marginTop:2 },
   boardContainer:     { flex:1, justifyContent:'center', alignItems:'center', padding:20 },
-  board:              { width:'100%', maxWidth:500, aspectRatio:1 },
+  board:              { aspectRatio:1 }, // Width/height set via inline style
   gridContainer:      { flex:1, paddingTop:40, paddingBottom:55, paddingHorizontal:50 },
   row:                { flex:1, flexDirection:'row' },
   square:             { flex:1, justifyContent:'center', alignItems:'center', backgroundColor:'transparent' },
