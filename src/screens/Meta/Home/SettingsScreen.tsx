@@ -16,6 +16,7 @@ import {colors, spacing} from '../../../theme';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DeviceInfo from 'react-native-device-info';
 import packageJson from '../../../../package.json';
+import AppVersionFooter from '../../../components/global/AppVersionFooter';
 
 const SOUND_KEY = '@bisetka_sound_enabled';
 const HAPTIC_KEY = '@bisetka_haptic_enabled';
@@ -147,9 +148,7 @@ const SettingsScreen = ({navigation}: any) => {
         </View>
 
         {/* Footer */}
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>🇦🇲 Bisetka</Text>
-        </View>
+        <AppVersionFooter containerStyle={styles.footer} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -266,10 +265,6 @@ const styles = StyleSheet.create({
   footer: {
     marginTop: 32,
     alignItems: 'center',
-  },
-  footerText: {
-    color: 'rgba(255,255,255,0.3)',
-    fontSize: 13,
   },
 });
 
