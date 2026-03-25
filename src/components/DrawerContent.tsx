@@ -1,6 +1,7 @@
 import React from 'react';
 import {View, Text, StyleSheet, Image, TouchableOpacity} from 'react-native';
 
+import AppVersionFooter from './global/AppVersionFooter';
 import LinearGradient from 'react-native-linear-gradient';
 import {useAuth} from '../libs/hooks/useAuth';
 import {colors, spacing} from '../theme';
@@ -75,9 +76,7 @@ const DrawerContent = (props: any) => {
       </View>
 
       {/* Footer */}
-      <View style={styles.footer}>
-        <Text style={styles.footerText}>🇦🇲 Bisetka</Text>
-      </View>
+      <AppVersionFooter containerStyle={styles.footer} />
     </View>
   );
 };
@@ -156,10 +155,6 @@ const styles = StyleSheet.create({
   footer: {
     paddingBottom: 40,
     alignItems: 'center',
-  },
-  footerText: {
-    color: 'rgba(255,255,255,0.3)',
-    fontSize: 13,
   },
 });
 

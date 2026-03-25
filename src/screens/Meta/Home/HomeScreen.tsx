@@ -10,9 +10,6 @@ import {
   Platform,
   ImageBackground,
   Image,
-  TextInput,
-  KeyboardAvoidingView,
-  Keyboard,
 } from 'react-native';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -22,20 +19,20 @@ import apiService from '../../../services/api.service';
 import pushNotificationService from '../../../services/pushNotification.service';
 import { iOSUIKit } from 'react-native-typography';
 import { colors } from '../../../theme';
-import packageJson from '../../../../package.json';
 import {
   useNavigation,
   DrawerActions,
   useFocusEffect,
 } from '@react-navigation/native';
+import AppVersionFooter from '../../../components/global/AppVersionFooter';
 import OnlinePlayersList from '../../../components/OnlinePlayersList';
+import HomeGlobalChat from '../../../components/global/HomeGlobalChat';
 import AVATARS, { resolveAvatar } from '../../../utils/avatars';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { socketService } from '../../../services/SocketService';
 import tokenService from '../../../services/token.service';
 import useBisetkaLocation from '../../../hooks/useBisetkaLocation';
 import bisetkaService from '../../../services/bisetka.service';
-import chatService from '../../../services/chat.service';
 
 const bisetkaBackground = require('../../../../assets/backgrounds/bisetka.png');
 
@@ -171,11 +168,7 @@ const buildAccountBisetkaFallback = (accountBisetka: {
 const HomeScreen = ({ navigation }: any) => {
   const { user, signOut, refreshUser } = useAuth();
   const drawerNav = useNavigation();
-  const [recentMessages, setRecentMessages] = useState<any[]>([]);
-  const [chatExpanded, setChatExpanded] = useState(true); // Start expanded
-  const [chatId, setChatId] = useState<string | null>(null);
-  const [newMessage, setNewMessage] = useState('');
-  const [sendingMessage, setSendingMessage] = useState(false);
+  const refreshUserRef = useRef(refreshUser);
 
   // Auto-connect to local Bisetka based on GPS location
   const {
@@ -199,6 +192,10 @@ const HomeScreen = ({ navigation }: any) => {
     }
   }, [bisetka, bisetkaError]);
 
+  useEffect(() => {
+    refreshUserRef.current = refreshUser;
+  }, [refreshUser]);
+
   // Refresh profile data and upsert device info every time HomeScreen mounts
   useEffect(() => {
     refreshUser().catch(err => console.warn('Profile refresh failed:', err));
@@ -212,72 +209,9 @@ const HomeScreen = ({ navigation }: any) => {
   useFocusEffect(
     React.useCallback(() => {
       console.log('🔄 HomeScreen gained focus - refreshing user data');
-      refreshUser().catch(err => console.warn('Focus refresh failed:', err));
-      
-      // Fetch recent global chat messages (expanded by default)
-      fetchRecentMessages(true).catch(err => console.warn('Failed to fetch chat messages:', err));
-      
-      // Load chat ID for sending messages
-      if (!chatId) {
-        loadGlobalChat().catch(err => console.warn('Failed to load chat ID:', err));
-      }
-    }, [refreshUser]),
+      refreshUserRef.current().catch(err => console.warn('Focus refresh failed:', err));
+    }, []),
   );
-
-  // Fetch recent global chat messages
-  const fetchRecentMessages = async (expanded = false) => {
-    try {
-      const limit = expanded ? 50 : 3;
-      const response = await apiService.get<{messages?: any[]}>(`/global-chat/recent?limit=${limit}`);
-      if (response.messages) {
-        setRecentMessages(response.messages);
-      }
-    } catch (error) {
-      console.error('Failed to fetch recent messages:', error);
-      // Silent fail - not critical
-    }
-  };
-
-  // Get or create global chat ID
-  const loadGlobalChat = async () => {
-    try {
-      const result = await chatService.getGlobalChat();
-      setChatId(result.chatId);
-    } catch (error) {
-      console.error('Failed to load global chat:', error);
-    }
-  };
-
-  // Send a message
-  const handleSendMessage = async () => {
-    if (!newMessage.trim() || !chatId || sendingMessage) return;
-
-    try {
-      setSendingMessage(true);
-      await chatService.postMessage(chatId, newMessage.trim());
-      setNewMessage('');
-      Keyboard.dismiss();
-      // Refresh messages
-      await fetchRecentMessages(chatExpanded);
-    } catch (error) {
-      console.error('Failed to send message:', error);
-      BisetkaAlert.error('Failed to send', 'Could not send your message. Please try again.');
-    } finally {
-      setSendingMessage(false);
-    }
-  };
-
-  // Toggle expanded chat view
-  const toggleChatExpanded = () => {
-    const newExpanded = !chatExpanded;
-    setChatExpanded(newExpanded);
-    
-    if (newExpanded && !chatId) {
-      loadGlobalChat();
-    }
-    
-    fetchRecentMessages(newExpanded);
-  };
 
   // Ensure push permission is granted and the FCM token is registered.
   //
@@ -589,10 +523,10 @@ const HomeScreen = ({ navigation }: any) => {
             {/* Avatar + Action Buttons + Points */}
             <View style={styles.quickRow}>
               {/* Left 1/3 — Avatar */}
-              <View style={{ flexDirection: 'column', flex: 1}}>
+              <View style={styles.leftCol}>
                 <TouchableOpacity
                   onPress={() => navigation.navigate('Profile')}
-                  style={styles.avatarCol}
+                  style={[styles.avatarCol, styles.avatarCard]}
                   activeOpacity={0.85}
                 >
                   <Image
@@ -603,14 +537,7 @@ const HomeScreen = ({ navigation }: any) => {
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={() => navigation.navigate('Profile')}
-                  style={[
-                    styles.avatarCol,
-                    {
-                      marginTop: 10,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    },
-                  ]}
+                  style={[styles.avatarCol, styles.achievementsCard]}
                   activeOpacity={0.85}
                 >
                   <Text style={styles.achievementsText}> Achievements</Text>
@@ -756,116 +683,10 @@ const HomeScreen = ({ navigation }: any) => {
 
             {renderNearestBisetkaCard()}
 
-            {/* Global Chat Widget */}
-            <View style={styles.globalChatContainer}>
-              <LinearGradient
-                colors={['rgba(30, 41, 59, 0.95)', 'rgba(15, 23, 42, 0.95)']}
-                start={{x: 0, y: 0}}
-                end={{x: 1, y: 1}}
-                style={[styles.globalChatCard, chatExpanded && styles.globalChatCardExpanded]}>
-                <View style={styles.globalChatHeader}>
-                  <View style={styles.globalChatTitleRow}>
-                    <Icon name="earth" size={20} color="#10b981" />
-                    <Text style={styles.globalChatTitle}>Global Chat</Text>
-                    <View style={styles.liveBadge}>
-                      <View style={styles.liveDot} />
-                      <Text style={styles.liveText}>LIVE</Text>
-                    </View>
-                  </View>
-                  <View style={styles.headerActions}>
-                    <TouchableOpacity
-                      onPress={toggleChatExpanded}
-                      style={styles.expandButton}>
-                      <Icon 
-                        name={chatExpanded ? "chevron-down" : "chevron-up"} 
-                        size={24} 
-                        color="#94a3b8" 
-                      />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={() => navigation.navigate('GlobalChat')}
-                      style={styles.expandButton}>
-                      <Icon name="arrow-expand" size={18} color="#94a3b8" />
-                    </TouchableOpacity>
-                  </View>
-                </View>
-
-                {/* Chat Messages */}
-                <ScrollView 
-                  style={[styles.chatPreview, chatExpanded && styles.chatPreviewExpanded]}
-                  contentContainerStyle={styles.chatScrollContent}
-                  showsVerticalScrollIndicator={true}>
-                  {recentMessages.length > 0 ? (
-                    <>
-                      {recentMessages.map((msg, idx) => (
-                        <View key={idx} style={styles.messagePreview}>
-                          <Text style={styles.messageUsername} numberOfLines={1}>
-                            {msg.username || 'Anonymous'}
-                          </Text>
-                          <Text style={styles.messageText}>
-                            {msg.content || msg.message}
-                          </Text>
-                        </View>
-                      ))}
-                    </>
-                  ) : (
-                    <View>
-                      <Text style={styles.chatPreviewText}>
-                        💬 Players chatting worldwide...
-                      </Text>
-                      <Text style={styles.chatHint}>
-                        {chatExpanded ? 'No messages yet. Be the first!' : 'Tap to expand'}
-                      </Text>
-                    </View>
-                  )}
-                </ScrollView>
-
-                {/* Message Input - Only show when expanded */}
-                {chatExpanded && (
-                  <View style={styles.messageInputContainer}>
-                    <TextInput
-                      style={styles.messageInput}
-                      placeholder="Type a message..."
-                      placeholderTextColor="#64748b"
-                      value={newMessage}
-                      onChangeText={setNewMessage}
-                      multiline
-                      maxLength={500}
-                      returnKeyType="send"
-                      onSubmitEditing={handleSendMessage}
-                    />
-                    <TouchableOpacity
-                      onPress={handleSendMessage}
-                      disabled={!newMessage.trim() || sendingMessage}
-                      style={[
-                        styles.sendButton,
-                        (!newMessage.trim() || sendingMessage) && styles.sendButtonDisabled,
-                      ]}>
-                      <Icon 
-                        name={sendingMessage ? "loading" : "send"} 
-                        size={20} 
-                        color="#fff" 
-                      />
-                    </TouchableOpacity>
-                  </View>
-                )}
-
-                {/* Quick Action Bar - Only show when collapsed */}
-                {!chatExpanded && (
-                  <View style={styles.chatQuickActions}>
-                    <Icon name="message-text" size={16} color="#64748b" />
-                    <Text style={styles.quickActionText}>
-                      Send a message • See who's online • Make friends
-                    </Text>
-                  </View>
-                )}
-              </LinearGradient>
-            </View>
+            <HomeGlobalChat onOpenFullChat={() => navigation.navigate('GlobalChat')} />
 
             {/* Footer */}
-            <View style={styles.footer}>
-              <Text style={styles.footerText}>🇦🇲 Bisetka</Text>
-            </View>
+            <AppVersionFooter containerStyle={styles.footer} />
           </ScrollView>
         </SafeAreaView>
       </ImageBackground>
@@ -942,17 +763,27 @@ const styles = StyleSheet.create({
     alignItems: 'stretch',
     flex:1
   },
-  avatarCol: {
+  leftCol: {
     flex: 1,
+    gap: 8,
+  },
+  avatarCol: {
     borderRadius: 14,
     overflow: 'hidden',
     backgroundColor: 'rgba(0,0,0,0.3)',
     alignItems: 'center',
-    justifyContent: 'flex-end',
+  },
+  avatarCard: {
+    height: 100,
+    justifyContent: 'center',
+  },
+  achievementsCard: {
+    height: 40,
+    justifyContent: 'center',
   },
   homeAvatarImg: {
-    width: '100%',
-    height: 120,
+    width: 78,
+    height: 78,
   },
   rightCol: {
     flex: 2,
@@ -1154,152 +985,6 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '700',
   },
-  globalChatContainer: {
-    marginHorizontal: 16,
-    marginTop: 16,
-    marginBottom: 12,
-  },
-  globalChatCard: {
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  globalChatCardExpanded: {
-    minHeight: 400,
-  },
-  headerActions: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  globalChatHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  globalChatTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  globalChatTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: '#fff',
-  },
-  liveBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(239, 68, 68, 0.15)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    gap: 4,
-  },
-  liveDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#ef4444',
-  },
-  liveText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#ef4444',
-    letterSpacing: 0.5,
-  },
-  expandButton: {
-    width: 32,
-    height: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 16,
-  },
-  chatPreview: {
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 12,
-    minHeight: 60,
-    maxHeight: 120,
-  },
-  chatPreviewExpanded: {
-    maxHeight: 300,
-    flex: 1,
-  },
-  chatScrollContent: {
-    flexGrow: 1,
-  },
-  messagePreview: {
-    marginBottom: 12,
-    paddingBottom: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
-  },
-  messageUsername: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#10b981',
-    marginBottom: 2,
-  },
-  messageText: {
-    fontSize: 13,
-    color: '#cbd5e1',
-    lineHeight: 18,
-  },
-  chatPreviewText: {
-    fontSize: 14,
-    color: '#e2e8f0',
-    marginBottom: 4,
-  },
-  chatHint: {
-    fontSize: 12,
-    color: '#94a3b8',
-    fontStyle: 'italic',
-    marginTop: 4,
-  },
-  chatQuickActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  quickActionText: {
-    fontSize: 12,
-    color: '#64748b',
-    flex: 1,
-  },
-  messageInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    borderRadius: 12,
-    padding: 8,
-    gap: 8,
-  },
-  messageInput: {
-    flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    color: '#fff',
-    fontSize: 14,
-    maxHeight: 100,
-  },
-  sendButton: {
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#10b981',
-    borderRadius: 20,
-  },
-  sendButtonDisabled: {
-    backgroundColor: '#334155',
-    opacity: 0.5,
-  },
   sectionHeadWrapper: {
     marginHorizontal: 16,
     marginBottom: 12,
@@ -1396,10 +1081,6 @@ const styles = StyleSheet.create({
     paddingBottom: 0,
     alignItems: 'center',
   },
-  footerText: {
-    color: 'rgba(255,255,255,0.3)',
-    fontSize: 13,
-  },
   avatarSection: {
     marginTop: 30,
     marginBottom: 20,
@@ -1435,10 +1116,9 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   achievementsText: {
-    fontSize: 20,
+    fontWeight: '600',
+    fontSize: 16,
     color: '#FFF',
-    paddingTop:4,
-    paddingBottom:8
   },
 });
 
