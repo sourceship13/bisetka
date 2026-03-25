@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
   Image,
 } from 'react-native';
+import AppVersionFooter from '../../../components/global/AppVersionFooter';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import { useBisetkaLocation } from '../../../hooks/useBisetkaLocation';
@@ -268,9 +269,7 @@ const GameSelectionScreen = ({ navigation }: any) => {
             </View>
 
             {/* Footer */}
-            <View style={styles.footer}>
-              <Text style={styles.footerText}>🇦🇲 Bisetka</Text>
-            </View>
+            <AppVersionFooter containerStyle={styles.footer} />
           </ScrollView>
         </SafeAreaView>
       </ImageBackground>
@@ -467,10 +466,6 @@ const styles = StyleSheet.create({
     marginBottom: 0,
     paddingBottom: 0,
     alignItems: 'center',
-  },
-  footerText: {
-    color: 'rgba(255,255,255,0.3)',
-    fontSize: 13,
   },
 });
 
