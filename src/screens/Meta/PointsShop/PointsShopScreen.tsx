@@ -12,7 +12,6 @@ import {
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import LinearGradient from 'react-native-linear-gradient';
 import {colors, spacing} from '../../../theme';
 import {BisetkaAlert} from '../../../utils/BisetkaAlert';
 import {useAuth} from '../../../libs/hooks/useAuth';
@@ -67,6 +66,16 @@ const POINT_PACKS: PointPack[] = [
     glowColor: '#ffd89b',
   },
 ];
+
+const getGradientViewStyle = (
+  gradient: string[],
+  borderWidth: number = 1,
+) => ({
+  backgroundColor: gradient[0],
+  borderColor: gradient[1] || gradient[0],
+  borderWidth,
+  borderRadius: 16,
+});
 
 const PointsShopScreen = ({navigation}: any) => {
   const [loading, setLoading] = useState<string | null>(null);
@@ -151,25 +160,21 @@ const PointsShopScreen = ({navigation}: any) => {
           styles.packContainer,
           pack.popular && styles.packContainerPopular,
         ]}>
-        <LinearGradient
-          colors={pack.gradient}
-          start={{x: 0, y: 0}}
-          end={{x: 1, y: 1}}
-          style={styles.packCard}>
+        <View style={[styles.packCard, getGradientViewStyle(pack.gradient)]}>
           
           {/* Glow effect overlay */}
           <View style={[styles.glowOverlay, {backgroundColor: pack.glowColor, opacity: 0.15}]} />
 
           {pack.popular && (
             <View style={styles.popularBadge}>
-              <LinearGradient
-                colors={['#fbbf24', '#f59e0b']}
-                start={{x: 0, y: 0}}
-                end={{x: 1, y: 0}}
-                style={styles.popularBadgeGradient}>
+              <View
+                style={[
+                  styles.popularBadgeGradient,
+                  getGradientViewStyle(['#fbbf24', '#f59e0b']),
+                ]}>
                 <Icon name="star" size={12} color="#fff" />
                 <Text style={styles.popularText}>BEST VALUE</Text>
-              </LinearGradient>
+              </View>
             </View>
           )}
 
@@ -209,10 +214,7 @@ const PointsShopScreen = ({navigation}: any) => {
               style={styles.buyButton}
               onPress={() => handlePurchase(pack)}
               disabled={isLoading}>
-              <LinearGradient
-                colors={['rgba(255,255,255,0.3)', 'rgba(255,255,255,0.15)']}
-                start={{x: 0, y: 0}}
-                end={{x: 1, y: 1}}
+              <View
                 style={styles.buyButtonGradient}>
                 {isLoading ? (
                   <ActivityIndicator size="small" color="#fff" />
@@ -222,33 +224,32 @@ const PointsShopScreen = ({navigation}: any) => {
                     <Text style={styles.buyButtonText}>BUY NOW</Text>
                   </>
                 )}
-              </LinearGradient>
+              </View>
             </TouchableOpacity>
           </View>
 
           {pack.bonus && (
             <View style={styles.saveBadge}>
-              <LinearGradient
-                colors={['#10b981', '#059669']}
+              <View
                 style={styles.saveBadgeGradient}>
                 <Text style={styles.saveText}>
                   {Math.round((pack.bonus / pack.points) * 100)}% MORE
                 </Text>
-              </LinearGradient>
+              </View>
             </View>
           )}
-        </LinearGradient>
+        </View>
       </TouchableOpacity>
     );
   };
 
   return (
     <View style={styles.container}>
-      <LinearGradient
-        colors={['#0f172a', '#1e293b', '#0f172a']}
-        start={{x: 0, y: 0}}
-        end={{x: 0, y: 1}}
-        style={styles.backgroundGradient}>
+      <View
+        style={[
+          styles.backgroundGradient,
+          getGradientViewStyle(['#0f172a', '#1e293b', '#0f172a'], 0),
+        ]}>
         
         <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
@@ -259,11 +260,13 @@ const PointsShopScreen = ({navigation}: any) => {
               style={styles.backButton}
               onPress={handleBackPress}
               disabled={isSyncingProfile}>
-              <LinearGradient
-                colors={['rgba(255,255,255,0.15)', 'rgba(255,255,255,0.05)']}
-                style={styles.backButtonGradient}>
+              <View
+                style={[
+                  styles.backButtonGradient,
+                  getGradientViewStyle(['rgba(255,255,255,0.15)', 'rgba(255,255,255,0.05)']),
+                ]}>
                 <Icon name="arrow-left" size={24} color="#fff" />
-              </LinearGradient>
+              </View>
             </TouchableOpacity>
 
             <View style={styles.headerCenter}>
@@ -283,11 +286,8 @@ const PointsShopScreen = ({navigation}: any) => {
             showsVerticalScrollIndicator={false}>
             
             {/* Promotional Banner */}
-            <LinearGradient
-              colors={['#ec4899', '#8b5cf6']}
-              start={{x: 0, y: 0}}
-              end={{x: 1, y: 1}}
-              style={styles.promoBanner}>
+            <View
+              style={[styles.promoBanner, getGradientViewStyle(['#ec4899', '#8b5cf6'])]}>
               <View style={styles.promoContent}>
                 <Icon name="sale" size={32} color="#fff" />
                 <View style={styles.promoText}>
@@ -297,7 +297,7 @@ const PointsShopScreen = ({navigation}: any) => {
                   </Text>
                 </View>
               </View>
-            </LinearGradient>
+            </View>
 
             {/* Point Packs Grid */}
             <View style={styles.packsGrid}>
@@ -305,9 +305,11 @@ const PointsShopScreen = ({navigation}: any) => {
             </View>
 
             {/* Features List */}
-            <LinearGradient
-              colors={['rgba(255,255,255,0.05)', 'rgba(255,255,255,0.02)']}
-              style={styles.featuresContainer}>
+            <View
+              style={[
+                styles.featuresContainer,
+                getGradientViewStyle(['rgba(255,255,255,0.05)', 'rgba(255,255,255,0.02)']),
+              ]}>
               <Text style={styles.featuresTitle}>💎 What You Get</Text>
               
               <View style={styles.featureItem}>
@@ -337,7 +339,7 @@ const PointsShopScreen = ({navigation}: any) => {
                 </View>
                 <Text style={styles.featureText}>Dominate leaderboards</Text>
               </View>
-            </LinearGradient>
+            </View>
 
             {/* Trust Badges */}
             <View style={styles.trustBadges}>
@@ -361,7 +363,7 @@ const PointsShopScreen = ({navigation}: any) => {
             </Text>
           </ScrollView>
         </SafeAreaView>
-      </LinearGradient>
+      </View>
     </View>
   );
 };
@@ -389,7 +391,7 @@ const styles = StyleSheet.create({
   backButton: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: 16,
     overflow: 'hidden',
   },
   backButtonGradient: {
@@ -397,6 +399,7 @@ const styles = StyleSheet.create({
     height: '100%',
     alignItems: 'center',
     justifyContent: 'center',
+    borderRadius: 16,
   },
   headerCenter: {
     flex: 1,
@@ -429,7 +432,7 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xl * 2,
   },
   promoBanner: {
-    borderRadius: 20,
+    borderRadius: 16,
     padding: spacing.lg,
     marginBottom: spacing.xl,
     overflow: 'hidden',
@@ -459,7 +462,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xl,
   },
   packContainer: {
-    borderRadius: 24,
+    borderRadius: 16,
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 8},
@@ -474,6 +477,7 @@ const styles = StyleSheet.create({
     elevation: 12,
   },
   packCard: {
+    borderRadius: 16,
     padding: spacing.lg,
     position: 'relative',
     minHeight: 200,
@@ -489,7 +493,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 16,
     right: 16,
-    borderRadius: 999,
+    borderRadius: 16,
     overflow: 'hidden',
   },
   popularBadgeGradient: {
@@ -498,6 +502,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     gap: 4,
+    borderRadius: 16,
   },
   popularText: {
     fontSize: 10,
@@ -595,12 +600,14 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 16,
     left: 16,
-    borderRadius: 12,
+    borderRadius: 16,
     overflow: 'hidden',
   },
   saveBadgeGradient: {
+    backgroundColor:'#10b981',
     paddingHorizontal: 12,
     paddingVertical: 6,
+    borderRadius: 16,
   },
   saveText: {
     fontSize: 11,
@@ -609,7 +616,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   featuresContainer: {
-    borderRadius: 20,
+    borderRadius: 16,
     padding: spacing.lg,
     marginBottom: spacing.lg,
     borderWidth: 1,
