@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,9 @@ import {
   Platform,
   ImageBackground,
   Image,
+  TextInput,
+  KeyboardAvoidingView,
+  Keyboard,
 } from 'react-native';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -32,6 +35,7 @@ import { socketService } from '../../../services/SocketService';
 import tokenService from '../../../services/token.service';
 import useBisetkaLocation from '../../../hooks/useBisetkaLocation';
 import bisetkaService from '../../../services/bisetka.service';
+import chatService from '../../../services/chat.service';
 
 const bisetkaBackground = require('../../../../assets/backgrounds/bisetka.png');
 
@@ -167,6 +171,11 @@ const buildAccountBisetkaFallback = (accountBisetka: {
 const HomeScreen = ({ navigation }: any) => {
   const { user, signOut, refreshUser } = useAuth();
   const drawerNav = useNavigation();
+  const [recentMessages, setRecentMessages] = useState<any[]>([]);
+  const [chatExpanded, setChatExpanded] = useState(true); // Start expanded
+  const [chatId, setChatId] = useState<string | null>(null);
+  const [newMessage, setNewMessage] = useState('');
+  const [sendingMessage, setSendingMessage] = useState(false);
 
   // Auto-connect to local Bisetka based on GPS location
   const {
@@ -204,8 +213,71 @@ const HomeScreen = ({ navigation }: any) => {
     React.useCallback(() => {
       console.log('🔄 HomeScreen gained focus - refreshing user data');
       refreshUser().catch(err => console.warn('Focus refresh failed:', err));
+      
+      // Fetch recent global chat messages (expanded by default)
+      fetchRecentMessages(true).catch(err => console.warn('Failed to fetch chat messages:', err));
+      
+      // Load chat ID for sending messages
+      if (!chatId) {
+        loadGlobalChat().catch(err => console.warn('Failed to load chat ID:', err));
+      }
     }, [refreshUser]),
   );
+
+  // Fetch recent global chat messages
+  const fetchRecentMessages = async (expanded = false) => {
+    try {
+      const limit = expanded ? 50 : 3;
+      const response = await apiService.get<{messages?: any[]}>(`/global-chat/recent?limit=${limit}`);
+      if (response.messages) {
+        setRecentMessages(response.messages);
+      }
+    } catch (error) {
+      console.error('Failed to fetch recent messages:', error);
+      // Silent fail - not critical
+    }
+  };
+
+  // Get or create global chat ID
+  const loadGlobalChat = async () => {
+    try {
+      const result = await chatService.getGlobalChat();
+      setChatId(result.chatId);
+    } catch (error) {
+      console.error('Failed to load global chat:', error);
+    }
+  };
+
+  // Send a message
+  const handleSendMessage = async () => {
+    if (!newMessage.trim() || !chatId || sendingMessage) return;
+
+    try {
+      setSendingMessage(true);
+      await chatService.postMessage(chatId, newMessage.trim());
+      setNewMessage('');
+      Keyboard.dismiss();
+      // Refresh messages
+      await fetchRecentMessages(chatExpanded);
+    } catch (error) {
+      console.error('Failed to send message:', error);
+      BisetkaAlert.error('Failed to send', 'Could not send your message. Please try again.');
+    } finally {
+      setSendingMessage(false);
+    }
+  };
+
+  // Toggle expanded chat view
+  const toggleChatExpanded = () => {
+    const newExpanded = !chatExpanded;
+    setChatExpanded(newExpanded);
+    
+    if (newExpanded && !chatId) {
+      loadGlobalChat();
+    }
+    
+    fetchRecentMessages(newExpanded);
+  };
 
   // Ensure push permission is granted and the FCM token is registered.
   //
@@ -630,24 +702,28 @@ const HomeScreen = ({ navigation }: any) => {
 
                 {/* Row 2: Points + Leaderboard + ChatRooms */}
                 <View style={styles.bottomRow}>
-                  <LinearGradient
-                    colors={['rgba(0, 0, 0, 0.6)', 'rgba(0, 0, 0, 0.6)']}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.balanceGrad}
-                  >
-                    <Text
-                      style={[
-                        styles.balanceLabel,
-                        iOSUIKit.bodyEmphasizedWhite,
-                      ]}
+                  <TouchableOpacity
+                    onPress={() => navigation.navigate('PointsShop')}
+                    activeOpacity={0.8}>
+                    <LinearGradient
+                      colors={['rgba(0, 0, 0, 0.6)', 'rgba(0, 0, 0, 0.6)']}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={styles.balanceGrad}
                     >
-                      Points 🏆{' '}
-                    </Text>
-                    <Text style={styles.balanceAmount}>
-                      {Math.floor(user?.balance || 0).toLocaleString()}
-                    </Text>
-                  </LinearGradient>
+                      <Text
+                        style={[
+                          styles.balanceLabel,
+                          iOSUIKit.bodyEmphasizedWhite,
+                        ]}
+                      >
+                        Points 🏆{' '}
+                      </Text>
+                      <Text style={styles.balanceAmount}>
+                        {Math.floor(user?.balance || 0).toLocaleString()}
+                      </Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
 
                   <TouchableOpacity
                     onPress={() => navigation.navigate('Wardrobe')}
@@ -680,12 +756,110 @@ const HomeScreen = ({ navigation }: any) => {
 
             {renderNearestBisetkaCard()}
 
-            {/* Online Players */}
-            <View style={styles.onlinePlayersContainer}>
-              <View style={styles.onlinePlayersHeader}>
-                <Text style={styles.onlinePlayersTitle}>🟢 Online Players</Text>
-              </View>
-              <OnlinePlayersList maxPlayers={20} />
+            {/* Global Chat Widget */}
+            <View style={styles.globalChatContainer}>
+              <LinearGradient
+                colors={['rgba(30, 41, 59, 0.95)', 'rgba(15, 23, 42, 0.95)']}
+                start={{x: 0, y: 0}}
+                end={{x: 1, y: 1}}
+                style={[styles.globalChatCard, chatExpanded && styles.globalChatCardExpanded]}>
+                <View style={styles.globalChatHeader}>
+                  <View style={styles.globalChatTitleRow}>
+                    <Icon name="earth" size={20} color="#10b981" />
+                    <Text style={styles.globalChatTitle}>Global Chat</Text>
+                    <View style={styles.liveBadge}>
+                      <View style={styles.liveDot} />
+                      <Text style={styles.liveText}>LIVE</Text>
+                    </View>
+                  </View>
+                  <View style={styles.headerActions}>
+                    <TouchableOpacity
+                      onPress={toggleChatExpanded}
+                      style={styles.expandButton}>
+                      <Icon 
+                        name={chatExpanded ? "chevron-down" : "chevron-up"} 
+                        size={24} 
+                        color="#94a3b8" 
+                      />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => navigation.navigate('GlobalChat')}
+                      style={styles.expandButton}>
+                      <Icon name="arrow-expand" size={18} color="#94a3b8" />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                {/* Chat Messages */}
+                <ScrollView 
+                  style={[styles.chatPreview, chatExpanded && styles.chatPreviewExpanded]}
+                  contentContainerStyle={styles.chatScrollContent}
+                  showsVerticalScrollIndicator={true}>
+                  {recentMessages.length > 0 ? (
+                    <>
+                      {recentMessages.map((msg, idx) => (
+                        <View key={idx} style={styles.messagePreview}>
+                          <Text style={styles.messageUsername} numberOfLines={1}>
+                            {msg.username || 'Anonymous'}
+                          </Text>
+                          <Text style={styles.messageText}>
+                            {msg.content || msg.message}
+                          </Text>
+                        </View>
+                      ))}
+                    </>
+                  ) : (
+                    <View>
+                      <Text style={styles.chatPreviewText}>
+                        💬 Players chatting worldwide...
+                      </Text>
+                      <Text style={styles.chatHint}>
+                        {chatExpanded ? 'No messages yet. Be the first!' : 'Tap to expand'}
+                      </Text>
+                    </View>
+                  )}
+                </ScrollView>
+
+                {/* Message Input - Only show when expanded */}
+                {chatExpanded && (
+                  <View style={styles.messageInputContainer}>
+                    <TextInput
+                      style={styles.messageInput}
+                      placeholder="Type a message..."
+                      placeholderTextColor="#64748b"
+                      value={newMessage}
+                      onChangeText={setNewMessage}
+                      multiline
+                      maxLength={500}
+                      returnKeyType="send"
+                      onSubmitEditing={handleSendMessage}
+                    />
+                    <TouchableOpacity
+                      onPress={handleSendMessage}
+                      disabled={!newMessage.trim() || sendingMessage}
+                      style={[
+                        styles.sendButton,
+                        (!newMessage.trim() || sendingMessage) && styles.sendButtonDisabled,
+                      ]}>
+                      <Icon 
+                        name={sendingMessage ? "loading" : "send"} 
+                        size={20} 
+                        color="#fff" 
+                      />
+                    </TouchableOpacity>
+                  </View>
+                )}
+
+                {/* Quick Action Bar - Only show when collapsed */}
+                {!chatExpanded && (
+                  <View style={styles.chatQuickActions}>
+                    <Icon name="message-text" size={16} color="#64748b" />
+                    <Text style={styles.quickActionText}>
+                      Send a message • See who's online • Make friends
+                    </Text>
+                  </View>
+                )}
+              </LinearGradient>
             </View>
 
             {/* Footer */}
@@ -980,22 +1154,151 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '700',
   },
-  onlinePlayersContainer: {
+  globalChatContainer: {
     marginHorizontal: 16,
     marginTop: 16,
     marginBottom: 12,
   },
-  onlinePlayersHeader: {
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    marginBottom: 8,
+  globalChatCard: {
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
-  onlinePlayersTitle: {
-    fontSize: 16,
+  globalChatCardExpanded: {
+    minHeight: 400,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  globalChatHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  globalChatTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  globalChatTitle: {
+    fontSize: 17,
     fontWeight: '700',
     color: '#fff',
+  },
+  liveBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    gap: 4,
+  },
+  liveDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#ef4444',
+  },
+  liveText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#ef4444',
+    letterSpacing: 0.5,
+  },
+  expandButton: {
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 16,
+  },
+  chatPreview: {
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
+    minHeight: 60,
+    maxHeight: 120,
+  },
+  chatPreviewExpanded: {
+    maxHeight: 300,
+    flex: 1,
+  },
+  chatScrollContent: {
+    flexGrow: 1,
+  },
+  messagePreview: {
+    marginBottom: 12,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  messageUsername: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#10b981',
+    marginBottom: 2,
+  },
+  messageText: {
+    fontSize: 13,
+    color: '#cbd5e1',
+    lineHeight: 18,
+  },
+  chatPreviewText: {
+    fontSize: 14,
+    color: '#e2e8f0',
+    marginBottom: 4,
+  },
+  chatHint: {
+    fontSize: 12,
+    color: '#94a3b8',
+    fontStyle: 'italic',
+    marginTop: 4,
+  },
+  chatQuickActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  quickActionText: {
+    fontSize: 12,
+    color: '#64748b',
+    flex: 1,
+  },
+  messageInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    borderRadius: 12,
+    padding: 8,
+    gap: 8,
+  },
+  messageInput: {
+    flex: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    color: '#fff',
+    fontSize: 14,
+    maxHeight: 100,
+  },
+  sendButton: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#10b981',
+    borderRadius: 20,
+  },
+  sendButtonDisabled: {
+    backgroundColor: '#334155',
+    opacity: 0.5,
   },
   sectionHeadWrapper: {
     marginHorizontal: 16,
