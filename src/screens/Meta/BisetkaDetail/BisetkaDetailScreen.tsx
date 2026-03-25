@@ -22,6 +22,7 @@ import bisetkaLeaderboardService, {
 import bisetkaService from '../../../services/bisetka.service';
 import { useAuth } from '../../../libs/hooks/useAuth';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
+import useBisetkaBackground, { DEFAULT_BISETKA_BACKGROUND_PROMPT } from '../../../hooks/useBisetkaBackground';
 import useDeviceType from '../../../hooks/useDeviceType';
 import { getGridColumns, getSpacing } from '../../../theme/responsive';
 
@@ -136,6 +137,13 @@ const BisetkaDetailScreen: React.FC<BisetkaDetailScreenProps> = ({
   navigation,
 }) => {
   const { bisetkaId, bisetkaName, city, country } = route.params;
+  const { imageSource: bisetkaBackgroundSource } = useBisetkaBackground({
+    city,
+    neighborhood: bisetkaName,
+    cacheKey: bisetkaId,
+    promptTemplate: DEFAULT_BISETKA_BACKGROUND_PROMPT,
+    enabled: Boolean(city),
+  });
   const { user, refreshUser } = useAuth();
   const { isTablet, isLandscape, width: screenWidth } = useDeviceType();
 
@@ -402,7 +410,7 @@ const BisetkaDetailScreen: React.FC<BisetkaDetailScreenProps> = ({
   return (
     <View style={styles.container}>
       <ImageBackground
-        source={require('../../../../assets/backgrounds/bisetka.png')}
+        source={bisetkaBackgroundSource}
         style={styles.backgroundImage}
         resizeMode="cover"
         blurRadius={2}
