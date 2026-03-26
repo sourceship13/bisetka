@@ -53,6 +53,15 @@ type GamePhase = 'waiting' | 'preflop' | 'flop' | 'turn' | 'river' | 'showdown';
 
 const TURN_SECONDS = 20;
 
+const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
+
+const snapRaiseTarget = (value: number, min: number, max: number, step: number) => {
+  if (max <= min) return max;
+  const normalized = clamp(value, min, max);
+  const stepped = min + Math.round((normalized - min) / step) * step;
+  return clamp(stepped, min, max);
+};
+
 /**
  * Isolated per-player turn timer. Mounts fresh on each turn (via key prop),
  * so only this tiny component re-renders on every tick — not the game screen.
@@ -160,6 +169,8 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
   const [showConfetti, setShowConfetti] = useState(false);
   const [showShuffleAnimation, setShowShuffleAnimation] = useState(false);
   const [showRiffleDealAnimation, setShowRiffleDealAnimation] = useState(false);
+  const [raiseToAmount, setRaiseToAmount] = useState(30);
+  const [raiseSliderWidth, setRaiseSliderWidth] = useState(0);
   const lastGamePhaseRef = useRef<GamePhase>('waiting');
   const [roomName, setRoomName] = useState('Multiplayer Poker');
   const [editingRoomName, setEditingRoomName] = useState(false);
@@ -177,6 +188,19 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
 
   // Effective seat index for the human player
   const myPlayerIndex = isMultiplayer ? mySeatRef.current : playerIndex;
+  const myPlayer = players[myPlayerIndex];
+  const myCurrentBet = myPlayer?.currentBet ?? 0;
+  const minRaiseTo = myPlayer ? Math.min(myCurrentBet + myPlayer.chips, currentBet + 20) : currentBet + 20;
+  const maxRaiseTo = myPlayer ? myCurrentBet + myPlayer.chips : currentBet;
+  const canRaise = Boolean(myPlayer && myPlayer.isActive && !myPlayer.folded && maxRaiseTo > currentBet);
+  const raiseStep = maxRaiseTo - minRaiseTo >= 20 ? 5 : 1;
+  const selectedRaiseTo = canRaise
+    ? snapRaiseTarget(raiseToAmount, minRaiseTo, maxRaiseTo, raiseStep)
+    : currentBet;
+  const raiseAmount = canRaise ? selectedRaiseTo - myCurrentBet : 0;
+  const raiseProgress = canRaise && maxRaiseTo > minRaiseTo
+    ? (selectedRaiseTo - minRaiseTo) / (maxRaiseTo - minRaiseTo)
+    : 0;
   const lastResetTimeRef = useRef(0);
   const lastActivePlayerRef = useRef(-1);
   const lastPhaseRef = useRef<GamePhase>('waiting');
@@ -200,6 +224,20 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
   useEffect(() => {
     currentBetRef.current = currentBet;
   }, [currentBet]);
+
+  useEffect(() => {
+    if (!canRaise) {
+      setRaiseToAmount(currentBet);
+      return;
+    }
+
+    setRaiseToAmount(prev => {
+      if (prev < minRaiseTo || prev > maxRaiseTo) {
+        return minRaiseTo;
+      }
+      return snapRaiseTarget(prev, minRaiseTo, maxRaiseTo, raiseStep);
+    });
+  }, [canRaise, currentBet, minRaiseTo, maxRaiseTo, raiseStep]);
 
   // Keep lastGamePhaseRef in sync (animation is now triggered directly in startNewHand)
   useEffect(() => {
@@ -629,15 +667,19 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
 
   const handleRaise = () => {
     const myIdx = myPlayerIndex;
-    const raiseToAmount = currentBet + 20;
+    if (!canRaise) {
+      return;
+    }
+
+    const raiseToTarget = selectedRaiseTo;
     if (isMultiplayer) {
-      if (tableIdRef.current) socketService.sendPokerAction(tableIdRef.current, 'raise', raiseToAmount);
+      if (tableIdRef.current) socketService.sendPokerAction(tableIdRef.current, 'raise', raiseToTarget);
       return;
     }
     const updatedPlayers = [...playersRef.current];
-    const totalCost = raiseToAmount - updatedPlayers[myIdx].currentBet;
+    const totalCost = raiseToTarget - updatedPlayers[myIdx].currentBet;
     updatedPlayers[myIdx].chips -= totalCost;
-    updatedPlayers[myIdx].currentBet = raiseToAmount;
+    updatedPlayers[myIdx].currentBet = raiseToTarget;
     updatedPlayers[myIdx].isActive = false;
     updatedPlayers[myIdx].hasActed = true;
     for (let i = 0; i < updatedPlayers.length; i++) {
@@ -645,9 +687,24 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
     }
     lastPlayerActionRef.current = { action: 'raise', amount: totalCost };
     setPot(prev => prev + totalCost);
-    setCurrentBet(raiseToAmount);
+    setCurrentBet(raiseToTarget);
     setPlayers(updatedPlayers);
     moveToNextPlayer(updatedPlayers);
+  };
+
+  const updateRaiseSelectionFromTouch = (locationX: number) => {
+    if (!canRaise || raiseSliderWidth <= 0) {
+      return;
+    }
+
+    if (maxRaiseTo <= minRaiseTo) {
+      setRaiseToAmount(maxRaiseTo);
+      return;
+    }
+
+    const ratio = clamp(locationX / raiseSliderWidth, 0, 1);
+    const rawRaiseTo = minRaiseTo + ratio * (maxRaiseTo - minRaiseTo);
+    setRaiseToAmount(snapRaiseTarget(rawRaiseTo, minRaiseTo, maxRaiseTo, raiseStep));
   };
 
   const handleSaveRoomName = (name: string) => {
@@ -1308,9 +1365,52 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
                     <Text style={styles.buttonText}>Call ${currentBet - players[myPlayerIndex]!.currentBet}</Text>
                   </TouchableOpacity>
                 )}
+
+                {canRaise && (
+                  <View style={styles.raiseControlCard}>
+                    <View style={styles.raiseControlHeader}>
+                      <Text style={styles.raiseControlLabel}>Raise to</Text>
+                      <Text style={styles.raiseControlValue}>${selectedRaiseTo}</Text>
+                    </View>
+
+                    <View
+                      style={styles.raiseSliderTrack}
+                      onLayout={(event) => setRaiseSliderWidth(event.nativeEvent.layout.width)}
+                      onStartShouldSetResponder={() => true}
+                      onMoveShouldSetResponder={() => true}
+                      onResponderGrant={(event) => updateRaiseSelectionFromTouch(event.nativeEvent.locationX)}
+                      onResponderMove={(event) => updateRaiseSelectionFromTouch(event.nativeEvent.locationX)}>
+                      <View style={[styles.raiseSliderFill, { width: `${raiseProgress * 100}%` }]} />
+                      <View
+                        style={[
+                          styles.raiseSliderThumb,
+                          {
+                            left: raiseSliderWidth > 0
+                              ? clamp(raiseProgress * raiseSliderWidth - 12, 0, Math.max(raiseSliderWidth - 24, 0))
+                              : 0,
+                          },
+                        ]}
+                      />
+                    </View>
+
+                    <View style={styles.raiseSliderLabels}>
+                      <Text style={styles.raiseSliderLabel}>Min ${minRaiseTo}</Text>
+                      <Text style={styles.raiseSliderLabel}>Max ${maxRaiseTo}</Text>
+                    </View>
+
+                    <Text style={styles.raiseCostText}>
+                      Add ${raiseAmount} to the pot
+                    </Text>
+                  </View>
+                )}
                 
-                <TouchableOpacity style={[styles.button, styles.raiseButton]} onPress={handleRaise}>
-                  <Text style={styles.buttonText}>Raise</Text>
+                <TouchableOpacity
+                  style={[styles.button, styles.raiseButton, !canRaise && styles.buttonDisabled]}
+                  onPress={handleRaise}
+                  disabled={!canRaise}>
+                  <Text style={styles.buttonText}>
+                    {canRaise ? `Raise to $${selectedRaiseTo}` : 'Cannot Raise'}
+                  </Text>
                 </TouchableOpacity>
               </View>
             )}
@@ -1763,15 +1863,20 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
     justifyContent: 'space-around',
     marginTop: 15,
-    gap: 10,
-    width: 100,
+    gap: 8,
+    width: 180,
   },
   button: {
-    flex: 1,
-    padding: 15,
+    minHeight: 46,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
     borderRadius: 8,
     alignItems: 'center',
 
+  },
+  buttonDisabled: {
+    backgroundColor: '#6b7280',
+    opacity: 0.75,
   },
   foldButton: {
     backgroundColor: '#dc2626',
@@ -1785,10 +1890,78 @@ const styles = StyleSheet.create({
   raiseButton: {
     backgroundColor: '#d97706',
   },
-  buttonText: {
+  raiseControlCard: {
+    backgroundColor: 'rgba(17, 24, 39, 0.94)',
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.65)',
+  },
+  raiseControlHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  raiseControlLabel: {
+    color: '#fbbf24',
+    fontSize: 11,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  raiseControlValue: {
     color: '#fff',
     fontSize: 16,
+    fontWeight: '700',
+  },
+  raiseSliderTrack: {
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  raiseSliderFill: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    backgroundColor: '#f59e0b',
+  },
+  raiseSliderThumb: {
+    position: 'absolute',
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#fff',
+    borderWidth: 2,
+    borderColor: '#f59e0b',
+    top: 2,
+  },
+  raiseSliderLabels: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 8,
+  },
+  raiseSliderLabel: {
+    color: '#d1d5db',
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  raiseCostText: {
+    color: '#fde68a',
+    fontSize: 11,
+    marginTop: 6,
+    textAlign: 'center',
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 14,
     fontWeight: 'bold',
+    textAlign: 'center',
   },
   editRoomButton: {
     padding: 8,
