@@ -1,11 +1,116 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useMemo, useState } from 'react';
+import RNFS from 'react-native-fs';
 import apiService from '../services/api.service';
 
 const defaultBackground = require('../../assets/backgrounds/bisetka.png');
 const backgroundCache = new Map<string, string>();
+const BACKGROUND_STORAGE_KEY = '@bisetka:background-cache:v1';
+const BACKGROUND_CACHE_DIR = `${RNFS.CachesDirectoryPath}/bisetka-backgrounds`;
 
 export const DEFAULT_BISETKA_BACKGROUND_PROMPT =
   'a cartoon photo of a bisetka in {locale} and looks really pretty with iconography of {city}';
+
+type PersistedBackgroundCacheEntry = {
+  localUri: string;
+  remoteUrl: string;
+  savedAt: string;
+};
+
+const hashCacheKey = (value: string) => {
+  let hash = 0;
+  for (let index = 0; index < value.length; index += 1) {
+    hash = (hash * 31 + value.charCodeAt(index)) | 0;
+  }
+  return Math.abs(hash).toString(36);
+};
+
+const getBackgroundFilePath = (cacheKey: string, sourceUrl: string) => {
+  const extensionMatch = sourceUrl.match(/\.([a-zA-Z0-9]+)(?:\?|$)/);
+  const extension = extensionMatch?.[1]?.toLowerCase() || 'jpg';
+  return `${BACKGROUND_CACHE_DIR}/${hashCacheKey(cacheKey)}.${extension}`;
+};
+
+const readPersistedBackgroundCache = async (): Promise<Record<string, PersistedBackgroundCacheEntry>> => {
+  try {
+    const stored = await AsyncStorage.getItem(BACKGROUND_STORAGE_KEY);
+    if (!stored) {
+      return {};
+    }
+
+    const parsed = JSON.parse(stored) as Record<string, PersistedBackgroundCacheEntry>;
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch (error) {
+    console.warn('⚠️ [useBisetkaBackground] Failed to read cached backgrounds:', error);
+    return {};
+  }
+};
+
+const writePersistedBackgroundCache = async (cache: Record<string, PersistedBackgroundCacheEntry>) => {
+  try {
+    await AsyncStorage.setItem(BACKGROUND_STORAGE_KEY, JSON.stringify(cache));
+  } catch (error) {
+    console.warn('⚠️ [useBisetkaBackground] Failed to persist cached backgrounds:', error);
+  }
+};
+
+const getPersistedBackground = async (cacheKey: string): Promise<PersistedBackgroundCacheEntry | null> => {
+  const cache = await readPersistedBackgroundCache();
+  const entry = cache[cacheKey];
+
+  if (!entry?.localUri) {
+    return null;
+  }
+
+  const filePath = entry.localUri.replace('file://', '');
+  const exists = await RNFS.exists(filePath);
+  if (exists) {
+    return entry;
+  }
+
+  delete cache[cacheKey];
+  await writePersistedBackgroundCache(cache);
+  return null;
+};
+
+const persistBackgroundLocally = async (cacheKey: string, remoteUrl: string) => {
+  try {
+    await RNFS.mkdir(BACKGROUND_CACHE_DIR);
+    const destinationPath = getBackgroundFilePath(cacheKey, remoteUrl);
+    const downloadResult = await RNFS.downloadFile({
+      fromUrl: remoteUrl,
+      toFile: destinationPath,
+      background: true,
+      discretionary: true,
+    }).promise;
+
+    if (downloadResult.statusCode && downloadResult.statusCode >= 400) {
+      throw new Error(`Download failed with status ${downloadResult.statusCode}`);
+    }
+
+    const localUri = `file://${destinationPath}`;
+    const cache = await readPersistedBackgroundCache();
+    const previousEntry = cache[cacheKey];
+    cache[cacheKey] = {
+      localUri,
+      remoteUrl,
+      savedAt: new Date().toISOString(),
+    };
+    await writePersistedBackgroundCache(cache);
+
+    if (previousEntry?.localUri && previousEntry.localUri !== localUri) {
+      const previousPath = previousEntry.localUri.replace('file://', '');
+      if (await RNFS.exists(previousPath)) {
+        await RNFS.unlink(previousPath);
+      }
+    }
+
+    return localUri;
+  } catch (error) {
+    console.warn('⚠️ [useBisetkaBackground] Failed to save background locally:', error);
+    return remoteUrl;
+  }
+};
 
 type UseBisetkaBackgroundOptions = {
   city?: string | null;
@@ -57,6 +162,21 @@ const useBisetkaBackground = ({
         return;
       }
 
+      try {
+        const persistedBackground = await getPersistedBackground(effectiveCacheKey);
+        if (persistedBackground) {
+          backgroundCache.set(effectiveCacheKey, persistedBackground.localUri);
+          if (!cancelled) {
+            setBackgroundUrl(persistedBackground.localUri);
+            setIsLoading(false);
+            setError(null);
+          }
+          return;
+        }
+      } catch (persistedError) {
+        console.warn('⚠️ [useBisetkaBackground] Failed to restore local background:', persistedError);
+      }
+
       setIsLoading(true);
       setError(null);
 
@@ -72,8 +192,9 @@ const useBisetkaBackground = ({
         console.log('🖼️  [useBisetkaBackground] API response:', result);
 
         if (!cancelled && result.url) {
-          backgroundCache.set(effectiveCacheKey, result.url);
-          setBackgroundUrl(result.url);
+          const localUri = await persistBackgroundLocally(effectiveCacheKey, result.url);
+          backgroundCache.set(effectiveCacheKey, localUri);
+          setBackgroundUrl(localUri);
           setIsLoading(false);
           setError(null);
           console.log('🖼️  [useBisetkaBackground] Background loaded successfully');
