@@ -787,7 +787,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   avatarCard: {
-    height: 100,
+    flex: 1,
     justifyContent: 'center',
   },
   achievementsCard: {
@@ -806,7 +806,7 @@ const styles = StyleSheet.create({
   },
   homeAvatarImg: {
     width: 78,
-    height: 78,
+    height: '100%',
   },
   rightCol: {
     flex: 2,
