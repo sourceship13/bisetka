@@ -149,7 +149,10 @@ export default function TravelScreen() {
         
         // Return to Home; its focus effect will refresh the bisetka and background.
         setTimeout(() => {
-          navigation.goBack();
+          navigation.navigate('Home', { 
+            forceBackgroundReload: Date.now(), // Force background regeneration
+            traveledTo: location.id,
+          });
         }, 1500);
       } else {
         throw new Error(response.message || 'Travel failed');

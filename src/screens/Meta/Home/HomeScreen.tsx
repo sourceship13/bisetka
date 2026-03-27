@@ -142,10 +142,11 @@ const GAMES = [
 
 type GameConfig = (typeof GAMES)[number];
 
-const HomeScreen = ({ navigation }: any) => {
+const HomeScreen = ({ navigation, route }: any) => {
   const { user, signOut, refreshUser } = useAuth();
   const drawerNav = useNavigation();
   const refreshUserRef = useRef(refreshUser);
+  const forceBackgroundReload = route?.params?.forceBackgroundReload;
   const {
     bisetka: resolvedBisetka,
     neighborhood: resolvedNeighborhood,
@@ -170,9 +171,10 @@ const HomeScreen = ({ navigation }: any) => {
   } = useBisetkaBackground({
     city: currentCity,
     neighborhood: resolvedBisetka?.neighborhood_name || user?.bisetka?.neighborhood || null,
-    cacheKey: resolvedBisetka?.id || user?.bisetka?.id || null,
+    cacheKey: forceBackgroundReload || resolvedBisetka?.id || user?.bisetka?.id || null,
     promptTemplate: DEFAULT_BISETKA_BACKGROUND_PROMPT,
     enabled: Boolean(currentCity),
+    forceReload: Boolean(forceBackgroundReload), // Force reload when traveling
   });
   const { isTablet, isLandscape, width: screenWidth } = useDeviceType();
 
@@ -541,7 +543,15 @@ const HomeScreen = ({ navigation }: any) => {
                   style={[styles.avatarCol, styles.achievementsCard]}
                   activeOpacity={0.85}
                 >
-                  <Text style={styles.achievementsText}> Achievements</Text>
+                  <LinearGradient
+                    colors={['#f59e0b', '#d97706']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.achievementsGradient}
+                  >
+                    <Icon name="trophy" size={18} color="#fff" />
+                    <Text style={styles.achievementsText}>Achievements</Text>
+                  </LinearGradient>
                 </TouchableOpacity>
               </View>
               {/* Right 2/3 — buttons row + points row */}
@@ -798,6 +808,16 @@ const styles = StyleSheet.create({
   achievementsCard: {
     height: 40,
     justifyContent: 'center',
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  achievementsGradient: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+    gap: 8,
   },
   homeAvatarImg: {
     width: 78,
@@ -1134,9 +1154,10 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   achievementsText: {
-    fontWeight: '600',
-    fontSize: 16,
+    fontWeight: '700',
+    fontSize: 14,
     color: '#FFF',
+    letterSpacing: 0.3,
   },
 });
 
