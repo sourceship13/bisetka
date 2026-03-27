@@ -611,6 +611,7 @@ class ApiService {
   async getOrGenerateBisetkaBackground(data: {
     city: string;
     neighborhood?: string;
+    country?: string;
     promptTemplate?: string;
     forceRegenerate?: boolean;
   }): Promise<{ url: string | null; prompt: string | null; city: string | null; cached: boolean; disabled?: boolean }> {
