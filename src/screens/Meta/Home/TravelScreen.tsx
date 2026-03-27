@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
   ScrollView,
+  FlatList,
   ActivityIndicator,
   TextInput,
   StatusBar,
@@ -19,6 +20,7 @@ import bisetkaService, { Neighborhood } from '../../../services/bisetka.service'
 import apiService from '../../../services/api.service';
 import { useAuth } from '../../../libs/hooks/useAuth';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
+import { normalizeStateName, getUniqueNormalizedStates } from '../../../utils/stateNormalizer';
 
 type NavigationProp = NativeStackNavigationProp<any>;
 
@@ -31,7 +33,6 @@ export default function TravelScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { user, refreshUser } = useAuth();
   const [locations, setLocations] = useState<Neighborhood[]>([]);
-  const [filteredLocations, setFilteredLocations] = useState<Neighborhood[]>([]);
   const [loading, setLoading] = useState(true);
   const [searching, setSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -43,13 +44,12 @@ export default function TravelScreen() {
     loadLocations();
   }, []);
 
-  // Get unique states/provinces for the selected country
+  // Get unique states/provinces for the selected country (normalized)
   const availableStates = React.useMemo(() => {
     if (selectedCountry === 'all') return [];
     
     const countryLocations = locations.filter(loc => loc.country === selectedCountry);
-    const states = [...new Set(countryLocations.map(loc => loc.state).filter(Boolean))];
-    return states.sort();
+    return getUniqueNormalizedStates(countryLocations);
   }, [locations, selectedCountry]);
 
   // Reset state filter when country changes
@@ -57,17 +57,26 @@ export default function TravelScreen() {
     setSelectedState('all');
   }, [selectedCountry]);
 
-  useEffect(() => {
-    let filtered = locations;
+  // Normalize all locations once (memoized)
+  const normalizedLocations = useMemo(() => {
+    return locations.map(loc => ({
+      ...loc,
+      normalizedState: normalizeStateName(loc.state, loc.country),
+    }));
+  }, [locations]);
+
+  // Filter logic (optimized with useMemo)
+  const filteredLocations = useMemo(() => {
+    let filtered = normalizedLocations;
 
     // Apply country filter
     if (selectedCountry !== 'all') {
       filtered = filtered.filter((loc) => loc.country === selectedCountry);
     }
 
-    // Apply state filter
+    // Apply state filter (already normalized)
     if (selectedState !== 'all') {
-      filtered = filtered.filter((loc) => loc.state === selectedState);
+      filtered = filtered.filter((loc) => loc.normalizedState === selectedState);
     }
 
     // Apply search query
@@ -76,15 +85,14 @@ export default function TravelScreen() {
       filtered = filtered.filter(
         (loc) =>
           loc.name.toLowerCase().includes(query) ||
-          formatTravelLocationName(loc).toLowerCase().includes(query) ||
           loc.city.toLowerCase().includes(query) ||
           loc.country.toLowerCase().includes(query) ||
-          (loc.state && loc.state.toLowerCase().includes(query))
+          loc.normalizedState.toLowerCase().includes(query)
       );
     }
 
-    setFilteredLocations(filtered);
-  }, [searchQuery, locations, selectedCountry, selectedState]);
+    return filtered;
+  }, [normalizedLocations, searchQuery, selectedCountry, selectedState]);
 
   const loadLocations = async () => {
     try {
@@ -107,7 +115,6 @@ export default function TravelScreen() {
         return a.name.localeCompare(b.name);
       });
       setLocations(sorted);
-      setFilteredLocations(sorted);
     } catch (error: any) {
       console.error('❌ [TravelScreen] Failed to load locations:', error);
       console.error('Error details:', error.message, error.stack);
@@ -324,18 +331,18 @@ export default function TravelScreen() {
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.filterButton, selectedCountry === 'Russia' && styles.filterButtonActive]}
-              onPress={() => setSelectedCountry('Russia')}>
+              style={[styles.filterButton, selectedCountry === 'RU' && styles.filterButtonActive]}
+              onPress={() => setSelectedCountry('RU')}>
               <Text style={styles.flagEmoji}>🇷🇺</Text>
-              <Text style={[styles.filterButtonText, selectedCountry === 'Russia' && styles.filterButtonTextActive]}>
+              <Text style={[styles.filterButtonText, selectedCountry === 'RU' && styles.filterButtonTextActive]}>
                 Russia
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.filterButton, selectedCountry === 'Armenia' && styles.filterButtonActive]}
-              onPress={() => setSelectedCountry('Armenia')}>
+              style={[styles.filterButton, selectedCountry === 'AM' && styles.filterButtonActive]}
+              onPress={() => setSelectedCountry('AM')}>
               <Text style={styles.flagEmoji}>🇦🇲</Text>
-              <Text style={[styles.filterButtonText, selectedCountry === 'Armenia' && styles.filterButtonTextActive]}>
+              <Text style={[styles.filterButtonText, selectedCountry === 'AM' && styles.filterButtonTextActive]}>
                 Armenia
               </Text>
             </TouchableOpacity>
@@ -379,16 +386,25 @@ export default function TravelScreen() {
             <Text style={styles.emptyText}>No locations found</Text>
           </View>
         ) : (
-          <ScrollView
+          <FlatList
+            data={filteredLocations}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => renderLocationCard(item)}
             style={styles.scrollView}
             contentContainerStyle={styles.scrollContent}
-            showsVerticalScrollIndicator={false}>
-            <Text style={styles.locationCount}>
-              {filteredLocations.length} location{filteredLocations.length !== 1 ? 's' : ''}{' '}
-              available
-            </Text>
-            {filteredLocations.map(renderLocationCard)}
-          </ScrollView>
+            showsVerticalScrollIndicator={false}
+            removeClippedSubviews={true}
+            maxToRenderPerBatch={20}
+            updateCellsBatchingPeriod={50}
+            initialNumToRender={15}
+            windowSize={10}
+            ListHeaderComponent={
+              <Text style={styles.locationCount}>
+                {filteredLocations.length} location{filteredLocations.length !== 1 ? 's' : ''}{' '}
+                available
+              </Text>
+            }
+          />
         )}
       </SafeAreaView>
     </View>
@@ -556,7 +572,7 @@ const styles = StyleSheet.create({
     marginLeft: 36,
   },
   locationAction: {
-    marginLeft: 12,
+
   },
   currentBadge: {
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
