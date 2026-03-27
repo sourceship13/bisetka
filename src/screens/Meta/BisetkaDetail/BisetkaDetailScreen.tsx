@@ -140,6 +140,7 @@ const BisetkaDetailScreen: React.FC<BisetkaDetailScreenProps> = ({
   const { imageSource: bisetkaBackgroundSource } = useBisetkaBackground({
     city,
     neighborhood: bisetkaName,
+    country,
     cacheKey: bisetkaId,
     promptTemplate: DEFAULT_BISETKA_BACKGROUND_PROMPT,
     enabled: Boolean(city),

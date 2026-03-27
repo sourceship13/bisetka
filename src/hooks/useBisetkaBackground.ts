@@ -115,6 +115,7 @@ const persistBackgroundLocally = async (cacheKey: string, remoteUrl: string) => 
 type UseBisetkaBackgroundOptions = {
   city?: string | null;
   neighborhood?: string | null;
+  country?: string | null;
   cacheKey?: string | null;
   promptTemplate?: string;
   enabled?: boolean;
@@ -124,6 +125,7 @@ type UseBisetkaBackgroundOptions = {
 const useBisetkaBackground = ({
   city,
   neighborhood,
+  country,
   cacheKey,
   promptTemplate = DEFAULT_BISETKA_BACKGROUND_PROMPT,
   enabled = true,
@@ -209,61 +211,59 @@ const useBisetkaBackground = ({
         }
       }
 
-      const loadStartTime = Date.now();
+      // Show loading state immediately, but don't block UI
       setIsLoading(true);
       setError(null);
+      setBackgroundUrl(null); // Clear old background while loading
 
       console.log('🖼️  [useBisetkaBackground] 🌐 No cache found, calling API...');
       
-      try {
-        console.log('🖼️  [useBisetkaBackground] 🚀 Calling apiService.getOrGenerateBisetkaBackground for', trimmedCity);
-        console.log('🖼️  [useBisetkaBackground] 🚀 Request data:', {
-          city: trimmedCity,
-          neighborhood: trimmedNeighborhood,
-          promptTemplate,
-        });
+      // Generate in background (non-blocking)
+      (async () => {
+        try {
+          console.log('🖼️  [useBisetkaBackground] 🚀 Calling apiService.getOrGenerateBisetkaBackground for', trimmedCity);
+          console.log('🖼️  [useBisetkaBackground] 🚀 Request data:', {
+            city: trimmedCity,
+            neighborhood: trimmedNeighborhood,
+            promptTemplate,
+          });
 
-        const result = await apiService.getOrGenerateBisetkaBackground({
-          city: trimmedCity,
-          neighborhood: trimmedNeighborhood,
-          promptTemplate,
-        });
+          const result = await apiService.getOrGenerateBisetkaBackground({
+            city: trimmedCity,
+            neighborhood: trimmedNeighborhood,
+            country: country?.trim() || undefined,
+            promptTemplate,
+          });
 
-        console.log('🖼️  [useBisetkaBackground] ✅ API response received:', result);
+          console.log('🖼️  [useBisetkaBackground] ✅ API response received:', result);
 
-        if (!cancelled && result.url) {
-          const localUri = await persistBackgroundLocally(effectiveCacheKey, result.url);
-          backgroundCache.set(effectiveCacheKey, localUri);
-          
-          // Ensure loading indicator shows for at least 1 second
-          const elapsedTime = Date.now() - loadStartTime;
-          const minLoadingTime = 1000;
-          if (elapsedTime < minLoadingTime) {
-            await new Promise(resolve => setTimeout(resolve, minLoadingTime - elapsedTime));
+          if (!cancelled && result.url) {
+            const localUri = await persistBackgroundLocally(effectiveCacheKey, result.url);
+            backgroundCache.set(effectiveCacheKey, localUri);
+            
+            if (!cancelled) {
+              setBackgroundUrl(localUri);
+              setIsLoading(false);
+              setError(null);
+              console.log('🖼️  [useBisetkaBackground] Background loaded successfully');
+            }
+            return;
           }
-          
+
           if (!cancelled) {
-            setBackgroundUrl(localUri);
+            setBackgroundUrl(null);
             setIsLoading(false);
             setError(null);
-            console.log('🖼️  [useBisetkaBackground] Background loaded successfully');
           }
-          return;
+        } catch (err: any) {
+          console.warn('⚠️ [useBisetkaBackground] Falling back to default background:', err?.message || err);
+          if (!cancelled) {
+            setBackgroundUrl(null);
+            setIsLoading(false);
+            setError(null);
+          }
         }
-
-        if (!cancelled) {
-          setBackgroundUrl(null);
-          setIsLoading(false);
-          setError(null);
-        }
-      } catch (err: any) {
-        console.warn('⚠️ [useBisetkaBackground] Falling back to default background:', err?.message || err);
-        if (!cancelled) {
-          setBackgroundUrl(null);
-          setIsLoading(false);
-          setError(null);
-        }
-      }
+      })();
     };
 
     void loadBackground();
