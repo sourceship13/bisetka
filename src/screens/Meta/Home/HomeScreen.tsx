@@ -171,6 +171,7 @@ const HomeScreen = ({ navigation, route }: any) => {
   } = useBisetkaBackground({
     city: currentCity,
     neighborhood: resolvedBisetka?.neighborhood_name || user?.bisetka?.neighborhood || null,
+    country: resolvedBisetka?.country || user?.bisetka?.country || null,
     cacheKey: forceBackgroundReload || resolvedBisetka?.id || user?.bisetka?.id || null,
     promptTemplate: DEFAULT_BISETKA_BACKGROUND_PROMPT,
     enabled: Boolean(currentCity),
@@ -720,16 +721,21 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)', // Semi-transparent so UI is still visible
     alignItems: 'center',
     justifyContent: 'center',
-    zIndex: 9999,
+    zIndex: 1, // Behind the main content so it doesn't block interaction
+    pointerEvents: 'none', // Allow touches to pass through
   },
   backgroundLoadingText: {
     marginTop: 16,
-    fontSize: 16,
+    fontSize: 14,
     color: '#fff',
     fontWeight: '600',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
   },
   safeArea: {
     flex: 1,
