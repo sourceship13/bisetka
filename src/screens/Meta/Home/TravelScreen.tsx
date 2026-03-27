@@ -223,13 +223,7 @@ export default function TravelScreen() {
           isCurrentLocation && styles.currentLocationCard,
         ]}
         activeOpacity={0.7}>
-        <LinearGradient
-          colors={
-            isCurrentLocation
-              ? ['rgba(16, 185, 129, 0.7)', 'rgba(52, 211, 153, 0.7)']
-              : ['rgba(0, 0, 0, 0.6)', 'rgba(0, 0, 0, 0.8)']
-          }
-          style={styles.locationGradient}>
+        <View style={{flex:1, backgroundColor: isCurrentLocation ? 'rgba(52, 211, 153, 0.7)' : 'rgba(255, 255, 255, 0.05)', borderRadius: 12, padding: 12}}>
           <View style={styles.locationInfo}>
             <View style={styles.locationHeader}>
               <Icon
@@ -250,7 +244,7 @@ export default function TravelScreen() {
               </Text>
             )}
           </View>
-          <View style={styles.locationAction}>
+          <View style={[styles.locationAction, {backgroundColor:'red'}]}>
             {isCurrentLocation ? (
               <View style={styles.currentBadge}>
                 <Text style={styles.currentBadgeText}>Current</Text>
@@ -264,7 +258,7 @@ export default function TravelScreen() {
               </View>
             )}
           </View>
-        </LinearGradient>
+        </View>
       </TouchableOpacity>
     );
   };
@@ -272,7 +266,7 @@ export default function TravelScreen() {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
-      <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
         {/* Header */}
         <LinearGradient
           colors={['rgba(0, 0, 0, 0.8)', 'rgba(0, 0, 0, 0.8)']}
@@ -522,8 +516,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: 16,
     paddingTop: 0,
+    paddingHorizontal: 16,
+    paddingBottom: 16,
   },
   locationCount: {
     color: '#999',
@@ -531,9 +526,8 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   locationCard: {
-    marginBottom: 12,
+    marginBottom: 10,
     borderRadius: 12,
-    overflow: 'hidden',
   },
   currentLocationCard: {
     borderWidth: 2,
@@ -543,6 +537,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     padding: 16,
     alignItems: 'center',
+    borderRadius: 12,
+    overflow: 'hidden',
   },
   locationInfo: {
     flex: 1,
