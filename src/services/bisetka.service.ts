@@ -20,6 +20,7 @@ export interface Neighborhood {
   name: string;
   city: string;
   country: string;
+  state?: string;
   lat: number;
   lng: number;
   distance_km?: number;
@@ -474,12 +475,13 @@ class BisetkaService {
    */
   async getAllNeighborhoods(): Promise<Neighborhood[]> {
     try {
-      const bisetkas = await this.getAllBisetkas(500);
+      const bisetkas = await this.getAllBisetkas(5000); // Load all bisetkas (currently ~2,200)
       const neighborhoods: Neighborhood[] = bisetkas.map(b => ({
         id: b.neighborhood_id,
         name: b.neighborhood_name,
         city: b.city,
         country: b.country,
+        state: (b as any).state, // Include state from backend
         lat: 0,
         lng: 0,
       }));
