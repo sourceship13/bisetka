@@ -36,26 +36,55 @@ export default function TravelScreen() {
   const [searching, setSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [travelingTo, setTravelingTo] = useState<string | null>(null);
+  const [selectedCountry, setSelectedCountry] = useState<'all' | 'US' | 'RU' | 'AM'>('all');
+  const [selectedState, setSelectedState] = useState<string>('all');
 
   useEffect(() => {
     loadLocations();
   }, []);
 
+  // Get unique states/provinces for the selected country
+  const availableStates = React.useMemo(() => {
+    if (selectedCountry === 'all') return [];
+    
+    const countryLocations = locations.filter(loc => loc.country === selectedCountry);
+    const states = [...new Set(countryLocations.map(loc => loc.state).filter(Boolean))];
+    return states.sort();
+  }, [locations, selectedCountry]);
+
+  // Reset state filter when country changes
   useEffect(() => {
+    setSelectedState('all');
+  }, [selectedCountry]);
+
+  useEffect(() => {
+    let filtered = locations;
+
+    // Apply country filter
+    if (selectedCountry !== 'all') {
+      filtered = filtered.filter((loc) => loc.country === selectedCountry);
+    }
+
+    // Apply state filter
+    if (selectedState !== 'all') {
+      filtered = filtered.filter((loc) => loc.state === selectedState);
+    }
+
+    // Apply search query
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
-      const filtered = locations.filter(
+      filtered = filtered.filter(
         (loc) =>
           loc.name.toLowerCase().includes(query) ||
           formatTravelLocationName(loc).toLowerCase().includes(query) ||
           loc.city.toLowerCase().includes(query) ||
-          loc.country.toLowerCase().includes(query)
+          loc.country.toLowerCase().includes(query) ||
+          (loc.state && loc.state.toLowerCase().includes(query))
       );
-      setFilteredLocations(filtered);
-    } else {
-      setFilteredLocations(locations);
     }
-  }, [searchQuery, locations]);
+
+    setFilteredLocations(filtered);
+  }, [searchQuery, locations, selectedCountry, selectedState]);
 
   const loadLocations = async () => {
     try {
@@ -275,6 +304,69 @@ export default function TravelScreen() {
           )}
         </View>
 
+        {/* Country Filter Buttons */}
+        <View style={styles.filterContainer}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScrollContent}>
+            <TouchableOpacity
+              style={[styles.filterButton, selectedCountry === 'all' && styles.filterButtonActive]}
+              onPress={() => setSelectedCountry('all')}>
+              <Text style={styles.flagEmoji}>🌍</Text>
+              <Text style={[styles.filterButtonText, selectedCountry === 'all' && styles.filterButtonTextActive]}>
+                All Countries
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.filterButton, selectedCountry === 'US' && styles.filterButtonActive]}
+              onPress={() => setSelectedCountry('US')}>
+              <Text style={styles.flagEmoji}>🇺🇸</Text>
+              <Text style={[styles.filterButtonText, selectedCountry === 'US' && styles.filterButtonTextActive]}>
+                United States
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.filterButton, selectedCountry === 'Russia' && styles.filterButtonActive]}
+              onPress={() => setSelectedCountry('Russia')}>
+              <Text style={styles.flagEmoji}>🇷🇺</Text>
+              <Text style={[styles.filterButtonText, selectedCountry === 'Russia' && styles.filterButtonTextActive]}>
+                Russia
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.filterButton, selectedCountry === 'Armenia' && styles.filterButtonActive]}
+              onPress={() => setSelectedCountry('Armenia')}>
+              <Text style={styles.flagEmoji}>🇦🇲</Text>
+              <Text style={[styles.filterButtonText, selectedCountry === 'Armenia' && styles.filterButtonTextActive]}>
+                Armenia
+              </Text>
+            </TouchableOpacity>
+          </ScrollView>
+        </View>
+
+        {/* State/Province Filter (only show when country is selected) */}
+        {selectedCountry !== 'all' && availableStates.length > 0 && (
+          <View style={styles.filterContainer}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScrollContent}>
+              <TouchableOpacity
+                style={[styles.filterButton, styles.filterButtonSecondary, selectedState === 'all' && styles.filterButtonActive]}
+                onPress={() => setSelectedState('all')}>
+                <Text style={[styles.filterButtonText, styles.filterButtonTextSmall, selectedState === 'all' && styles.filterButtonTextActive]}>
+                  All {selectedCountry === 'US' ? 'States' : 'Regions'}
+                </Text>
+              </TouchableOpacity>
+              {availableStates.map((state) => (
+                <TouchableOpacity
+                  key={state}
+                  style={[styles.filterButton, styles.filterButtonSecondary, selectedState === state && styles.filterButtonActive]}
+                  onPress={() => setSelectedState(state)}>
+                  <Text style={[styles.filterButtonText, styles.filterButtonTextSmall, selectedState === state && styles.filterButtonTextActive]}>
+                    {state}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
         {/* Locations List */}
         {loading ? (
           <View style={styles.centerContainer}>
@@ -367,6 +459,48 @@ const styles = StyleSheet.create({
     flex: 1,
     color: '#fff',
     fontSize: 16,
+  },
+  filterContainer: {
+    paddingHorizontal: 16,
+    marginBottom: 12,
+  },
+  filterScrollContent: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  filterButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    gap: 8,
+  },
+  filterButtonActive: {
+    backgroundColor: '#6366f1',
+    borderColor: '#6366f1',
+  },
+  filterButtonText: {
+    color: '#999',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  filterButtonTextActive: {
+    color: '#fff',
+  },
+  filterButtonSecondary: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  filterButtonTextSmall: {
+    fontSize: 13,
+  },
+  flagEmoji: {
+    fontSize: 20,
   },
   scrollView: {
     flex: 1,

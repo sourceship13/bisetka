@@ -254,11 +254,10 @@ const HomeGlobalChat = ({
 
 const styles = StyleSheet.create({
   globalChatContainer: {
-    marginTop: 16,
     marginBottom: 12,
   },
   globalChatCard: {
-    backgroundColor:'rgba(30, 41, 59, 0.95)',
+    backgroundColor:'rgba(30, 41, 59, 0.8)',
     borderRadius: 12,
     padding: 16,
     paddingHorizontal: 16,
@@ -269,7 +268,7 @@ const styles = StyleSheet.create({
 
   },
   globalChatCardExpanded: {
-    minHeight: 400,
+    minHeight: 300,
   },
   headerActions: {
     flexDirection: 'row',
@@ -329,7 +328,7 @@ const styles = StyleSheet.create({
     maxHeight: 120,
   },
   chatPreviewExpanded: {
-    maxHeight: 300,
+    maxHeight: 250,
     flex: 1,
   },
   chatScrollContent: {
