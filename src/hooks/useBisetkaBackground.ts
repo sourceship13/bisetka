@@ -9,7 +9,7 @@ const BACKGROUND_STORAGE_KEY = '@bisetka:background-cache:v1';
 const BACKGROUND_CACHE_DIR = `${RNFS.CachesDirectoryPath}/bisetka-backgrounds`;
 
 export const DEFAULT_BISETKA_BACKGROUND_PROMPT =
-  'a cartoon photo of a bisetka in {locale} and looks really pretty with iconography of {city}';
+  'a hyperrealistic photo of a bisetka in {locale} and looks really pretty with iconography of {city}';
 
 type PersistedBackgroundCacheEntry = {
   localUri: string;
@@ -118,6 +118,7 @@ type UseBisetkaBackgroundOptions = {
   cacheKey?: string | null;
   promptTemplate?: string;
   enabled?: boolean;
+  forceReload?: boolean; // Force regeneration even if cached
 };
 
 const useBisetkaBackground = ({
@@ -126,6 +127,7 @@ const useBisetkaBackground = ({
   cacheKey,
   promptTemplate = DEFAULT_BISETKA_BACKGROUND_PROMPT,
   enabled = true,
+  forceReload = false,
 }: UseBisetkaBackgroundOptions) => {
   const [backgroundUrl, setBackgroundUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -138,10 +140,18 @@ const useBisetkaBackground = ({
       const trimmedCity = city?.trim();
       const trimmedNeighborhood = neighborhood?.trim();
       
-      console.log('🖼️  [useBisetkaBackground] Loading background:', { city, neighborhood, cacheKey, enabled, trimmedCity });
+      console.log('🖼️  [useBisetkaBackground] ========== START LOAD ==========');
+      console.log('🖼️  [useBisetkaBackground] Inputs:', { 
+        city, 
+        neighborhood, 
+        cacheKey, 
+        enabled, 
+        forceReload,
+        trimmedCity 
+      });
       
       if (!enabled || !trimmedCity) {
-        console.log('🖼️  [useBisetkaBackground] Skipping: enabled =', enabled, 'city =', trimmedCity);
+        console.log('🖼️  [useBisetkaBackground] ❌ SKIPPING - enabled =', enabled, 'city =', trimmedCity);
         if (!cancelled) {
           setBackgroundUrl(null);
           setIsLoading(false);
@@ -149,39 +159,69 @@ const useBisetkaBackground = ({
         }
         return;
       }
+      
+      console.log('🖼️  [useBisetkaBackground] ✅ Enabled, city is valid');
 
       const effectiveCacheKey = cacheKey || `${trimmedNeighborhood || trimmedCity}::${trimmedCity}::${promptTemplate}`;
-      const cachedUrl = backgroundCache.get(effectiveCacheKey);
-      if (cachedUrl) {
-        console.log('🖼️  [useBisetkaBackground] Using cached URL for', trimmedCity);
-        if (!cancelled) {
-          setBackgroundUrl(cachedUrl);
-          setIsLoading(false);
-          setError(null);
-        }
-        return;
-      }
-
-      try {
-        const persistedBackground = await getPersistedBackground(effectiveCacheKey);
-        if (persistedBackground) {
-          backgroundCache.set(effectiveCacheKey, persistedBackground.localUri);
+      
+      console.log('🖼️  [useBisetkaBackground] Cache key:', effectiveCacheKey);
+      console.log('🖼️  [useBisetkaBackground] Force reload:', forceReload);
+      
+      // Show loading immediately
+      setIsLoading(true);
+      setError(null);
+      console.log('🖼️  [useBisetkaBackground] ⏳ Loading state set to TRUE');
+      
+      // Skip cache if forceReload is true
+      if (!forceReload) {
+        const cachedUrl = backgroundCache.get(effectiveCacheKey);
+        console.log('🖼️  [useBisetkaBackground] Checking in-memory cache:', cachedUrl ? 'HIT' : 'MISS');
+        if (cachedUrl) {
+          console.log('🖼️  [useBisetkaBackground] ✅ Using cached URL for', trimmedCity, ':', cachedUrl);
           if (!cancelled) {
-            setBackgroundUrl(persistedBackground.localUri);
+            setBackgroundUrl(cachedUrl);
             setIsLoading(false);
             setError(null);
           }
           return;
         }
-      } catch (persistedError) {
-        console.warn('⚠️ [useBisetkaBackground] Failed to restore local background:', persistedError);
+      } else {
+        console.log('🖼️  [useBisetkaBackground] 🔄 Force reload requested, skipping ALL caches');
       }
 
+      if (!forceReload) {
+        console.log('🖼️  [useBisetkaBackground] Checking persisted storage cache...');
+        try {
+          const persistedBackground = await getPersistedBackground(effectiveCacheKey);
+          console.log('🖼️  [useBisetkaBackground] Persisted cache:', persistedBackground ? 'HIT' : 'MISS');
+          if (persistedBackground) {
+            backgroundCache.set(effectiveCacheKey, persistedBackground.localUri);
+            if (!cancelled) {
+              setBackgroundUrl(persistedBackground.localUri);
+              setIsLoading(false);
+              setError(null);
+            }
+            console.log('🖼️  [useBisetkaBackground] ✅ Using persisted background:', persistedBackground.localUri);
+            return;
+          }
+        } catch (persistedError) {
+          console.warn('⚠️ [useBisetkaBackground] Failed to restore local background:', persistedError);
+        }
+      }
+
+      const loadStartTime = Date.now();
       setIsLoading(true);
       setError(null);
 
+      console.log('🖼️  [useBisetkaBackground] 🌐 No cache found, calling API...');
+      
       try {
-        console.log('🖼️  [useBisetkaBackground] Calling API to generate background for', trimmedCity);
+        console.log('🖼️  [useBisetkaBackground] 🚀 Calling apiService.getOrGenerateBisetkaBackground for', trimmedCity);
+        console.log('🖼️  [useBisetkaBackground] 🚀 Request data:', {
+          city: trimmedCity,
+          neighborhood: trimmedNeighborhood,
+          promptTemplate,
+        });
 
         const result = await apiService.getOrGenerateBisetkaBackground({
           city: trimmedCity,
@@ -189,15 +229,25 @@ const useBisetkaBackground = ({
           promptTemplate,
         });
 
-        console.log('🖼️  [useBisetkaBackground] API response:', result);
+        console.log('🖼️  [useBisetkaBackground] ✅ API response received:', result);
 
         if (!cancelled && result.url) {
           const localUri = await persistBackgroundLocally(effectiveCacheKey, result.url);
           backgroundCache.set(effectiveCacheKey, localUri);
-          setBackgroundUrl(localUri);
-          setIsLoading(false);
-          setError(null);
-          console.log('🖼️  [useBisetkaBackground] Background loaded successfully');
+          
+          // Ensure loading indicator shows for at least 1 second
+          const elapsedTime = Date.now() - loadStartTime;
+          const minLoadingTime = 1000;
+          if (elapsedTime < minLoadingTime) {
+            await new Promise(resolve => setTimeout(resolve, minLoadingTime - elapsedTime));
+          }
+          
+          if (!cancelled) {
+            setBackgroundUrl(localUri);
+            setIsLoading(false);
+            setError(null);
+            console.log('🖼️  [useBisetkaBackground] Background loaded successfully');
+          }
           return;
         }
 
@@ -221,7 +271,7 @@ const useBisetkaBackground = ({
     return () => {
       cancelled = true;
     };
-  }, [cacheKey, city, enabled, neighborhood, promptTemplate]);
+  }, [cacheKey, city, enabled, neighborhood, promptTemplate, forceReload]);
 
   const imageSource = useMemo(
     () => (backgroundUrl ? { uri: backgroundUrl } : defaultBackground),

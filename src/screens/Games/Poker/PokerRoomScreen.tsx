@@ -965,6 +965,29 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
       setWinSnackbar({visible: true, message: winnerMessage});
       setShowConfetti(true);
       
+      // Record win and check achievements (only for human player)
+      if (winner.id === playerIndex) {
+        apiService.post('/game-sessions/record-result', {
+          gameType: 'poker',
+          result: 'win',
+        }, true).then((response: any) => {
+          if (response.new_achievements?.length > 0) {
+            console.log('🏆 Unlocked achievements:', response.new_achievements);
+            // Show achievement unlock notification
+            setTimeout(() => {
+              const achievement = response.new_achievements[0];
+              setWinSnackbar({ 
+                visible: true, 
+                message: `🏆 Achievement Unlocked: ${achievement.name}!` 
+              });
+              setTimeout(() => {
+                setWinSnackbar({ visible: false, message: '' });
+              }, 3000);
+            }, 2500);
+          }
+        }).catch(err => console.warn('Failed to record game result:', err));
+      }
+      
       // Auto-dismiss after 2 seconds
       setTimeout(() => {
         setWinSnackbar({visible: false, message: ''});
@@ -1005,6 +1028,29 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
         : `${randomWinner.name} wins ${pot} chips at showdown!`;
       setWinSnackbar({visible: true, message: winnerMessage});
       setShowConfetti(true);
+      
+      // Record win and check achievements (only for human player)
+      if (randomWinner.id === playerIndex) {
+        apiService.post('/game-sessions/record-result', {
+          gameType: 'poker',
+          result: 'win',
+        }, true).then((response: any) => {
+          if (response.new_achievements?.length > 0) {
+            console.log('🏆 Unlocked achievements:', response.new_achievements);
+            // Show achievement unlock notification
+            setTimeout(() => {
+              const achievement = response.new_achievements[0];
+              setWinSnackbar({ 
+                visible: true, 
+                message: `🏆 Achievement Unlocked: ${achievement.name}!` 
+              });
+              setTimeout(() => {
+                setWinSnackbar({ visible: false, message: '' });
+              }, 3000);
+            }, 2500);
+          }
+        }).catch(err => console.warn('Failed to record game result:', err));
+      }
       
       // Auto-dismiss after 2 seconds
       setTimeout(() => {
