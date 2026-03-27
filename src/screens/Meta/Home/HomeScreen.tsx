@@ -35,6 +35,7 @@ import tokenService from '../../../services/token.service';
 import useBisetkaBackground, { DEFAULT_BISETKA_BACKGROUND_PROMPT } from '../../../hooks/useBisetkaBackground';
 import useBisetkaLocation from '../../../hooks/useBisetkaLocation';
 import useDeviceType from '../../../hooks/useDeviceType';
+import useStatusBarStyle from '../../../hooks/useStatusBarStyle';
 import { getGridColumns, getSpacing, getFontSize } from '../../../theme/responsive';
 
 // Game configurations with PushBird-style colors
@@ -168,6 +169,7 @@ const HomeScreen = ({ navigation, route }: any) => {
     imageSource: bisetkaBackgroundSource,
     isLoading: isBackgroundLoading,
     error: backgroundError,
+    hasGeneratedBackground,
   } = useBisetkaBackground({
     city: currentCity,
     neighborhood: resolvedBisetka?.neighborhood_name || user?.bisetka?.neighborhood || null,
@@ -177,6 +179,9 @@ const HomeScreen = ({ navigation, route }: any) => {
     enabled: Boolean(currentCity),
     forceReload: Boolean(forceBackgroundReload), // Force reload when traveling
   });
+
+  // Dynamically determine status bar style based on background
+  const statusBarStyle = useStatusBarStyle(bisetkaBackgroundSource, hasGeneratedBackground);
   const { isTablet, isLandscape, width: screenWidth } = useDeviceType();
 
   // Calculate responsive values
@@ -487,7 +492,7 @@ const HomeScreen = ({ navigation, route }: any) => {
           </View>
         )}
         <StatusBar
-          barStyle="light-content"
+          barStyle={statusBarStyle}
           backgroundColor="transparent"
           translucent
         />
@@ -539,21 +544,6 @@ const HomeScreen = ({ navigation, route }: any) => {
                     resizeMode="contain"
                   />
                 </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => navigation.navigate('Profile')}
-                  style={[styles.avatarCol, styles.achievementsCard]}
-                  activeOpacity={0.85}
-                >
-                  <LinearGradient
-                    colors={['#f59e0b', '#d97706']}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={styles.achievementsGradient}
-                  >
-                    <Icon name="trophy" size={18} color="#fff" />
-                    <Text style={styles.achievementsText}>Achievements</Text>
-                  </LinearGradient>
-                </TouchableOpacity>
               </View>
               {/* Right 2/3 — buttons row + points row */}
               <View style={styles.rightCol}>
@@ -576,7 +566,7 @@ const HomeScreen = ({ navigation, route }: any) => {
                     </LinearGradient>
                   </TouchableOpacity>
 
-                  <TouchableOpacity
+                  {/* <TouchableOpacity
                     onPress={() => navigation.navigate('GlobalChat')}
                     style={styles.actionBtn}
                   >
@@ -586,19 +576,8 @@ const HomeScreen = ({ navigation, route }: any) => {
                     >
                       <Icon name="forum" size={28} color="#fff" />
                     </LinearGradient>
-                  </TouchableOpacity>
+                  </TouchableOpacity> */}
 
-                  <TouchableOpacity
-                    onPress={() => navigation.navigate('DMList')}
-                    style={styles.actionBtn}
-                  >
-                    <LinearGradient
-                      colors={['rgba(0, 0, 0, 0.6)', 'rgba(0, 0, 0, 0.6)']}
-                      style={styles.actionGrad}
-                    >
-                      <Icon name="message" size={28} color="#fff" />
-                    </LinearGradient>
-                  </TouchableOpacity>
                   <TouchableOpacity
                     onPress={() => navigation.navigate('Leaderboard')}
                     style={styles.actionBtn}
@@ -611,7 +590,7 @@ const HomeScreen = ({ navigation, route }: any) => {
                     </LinearGradient>
                   </TouchableOpacity>
 
-                  <TouchableOpacity
+                  {/* <TouchableOpacity
                     onPress={() => navigation.navigate('ChatRoomsList')}
                     style={styles.actionBtn}
                   >
@@ -621,7 +600,7 @@ const HomeScreen = ({ navigation, route }: any) => {
                     >
                       <Icon name="door-open" size={28} color="#fff" />
                     </LinearGradient>
-                  </TouchableOpacity>
+                  </TouchableOpacity> */}
 
                   <TouchableOpacity
                     onPress={() => navigation.navigate('Travel')}
