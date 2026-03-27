@@ -294,7 +294,7 @@ const styles = StyleSheet.create({
   liveBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 8,
@@ -309,7 +309,7 @@ const styles = StyleSheet.create({
   liveText: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#ef4444',
+    color: '#10b981',
     letterSpacing: 0.5,
   },
   expandButton: {

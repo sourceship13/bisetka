@@ -152,6 +152,7 @@ const GameSelectionScreen = ({ navigation }: any) => {
   const { imageSource: bisetkaBackgroundSource } = useBisetkaBackground({
     city: bisetka?.city || user?.bisetka?.city || null,
     neighborhood: bisetka?.neighborhood_name || user?.bisetka?.neighborhood || null,
+    country: bisetka?.country || user?.bisetka?.country || null,
     cacheKey: bisetka?.id || user?.bisetka?.id || null,
     promptTemplate: DEFAULT_BISETKA_BACKGROUND_PROMPT,
     enabled: Boolean(bisetka?.city || user?.bisetka?.city),
