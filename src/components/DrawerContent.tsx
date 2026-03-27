@@ -10,6 +10,8 @@ import AVATARS, {resolveAvatar} from '../utils/avatars';
 const MENU_ITEMS = [
   {key: 'Home', icon: '🏠', label: 'Home', gradient: ['#10b981', '#34d399'] as const},
   {key: 'Profile', icon: '👤', label: 'Profile', gradient: ['#6366f1', '#8b5cf6'] as const},
+  {key: 'DMList', icon: '💬', label: 'Messages', gradient: ['#3b82f6', '#60a5fa'] as const},
+  {key: 'Achievements', icon: '🏆', label: 'Achievements', gradient: ['#f59e0b', '#fbbf24'] as const},
   {key: 'Store', icon: '🛍️', label: 'Store', gradient: ['#f59e0b', '#fbbf24'] as const},
   {key: 'Settings', icon: '⚙️', label: 'Settings', gradient: ['#64748b', '#94a3b8'] as const},
 ];
