@@ -60,9 +60,11 @@ const SUIT_COLOR: Record<string, string> = {
 };
 
 const BlotScreen = ({ navigation }: any) => {
-  const [gameState, setGameState] = useState<GameState>(initializeGame());
+  const [targetScore, setTargetScore] = useState<number | null>(null); // 101, 201, or 301
+  const [gameState, setGameState] = useState<GameState | null>(null);
   const [showCustomization, setShowCustomization] = useState(false);
   const [showRiffleDealAnimation, setShowRiffleDealAnimation] = useState(false);
+  const [showBiddingModal, setShowBiddingModal] = useState(false);
   const isRoundTransitioningRef = useRef(false);
   const prevPhaseRef = useRef<string | null>(null);
   const boardReadyRef = useRef(false);
@@ -70,14 +72,22 @@ const BlotScreen = ({ navigation }: any) => {
     undefined,
   );
 
+  // Handle score selection and start game
+  const handleScoreSelection = useCallback((score: number) => {
+    setTargetScore(score);
+    const newGame = initializeGame();
+    setGameState(newGame);
+    // Don't start dealing yet - wait for board layout
+  }, []);
+
   // Trigger initial deal animation only after the game board is laid out
   const handleBoardLayout = useCallback(() => {
-    if (!boardReadyRef.current) {
+    if (!boardReadyRef.current && gameState) {
       boardReadyRef.current = true;
       isRoundTransitioningRef.current = true;
       setShowRiffleDealAnimation(true);
     }
-  }, []);
+  }, [gameState]);
 
   // Track phase transitions (deal animation handled by mount effect and redeal logic)
   useEffect(() => {
@@ -181,6 +191,7 @@ const BlotScreen = ({ navigation }: any) => {
   const TOTAL_PLAYERS = 4;
 
   const acceptTrump = useCallback((suit: Suit) => {
+    setShowBiddingModal(false); // Close bidding modal
     setGameState(prev => {
       const takingPlayer = prev.players[prev.currentPlayer];
       const beloteTeam = detectBeloteTeam(prev.players, suit);
@@ -210,10 +221,12 @@ const BlotScreen = ({ navigation }: any) => {
       }
       // After all 4 players passed in round 2 → redeal
       if (prev.bidRound === 2 && newPassCount >= TOTAL_PLAYERS) {
+        setShowBiddingModal(false); // Close modal before redeal
         // Trigger riffle deal animation after board renders
         isRoundTransitioningRef.current = true;
         setTimeout(() => setShowRiffleDealAnimation(true), 300);
         setTimeout(() => setShowRiffleDealAnimation(false), 2800); // 300ms start delay + 2500ms animation
+        setTimeout(() => setShowBiddingModal(true), 4800); // Show bidding modal after cards shown for 2s
         
         const { players: dealt, proposalCard } = dealCards(prev.players);
         const newDealer = (prev.dealer + 1) % TOTAL_PLAYERS;
@@ -332,7 +345,7 @@ const BlotScreen = ({ navigation }: any) => {
         team1: prev.gameScore.team1 + result.team1,
         team2: prev.gameScore.team2 + result.team2,
       };
-      const TARGET_SCORE = 101;
+      const TARGET_SCORE = targetScore!; // Use selected target score
       const gameOver = newGameScore.team1 >= TARGET_SCORE || newGameScore.team2 >= TARGET_SCORE;
 
       const makeMsg = () => {
@@ -364,10 +377,12 @@ const BlotScreen = ({ navigation }: any) => {
       }
 
       // Start a new round
+      setShowBiddingModal(false); // Close modal before new round
       // Trigger riffle deal animation after board renders
       isRoundTransitioningRef.current = true;
       setTimeout(() => setShowRiffleDealAnimation(true), 300);
       setTimeout(() => setShowRiffleDealAnimation(false), 2800); // 300ms start delay + 2500ms animation
+      setTimeout(() => setShowBiddingModal(true), 4800); // Show bidding modal after cards shown for 2s
       
       const { players: dealt, proposalCard } = dealCards(prev.players);
       const newDealer = (prev.dealer + 1) % TOTAL_PLAYERS;
@@ -559,12 +574,64 @@ const BlotScreen = ({ navigation }: any) => {
         <Text style={styles.gameEndScore}>
           Team 1: {gameState.gameScore.team1} — Team 2: {gameState.gameScore.team2}
         </Text>
-        <TouchableOpacity style={styles.newGameButton} onPress={() => { isRoundTransitioningRef.current = true; setGameState(initializeGame()); setTimeout(() => setShowRiffleDealAnimation(true), 300); }}>
+        <TouchableOpacity style={styles.newGameButton} onPress={() => { 
+          setTargetScore(null); // Reset to score selection
+          setGameState(null);
+          boardReadyRef.current = false;
+        }}>
           <Text style={styles.newGameButtonText}>New Game</Text>
         </TouchableOpacity>
       </View>
     );
   };
+
+  // Show score selection screen if target not chosen
+  if (!targetScore || !gameState) {
+    return (
+      <ImageBackground
+        source={require('../../../../assets/blot/park-background.png')}
+        style={styles.container}
+      >
+        <LinearGradient
+          colors={['rgba(15,15,35,0.9)', 'rgba(26,23,66,0.8)']}
+          style={styles.overlay}
+        >
+          <SafeAreaView style={styles.safeArea}>
+            <View style={styles.scoreSelectionContainer}>
+              <Text style={styles.scoreSelectionTitle}>Choose Target Score</Text>
+              <TouchableOpacity
+                style={styles.scoreButton}
+                onPress={() => handleScoreSelection(101)}
+              >
+                <Text style={styles.scoreButtonText}>101 Points</Text>
+                <Text style={styles.scoreButtonSubtext}>Quick Game</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.scoreButton}
+                onPress={() => handleScoreSelection(201)}
+              >
+                <Text style={styles.scoreButtonText}>201 Points</Text>
+                <Text style={styles.scoreButtonSubtext}>Standard Game</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.scoreButton}
+                onPress={() => handleScoreSelection(301)}
+              >
+                <Text style={styles.scoreButtonText}>301 Points</Text>
+                <Text style={styles.scoreButtonSubtext}>Long Game</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.backButton}
+                onPress={() => navigation.goBack()}
+              >
+                <Text style={styles.backButtonText}>← Back</Text>
+              </TouchableOpacity>
+            </View>
+          </SafeAreaView>
+        </LinearGradient>
+      </ImageBackground>
+    );
+  }
 
   return (
     <ImageBackground
@@ -640,7 +707,15 @@ const BlotScreen = ({ navigation }: any) => {
             </View>
           </View>
 
-          {gameState.phase === 'bidding' && renderTrumpSelection()}
+          {/* Bidding Modal - transparent overlay */}
+          {gameState.phase === 'bidding' && showBiddingModal && (
+            <View style={styles.biddingModalOverlay}>
+              <View style={styles.biddingModalContent}>
+                {renderTrumpSelection()}
+              </View>
+            </View>
+          )}
+
           {gameState.phase === 'gameEnd' && renderGameEnd()}
 
           {/* Round message shown between rounds */}
@@ -902,7 +977,14 @@ const BlotScreen = ({ navigation }: any) => {
         playerPositions={blotPlayerPositions}
         dealerPosition={{ x: centerX, y: centerY }}
         cardsPerPlayer={6}
-        onComplete={() => { isRoundTransitioningRef.current = false; setShowRiffleDealAnimation(false); }}
+        onComplete={() => { 
+          setShowRiffleDealAnimation(false);
+          isRoundTransitioningRef.current = false;
+          // Wait 2 seconds showing cards, then show bidding modal
+          setTimeout(() => {
+            setShowBiddingModal(true);
+          }, 2000);
+        }}
         theme={customTheme}
       />
     </ImageBackground>
@@ -918,6 +1000,57 @@ const styles = StyleSheet.create({
   },
   safeArea: {
     flex: 1,
+  },
+  scoreSelectionContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+    gap: 20,
+  },
+  scoreSelectionTitle: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#FFD700',
+    marginBottom: 20,
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
+  },
+  scoreButton: {
+    backgroundColor: 'rgba(99, 102, 241, 0.9)',
+    paddingVertical: 20,
+    paddingHorizontal: 40,
+    borderRadius: 16,
+    minWidth: 250,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#FFD700',
+  },
+  scoreButtonText: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  scoreButtonSubtext: {
+    fontSize: 14,
+    color: '#FFD700',
+    marginTop: 4,
+  },
+  biddingModalOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.7)', // Semi-transparent shade
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  biddingModalContent: {
+    width: '90%',
+    maxWidth: 400,
   },
   header: {
     flexDirection: 'row',
