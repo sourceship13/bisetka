@@ -394,7 +394,7 @@ const BisetkaDetailScreen: React.FC<BisetkaDetailScreenProps> = ({
         key={columns} // Force re-render when columns change
         scrollEnabled={false}
         columnWrapperStyle={[styles.gamesRow, { gap: cardGap }]}
-        contentContainerStyle={[styles.gamesGrid, { paddingHorizontal: horizontalPadding }]}
+        contentContainerStyle={[styles.gamesGrid,]}
       />
     </View>
   );
@@ -452,7 +452,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    backgroundColor:'#16213e',
+    backgroundColor:'rgba(0,0,0,0.8)',
     flexDirection: 'row',
     alignItems: 'center',
     padding:10,
