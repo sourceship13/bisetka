@@ -40,19 +40,19 @@ export const initializeBoard = (mode: GameMode): Point[] => {
   }));
 
   if (mode === 'short') {
-    // Short Nardi - standard backgammon starting position
-    points[0].checkers = ['white', 'white'];
-    points[5].checkers = ['black', 'black', 'black', 'black', 'black'];
-    points[7].checkers = ['black', 'black', 'black'];
-    points[11].checkers = ['white', 'white', 'white', 'white', 'white'];
-    points[12].checkers = ['black', 'black', 'black', 'black', 'black'];
-    points[16].checkers = ['white', 'white', 'white'];
-    points[18].checkers = ['white', 'white', 'white', 'white', 'white'];
-    points[23].checkers = ['black', 'black'];
+    // Short Nardi - REVERSED positions (player=white sees pieces at top)
+    points[0].checkers = ['black', 'black'];
+    points[5].checkers = ['white', 'white', 'white', 'white', 'white'];
+    points[7].checkers = ['white', 'white', 'white'];
+    points[11].checkers = ['black', 'black', 'black', 'black', 'black'];
+    points[12].checkers = ['white', 'white', 'white', 'white', 'white'];
+    points[16].checkers = ['black', 'black', 'black'];
+    points[18].checkers = ['black', 'black', 'black', 'black', 'black'];
+    points[23].checkers = ['white', 'white'];
   } else {
-    // Long Nardi - all pieces start at home (position 0 for white, 12 for black)
-    points[0].checkers = Array(15).fill('white');
-    points[12].checkers = Array(15).fill('black');
+    // Long Nardi - REVERSED positions (player=white at position 12, AI=black at 0)
+    points[0].checkers = Array(15).fill('black');
+    points[12].checkers = Array(15).fill('white');
   }
 
   return points;
@@ -111,8 +111,8 @@ export const calculatePossibleMoves = (
     if (point.checkers.length > 0 && point.checkers[point.checkers.length - 1] === currentPlayer) {
       diceValues.forEach(dieValue => {
         const toPos = currentPlayer === 'white' 
-          ? fromPos + dieValue 
-          : fromPos - dieValue;
+          ? fromPos - dieValue  // White moves anticlockwise (decreasing)
+          : fromPos + dieValue; // Black moves clockwise (increasing)
 
         if (isValidMove(fromPos, toPos, currentPlayer, points, mode)) {
           const key = `${fromPos}-${toPos}`;
@@ -126,29 +126,29 @@ export const calculatePossibleMoves = (
       // Check for bearing off
       if (canBearOff(state, fromPos)) {
         console.log(`🎯 Can bear off from point ${fromPos} for ${currentPlayer}`);
-        // White bears off past point 23 (to 24), Black bears off past point 0 (to -1)
-        const bearOffPos = currentPlayer === 'white' ? 24 : -1;
+        // REVERSED: White bears off past point 0 (to -1), Black bears off past point 23 (to 24)
+        const bearOffPos = currentPlayer === 'white' ? -1 : 24;
         
         diceValues.forEach(dieValue => {
-          const targetPos = currentPlayer === 'white' ? fromPos + dieValue : fromPos - dieValue;
+          const targetPos = currentPlayer === 'white' ? fromPos - dieValue : fromPos + dieValue;
           
           console.log(`  Checking die ${dieValue}: fromPos=${fromPos}, targetPos=${targetPos}`);
           
-          // Exact bear-off: die value moves piece exactly off the board
-          if (currentPlayer === 'white' && targetPos >= 24) {
+          // Exact bear-off: die value moves piece exactly off the board (REVERSED)
+          if (currentPlayer === 'white' && targetPos < 0) {
             console.log(`    ✅ White exact bear-off from ${fromPos} with die ${dieValue}`);
             const key = `${fromPos}-${bearOffPos}`;
             if (!seen.has(key)) { seen.add(key); moves.push({ from: fromPos, to: bearOffPos, checker: currentPlayer }); }
-          } else if (currentPlayer === 'black' && targetPos < 0) {
+          } else if (currentPlayer === 'black' && targetPos >= 24) {
             console.log(`    ✅ Black exact bear-off from ${fromPos} with die ${dieValue}`);
             const key = `${fromPos}-${bearOffPos}`;
             if (!seen.has(key)) { seen.add(key); moves.push({ from: fromPos, to: bearOffPos, checker: currentPlayer }); }
           }
-          // High roll bear-off: can bear off from furthest back point when die is too large
-          else if (currentPlayer === 'white' && targetPos > 23) {
-            // Only the furthest-back piece in the home board (lowest index) may use a high roll
+          // High roll bear-off: can bear off from furthest back point when die is too large (REVERSED)
+          else if (currentPlayer === 'white' && targetPos < 0) {
+            // Only the furthest-back piece in the home board (highest index in 0-5) may use a high roll
             let isFurthest = true;
-            for (let i = 18; i < fromPos; i++) {
+            for (let i = fromPos + 1; i < 6; i++) {
               if (points[i].checkers.some(c => c === currentPlayer)) {
                 isFurthest = false;
                 break;
@@ -159,10 +159,10 @@ export const calculatePossibleMoves = (
               const key = `${fromPos}-${bearOffPos}`;
               if (!seen.has(key)) { seen.add(key); moves.push({ from: fromPos, to: bearOffPos, checker: currentPlayer }); }
             }
-          } else if (currentPlayer === 'black' && targetPos < 0) {
-            // Only the furthest-back piece for black (highest index in 0-5) may use a high roll
+          } else if (currentPlayer === 'black' && targetPos > 23) {
+            // Only the furthest-back piece for black (lowest index in 18-23) may use a high roll
             let isFurthest = true;
-            for (let i = fromPos + 1; i < 6; i++) {
+            for (let i = 18; i < fromPos; i++) {
               if (points[i].checkers.some(c => c === currentPlayer)) {
                 isFurthest = false;
                 break;
@@ -189,7 +189,8 @@ const getBarEntryMoves = (state: NardiGameState): Move[] => {
   const diceValues = [dice.die1, dice.die2];
 
   diceValues.forEach(dieValue => {
-    const entryPoint = currentPlayer === 'white' ? dieValue - 1 : 24 - dieValue;
+    // REVERSED: White enters into opponent's home (18-23), black enters into 0-5
+    const entryPoint = currentPlayer === 'white' ? 24 - dieValue : dieValue - 1;
     if (canEnterFromBar(entryPoint, currentPlayer, points)) {
       moves.push({ from: -1, to: entryPoint, checker: currentPlayer });
     }
@@ -240,10 +241,10 @@ const canBearOff = (state: NardiGameState, from: number): boolean => {
   // Can't bear off if any checkers are on the bar
   if (bar[currentPlayer] > 0) return false;
   
-  // White moves 0→23, bears off from 18-23
-  // Black moves 23→0, bears off from 0-5
-  const homeStart = currentPlayer === 'white' ? 18 : 0;
-  const homeEnd = currentPlayer === 'white' ? 24 : 6;
+  // REVERSED: White moves anticlockwise (23→0), bears off from 0-5
+  // Black moves clockwise (0→23), bears off from 18-23
+  const homeStart = currentPlayer === 'white' ? 0 : 18;
+  const homeEnd = currentPlayer === 'white' ? 6 : 24;
 
   // Check all points outside home board
   for (let i = 0; i < 24; i++) {
@@ -315,12 +316,12 @@ export const initializeNardiGame = (mode: GameMode): NardiGameState => {
     points: initializeBoard(mode),
     bar: { white: 0, black: 0 },
     home: { white: 0, black: 0 },
-    currentPlayer: 'white',
+    currentPlayer: 'white', // Player is white
     dice: { die1: 0, die2: 0, rolled: false },
     possibleMoves: [],
     selectedPoint: null,
     winner: null,
-    phase: 'rolling',
+    phase: 'setup', // Start with setup phase for opening roll
     movesRemaining: 0,
   };
 };

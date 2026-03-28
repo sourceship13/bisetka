@@ -130,6 +130,13 @@ const NardiScreen = ({ navigation, route }: any) => {
   const [entryDeducted, setEntryDeducted] = useState(false);
   const [prizeAwarded, setPrizeAwarded] = useState(false);
   const gameIdRef = useRef<string>(dbSessionId || uuidv4());
+  const [gameEntryInfo, setGameEntryInfo] = useState<{ winPrize: number; entryCost: number } | null>(null);
+
+  useEffect(() => {
+    apiService.getEntryInfo('nardi')
+      .then(info => setGameEntryInfo({ winPrize: info.prizes.win, entryCost: info.entryCost }))
+      .catch(() => {});
+  }, []);
 
   // Entry fee deduction handler
   const handleGameStart = async () => {
@@ -231,7 +238,41 @@ const NardiScreen = ({ navigation, route }: any) => {
   useEffect(() => {
     const initialState = initializeNardiGame('short');
     setGameState(initialState);
+    
+    // Perform opening roll in single-player after a brief delay
+    if (opponentType === 'ai') {
+      setTimeout(() => {
+        performOpeningRoll();
+      }, 500);
+    }
   }, []);
+
+  // Opening roll: both players roll, highest goes first
+  const performOpeningRoll = () => {
+    const playerRoll = Math.floor(Math.random() * 6) + 1;
+    const aiRoll = Math.floor(Math.random() * 6) + 1;
+    
+    console.log('🎲 Opening roll - Player (white):', playerRoll, 'AI (black):', aiRoll);
+    
+    if (playerRoll === aiRoll) {
+      // Tie, roll again
+      setTimeout(() => performOpeningRoll(), 1000);
+      return;
+    }
+    
+    // Determine starting player and set dice
+    const firstPlayer: PlayerColor = playerRoll > aiRoll ? 'white' : 'black';
+    
+    setGameState(prev => prev ? {
+      ...prev,
+      currentPlayer: firstPlayer,
+      phase: 'rolling',
+      dice: { die1: playerRoll, die2: aiRoll, rolled: true },
+      movesRemaining: playerRoll !== aiRoll ? 2 : 0,
+    } : prev);
+    
+    console.log('✅ Opening roll complete:', firstPlayer, 'goes first with dice', playerRoll, aiRoll);
+  };
 
   // ── Multiplayer socket setup ────────────────────────────────────────────
   useEffect(() => {
@@ -537,7 +578,7 @@ const NardiScreen = ({ navigation, route }: any) => {
   useEffect(() => {
     if (!gameState) return;
     if (isMultiplayer) return; // no AI in multiplayer mode
-    if (gameState.currentPlayer !== 'black' || opponentType !== 'ai') return;
+    if (gameState.currentPlayer !== 'black' || opponentType !== 'ai') return; // AI is black
     if (gameState.phase !== 'rolling') return;
 
     // Clear any previous AI timeouts
@@ -591,7 +632,7 @@ const NardiScreen = ({ navigation, route }: any) => {
     // After all moves, switch to white
     const switchT = setTimeout(() => {
       setGameState(prev => {
-        if (!prev || prev.currentPlayer !== 'black') return prev;
+        if (!prev || prev.currentPlayer !== 'black') return prev; // AI is black
         console.log('🤖 AI turn complete, switching to white');
         return switchPlayer(prev);
       });
@@ -875,7 +916,7 @@ const NardiScreen = ({ navigation, route }: any) => {
 
   const whiteTrayIsValidDestination =
     selectedPoint !== null &&
-    gameState.currentPlayer === 'white' &&
+    gameState.currentPlayer === 'white' && // Player is white
     gameState.possibleMoves.some(m => m.from === selectedPoint && m.to === 24);
   const blackTrayIsValidDestination =
     selectedPoint !== null &&
@@ -1146,6 +1187,27 @@ const NardiScreen = ({ navigation, route }: any) => {
           </View>
 
           <View style={{ paddingHorizontal: 16, paddingVertical: 12 }}>
+            {/* Opening Roll Display */}
+            {gameState.phase === 'setup' && (
+              <View style={{ alignItems: 'center', padding: 16, backgroundColor: 'rgba(0,0,0,0.7)', borderRadius: 12 }}>
+                <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600', marginBottom: 8 }}>
+                  🎲 Rolling to decide who goes first...
+                </Text>
+              </View>
+            )}
+            
+            {gameState.phase === 'rolling' && gameState.dice.rolled && gameState.movesRemaining > 0 && !opponentType && (
+              <View style={{ alignItems: 'center', padding: 12, backgroundColor: 'rgba(99, 102, 241, 0.2)', borderRadius: 12, marginBottom: 12 }}>
+                <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>
+                  Opening Roll: You rolled {gameState.currentPlayer === 'white' ? gameState.dice.die1 : gameState.dice.die2}, 
+                  AI rolled {gameState.currentPlayer === 'black' ? gameState.dice.die1 : gameState.dice.die2}
+                </Text>
+                <Text style={{ color: '#fbbf24', fontSize: 13, marginTop: 4 }}>
+                  {gameState.currentPlayer === 'white' ? 'You go first!' : 'AI goes first!'}
+                </Text>
+              </View>
+            )}
+            
             {gameState.phase === 'rolling' && gameState.currentPlayer === myNardiColor && (
               <NardiDice
                 onRollComplete={(die1, die2) => {
@@ -1175,7 +1237,7 @@ const NardiScreen = ({ navigation, route }: any) => {
                 </TouchableOpacity>
               </View>
             )}
-            {!isMultiplayer && gameState.currentPlayer === 'black' && opponentType === 'ai' && (
+            {!isMultiplayer && gameState.currentPlayer === 'black' && opponentType === 'ai' && ( // AI is black
               <View style={styles.aiTurn}>
                 <Text style={styles.aiText}>🤖 AI is thinking...</Text>
               </View>
@@ -1219,12 +1281,20 @@ const NardiScreen = ({ navigation, route }: any) => {
 
           {gameState.winner && (
             <View style={styles.winOverlay}>
-              <LinearGradient
-                colors={gameState.winner === myNardiColor ? ['#10b981', '#34d399'] : ['#ef4444', '#f87171']}
-                style={styles.winCard}>
+              <View style={[styles.winCard, gameState.winner === myNardiColor ? styles.winCardWin : styles.winCardLose]}>
                 <Text style={styles.winTitle}>
                   {gameState.winner === myNardiColor ? '🏆 You Win!' : (isMultiplayer ? '💀 Opponent Wins' : '💀 AI Wins')}
                 </Text>
+                {gameEntryInfo && (
+                  <Text style={[
+                    styles.winPoints,
+                    gameState.winner === myNardiColor ? styles.winPointsPositive : styles.winPointsNegative,
+                  ]}>
+                    {gameState.winner === myNardiColor
+                      ? `+${gameEntryInfo.winPrize} points`
+                      : `-${gameEntryInfo.entryCost} points`}
+                  </Text>
+                )}
                 <TouchableOpacity
                   style={styles.newGameBtn}
                   onPress={() => {
@@ -1235,7 +1305,7 @@ const NardiScreen = ({ navigation, route }: any) => {
                   }}>
                   <Text style={styles.newGameText}>Play Again</Text>
                 </TouchableOpacity>
-              </LinearGradient>
+              </View>
             </View>
           )}
         </SafeAreaView>
@@ -1453,11 +1523,28 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     minWidth: 280,
   },
+  winCardWin: {
+    backgroundColor: '#10b981',
+  },
+  winCardLose: {
+    backgroundColor: '#ef4444',
+  },
   winTitle: {
     fontSize: 32,
     fontWeight: '900',
     color: '#fff',
+    marginBottom: 8,
+  },
+  winPoints: {
+    fontSize: 22,
+    fontWeight: '700',
     marginBottom: 24,
+  },
+  winPointsPositive: {
+    color: '#d1fae5',
+  },
+  winPointsNegative: {
+    color: '#fee2e2',
   },
   newGameBtn: {
     backgroundColor: '#fff',
