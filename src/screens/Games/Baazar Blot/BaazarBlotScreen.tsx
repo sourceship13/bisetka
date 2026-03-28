@@ -243,20 +243,23 @@ const BaazarBlotScreen = ({ navigation }: any) => {
 
 
 
-  // Trigger animations on phase change — defer until playing board is laid out
+  // Trigger deal animation when entering bidding (cards were just dealt)
   useEffect(() => {
-    if (gameState?.phase === 'playing' && prevPhaseRef.current === 'bidding') {
+    if (gameState?.phase === 'bidding') {
       pendingDealAnimRef.current = true;
     }
     prevPhaseRef.current = gameState?.phase ?? null;
   }, [gameState?.phase]);
 
-  const handlePlayingLayout = useCallback(() => {
+  const handleBiddingLayout = useCallback(() => {
     if (pendingDealAnimRef.current) {
       pendingDealAnimRef.current = false;
       setShowDealAnimation(true);
     }
   }, []);
+
+  // Kept for layout measurement; no longer triggers deal animation
+  const handlePlayingLayout = useCallback(() => {}, []);
 
   // AI bidding
   useEffect(() => {
@@ -658,7 +661,7 @@ const BaazarBlotScreen = ({ navigation }: any) => {
     const canRecontra = gameState.contracted && isBidderSameTeam;
 
     return (
-      <View style={styles.centeredSection}>
+      <View style={styles.centeredSection} onLayout={handleBiddingLayout}>
         <Text style={styles.sectionTitle}>🃏 Bazaar Blot</Text>
 
         {hasBid ? (
