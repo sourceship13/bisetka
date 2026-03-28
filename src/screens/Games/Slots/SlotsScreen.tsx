@@ -8,6 +8,7 @@ import {
   Animated,
   Dimensions,
   Alert,
+  Image,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { useAuth } from '../../../libs/hooks/useAuth';
@@ -30,7 +31,17 @@ const SYMBOL_HEIGHT = 70;
 const REELS_TOTAL_WIDTH = CONTAINER_PADDING * 2 + REEL_WIDTH * 5 + REEL_GAP * 4;
 const REELS_TOTAL_HEIGHT = CONTAINER_PADDING * 2 + SYMBOL_HEIGHT * 3;
 
-const SYMBOLS = ['7️⃣', '💎', '⭐', '🔔', '🍒', '🍋', 'BAR'];
+const SYMBOL_IMAGES: Record<string, any> = {
+  'ararat':          require('../../../../assets/slots/slot-ararat.png'),
+  'arevakhach':      require('../../../../assets/slots/slot-arevakhach.png'),
+  'armenian-symbol': require('../../../../assets/slots/slot-armenian-symbol.png'),
+  'grape':           require('../../../../assets/slots/slot-grape.png'),
+  'khachkar':        require('../../../../assets/slots/slot-khachkar.png'),
+  'khorovats':       require('../../../../assets/slots/slot-khorovats-cartoon.png'),
+  'pomegranate':     require('../../../../assets/slots/slot-pomegranate.png'),
+};
+
+const SYMBOLS = ['ararat', 'arevakhach', 'armenian-symbol', 'grape', 'khachkar', 'khorovats', 'pomegranate'];
 
 // Number of full symbol-set repetitions in the spin strip before the result
 const SPIN_REPS = 12;
@@ -83,11 +94,11 @@ const SlotsScreen = ({ navigation }: any) => {
   const [spinning, setSpinning] = useState(false);
   // 5 reels × 3 rows — what shows at the bottom of each reel strip (the result)
   const [reelSymbols, setReelSymbols] = useState<string[][]>([
-    ['🍒', '⭐', '🔔'],
-    ['💎', '7️⃣', '🍋'],
-    ['⭐', '⭐', '⭐'],
-    ['🔔', '💎', '🍒'],
-    ['🍋', '🔔', '7️⃣'],
+    ['khachkar', 'armenian-symbol', 'grape'],
+    ['arevakhach', 'ararat', 'khorovats'],
+    ['armenian-symbol', 'armenian-symbol', 'armenian-symbol'],
+    ['grape', 'arevakhach', 'khachkar'],
+    ['khorovats', 'grape', 'ararat'],
   ]);
   const [winnings, setWinnings] = useState<SpinResult | null>(null);
   
@@ -260,7 +271,10 @@ const SlotsScreen = ({ navigation }: any) => {
         <Animated.View style={{ transform: [{ translateY: spinAnim }] }}>
           {strip.map((sym, i) => (
             <View key={i} style={styles.symbolCell}>
-              <Text style={styles.symbol}>{sym}</Text>
+              {SYMBOL_IMAGES[sym]
+                ? <Image source={SYMBOL_IMAGES[sym]} style={styles.symbolImage} resizeMode="contain" />
+                : <Text style={styles.symbol}>{sym}</Text>
+              }
             </View>
           ))}
         </Animated.View>
@@ -532,6 +546,10 @@ const styles = StyleSheet.create({
     height: SYMBOL_HEIGHT,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  symbolImage: {
+    width: SYMBOL_HEIGHT - 10,
+    height: SYMBOL_HEIGHT - 10,
   },
   symbol: {
     fontSize: 40,
