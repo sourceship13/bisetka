@@ -1014,10 +1014,10 @@ const NardiScreen = ({ navigation, route }: any) => {
             </View>
           )}
 
-          {/* Black player's borne-off tray (bottom left) */}
+          {/* Black player's borne-off tray (top left) */}
           <View style={{ 
             position: 'absolute',
-            bottom: 120,
+            top: 80,
             left: 16,
             zIndex: 50,
           }}>
@@ -1160,10 +1160,10 @@ const NardiScreen = ({ navigation, route }: any) => {
             </ImageBackground>
           </View>
 
-          {/* White player's borne-off tray (top right) */}
+          {/* White player's borne-off tray (bottom right) */}
           <View style={{ 
             position: 'absolute',
-            top: 80,
+            bottom: 120,
             right: 16,
             zIndex: 50,
           }}>
