@@ -43,47 +43,64 @@ import { useAchievements } from '../../../contexts/AchievementContext';
 import { v4 as uuidv4 } from 'uuid';
 
 const { width, height } = Dimensions.get('window');
-const BOARD_SIZE = Math.min(width - 16, height * 0.75);
+// Must match getGameBoardSize(false, false, 600, 32) so piece coordinates
+// stay in sync with the actual rendered ImageBackground size.
+const BOARD_SIZE = Math.min(width - 32, 600);
 
-// Board layout — all values derived from BOARD_SIZE so they scale to any screen
-// and the column centres align exactly with the triangles in the board image.
-const BOARD_PADDING  = BOARD_SIZE * 0.04;                         // frame border on each side
-const PLAYABLE_WIDTH = BOARD_SIZE - BOARD_PADDING * 2;
-const BAR_WIDTH      = PLAYABLE_WIDTH * 0.05;                     // centre divider
-const HALF_WIDTH     = (PLAYABLE_WIDTH - BAR_WIDTH) / 2;
-const POINT_WIDTH    = (HALF_WIDTH / 6) * 1;                   // one triangle column (85% width)
-const CHECKER_SIZE   = Math.round(POINT_WIDTH * 1.3);             // checker diameter
-const TRIANGLE_HEIGHT = BOARD_SIZE * 0.40;                        // triangle region height
+// ── Base board geometry ─────────────────────────────────────────────────────
+const BOARD_PADDING   = BOARD_SIZE * 0.04;   // frame border each side
+const PLAYABLE_WIDTH  = BOARD_SIZE - BOARD_PADDING * 2;
+const BAR_WIDTH       = PLAYABLE_WIDTH * 0.10;
+const HALF_WIDTH      = (PLAYABLE_WIDTH - BAR_WIDTH) / 2;
+const POINT_WIDTH     = HALF_WIDTH / 6;      // base column step (= column centre spacing)
+const CHECKER_SIZE    = Math.round(POINT_WIDTH * 1.3);
+const TRIANGLE_HEIGHT = BOARD_SIZE * 0.40;
 
-// Map point index (1-24) to screen coordinates
+// ── Per-quadrant fine-tuning ─────────────────────────────────────────────────
+// xOffset  – shift all column centres in this quadrant left (−) or right (+)
+// yOffset  – shift rows up (−) or down (+)
+// colWidth – multiply the step between column centres (1.0 = default spacing,
+//            0.9 = tighter, 1.1 = wider). Does NOT affect CHECKER_SIZE.
+//
+//  Quadrant layout (board viewed normally):
+//    topLeft:     points 13-18   topRight:    points 19-24
+//    bottomLeft:  points 7-12    bottomRight: points 1-6
+const QUADRANT_LAYOUT = {
+  //  xOffset: shift left (−) or right (+) in pixels
+  //  yOffset: shift up (−) or down (+) in pixels
+  //  colWidth: column-centre step multiplier (1.0 = 1 column-width apart, 0.9 = tighter, 1.1 = wider)
+  topLeft:     { xOffset:  6, yOffset: 0, colWidth: 1.0 },  // ← tune to match triangle centres
+  topRight:    { xOffset:  0, yOffset: 0, colWidth: 1.0 },
+  bottomLeft:  { xOffset:  6, yOffset: 0, colWidth: 1.0 },  // ← tune to match triangle centres
+  bottomRight: { xOffset:  0, yOffset: 0, colWidth: 1.0 },
+};
+
+// Map point index (1-24) → screen coordinates inside the ImageBackground
 const getPointCoords = (pointNum: number): { x: number; y: number; isTop: boolean } => {
-  const isTop = pointNum >= 13;
-  
-  // Determine which column (0-11) this point occupies
-  // Bottom: 12,11,10,9,8,7 [BAR] 6,5,4,3,2,1
-  // Top:    13,14,15,16,17,18 [BAR] 19,20,21,22,23,24
-  let col = 0;
-  if (pointNum >= 19) {
-    col = 6 + (pointNum - 19);
-  } else if (pointNum >= 13) {
-    col = pointNum - 13;
-  } else if (pointNum >= 7) {
-    col = 5 - (pointNum - 7);
-  } else {
-    col = 11 - (pointNum - 1);
-  }
-  
-  // x = frame border + column offset + half column width (= column centre)
-  const leftHalf   = col < 6;
-  const colInHalf  = leftHalf ? col : col - 6;
-  const x = leftHalf
-    ? BOARD_PADDING + colInHalf * POINT_WIDTH + POINT_WIDTH / 2
-    : BOARD_PADDING + HALF_WIDTH + BAR_WIDTH + colInHalf * POINT_WIDTH + POINT_WIDTH / 2;
-  
-  // y = top of the column stack
-  const y = isTop ? BOARD_PADDING : BOARD_SIZE - BOARD_PADDING;
-  
-  return { x, y, isTop };
+  const isTop    = pointNum >= 13;
+  const leftHalf = pointNum >= 13 ? pointNum < 19 : pointNum >= 7;
+
+  // Column index within its half (0 = leftmost triangle of that half)
+  let colInHalf = 0;
+  if (pointNum >= 19)      colInHalf = pointNum - 19;        // top-right:  0-5
+  else if (pointNum >= 13) colInHalf = pointNum - 13;        // top-left:   0-5
+  else if (pointNum >= 7)  colInHalf = 5 - (pointNum - 7);  // bottom-left:  0-5 (mirrored)
+  else                     colInHalf = 11 - (pointNum - 1) - 6; // bottom-right: 0-5 (mirrored)
+
+  const q = isTop && leftHalf  ? QUADRANT_LAYOUT.topLeft
+          : isTop && !leftHalf ? QUADRANT_LAYOUT.topRight
+          : !isTop && leftHalf ? QUADRANT_LAYOUT.bottomLeft
+          :                      QUADRANT_LAYOUT.bottomRight;
+
+  const step = POINT_WIDTH * q.colWidth;
+
+  const baseX = leftHalf
+    ? BOARD_PADDING + colInHalf * step + step / 2
+    : BOARD_PADDING + HALF_WIDTH + BAR_WIDTH + colInHalf * step + step / 2;
+
+  const baseY = isTop ? BOARD_PADDING : BOARD_SIZE - BOARD_PADDING;
+
+  return { x: baseX + q.xOffset, y: baseY + q.yOffset, isTop };
 };
 
 type OpponentType = 'ai' | 'local';
