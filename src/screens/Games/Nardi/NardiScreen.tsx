@@ -904,11 +904,18 @@ const NardiScreen = ({ navigation, route }: any) => {
           handlePointPress(pointIndex);
         }}
         activeOpacity={0.8}>
-        {checkers > 0 && Array.from({ length: visibleCheckers }).map((_, i) => (
-          <View key={i} style={{ marginTop: i > 0 ? -stackGap : 0 }}>
-            {renderChecker(color!, i)}
-          </View>
-        ))}
+        {checkers > 0 && Array.from({ length: visibleCheckers }).map((_, i) => {
+          // When the stack is truncated show the top N checkers; otherwise index directly.
+          const checkerIndex = checkers > maxVisible
+            ? (checkers - visibleCheckers) + i
+            : i;
+          const individualColor = (point.checkers[checkerIndex] ?? color) as 'white' | 'black';
+          return (
+            <View key={i} style={{ marginTop: i > 0 ? -stackGap : 0 }}>
+              {renderChecker(individualColor, i)}
+            </View>
+          );
+        })}
         {checkers > maxVisible && (
           <View style={styles.checkerCount}>
             <Text style={styles.checkerCountText}>{checkers}</Text>

@@ -191,7 +191,7 @@ const getBarEntryMoves = (state: NardiGameState): Move[] => {
   diceValues.forEach(dieValue => {
     // REVERSED: White enters into opponent's home (18-23), black enters into 0-5
     const entryPoint = currentPlayer === 'white' ? 24 - dieValue : dieValue - 1;
-    if (canEnterFromBar(entryPoint, currentPlayer, points)) {
+    if (canEnterFromBar(entryPoint, currentPlayer, points, state.mode)) {
       moves.push({ from: -1, to: entryPoint, checker: currentPlayer });
     }
   });
@@ -199,12 +199,13 @@ const getBarEntryMoves = (state: NardiGameState): Move[] => {
   return moves;
 };
 
-const canEnterFromBar = (point: number, player: PlayerColor, points: Point[]): boolean => {
+const canEnterFromBar = (point: number, player: PlayerColor, points: Point[], mode: GameMode): boolean => {
   if (point < 0 || point >= 24) return false;
   const targetPoint = points[point];
   if (targetPoint.checkers.length === 0) return true;
   if (targetPoint.checkers[0] === player) return true;
-  return targetPoint.checkers.length === 1; // Can hit single opponent
+  // Hit a single opponent piece — only allowed in short (backgammon-style) mode
+  return mode === 'short' && targetPoint.checkers.length === 1;
 };
 
 // Check if move is valid
