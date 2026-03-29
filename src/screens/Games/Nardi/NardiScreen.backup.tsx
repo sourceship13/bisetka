@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -129,8 +129,6 @@ const NardiScreen = ({ navigation, route }: any) => {
   const [selectedPoint, setSelectedPoint] = useState<number | null>(null);
   const [draggedFrom, setDraggedFrom] = useState<number | null>(null);
   const [dragPosition, setDragPosition] = useState<{ x: number; y: number } | null>(null);
-  // Ref so the PanResponder can read the in-progress drag source without stale closure
-  const draggedFromRef = useRef<number | null>(null);
   const aiTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   useGameEndRefresh(gameState?.winner != null, 'nardi');
 
@@ -849,151 +847,79 @@ const NardiScreen = ({ navigation, route }: any) => {
     }
   };
 
-  // ── Board-level PanResponder for drag-to-move (default mode) ──────────────────
-  // Created with useMemo so the object is stable across drag re-renders.
-  // We use evt.nativeEvent.locationX/Y which are already in the board's local
-  // coordinate space (relative to the ImageBackground), so no offset math needed.
-  const boardPanResponder = useMemo(() => {
-    if (easyMode) return null;
-    const myColor = isMultiplayer ? myMpColorRef.current : 'white';
-    const gs = gameState; // capture snapshot for this closure
-
-    const findDragSource = (tx: number, ty: number): number | null => {
-      if (!gs || gs.phase !== 'moving' || gs.currentPlayer !== myColor) return null;
-      for (let i = 0; i < 24; i++) {
-        const pt = gs.points[i];
-        if (!pt || pt.checkers.length === 0) continue;
-        if (pt.checkers[pt.checkers.length - 1] !== myColor) continue;
-        if (!gs.possibleMoves.some(m => m.from === i)) continue;
-        const pos = getPointCoords(i + 1);
-        if (Math.abs(tx - pos.x) < POINT_WIDTH * 0.8) return i;
-      }
-      if (gs.bar[myColor] > 0 && gs.possibleMoves.some(m => m.from === -1)) {
-        const barX = BOARD_PADDING + HALF_WIDTH + BAR_WIDTH / 2;
-        if (Math.abs(tx - barX) < BAR_WIDTH + 6) return -1;
-      }
-      return null;
-    };
-
-    return PanResponder.create({
-      onStartShouldSetPanResponder: (evt) => {
-        const src = findDragSource(evt.nativeEvent.locationX, evt.nativeEvent.locationY);
-        if (src !== null) { draggedFromRef.current = src; return true; }
-        return false;
-      },
-      onMoveShouldSetPanResponder: () => draggedFromRef.current !== null,
-      onPanResponderGrant: (evt) => {
-        const src = draggedFromRef.current;
-        if (src === null) return;
-        setDraggedFrom(src);
-        setDragPosition({ x: evt.nativeEvent.locationX, y: evt.nativeEvent.locationY });
-      },
-      onPanResponderMove: (evt) => {
-        setDragPosition({ x: evt.nativeEvent.locationX, y: evt.nativeEvent.locationY });
-      },
-      onPanResponderRelease: (evt) => {
-        const from = draggedFromRef.current;
-        const dropX = evt.nativeEvent.locationX;
-        const dropY = evt.nativeEvent.locationY;
-        if (from !== null && gs) {
-          const validMoves = gs.possibleMoves.filter(m => m.from === from);
-          let bestMove: Move | null = null;
-          let bestDist = Infinity;
-          for (const move of validMoves) {
-            let destX: number, destY: number;
-            if (move.to >= 24)     { destX = BOARD_SIZE - BOARD_PADDING; destY = BOARD_SIZE - BOARD_PADDING; }
-            else if (move.to < 0) { destX = BOARD_PADDING;              destY = BOARD_PADDING; }
-            else                  { const dc = getPointCoords(move.to + 1); destX = dc.x; destY = dc.y; }
-            const dist = Math.sqrt((dropX - destX) ** 2 + (dropY - destY) ** 2);
-            if (dist < bestDist) { bestDist = dist; bestMove = move; }
-          }
-          if (bestMove && bestDist < POINT_WIDTH * 2.5) handleMove(bestMove);
-        }
-        draggedFromRef.current = null;
-        setDraggedFrom(null);
-        setDragPosition(null);
-      },
-      onPanResponderTerminate: () => {
-        draggedFromRef.current = null;
-        setDraggedFrom(null);
-        setDragPosition(null);
-      },
-    });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [easyMode, gameState]);
-
   const renderPoint = (pointNum: number) => {
     if (!gameState) return null;
-
+    
+    // Convert 1-based point number to 0-based array index
     const pointIndex = pointNum - 1;
     const point = gameState.points[pointIndex];
     const checkers = point.checkers.length;
     const pos = getPointCoords(pointNum);
+    
+    // Get color from the top checker (last in array) if any
     const color = checkers > 0 ? point.checkers[point.checkers.length - 1] : null;
     const isSelected = selectedPoint === pointIndex;
     const myColorForRender = isMultiplayer ? myMpColorRef.current : 'white';
 
-    const isValidDestination = easyMode && selectedPoint !== null &&
+    // Check if this is a valid destination when a piece is selected (including bar entry when selectedPoint === -1)
+    const isValidDestination = selectedPoint !== null && 
       gameState.possibleMoves.some(m => m.from === selectedPoint && m.to === pointIndex);
-    const isBarEntryDest = easyMode &&
-      gameState.bar[gameState.currentPlayer] > 0 &&
+    
+    // Also highlight as valid destination for bar entry even before bar is "selected"
+    const isBarEntryDest = gameState.bar[gameState.currentPlayer] > 0 &&
       gameState.currentPlayer === myColorForRender &&
       gameState.possibleMoves.some(m => m.from === -1 && m.to === pointIndex);
-    const canMove = easyMode && checkers > 0 &&
+    
+    // Check if this piece can be moved (has any valid moves)
+    const canMove = checkers > 0 &&
       gameState.phase === 'moving' &&
       gameState.currentPlayer === myColorForRender &&
       point.checkers[point.checkers.length - 1] === myColorForRender &&
       gameState.possibleMoves.some(m => m.from === pointIndex);
 
     const maxVisible = 5;
-    const stackGap = CHECKER_SIZE * 0.35;
+    const stackGap = CHECKER_SIZE * 0.35; // Slight overlap
     const visibleCheckers = Math.min(checkers, maxVisible);
-    const isDragging = !easyMode && draggedFrom === pointIndex;
+    const stackHeight = checkers > 0 ? visibleCheckers * CHECKER_SIZE - (visibleCheckers - 1) * stackGap : CHECKER_SIZE;
 
-    const positionStyle = {
-      left: pos.x - CHECKER_SIZE / 2,
-      width: CHECKER_SIZE,
-      ...(pos.isTop
-        ? { top: pos.y, minHeight: CHECKER_SIZE * 1.5 }
-        : { top: pos.y - TRIANGLE_HEIGHT, height: TRIANGLE_HEIGHT, justifyContent: 'flex-end' as const }),
-    };
-
-    const stackedCheckers = checkers > 0 && Array.from({ length: visibleCheckers }).map((_, i) => {
-      const checkerIndex = checkers > maxVisible ? (checkers - visibleCheckers) + i : i;
-      const individualColor = (point.checkers[checkerIndex] ?? color) as 'white' | 'black';
-      return (
-        <View key={i} style={{ marginTop: i > 0 ? -stackGap : 0, opacity: isDragging ? 0.25 : 1 }}>
-          {renderChecker(individualColor, i)}
-        </View>
-      );
-    });
-
-    // Drag mode: plain non-interactive Views — board PanResponder handles all gestures
-    if (!easyMode) {
-      return (
-        <View key={pointNum} style={[styles.pointStack, positionStyle]} pointerEvents="none">
-          {stackedCheckers}
-          {checkers > maxVisible && !isDragging && (
-            <View style={styles.checkerCount}><Text style={styles.checkerCountText}>{checkers}</Text></View>
-          )}
-        </View>
-      );
+    // Debug: Log first time we render pieces
+    if (pointNum === 1 && checkers > 0) {
+      console.log('🎨 Rendering point 1:', { checkers, color, pos, CHECKER_SIZE });
     }
 
-    // Easy mode: tap-to-move with highlights
     return (
       <TouchableOpacity
         key={pointNum}
         style={[
           styles.pointStack,
-          positionStyle,
+          {
+            left: pos.x - CHECKER_SIZE / 2,
+            width: CHECKER_SIZE,
+            ...(pos.isTop
+              ? { top: pos.y, minHeight: CHECKER_SIZE * 1.5 }
+              : { top: pos.y - TRIANGLE_HEIGHT, height: TRIANGLE_HEIGHT, justifyContent: 'flex-end' as const }),
+          },
           isSelected && styles.pointSelected,
           (isValidDestination || isBarEntryDest) && styles.validDestination,
           canMove && styles.canMove,
         ]}
-        onPress={() => handlePointPress(pointIndex)}
+        onPress={() => {
+          console.log('🖱️ TouchableOpacity pressed for point:', pointNum, '(index:', pointIndex, ')');
+          handlePointPress(pointIndex);
+        }}
         activeOpacity={0.8}>
-        {stackedCheckers}
+        {checkers > 0 && Array.from({ length: visibleCheckers }).map((_, i) => {
+          // When the stack is truncated show the top N checkers; otherwise index directly.
+          const checkerIndex = checkers > maxVisible
+            ? (checkers - visibleCheckers) + i
+            : i;
+          const individualColor = (point.checkers[checkerIndex] ?? color) as 'white' | 'black';
+          return (
+            <View key={i} style={{ marginTop: i > 0 ? -stackGap : 0 }}>
+              {renderChecker(individualColor, i)}
+            </View>
+          );
+        })}
         {checkers > maxVisible && (
           <View style={styles.checkerCount}>
             <Text style={styles.checkerCountText}>{checkers}</Text>
@@ -1016,12 +942,11 @@ const NardiScreen = ({ navigation, route }: any) => {
     );
   }
 
-  // Tray highlights only shown in easy mode
-  const whiteTrayIsValidDestination = easyMode &&
+  const whiteTrayIsValidDestination =
     selectedPoint !== null &&
-    gameState.currentPlayer === 'white' &&
+    gameState.currentPlayer === 'white' && // Player is white
     gameState.possibleMoves.some(m => m.from === selectedPoint && m.to === 24);
-  const blackTrayIsValidDestination = easyMode &&
+  const blackTrayIsValidDestination =
     selectedPoint !== null &&
     gameState.currentPlayer === 'black' &&
     gameState.possibleMoves.some(m => m.from === selectedPoint && m.to === -1);
@@ -1147,120 +1072,65 @@ const NardiScreen = ({ navigation, route }: any) => {
           <View style={styles.boardContainer}>
             <ImageBackground
               source={require('../../../../assets/nardi/board-futuristic.png')}
-              style={[styles.board, { width: boardSize, height: boardSize }]}
-              imageStyle={{ borderRadius: 16 }}
-              {...(boardPanResponder ? boardPanResponder.panHandlers : {})}>
+              style={[styles.board, { width: boardSize, height: boardSize, overflow: 'hidden' }]}
+              imageStyle={{ borderRadius: 16 }}>
               
               {/* Render all points (1-24) */}
               {Array.from({ length: 24 }).map((_, i) => renderPoint(i + 1))}
 
-              {/* Floating drag piece — follows finger during drag */}
-              {draggedFrom !== null && dragPosition !== null && (() => {
-                const srcCheckers = draggedFrom >= 0
-                  ? gameState.points[draggedFrom]?.checkers
-                  : null;
-                const dragColor = (srcCheckers && srcCheckers.length > 0
-                  ? srcCheckers[srcCheckers.length - 1]
-                  : (isMultiplayer ? myMpColorRef.current : 'white')) as 'white' | 'black';
-                return (
-                  <View
-                    pointerEvents="none"
-                    style={{
-                      position: 'absolute',
-                      left: dragPosition.x - CHECKER_SIZE / 2,
-                      top: dragPosition.y - CHECKER_SIZE / 2,
-                      zIndex: 100,
-                      opacity: 0.92,
-                    }}>
-                    <Image
-                      source={dragColor === 'white'
-                        ? require('../../../../assets/nardi/checker-white.png')
-                        : require('../../../../assets/nardi/checker-black.png')}
-                      style={{ width: CHECKER_SIZE, height: CHECKER_SIZE, resizeMode: 'contain' }}
-                    />
-                  </View>
-                );
-              })()}
-
               {/* Bar checkers — displayed in center bar area */}
-              {(gameState.bar.white > 0 || gameState.bar.black > 0) && (() => {
-                const myColor = isMultiplayer ? myMpColorRef.current : 'white';
-                const whiteIsDragging = !easyMode && draggedFrom === -1 && myColor === 'white';
-                const blackIsDragging = !easyMode && draggedFrom === -1 && myColor === 'black';
-
-                const barContainerStyle = {
-                  position: 'absolute' as const,
-                  left: BOARD_PADDING + HALF_WIDTH,
-                  width: BAR_WIDTH,
-                  top: BOARD_PADDING,
-                  bottom: BOARD_PADDING,
-                  zIndex: 20,
-                  alignItems: 'center' as const,
-                  justifyContent: 'center' as const,
-                  gap: 8,
-                };
-
-                // In drag mode: plain Views, board PanResponder handles touch
-                if (!easyMode) {
-                  return (
-                    <View style={barContainerStyle} pointerEvents="none">
-                      {gameState.bar.white > 0 && (
-                        <View style={{ alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: CHECKER_SIZE / 2, padding: 4, opacity: whiteIsDragging ? 0.25 : 1 }}>
-                          <Image source={require('../../../../assets/nardi/checker-white.png')} style={{ width: CHECKER_SIZE * 0.8, height: CHECKER_SIZE * 0.8, resizeMode: 'contain' }} />
-                          {gameState.bar.white > 1 && (
-                            <View style={{ backgroundColor: 'rgba(0,0,0,0.8)', borderRadius: 8, paddingHorizontal: 4, marginTop: 2 }}>
-                              <Text style={{ color: '#fff', fontSize: 9, fontWeight: '700' }}>{gameState.bar.white}</Text>
-                            </View>
-                          )}
-                        </View>
-                      )}
-                      {gameState.bar.black > 0 && (
-                        <View style={{ alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: CHECKER_SIZE / 2, padding: 4, opacity: blackIsDragging ? 0.25 : 1 }}>
-                          <Image source={require('../../../../assets/nardi/checker-black.png')} style={{ width: CHECKER_SIZE * 0.8, height: CHECKER_SIZE * 0.8, resizeMode: 'contain' }} />
-                          {gameState.bar.black > 1 && (
-                            <View style={{ backgroundColor: 'rgba(255,255,255,0.8)', borderRadius: 8, paddingHorizontal: 4, marginTop: 2 }}>
-                              <Text style={{ color: '#000', fontSize: 9, fontWeight: '700' }}>{gameState.bar.black}</Text>
-                            </View>
-                          )}
+              {(gameState.bar.white > 0 || gameState.bar.black > 0) && (
+                <TouchableOpacity
+                  style={{
+                    position: 'absolute',
+                    left: BOARD_PADDING + HALF_WIDTH,
+                    width: BAR_WIDTH,
+                    top: BOARD_PADDING,
+                    bottom: BOARD_PADDING,
+                    zIndex: 20,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 8,
+                  }}
+                  activeOpacity={0.7}
+                  onPress={handleBarPress}>
+                  {/* White bar checkers (bottom half of bar) */}
+                  {gameState.bar.white > 0 && (
+                    <View style={{
+                      alignItems: 'center',
+                      backgroundColor: selectedPoint === -1 ? 'rgba(251, 191, 36, 0.5)' : 'rgba(255,255,255,0.15)',
+                      borderRadius: CHECKER_SIZE / 2,
+                      padding: 4,
+                      borderWidth: selectedPoint === -1 ? 2 : 0,
+                      borderColor: 'rgba(251, 191, 36, 1)',
+                    }}>
+                      <Image
+                        source={require('../../../../assets/nardi/checker-white.png')}
+                        style={{ width: CHECKER_SIZE * 0.8, height: CHECKER_SIZE * 0.8, resizeMode: 'contain' }}
+                      />
+                      {gameState.bar.white > 1 && (
+                        <View style={{ backgroundColor: 'rgba(0,0,0,0.8)', borderRadius: 8, paddingHorizontal: 4, marginTop: 2 }}>
+                          <Text style={{ color: '#fff', fontSize: 9, fontWeight: '700' }}>{gameState.bar.white}</Text>
                         </View>
                       )}
                     </View>
-                  );
-                }
-
-                // Easy mode: tap to select bar
-                return (
-                  <TouchableOpacity style={barContainerStyle} activeOpacity={0.7} onPress={handleBarPress}>
-                    {gameState.bar.white > 0 && (
-                      <View style={{
-                        alignItems: 'center',
-                        backgroundColor: selectedPoint === -1 ? 'rgba(251, 191, 36, 0.5)' : 'rgba(255,255,255,0.15)',
-                        borderRadius: CHECKER_SIZE / 2,
-                        padding: 4,
-                        borderWidth: selectedPoint === -1 ? 2 : 0,
-                        borderColor: 'rgba(251, 191, 36, 1)',
-                      }}>
-                        <Image source={require('../../../../assets/nardi/checker-white.png')} style={{ width: CHECKER_SIZE * 0.8, height: CHECKER_SIZE * 0.8, resizeMode: 'contain' }} />
-                        {gameState.bar.white > 1 && (
-                          <View style={{ backgroundColor: 'rgba(0,0,0,0.8)', borderRadius: 8, paddingHorizontal: 4, marginTop: 2 }}>
-                            <Text style={{ color: '#fff', fontSize: 9, fontWeight: '700' }}>{gameState.bar.white}</Text>
-                          </View>
-                        )}
-                      </View>
-                    )}
-                    {gameState.bar.black > 0 && (
-                      <View style={{ alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: CHECKER_SIZE / 2, padding: 4 }}>
-                        <Image source={require('../../../../assets/nardi/checker-black.png')} style={{ width: CHECKER_SIZE * 0.8, height: CHECKER_SIZE * 0.8, resizeMode: 'contain' }} />
-                        {gameState.bar.black > 1 && (
-                          <View style={{ backgroundColor: 'rgba(255,255,255,0.8)', borderRadius: 8, paddingHorizontal: 4, marginTop: 2 }}>
-                            <Text style={{ color: '#000', fontSize: 9, fontWeight: '700' }}>{gameState.bar.black}</Text>
-                          </View>
-                        )}
-                      </View>
-                    )}
-                  </TouchableOpacity>
-                );
-              })()}
+                  )}
+                  {/* Black bar checkers (top half of bar) */}
+                  {gameState.bar.black > 0 && (
+                    <View style={{ alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: CHECKER_SIZE / 2, padding: 4 }}>
+                      <Image
+                        source={require('../../../../assets/nardi/checker-black.png')}
+                        style={{ width: CHECKER_SIZE * 0.8, height: CHECKER_SIZE * 0.8, resizeMode: 'contain' }}
+                      />
+                      {gameState.bar.black > 1 && (
+                        <View style={{ backgroundColor: 'rgba(255,255,255,0.8)', borderRadius: 8, paddingHorizontal: 4, marginTop: 2 }}>
+                          <Text style={{ color: '#000', fontSize: 9, fontWeight: '700' }}>{gameState.bar.black}</Text>
+                        </View>
+                      )}
+                    </View>
+                  )}
+                </TouchableOpacity>
+              )}
               
               {/* Dice in center */}
               <View style={[styles.centerDice, { 
