@@ -868,7 +868,8 @@ const NardiScreen = ({ navigation, route }: any) => {
         const pos = getPointCoords(i + 1);
         if (Math.abs(tx - pos.x) < POINT_WIDTH * 0.8) return i;
       }
-      if (gs.bar[myColor] > 0 && gs.possibleMoves.some(m => m.from === -1)) {
+      // Bar: just check the player has pieces there — valid-move check happens at drop time
+      if (gs.bar[myColor] > 0) {
         const barX = BOARD_PADDING + HALF_WIDTH + BAR_WIDTH / 2;
         if (Math.abs(tx - barX) < BAR_WIDTH + 6) return -1;
       }
@@ -881,7 +882,13 @@ const NardiScreen = ({ navigation, route }: any) => {
         if (src !== null) { draggedFromRef.current = src; return true; }
         return false;
       },
-      onMoveShouldSetPanResponder: () => draggedFromRef.current !== null,
+      onMoveShouldSetPanResponder: (evt) => {
+        // Fallback: claim mid-gesture if onStart was missed (e.g. pointerEvents pass-through timing)
+        if (draggedFromRef.current !== null) return true;
+        const src = findDragSource(evt.nativeEvent.locationX, evt.nativeEvent.locationY);
+        if (src !== null) { draggedFromRef.current = src; return true; }
+        return false;
+      },
       onPanResponderGrant: (evt) => {
         const src = draggedFromRef.current;
         if (src === null) return;
@@ -900,14 +907,17 @@ const NardiScreen = ({ navigation, route }: any) => {
           let bestMove: Move | null = null;
           let bestDist = Infinity;
           for (const move of validMoves) {
-            let destX: number, destY: number;
-            if (move.to >= 24)     { destX = BOARD_SIZE - BOARD_PADDING; destY = BOARD_SIZE - BOARD_PADDING; }
-            else if (move.to < 0) { destX = BOARD_PADDING;              destY = BOARD_PADDING; }
-            else                  { const dc = getPointCoords(move.to + 1); destX = dc.x; destY = dc.y; }
-            const dist = Math.sqrt((dropX - destX) ** 2 + (dropY - destY) ** 2);
+            let destX: number;
+            if (move.to >= 24)     { destX = BOARD_SIZE - BOARD_PADDING; }
+            else if (move.to < 0) { destX = BOARD_PADDING; }
+            else                  { destX = getPointCoords(move.to + 1).x; }
+            // Use X-only distance — getPointCoords Y is edge-anchored (not center),
+            // so Euclidean distance would fail for bar-entry drops mid-board.
+            // Each point column has a unique X, so X-only is unambiguous.
+            const dist = Math.abs(dropX - destX);
             if (dist < bestDist) { bestDist = dist; bestMove = move; }
           }
-          if (bestMove && bestDist < POINT_WIDTH * 2.5) handleMove(bestMove);
+          if (bestMove && bestDist < POINT_WIDTH * 1.5) handleMove(bestMove);
         }
         draggedFromRef.current = null;
         setDraggedFrom(null);
