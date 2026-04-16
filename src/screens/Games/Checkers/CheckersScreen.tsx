@@ -767,8 +767,8 @@ const styles = StyleSheet.create({
   roomCodeLabel:      { color:'#bdc3c7', fontSize:15, textAlign:'center', marginBottom:12 },
   roomCodeBox:        { backgroundColor:'rgba(255,255,255,0.15)', borderRadius:12, paddingHorizontal:32, paddingVertical:16, marginBottom:8 },
   roomCodeValue:      { color:'#ffffff', fontSize:42, fontWeight:'bold', letterSpacing:6, textAlign:'center' },
-  statusBar:          { alignItems:'center', paddingVertical:10, backgroundColor:'#34495e', paddingHorizontal:10 },
-  turnText:           { fontSize:16, fontWeight:'600', color:'#ecf0f1' },
+  statusBar:          { alignItems:'center', paddingVertical:10, backgroundColor:'transparent', paddingHorizontal:10 },
+  turnText:           { fontSize:16, fontWeight:'600', color:'#fff', textShadowColor:'rgba(0,0,0,0.8)', textShadowOffset:{width:0,height:1}, textShadowRadius:4 },
   colorBadge:         { fontSize:13, color:'#bdc3c7', marginTop:2 },
   boardContainer:     { flex:1, justifyContent:'center', alignItems:'center', padding:20 },
   board:              { aspectRatio:1 }, // Width/height set via inline style
