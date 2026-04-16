@@ -21,12 +21,12 @@ import {
   VideoRecorder,
   composeEquirect,
   useVideoCapture,
-} from '@sourceship/capture360';
+} from '@sourceship13/react-native-capture360';
 import type {
   ARCameraViewHandle,
   OrientationEvent,
   RecordingCompleteEvent,
-} from '@sourceship/capture360';
+} from '@sourceship13/react-native-capture360';
 
 type NavigationProp = NativeStackNavigationProp<any>;
 
