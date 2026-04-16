@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, ImageBackground, Alert, Animated, ScrollView, Image } from 'react-native';
-import {SphereViewer} from '@sourceship/capture360';
+import {SphereViewer, useAttitude} from '@sourceship/capture360';
 
 const STUDIO_PANORAMA = require('../../../../assets/capture360/monochrome_studio_02_2k.jpg');
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
@@ -103,6 +103,7 @@ function deserializeBoard(raw: any[][]): (Piece | null)[][] {
 const CheckersScreen = ({ navigation, route }: any) => {
   const { session, mode } = route.params;
   const { isTablet, isLandscape } = useDeviceType();
+  const attitude = useAttitude();
   
   // Calculate responsive board size
   const boardSize = getGameBoardSize(isTablet, isLandscape, 600, 32);
@@ -500,7 +501,7 @@ const CheckersScreen = ({ navigation, route }: any) => {
     return (
       <View style={styles.container}>
         <View style={StyleSheet.absoluteFill} pointerEvents="none">
-          <SphereViewer placeholderSource={STUDIO_PANORAMA} initialPitch={-5} />
+          <SphereViewer placeholderSource={STUDIO_PANORAMA} initialPitch={-5} attitude={attitude} gyroEnabled />
           <View style={[StyleSheet.absoluteFill, {backgroundColor: 'rgba(0,0,0,0.4)'}]} />
         </View>
         <View style={styles.overlay}>
@@ -548,7 +549,7 @@ const CheckersScreen = ({ navigation, route }: any) => {
   return (
     <View style={styles.container}>
       <View style={StyleSheet.absoluteFill} pointerEvents="none">
-        <SphereViewer placeholderSource={STUDIO_PANORAMA} initialPitch={-5} />
+        <SphereViewer placeholderSource={STUDIO_PANORAMA} initialPitch={-5} attitude={attitude} gyroEnabled />
         <View style={[StyleSheet.absoluteFill, {backgroundColor: showBlur ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0.3)'}]} />
       </View>
       <View style={styles.overlay}>
