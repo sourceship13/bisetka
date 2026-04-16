@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, ImageBackground, Alert, Animated, ScrollView, Image } from 'react-native';
+import {SphereViewer, useAttitude} from '@sourceship13/react-native-capture360';
+
+const STUDIO_PANORAMA = require('../../../../assets/capture360/relax_inn_seaview_suite_2k.jpg');
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import LinearGradient from 'react-native-linear-gradient';
 import ReAnimated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import ExpandableView from '../../../components/global/ExpandableView';
 import GameToolbar from '../../../components/global/GameToolbar';
@@ -101,6 +103,7 @@ function deserializeBoard(raw: any[][]): (Piece | null)[][] {
 const CheckersScreen = ({ navigation, route }: any) => {
   const { session, mode } = route.params;
   const { isTablet, isLandscape } = useDeviceType();
+  const attitude = useAttitude();
   
   // Calculate responsive board size
   const boardSize = getGameBoardSize(isTablet, isLandscape, 600, 32);
@@ -496,13 +499,12 @@ const CheckersScreen = ({ navigation, route }: any) => {
   // ── matchmaking / waiting screen ──────────────────────────────────────────
   if (isMultiplayer && (mpStatus==='connecting'||mpStatus==='searching'||mpStatus==='waiting')) {
     return (
-      <ImageBackground
-        source={require('../../../../assets/blot/park-background.png')}
-        style={styles.container}
-        blurRadius={3}>
-        <LinearGradient
-          colors={['rgba(0,0,0,0.3)', 'rgba(0,0,0,0.5)']}
-          style={styles.overlay}>
+      <View style={styles.container}>
+        <View style={StyleSheet.absoluteFill} pointerEvents="none">
+          <SphereViewer placeholderSource={STUDIO_PANORAMA} initialPitch={-5} attitude={attitude} gyroEnabled heightOffset={0.08} />
+          <View style={[StyleSheet.absoluteFill, {backgroundColor: 'rgba(0,0,0,0.4)'}]} />
+        </View>
+        <View style={styles.overlay}>
           <SafeAreaView style={styles.safeArea}>
             <GameToolbar title="Checkers" onBack={() => { navigation.goBack(); }} backgroundColor="transparent" />
             <View style={styles.centeredContent}>
@@ -533,8 +535,8 @@ const CheckersScreen = ({ navigation, route }: any) => {
               </TouchableOpacity>
             </View>
           </SafeAreaView>
-        </LinearGradient>
-      </ImageBackground>
+        </View>
+      </View>
     );
   }
 
@@ -545,14 +547,13 @@ const CheckersScreen = ({ navigation, route }: any) => {
 
   // ── board render ──────────────────────────────────────────────────────────
   return (
-    <ImageBackground
-      source={require('../../../../assets/blot/park-background.png')}
-      style={styles.container}
-      blurRadius={showBlur ? 3 : 0}>
-      <LinearGradient
-        colors={showBlur ? ['rgba(0,0,0,0.3)', 'rgba(0,0,0,0.5)'] : ['transparent', 'transparent']}
-        style={styles.overlay}>
-        <SafeAreaView style={styles.safeArea}>
+    <View style={styles.container}>
+      <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+        <SphereViewer placeholderSource={STUDIO_PANORAMA} initialPitch={-5} attitude={attitude} gyroEnabled heightOffset={0.08} />
+        <View style={[StyleSheet.absoluteFill, {backgroundColor: showBlur ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0.3)'}]} pointerEvents="none" />
+      </View>
+      <View style={styles.overlay} pointerEvents="box-none">
+        <SafeAreaView style={styles.safeArea} pointerEvents="box-none">
           <View>
             <GameToolbar
               title={isMultiplayer ? 'Checkers (Online)' : mode==='ai' ? 'Checkers (vs AI)' : 'Checkers'}
@@ -592,7 +593,7 @@ const CheckersScreen = ({ navigation, route }: any) => {
         )}
       </View>
 
-      <View style={styles.boardContainer}>
+      <View style={styles.boardContainer} pointerEvents="box-none">
         <ImageBackground
           source={require('../../../../assets/chess/board.png')}
           style={[styles.board, { width: boardSize, height: boardSize }]}
@@ -733,7 +734,7 @@ const CheckersScreen = ({ navigation, route }: any) => {
         </ScrollView>
       </Animated.View>
         </SafeAreaView>
-      </LinearGradient>
+      </View>
 
       <GameThemeCustomizer
         visible={showCustomization}
@@ -750,7 +751,7 @@ const CheckersScreen = ({ navigation, route }: any) => {
         gameType="checkers"
         visible={isMultiplayer && !!roomId}
       />
-    </ImageBackground>
+    </View>
   );
 };
 
@@ -766,8 +767,8 @@ const styles = StyleSheet.create({
   roomCodeLabel:      { color:'#bdc3c7', fontSize:15, textAlign:'center', marginBottom:12 },
   roomCodeBox:        { backgroundColor:'rgba(255,255,255,0.15)', borderRadius:12, paddingHorizontal:32, paddingVertical:16, marginBottom:8 },
   roomCodeValue:      { color:'#ffffff', fontSize:42, fontWeight:'bold', letterSpacing:6, textAlign:'center' },
-  statusBar:          { alignItems:'center', paddingVertical:10, backgroundColor:'#34495e', paddingHorizontal:10 },
-  turnText:           { fontSize:16, fontWeight:'600', color:'#ecf0f1' },
+  statusBar:          { alignItems:'center', paddingVertical:10, backgroundColor:'transparent', paddingHorizontal:10 },
+  turnText:           { fontSize:16, fontWeight:'600', color:'#fff', textShadowColor:'rgba(0,0,0,0.8)', textShadowOffset:{width:0,height:1}, textShadowRadius:4 },
   colorBadge:         { fontSize:13, color:'#bdc3c7', marginTop:2 },
   boardContainer:     { flex:1, justifyContent:'center', alignItems:'center', padding:20 },
   board:              { aspectRatio:1 }, // Width/height set via inline style
