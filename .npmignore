@@ -1,0 +1,49 @@
+# Native platforms
+android/
+ios/
+
+# Large assets
+assets/avatars/
+assets/clothing/
+assets/bootsplash/
+assets/capture360/
+assets/cards/presets/
+assets/cards/face-styles/
+assets/cards/overlays/
+assets/appIcons/
+assets/backgrounds/
+assets/fonts/
+assets/game-icons/
+
+# Build & config
+node_modules/
+.bundle/
+.circleci/
+.github/
+Pods/
+
+# Docs & markdown
+*.md
+*.txt
+*.html
+*.log
+
+# Scripts & data
+scripts/
+data/
+database/
+docs/
+
+# Shell scripts
+*.sh
+
+# Ruby
+Gemfile
+Gemfile.lock
+
+# Misc
+__tests__/
+jest.config.js
+.eslintrc.js
+.prettierrc.js
+.watchmanconfig
