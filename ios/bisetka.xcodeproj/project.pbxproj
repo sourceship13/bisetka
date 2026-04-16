@@ -1638,7 +1638,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = org.sera.dev.bisetka;
 				PRODUCT_NAME = bisetka;
 				PROVISIONING_PROFILE_SPECIFIER = "";
-				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "match AppStore org.sera.dev.bisetka";
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "match AppStore org.sera.dev.bisetka 1776325928";
 				SWIFT_ENABLE_EXPLICIT_MODULES = NO;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
@@ -1679,7 +1679,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = org.sera.dev.bisetka;
 				PRODUCT_NAME = bisetka;
 				PROVISIONING_PROFILE_SPECIFIER = "";
-				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "match AppStore org.sera.dev.bisetka";
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "match AppStore org.sera.dev.bisetka 1776325928";
 				SWIFT_ENABLE_EXPLICIT_MODULES = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
