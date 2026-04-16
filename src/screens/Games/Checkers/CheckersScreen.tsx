@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, ImageBackground, Alert, Animated, ScrollView, Image } from 'react-native';
+import Photosphere360Background from '../../../components/Photosphere360Background';
+
+const STUDIO_PANORAMA = require('../../../../assets/capture360/monochrome_studio_02_2k.jpg');
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import LinearGradient from 'react-native-linear-gradient';
 import ReAnimated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import ExpandableView from '../../../components/global/ExpandableView';
 import GameToolbar from '../../../components/global/GameToolbar';
@@ -496,13 +498,14 @@ const CheckersScreen = ({ navigation, route }: any) => {
   // ── matchmaking / waiting screen ──────────────────────────────────────────
   if (isMultiplayer && (mpStatus==='connecting'||mpStatus==='searching'||mpStatus==='waiting')) {
     return (
-      <ImageBackground
-        source={require('../../../../assets/blot/park-background.png')}
-        style={styles.container}
-        blurRadius={3}>
-        <LinearGradient
-          colors={['rgba(0,0,0,0.3)', 'rgba(0,0,0,0.5)']}
-          style={styles.overlay}>
+      <View style={styles.container}>
+        <Photosphere360Background
+          assetSource={STUDIO_PANORAMA}
+          overlayOpacity={0.4}
+          autoRotateSpeed={0.015}
+          initialPitch={-5}
+        />
+        <View style={styles.overlay}>
           <SafeAreaView style={styles.safeArea}>
             <GameToolbar title="Checkers" onBack={() => { navigation.goBack(); }} backgroundColor="transparent" />
             <View style={styles.centeredContent}>
@@ -533,8 +536,8 @@ const CheckersScreen = ({ navigation, route }: any) => {
               </TouchableOpacity>
             </View>
           </SafeAreaView>
-        </LinearGradient>
-      </ImageBackground>
+        </View>
+      </View>
     );
   }
 
@@ -545,13 +548,14 @@ const CheckersScreen = ({ navigation, route }: any) => {
 
   // ── board render ──────────────────────────────────────────────────────────
   return (
-    <ImageBackground
-      source={require('../../../../assets/blot/park-background.png')}
-      style={styles.container}
-      blurRadius={showBlur ? 3 : 0}>
-      <LinearGradient
-        colors={showBlur ? ['rgba(0,0,0,0.3)', 'rgba(0,0,0,0.5)'] : ['transparent', 'transparent']}
-        style={styles.overlay}>
+    <View style={styles.container}>
+      <Photosphere360Background
+        assetSource={STUDIO_PANORAMA}
+        overlayOpacity={showBlur ? 0.5 : 0.3}
+        autoRotateSpeed={0.015}
+        initialPitch={-5}
+      />
+      <View style={styles.overlay}>
         <SafeAreaView style={styles.safeArea}>
           <View>
             <GameToolbar
@@ -733,7 +737,7 @@ const CheckersScreen = ({ navigation, route }: any) => {
         </ScrollView>
       </Animated.View>
         </SafeAreaView>
-      </LinearGradient>
+      </View>
 
       <GameThemeCustomizer
         visible={showCustomization}
@@ -750,7 +754,7 @@ const CheckersScreen = ({ navigation, route }: any) => {
         gameType="checkers"
         visible={isMultiplayer && !!roomId}
       />
-    </ImageBackground>
+    </View>
   );
 };
 
