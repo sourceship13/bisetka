@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, ImageBackground, Alert, Animated, ScrollView, Image } from 'react-native';
-import {SphereViewer, useAttitude} from '@sourceship/capture360';
+import {SphereViewer, useAttitude} from '@sourceship13/react-native-capture360';
 
 const STUDIO_PANORAMA = require('../../../../assets/capture360/relax_inn_seaview_suite_2k.jpg');
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';

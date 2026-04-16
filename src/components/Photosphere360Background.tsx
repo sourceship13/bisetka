@@ -204,7 +204,7 @@ export default function Photosphere360Background({
       setLoaded(true);
     } else if (imagePath) {
       try {
-        const {readFileBase64} = require('@sourceship/capture360');
+        const {readFileBase64} = require('@sourceship13/react-native-capture360');
         const base64 = await readFileBase64(imagePath);
         web.injectJavaScript(`window._loadBase64(${JSON.stringify(base64)});true;`);
         setLoaded(true);
