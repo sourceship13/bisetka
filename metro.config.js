@@ -11,7 +11,7 @@ const { withSentryConfig } = require('@sentry/react-native/metro');
  */
 const defaultConfig = getDefaultConfig(__dirname);
 
-// Ensure packages like @sourceship/capture360 (installed via file:)
+// Ensure packages like @sourceship13/react-native-capture360 (installed via file:)
 // resolve React and other peer deps from bisetka's node_modules,
 // not from their own nested node_modules.
 const extraNodeModules = {
