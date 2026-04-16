@@ -23,20 +23,12 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          registry-url: 'https://npm.pkg.github.com'
-          scope: '@sourceship13'
-      - name: Debug - check files
+      - name: Configure GitHub Packages registry
         run: |
-          echo "pwd: $(pwd)"
-          ls -la package*.json
-          echo "--- npmrc ---"
-          cat .npmrc 2>/dev/null || echo "no .npmrc"
-          echo "--- npm version ---"
-          npm --version
+          echo "@sourceship13:registry=https://npm.pkg.github.com" >> .npmrc
+          echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" >> .npmrc
       - name: Install dependencies
-        run: npm ci --legacy-peer-deps
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm install --legacy-peer-deps
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
         with:
