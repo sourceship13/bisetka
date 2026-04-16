@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, ImageBackground, Alert, Animated, ScrollView, Image } from 'react-native';
-import Photosphere360Background from '../../../components/Photosphere360Background';
+import {SphereViewer} from '@sourceship/capture360';
 
 const STUDIO_PANORAMA = require('../../../../assets/capture360/monochrome_studio_02_2k.jpg');
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
@@ -499,12 +499,10 @@ const CheckersScreen = ({ navigation, route }: any) => {
   if (isMultiplayer && (mpStatus==='connecting'||mpStatus==='searching'||mpStatus==='waiting')) {
     return (
       <View style={styles.container}>
-        <Photosphere360Background
-          assetSource={STUDIO_PANORAMA}
-          overlayOpacity={0.4}
-          autoRotateSpeed={0.015}
-          initialPitch={-5}
-        />
+        <View style={StyleSheet.absoluteFill} pointerEvents="none">
+          <SphereViewer placeholderSource={STUDIO_PANORAMA} initialPitch={-5} />
+          <View style={[StyleSheet.absoluteFill, {backgroundColor: 'rgba(0,0,0,0.4)'}]} />
+        </View>
         <View style={styles.overlay}>
           <SafeAreaView style={styles.safeArea}>
             <GameToolbar title="Checkers" onBack={() => { navigation.goBack(); }} backgroundColor="transparent" />
@@ -549,12 +547,10 @@ const CheckersScreen = ({ navigation, route }: any) => {
   // ── board render ──────────────────────────────────────────────────────────
   return (
     <View style={styles.container}>
-      <Photosphere360Background
-        assetSource={STUDIO_PANORAMA}
-        overlayOpacity={showBlur ? 0.5 : 0.3}
-        autoRotateSpeed={0.015}
-        initialPitch={-5}
-      />
+      <View style={StyleSheet.absoluteFill} pointerEvents="none">
+        <SphereViewer placeholderSource={STUDIO_PANORAMA} initialPitch={-5} />
+        <View style={[StyleSheet.absoluteFill, {backgroundColor: showBlur ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0.3)'}]} />
+      </View>
       <View style={styles.overlay}>
         <SafeAreaView style={styles.safeArea}>
           <View>
