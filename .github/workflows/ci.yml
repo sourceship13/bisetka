@@ -62,11 +62,22 @@ jobs:
         run: |
           cd ios
           bundle exec fastlane production
-      - name: Upload gym log on failure
+      - name: Upload build logs on failure
         if: failure()
         run: |
-          LOG=$(find ~/Library/Logs/gym -name "*.log" | head -1)
-          if [ -f "$LOG" ]; then
-            echo "=== FULL GYM LOG ==="
-            cat "$LOG"
+          echo "=== GYM LOGS ==="
+          find ~/Library/Logs/gym -name "*.log" 2>/dev/null | while read LOG; do
+            echo "--- $LOG ---"
+            tail -200 "$LOG"
+          done
+          echo ""
+          echo "=== XCODEBUILD ERRORS (from DerivedData) ==="
+          find ~/Library/Developer/Xcode/DerivedData -name "*.log" 2>/dev/null | head -3 | while read LOG; do
+            echo "--- $LOG ---"
+            grep -A5 -i "error:" "$LOG" 2>/dev/null | tail -100
+          done
+          echo ""
+          echo "=== FASTLANE LOG ==="
+          if [ -f ios/fastlane/report.xml ]; then
+            cat ios/fastlane/report.xml
           fi
