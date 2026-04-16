@@ -19,11 +19,17 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Debug - check files
+        run: |
+          echo "Current directory: $(pwd)"
+          ls -la package*.json || echo "No package files found"
+          head -5 package-lock.json || echo "Cannot read package-lock.json"
+          node --version
+          npm --version
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
           registry-url: 'https://npm.pkg.github.com'
           scope: '@sourceship13'
       - name: Install dependencies
