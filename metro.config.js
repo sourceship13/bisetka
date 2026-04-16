@@ -9,21 +9,23 @@ const { withSentryConfig } = require('@sentry/react-native/metro');
  *
  * @type {import('@react-native/metro-config').MetroConfig}
  */
+const fs = require('fs');
 const defaultConfig = getDefaultConfig(__dirname);
 
-// The @sourceship/capture360 package is symlinked from ../bisetka_photosphere.
-// Metro needs to watch that directory and resolve shared deps from here.
+// When developing locally with a symlinked bisetka_photosphere, watch that
+// directory and block its node_modules. In CI (or when the dir is absent),
+// the package is installed from GitHub Packages and no extra config is needed.
 const photospherePath = path.resolve(__dirname, '../bisetka_photosphere');
-
-// Block the photosphere's own node_modules so shared deps resolve from bisetka only
-const photosphereNodeModules = path.resolve(photospherePath, 'node_modules');
+const hasLocalPhotosphere = fs.existsSync(photospherePath);
 
 const config = {
-  watchFolders: [photospherePath],
+  watchFolders: hasLocalPhotosphere ? [photospherePath] : [],
   resolver: {
     assetExts: [...defaultConfig.resolver.assetExts, 'vrm'],
     nodeModulesPaths: [path.resolve(__dirname, 'node_modules')],
-    blockList: [new RegExp(`^${photosphereNodeModules.replace(/[/\\]/g, '[/\\\\]')}\\/.*`)],
+    blockList: hasLocalPhotosphere
+      ? [new RegExp(`^${path.resolve(photospherePath, 'node_modules').replace(/[/\\]/g, '[/\\\\]')}\\/.*`)]
+      : [],
   },
 };
 
