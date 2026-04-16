@@ -501,7 +501,7 @@ const CheckersScreen = ({ navigation, route }: any) => {
     return (
       <View style={styles.container}>
         <View style={StyleSheet.absoluteFill} pointerEvents="none">
-          <SphereViewer placeholderSource={STUDIO_PANORAMA} initialPitch={-5} attitude={attitude} gyroEnabled />
+          <SphereViewer placeholderSource={STUDIO_PANORAMA} initialPitch={-5} attitude={attitude} gyroEnabled heightOffset={0.08} />
           <View style={[StyleSheet.absoluteFill, {backgroundColor: 'rgba(0,0,0,0.4)'}]} />
         </View>
         <View style={styles.overlay}>
@@ -548,12 +548,12 @@ const CheckersScreen = ({ navigation, route }: any) => {
   // ── board render ──────────────────────────────────────────────────────────
   return (
     <View style={styles.container}>
-      <View style={StyleSheet.absoluteFill} pointerEvents="none">
-        <SphereViewer placeholderSource={STUDIO_PANORAMA} initialPitch={-5} attitude={attitude} gyroEnabled />
-        <View style={[StyleSheet.absoluteFill, {backgroundColor: showBlur ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0.3)'}]} />
+      <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+        <SphereViewer placeholderSource={STUDIO_PANORAMA} initialPitch={-5} attitude={attitude} gyroEnabled heightOffset={0.08} />
+        <View style={[StyleSheet.absoluteFill, {backgroundColor: showBlur ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0.3)'}]} pointerEvents="none" />
       </View>
-      <View style={styles.overlay}>
-        <SafeAreaView style={styles.safeArea}>
+      <View style={styles.overlay} pointerEvents="box-none">
+        <SafeAreaView style={styles.safeArea} pointerEvents="box-none">
           <View>
             <GameToolbar
               title={isMultiplayer ? 'Checkers (Online)' : mode==='ai' ? 'Checkers (vs AI)' : 'Checkers'}
@@ -593,7 +593,7 @@ const CheckersScreen = ({ navigation, route }: any) => {
         )}
       </View>
 
-      <View style={styles.boardContainer}>
+      <View style={styles.boardContainer} pointerEvents="box-none">
         <ImageBackground
           source={require('../../../../assets/chess/board.png')}
           style={[styles.board, { width: boardSize, height: boardSize }]}
