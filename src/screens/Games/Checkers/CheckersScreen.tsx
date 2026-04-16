@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, ImageBackground, Alert, Animated, ScrollView, Image } from 'react-native';
 import {SphereViewer, useAttitude} from '@sourceship/capture360';
 
-const STUDIO_PANORAMA = require('../../../../assets/capture360/monochrome_studio_02_2k.jpg');
+const STUDIO_PANORAMA = require('../../../../assets/capture360/relax_inn_seaview_suite_2k.jpg');
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import ReAnimated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
