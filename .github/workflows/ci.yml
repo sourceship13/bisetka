@@ -34,7 +34,7 @@ jobs:
           echo "--- npm version ---"
           npm --version
       - name: Install dependencies
-        run: npm install
+        run: npm ci --legacy-peer-deps
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Set up Ruby
