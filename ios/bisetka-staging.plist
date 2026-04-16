@@ -33,6 +33,10 @@
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
+	<key>NSCameraUsageDescription</key>
+	<string>Bisetka may need access to your camera for profile photos and in-game features.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Bisetka needs microphone access for voice chat during games.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Your location helps us match you to the nearest Bisetka and nearby players.</string>
 	<key>RCTNewArchEnabled</key>
