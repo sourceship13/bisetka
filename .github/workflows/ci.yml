@@ -17,6 +17,9 @@ jobs:
   build_ios:
     name: Build iOS & Deploy
     runs-on: macos-latest
+    permissions:
+      contents: read
+      packages: read
     steps:
       - uses: actions/checkout@v4
       - name: Set up Node.js
@@ -26,7 +29,7 @@ jobs:
       - name: Configure GitHub Packages registry
         run: |
           echo "@sourceship13:registry=https://npm.pkg.github.com" >> .npmrc
-          echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" >> .npmrc
+          echo "//npm.pkg.github.com/:_authToken=${{ secrets.GH_PACKAGES_TOKEN }}" >> .npmrc
       - name: Install dependencies
         run: npm install --legacy-peer-deps
       - name: Set up Ruby
