@@ -66,29 +66,31 @@ post_install do |installer|
   )
 
   # ── fmt 11.0.2 / Apple Clang (Xcode 26+) fix ──────────────────────────────
-  # fmt's base.h unconditionally #define-s FMT_USE_CONSTEVAL without checking
-  # if the caller already provided a value (unlike FMT_USE_NONTYPE_TEMPLATE_ARGS
-  # which has an #if defined() guard).  A -DFMT_USE_CONSTEVAL=0 compiler flag
-  # therefore gets silently overridden to 1, which causes Apple Clang to emit
-  # "Call to consteval function … is not a constant expression" for every
-  # FMT_STRING() call inside format-inl.h.
+  # Apple Clang in Xcode 26 has broken consteval support that causes
+  # "Call to consteval function … is not a constant expression" errors in
+  # fmt's format-inl.h.  The compiler flag -DFMT_USE_CONSTEVAL=0 alone is
+  # not sufficient because base.h's detection logic can still enable it.
   #
-  # We patch base.h once after pod install to add the same user-override guard
-  # that FMT_USE_NONTYPE_TEMPLATE_ARGS already has.  After the patch, the
-  # -DFMT_USE_CONSTEVAL=0 in OTHER_CPLUSPLUSFLAGS (applied to all targets below)
-  # takes effect and disables consteval for all translation units that include
-  # fmt headers.
+  # We forcibly replace the entire consteval detection block in base.h to
+  # unconditionally disable consteval, and also blank out FMT_CONSTEVAL.
   fmt_base_h = "#{installer.sandbox.root}/fmt/include/fmt/base.h"
   if File.exist?(fmt_base_h)
     content = File.read(fmt_base_h)
-    unless content.include?('#if defined(FMT_USE_CONSTEVAL)')
-      patched = content.sub(
-        "// Detect consteval, C++20 constexpr extensions and std::is_constant_evaluated.\n#if !defined(__cpp_lib_is_constant_evaluated)",
-        "// Detect consteval, C++20 constexpr extensions and std::is_constant_evaluated.\n#if defined(FMT_USE_CONSTEVAL)\n// Use the provided definition.\n#elif !defined(__cpp_lib_is_constant_evaluated)"
+    # Force FMT_USE_CONSTEVAL to 0 by replacing the entire detection block
+    unless content.include?('// [PATCHED] Force-disable consteval')
+      # 1. Replace the consteval detection block to always yield 0
+      patched = content.gsub(
+        /\/\/ Detect consteval.*?#define FMT_USE_CONSTEVAL \d\n#endif/m,
+        "// [PATCHED] Force-disable consteval for Apple Clang (Xcode 26+)\n#undef FMT_USE_CONSTEVAL\n#define FMT_USE_CONSTEVAL 0"
+      )
+      # 2. Force FMT_CONSTEVAL to empty (constexpr at most)
+      patched = patched.gsub(
+        /#if FMT_USE_CONSTEVAL\n#\s*define FMT_CONSTEVAL consteval\n#\s*define FMT_CONSTEXPR20 constexpr\n#else\n#\s*define FMT_CONSTEVAL\n#\s*define FMT_CONSTEXPR20\n#endif/m,
+        "#undef FMT_CONSTEVAL\n#define FMT_CONSTEVAL\n#undef FMT_CONSTEXPR20\n#define FMT_CONSTEXPR20"
       )
       File.chmod(0644, fmt_base_h)
       File.write(fmt_base_h, patched)
-      Pod::UI.puts "  [fmt patch] Added FMT_USE_CONSTEVAL user-override guard to fmt/base.h".yellow
+      Pod::UI.puts "  [fmt patch] Force-disabled consteval in fmt/base.h for Xcode 26+".yellow
     end
   end
 

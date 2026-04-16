@@ -2,6 +2,8 @@ PODS:
   - boost (1.84.0)
   - BVLinearGradient (2.8.3):
     - React-Core
+  - capture360 (1.0.0):
+    - React-Core
   - DoubleConversion (1.1.6)
   - fast_float (8.0.0)
   - FBLazyVector (0.83.1)
@@ -3435,6 +3437,7 @@ PODS:
 DEPENDENCIES:
   - boost (from `../node_modules/react-native/third-party-podspecs/boost.podspec`)
   - BVLinearGradient (from `../node_modules/react-native-linear-gradient`)
+  - "capture360 (from `../node_modules/@sourceship/capture360`)"
   - DoubleConversion (from `../node_modules/react-native/third-party-podspecs/DoubleConversion.podspec`)
   - fast_float (from `../node_modules/react-native/third-party-podspecs/fast_float.podspec`)
   - FBLazyVector (from `../node_modules/react-native/Libraries/FBLazyVector`)
@@ -3568,6 +3571,8 @@ EXTERNAL SOURCES:
     :podspec: "../node_modules/react-native/third-party-podspecs/boost.podspec"
   BVLinearGradient:
     :path: "../node_modules/react-native-linear-gradient"
+  capture360:
+    :path: "../node_modules/@sourceship/capture360"
   DoubleConversion:
     :podspec: "../node_modules/react-native/third-party-podspecs/DoubleConversion.podspec"
   fast_float:
@@ -3777,6 +3782,7 @@ EXTERNAL SOURCES:
 SPEC CHECKSUMS:
   boost: 7e761d76ca2ce687f7cc98e698152abd03a18f90
   BVLinearGradient: cb006ba232a1f3e4f341bb62c42d1098c284da70
+  capture360: 9739e7afabdd0505f83852f2ec04ee88f1d79fb0
   DoubleConversion: cb417026b2400c8f53ae97020b2be961b59470cb
   fast_float: b32c788ed9c6a8c584d114d0047beda9664e7cc6
   FBLazyVector: 309703e71d3f2f1ed7dc7889d58309c9d77a95a4
@@ -3899,6 +3905,6 @@ SPEC CHECKSUMS:
   Turf: c9eb11a65d96af58cac523460fd40fec5061b081
   Yoga: 5456bb010373068fc92221140921b09d126b116e
 
-PODFILE CHECKSUM: 512b41b02fca1d0ec413650c756ed6d820f5c252
+PODFILE CHECKSUM: 0ecf4e1106fb17639de6d2ad64bd480c0ee3bdd1
 
 COCOAPODS: 1.16.2
