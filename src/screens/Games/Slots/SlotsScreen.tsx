@@ -11,6 +11,7 @@ import {
   Image,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import Photosphere360Background from '../../../components/Photosphere360Background';
 import { useAuth } from '../../../libs/hooks/useAuth';
 import { useGameEndRefresh } from '../../../libs/hooks/useGameEndRefresh';
 import Svg, { Polyline } from 'react-native-svg';
@@ -299,11 +300,9 @@ const SlotsScreen = ({ navigation }: any) => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <LinearGradient
-        colors={showBackground ? ['#0f0f23', '#1a1742', '#0f0f23'] : ['#1a1a2e', '#1a1a2e', '#1a1a2e']}
-        style={styles.gradient}
-      >
+    <View style={styles.container}>
+      <Photosphere360Background overlayOpacity={0.5} />
+      <SafeAreaView style={{flex: 1}}>
         <View>
           <GameToolbar
             title="🎰 SLOTS"
@@ -444,8 +443,8 @@ const SlotsScreen = ({ navigation }: any) => {
             </Text>
           </LinearGradient>
         </TouchableOpacity>
-      </LinearGradient>
-    </SafeAreaView>
+      </SafeAreaView>
+    </View>
   );
 };
 

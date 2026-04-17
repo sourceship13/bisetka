@@ -22,7 +22,7 @@ import { useAuth } from '../../../libs/hooks/useAuth';
 import { useAchievements } from '../../../contexts/AchievementContext';
 import { resolveAvatar } from '../../../utils/avatars';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import LinearGradient from 'react-native-linear-gradient';
+import Photosphere360Background from '../../../components/Photosphere360Background';
 import GameToolbar from '../../../components/global/GameToolbar';
 import GameToolbarControls from '../../../components/global/GameToolbarControls';
 import { CardType, Suit } from '../../../components/Card';
@@ -996,15 +996,8 @@ const BaazarBlotScreen = ({ navigation }: any) => {
   };
 
   return (
-    <ImageBackground
-      source={require('../../../../assets/blot/park-background.png')}
-      style={styles.bg}
-      blurRadius={showBlur ? 3 : 0}
-      resizeMode="cover">
-      <LinearGradient
-        colors={showBlur ? ['rgba(15,15,35,0.7)', 'rgba(26,23,66,0.6)'] : ['transparent', 'transparent']}
-        style={StyleSheet.absoluteFill}
-      />
+    <View style={styles.bg}>
+      <Photosphere360Background overlayOpacity={showBlur ? 0.65 : 0.3} />
       <SafeAreaView style={styles.safe}>
         <View>
           <GameToolbar
@@ -1145,7 +1138,7 @@ const BaazarBlotScreen = ({ navigation }: any) => {
           })}
         </ScrollView>
       </Animated.View>
-    </ImageBackground>
+    </View>
   );
 };
 

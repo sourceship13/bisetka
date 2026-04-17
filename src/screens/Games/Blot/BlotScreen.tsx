@@ -19,7 +19,7 @@ import { useAuth } from '../../../libs/hooks/useAuth';
 import { resolveAvatar } from '../../../utils/avatars';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import LinearGradient from 'react-native-linear-gradient';
+import Photosphere360Background from '../../../components/Photosphere360Background';
 import GameToolbar from '../../../components/global/GameToolbar';
 import GameToolbarControls from '../../../components/global/GameToolbarControls';
 import { CardType, Suit } from '../../../components/Card';
@@ -588,14 +588,8 @@ const BlotScreen = ({ navigation }: any) => {
   // Show score selection screen if target not chosen
   if (!targetScore || !gameState) {
     return (
-      <ImageBackground
-        source={require('../../../../assets/blot/park-background.png')}
-        style={styles.container}
-      >
-        <LinearGradient
-          colors={['rgba(15,15,35,0.9)', 'rgba(26,23,66,0.8)']}
-          style={styles.overlay}
-        >
+      <View style={styles.container}>
+        <Photosphere360Background overlayOpacity={0.85} />
           <SafeAreaView style={styles.safeArea}>
             <View style={styles.scoreSelectionContainer}>
               <Text style={styles.scoreSelectionTitle}>Choose Target Score</Text>
@@ -628,21 +622,13 @@ const BlotScreen = ({ navigation }: any) => {
               </TouchableOpacity>
             </View>
           </SafeAreaView>
-        </LinearGradient>
-      </ImageBackground>
+      </View>
     );
   }
 
   return (
-    <ImageBackground
-      source={require('../../../../assets/blot/park-background.png')}
-      style={styles.container}
-      blurRadius={showBlur ? 3 : 0}
-    >
-      <LinearGradient
-        colors={showBlur ? ['rgba(15,15,35,0.7)', 'rgba(26,23,66,0.6)'] : ['transparent', 'transparent']}
-        style={styles.overlay}
-      >
+    <View style={styles.container}>
+      <Photosphere360Background overlayOpacity={showBlur ? 0.65 : 0.3} />
         <SafeAreaView style={[styles.safeArea,]} onLayout={handleBoardLayout}>
           <View>
             <GameToolbar
@@ -874,7 +860,6 @@ const BlotScreen = ({ navigation }: any) => {
             </>
           )}
         </SafeAreaView>
-      </LinearGradient>
 
       {showCustomization && (
         <CardCustomizationModal
@@ -987,7 +972,7 @@ const BlotScreen = ({ navigation }: any) => {
         }}
         theme={customTheme}
       />
-    </ImageBackground>
+    </View>
   );
 };
 

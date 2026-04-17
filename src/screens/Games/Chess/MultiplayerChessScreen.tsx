@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import LinearGradient from 'react-native-linear-gradient';
+import Photosphere360Background from '../../../components/Photosphere360Background';
 import ReAnimated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import ExpandableView from '../../../components/global/ExpandableView';
 import GameToolbar from '../../../components/global/GameToolbar';
@@ -576,13 +576,8 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
   );
 
   return (
-    <ImageBackground
-      source={require('../../../../assets/blot/park-background.png')}
-      style={styles.container}
-      blurRadius={showBlur ? 3 : 0}>
-      <LinearGradient
-        colors={showBlur ? ['rgba(15,15,35,0.7)', 'rgba(26,23,66,0.6)'] : ['transparent', 'transparent']}
-        style={styles.overlay}>
+    <View style={styles.container}>
+      <Photosphere360Background overlayOpacity={showBlur ? 0.5 : 0.3} />
         <SafeAreaView style={styles.safeArea}>
           <View>
             <GameToolbar
@@ -721,7 +716,6 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
             gameType="Chess"
           />
         </SafeAreaView>
-      </LinearGradient>
 
       {/* Join Room Modal */}
       <Modal
@@ -763,7 +757,7 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
         gameType="chess"
         initialTheme={gameTheme}
       />
-    </ImageBackground>
+    </View>
   );
 };
 

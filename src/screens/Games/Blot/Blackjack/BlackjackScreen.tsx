@@ -23,7 +23,7 @@ import { useGameEndRefresh } from '../../../../libs/hooks/useGameEndRefresh';
 import ReAnimated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import ExpandableView from '../../../../components/global/ExpandableView';
 import GameToolbarControls from '../../../../components/global/GameToolbarControls';
-import LinearGradient from 'react-native-linear-gradient';
+import Photosphere360Background from '../../../../components/Photosphere360Background';
 
 interface Card {
   suit: 'hearts' | 'diamonds' | 'clubs' | 'spades';
@@ -438,15 +438,8 @@ const BlackjackScreen = ({ navigation }: any) => {
   };
 
   return (
-    <ImageBackground
-      source={customTheme?.backgroundImage ? { uri: customTheme.backgroundImage } : require('../../../../../assets/blot/park-background.png')}
-      style={styles.container}
-      blurRadius={showBlur ? 3 : 0}
-    >
-      <LinearGradient
-        colors={showBlur ? ['rgba(15,15,35,0.7)', 'rgba(26,23,66,0.6)'] : ['transparent', 'transparent']}
-        style={styles.overlay}
-      >
+    <View style={styles.container}>
+      <Photosphere360Background overlayOpacity={showBlur ? 0.65 : 0.3} />
       <SafeAreaView style={styles.safeArea}>
         <View>
           <GameToolbar
@@ -586,8 +579,7 @@ const BlackjackScreen = ({ navigation }: any) => {
           </View>
         </ScrollView>
       </SafeAreaView>
-      </LinearGradient>
-    </ImageBackground>
+    </View>
   );
 };
 
