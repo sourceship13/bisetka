@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { apiService } from '../../../services/api.service';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import LinearGradient from 'react-native-linear-gradient';
+import Photosphere360Background from '../../../components/Photosphere360Background';
 import GameToolbar from '../../../components/global/GameToolbar';
 import GameToolbarControls from '../../../components/global/GameToolbarControls';
 import RoomNameModal from '../../../components/RoomNameModal';
@@ -1903,13 +1903,8 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
   };
 
   return (
-    <ImageBackground
-      source={require('../../../../assets/blot/park-background.png')}
-      style={{flex: 1}}
-      blurRadius={showBlur ? 3 : 0}>
-    <LinearGradient
-      colors={showBlur ? ['rgba(15,15,35,0.7)', 'rgba(26,23,66,0.6)'] : ['transparent', 'transparent']}
-      style={{flex: 1}}>
+    <View style={{flex: 1}}>
+    <Photosphere360Background overlayOpacity={showBlur ? 0.65 : 0.3} />
     <SafeAreaView style={styles.safeArea}>
       <View>
         <GameToolbar
@@ -2255,8 +2250,7 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
         gameType="Billiards"
       />
     </SafeAreaView>
-    </LinearGradient>
-    </ImageBackground>
+    </View>
   );
 };
 

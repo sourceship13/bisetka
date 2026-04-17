@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
-import LinearGradient from 'react-native-linear-gradient';
+import Photosphere360Background from '../../../components/Photosphere360Background';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { socketService } from '../../../services/SocketService';
 import { blotAIService, LocalGameState, Card } from '../../../services/blotAI.service';
@@ -1565,13 +1565,8 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
 
 
   return (
-    <ImageBackground
-      source={require('../../../../assets/blot/park-background.png')}
-      style={styles.container}
-      blurRadius={showBlur ? 3 : 0}>
-      <LinearGradient
-        colors={showBlur ? ['rgba(15,15,35,0.7)', 'rgba(26,23,66,0.6)'] : ['transparent', 'transparent']}
-        style={styles.overlay}>
+    <View style={styles.container}>
+      <Photosphere360Background overlayOpacity={showBlur ? 0.65 : 0.3} />
         <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right']}>
       {(gameMode === 'game' || gameMode === 'local') && (
         <View>
@@ -1725,8 +1720,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
         theme={customTheme}
       />
         </SafeAreaView>
-      </LinearGradient>
-    </ImageBackground>
+    </View>
   );
 };
 

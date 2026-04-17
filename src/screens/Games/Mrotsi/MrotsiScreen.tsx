@@ -7,6 +7,7 @@ import GameToolbarControls from '../../../components/global/GameToolbarControls'
 import ReAnimated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import ExpandableView from '../../../components/global/ExpandableView';
 import { aiMoveLogService } from '../../../services/aiMoveLog.service';
+import Photosphere360Background from '../../../components/Photosphere360Background';
 import { v4 as uuidv4 } from 'uuid';
 import { useGameEndRefresh } from '../../../libs/hooks/useGameEndRefresh';
 import Dice3DSimple from '../../../components/Games/Dice3DSimple';
@@ -507,12 +508,8 @@ const MrotsiScreen = ({navigation, route}: any) => {
   }
 
   return (
-    <ImageBackground
-      source={require('../../../../assets/blot/park-background.png')}
-      style={styles.backgroundImage}
-      resizeMode="cover"
-      blurRadius={showBlur ? 3 : 0}
-    >
+    <View style={styles.backgroundImage}>
+      <Photosphere360Background overlayOpacity={showBlur ? 0.5 : 0.3} />
       <SafeAreaView style={styles.container}>
         <View>
           <GameToolbar
@@ -659,7 +656,7 @@ const MrotsiScreen = ({navigation, route}: any) => {
           </View>
         )}
       </SafeAreaView>
-    </ImageBackground>
+    </View>
   );
 };
 
