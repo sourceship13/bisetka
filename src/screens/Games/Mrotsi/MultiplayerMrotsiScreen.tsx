@@ -18,6 +18,7 @@ import GameToolbar from '../../../components/global/GameToolbar';
 import GameToolbarControls from '../../../components/global/GameToolbarControls';
 import RoomNameModal from '../../../components/RoomNameModal';
 import ReAnimated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
+import Photosphere360Background from '../../../components/Photosphere360Background';
 import ExpandableView from '../../../components/global/ExpandableView';
 import {socketService} from '../../../services/SocketService';
 import tokenService from '../../../services/token.service';
@@ -492,11 +493,9 @@ const MultiplayerMrotsiScreen = ({navigation, route}: any) => {
   // Room name listener — registered after socket connects (inside mp setup)
 
     return (
-      <ImageBackground source={require('../../../../assets/blot/park-background.png')} style={styles.backgroundImage} resizeMode="cover">
+      <View style={styles.backgroundImage}>
+      <Photosphere360Background overlayOpacity={0.4} />
       <SafeAreaView style={styles.container}>
-        <GameToolbar title="Mrotsi Multiplayer" onBack={() => navigation.goBack()} backgroundColor="transparent" />
-        <View style={styles.menuContainer}>
-          <Text style={styles.title}>🎲 Mrotsi</Text>
           <Text style={styles.subtitle}>5 rounds · simultaneous dice rolling</Text>
 
           <TouchableOpacity style={styles.primaryBtn} onPress={handleFindMatch}>
@@ -547,13 +546,14 @@ const MultiplayerMrotsiScreen = ({navigation, route}: any) => {
           gameType="Mrotsi"
         />
       </SafeAreaView>
-      </ImageBackground>
+      </View>
     );
   }
 
   if (screen === 'matchmaking') {
     return (
-      <ImageBackground source={require('../../../../assets/blot/park-background.png')} style={styles.backgroundImage} resizeMode="cover">
+      <View style={styles.backgroundImage}>
+      <Photosphere360Background overlayOpacity={0.4} />
       <SafeAreaView style={styles.container}>
         <GameToolbar title="Mrotsi Multiplayer" onBack={() => navigation.goBack()} backgroundColor="transparent" />
         <View style={styles.menuContainer}>
@@ -567,13 +567,14 @@ const MultiplayerMrotsiScreen = ({navigation, route}: any) => {
           ) : null}
         </View>
       </SafeAreaView>
-      </ImageBackground>
+      </View>
     );
   }
 
   // ─── Game screen ─────────────────────────────────────────────────────────────
   return (
-    <ImageBackground source={require('../../../../assets/blot/park-background.png')} style={styles.backgroundImage} resizeMode="cover" blurRadius={showBlur ? 3 : 0}>
+    <View style={styles.backgroundImage}>
+    <Photosphere360Background overlayOpacity={showBlur ? 0.5 : 0.3} />
     <SafeAreaView style={styles.container}>
       <View>
         <GameToolbar
@@ -715,7 +716,7 @@ const MultiplayerMrotsiScreen = ({navigation, route}: any) => {
         visible={screen === 'game' && !!roomIdRef.current}
       />
     </SafeAreaView>
-    </ImageBackground>
+    </View>
   );
 };
 

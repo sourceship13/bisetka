@@ -18,6 +18,7 @@ import RoomNameModal from '../../../components/RoomNameModal';
 import ReAnimated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import ExpandableView from '../../../components/global/ExpandableView';
 import { useGameEndRefresh } from '../../../libs/hooks/useGameEndRefresh';
+import Photosphere360Background from '../../../components/Photosphere360Background';
 import LinearGradient from 'react-native-linear-gradient';
 import {
   GameMode,
@@ -1037,13 +1038,8 @@ const NardiScreen = ({ navigation, route }: any) => {
     gameState.possibleMoves.some(m => m.from === selectedPoint && m.to === -1);
 
   return (
-    <ImageBackground
-      source={require('../../../../assets/nardi/park-background.png')}
-      style={styles.container}
-      blurRadius={showBlur ? 3 : 0}>
-      <LinearGradient
-        colors={showBlur ? ['rgba(15,15,35,0.7)', 'rgba(26,23,66,0.6)'] : ['transparent', 'transparent']}
-        style={styles.overlay}>
+    <View style={styles.container}>
+      <Photosphere360Background overlayOpacity={showBlur ? 0.5 : 0.3} />
         
         <SafeAreaView style={styles.safeArea}>
           <View>
@@ -1487,7 +1483,6 @@ const NardiScreen = ({ navigation, route }: any) => {
             onSave={handleSaveRoomName}
             gameType="Nardi"
           />
-      </LinearGradient>
 
       {/* In-game chat overlay (multiplayer only) */}
       <InGameChat
@@ -1496,7 +1491,7 @@ const NardiScreen = ({ navigation, route }: any) => {
         gameType="nardi"
         visible={isMultiplayer && mpStatus === 'playing' && !!roomId}
       />
-    </ImageBackground>
+    </View>
   );
 };
 
