@@ -15,6 +15,7 @@ import CardShuffleAnimation from '../../../components/CardShuffleAnimation';
 import RiffleDealAnimation from '../../../components/RiffleDealAnimation';
 import type { CardTheme } from '../../../components/DynamicCard';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Photosphere360Background from '../../../components/Photosphere360Background';
 
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {RootStackParamList} from '../../../navigation/AppNavigator';
@@ -1169,11 +1170,8 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
   };
 
   return (
-    <ImageBackground
-      source={require('../../../../assets/blot/park-background.png')}
-      style={styles.container}
-      resizeMode="cover"
-      blurRadius={showBlur ? 3 : 0}>
+    <View style={styles.container}>
+      <Photosphere360Background overlayOpacity={showBlur ? 0.65 : 0.3} />
       <SafeAreaView style={styles.safeArea}>
 
       {/* ── Connecting / Waiting Room Overlay ── */}
@@ -1548,7 +1546,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
       </Animated.View>
 
     </SafeAreaView>
-    </ImageBackground>
+    </View>
   );
 };
 

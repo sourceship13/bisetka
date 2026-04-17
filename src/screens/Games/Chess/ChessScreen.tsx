@@ -2,7 +2,7 @@ import React, {useState, useEffect, useRef} from 'react';
 import {View, Text, StyleSheet, TouchableOpacity, ImageBackground, Alert, Animated, ScrollView, Image} from 'react-native';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import LinearGradient from 'react-native-linear-gradient';
+import Photosphere360Background from '../../../components/Photosphere360Background';
 import ReAnimated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import ExpandableView from '../../../components/global/ExpandableView';
 import GameToolbar from '../../../components/global/GameToolbar';
@@ -427,15 +427,8 @@ const ChessScreen = ({navigation}: any) => {
   // Difficulty selection screen
   if (!difficulty || !gameState) {
     return (
-      <ImageBackground
-        source={require('../../../../assets/blot/park-background.png')}
-        style={styles.container}
-        blurRadius={3}
-      >
-        <LinearGradient
-          colors={['rgba(15,15,35,0.7)', 'rgba(26,23,66,0.6)']}
-          style={styles.overlay}
-        >
+      <View style={styles.container}>
+        <Photosphere360Background overlayOpacity={0.5} />
           <SafeAreaView style={styles.safeArea}>
             <GameToolbar title="Chess" onBack={() => navigation.goBack()} backgroundColor="transparent" />
 
@@ -473,22 +466,14 @@ const ChessScreen = ({navigation}: any) => {
           </TouchableOpacity>
         </View>
           </SafeAreaView>
-        </LinearGradient>
-      </ImageBackground>
+      </View>
     );
   }
 
   // Game screen
   return (
-    <ImageBackground
-      source={require('../../../../assets/blot/park-background.png')}
-      style={styles.container}
-      blurRadius={showBlur ? 3 : 0}
-    >
-      <LinearGradient
-        colors={showBlur ? ['rgba(15,15,35,0.7)', 'rgba(26,23,66,0.6)'] : ['transparent', 'transparent']}
-        style={styles.overlay}
-      >
+    <View style={styles.container}>
+      <Photosphere360Background overlayOpacity={showBlur ? 0.5 : 0.3} />
         <SafeAreaView style={styles.safeArea}>
           <View>
             <GameToolbar
@@ -654,7 +639,6 @@ const ChessScreen = ({navigation}: any) => {
         </ScrollView>
       </Animated.View>
         </SafeAreaView>
-      </LinearGradient>
 
       <GameThemeCustomizer
         visible={showCustomization}
@@ -663,7 +647,7 @@ const ChessScreen = ({navigation}: any) => {
         gameType="chess"
         initialTheme={gameTheme}
       />
-    </ImageBackground>
+    </View>
   );
 };
 

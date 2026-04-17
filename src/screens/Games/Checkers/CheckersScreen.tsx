@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, ImageBackground, Alert, Animated, ScrollView, Image } from 'react-native';
-import {SphereViewer, useAttitude} from '@sourceship13/react-native-capture360';
-
-const STUDIO_PANORAMA = require('../../../../assets/capture360/relax_inn_seaview_suite_2k.jpg');
+import Photosphere360Background from '../../../components/Photosphere360Background';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import ReAnimated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
@@ -103,7 +101,6 @@ function deserializeBoard(raw: any[][]): (Piece | null)[][] {
 const CheckersScreen = ({ navigation, route }: any) => {
   const { session, mode } = route.params;
   const { isTablet, isLandscape } = useDeviceType();
-  const attitude = useAttitude();
   
   // Calculate responsive board size
   const boardSize = getGameBoardSize(isTablet, isLandscape, 600, 32);
@@ -500,10 +497,7 @@ const CheckersScreen = ({ navigation, route }: any) => {
   if (isMultiplayer && (mpStatus==='connecting'||mpStatus==='searching'||mpStatus==='waiting')) {
     return (
       <View style={styles.container}>
-        <View style={StyleSheet.absoluteFill} pointerEvents="none">
-          <SphereViewer placeholderSource={STUDIO_PANORAMA} initialPitch={-5} attitude={attitude} gyroEnabled heightOffset={0.08} />
-          <View style={[StyleSheet.absoluteFill, {backgroundColor: 'rgba(0,0,0,0.4)'}]} />
-        </View>
+        <Photosphere360Background overlayOpacity={0.4} />
         <View style={styles.overlay}>
           <SafeAreaView style={styles.safeArea}>
             <GameToolbar title="Checkers" onBack={() => { navigation.goBack(); }} backgroundColor="transparent" />
@@ -548,10 +542,7 @@ const CheckersScreen = ({ navigation, route }: any) => {
   // ── board render ──────────────────────────────────────────────────────────
   return (
     <View style={styles.container}>
-      <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
-        <SphereViewer placeholderSource={STUDIO_PANORAMA} initialPitch={-5} attitude={attitude} gyroEnabled heightOffset={0.08} />
-        <View style={[StyleSheet.absoluteFill, {backgroundColor: showBlur ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0.3)'}]} pointerEvents="none" />
-      </View>
+      <Photosphere360Background overlayOpacity={showBlur ? 0.5 : 0.3} />
       <View style={styles.overlay} pointerEvents="box-none">
         <SafeAreaView style={styles.safeArea} pointerEvents="box-none">
           <View>
