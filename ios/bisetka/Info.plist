@@ -240,5 +240,9 @@
 	</array>
 	<key>MGLMapboxAccessToken</key>
 	<string>$(MAPBOX_ACCESS_TOKEN)</string>
+	<key>UIFileSharingEnabled</key>
+	<true/>
+	<key>LSSupportsOpeningDocumentsInPlace</key>
+	<true/>
 </dict>
 </plist>
