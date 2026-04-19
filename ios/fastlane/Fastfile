@@ -96,7 +96,14 @@ platform :ios do
       export_method: "app-store",
       output_directory: "./build",
       output_name: "bisetka.ipa",
-      clean: true
+      clean: true,
+      export_options: {
+        method: "app-store",
+        teamID: "CM52HNMXXW",
+        provisioningProfiles: {
+          "org.sera.dev.bisetka" => ENV["sigh_org.sera.dev.bisetka_appstore_profile-name"]
+        }
+      }
     )
     
     # Upload to TestFlight
