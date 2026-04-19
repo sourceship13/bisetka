@@ -509,7 +509,7 @@ const MultiplayerMrotsiScreen = ({navigation, route}: any) => {
           <TouchableOpacity style={styles.secondaryBtn} onPress={() => setShowJoinModal(true)}>
             <Text style={styles.secondaryBtnText}>Join with Code</Text>
           </TouchableOpacity>
-        </View>
+        </SafeAreaView>
 
         {/* Join modal */}
         <Modal visible={showJoinModal} transparent animationType="slide">
@@ -545,7 +545,6 @@ const MultiplayerMrotsiScreen = ({navigation, route}: any) => {
           onSave={handleSaveRoomName}
           gameType="Mrotsi"
         />
-      </SafeAreaView>
       </View>
     );
   }
