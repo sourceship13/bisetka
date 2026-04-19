@@ -17,7 +17,16 @@ platform :ios do
       readonly: true,
       app_identifier: "org.sera.dev.bisetka.staging"
     )
-    
+
+    # Force manual signing so Xcode uses the match profile
+    update_code_signing_settings(
+      use_automatic_signing: false,
+      path: "bisetka.xcodeproj",
+      team_id: "CM52HNMXXW",
+      code_sign_identity: "iPhone Distribution",
+      profile_name: "match AppStore org.sera.dev.bisetka.staging"
+    )
+
     # Build the app
     gym(
       workspace: "bisetka.xcworkspace",
@@ -57,7 +66,16 @@ platform :ios do
       readonly: true,
       app_identifier: "org.sera.dev.bisetka"
     )
-    
+
+    # Force manual signing so Xcode uses the match profile
+    update_code_signing_settings(
+      use_automatic_signing: false,
+      path: "bisetka.xcodeproj",
+      team_id: "CM52HNMXXW",
+      code_sign_identity: "iPhone Distribution",
+      profile_name: "match AppStore org.sera.dev.bisetka"
+    )
+
     # Auto-increment build number from latest TestFlight build
     build_num = latest_testflight_build_number(
       api_key_path: "./fastlane/api_key.json",
