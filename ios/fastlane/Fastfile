@@ -18,13 +18,13 @@ platform :ios do
       app_identifier: "org.sera.dev.bisetka.staging"
     )
 
-    # Force manual signing so Xcode uses the match profile
+    # Force manual signing so Xcode uses the match profile (env var set by match includes timestamp suffix)
     update_code_signing_settings(
       use_automatic_signing: false,
       path: "bisetka.xcodeproj",
       team_id: "CM52HNMXXW",
       code_sign_identity: "iPhone Distribution",
-      profile_name: "match AppStore org.sera.dev.bisetka.staging"
+      profile_name: ENV["sigh_org.sera.dev.bisetka.staging_appstore_profile-name"]
     )
 
     # Build the app
@@ -67,13 +67,13 @@ platform :ios do
       app_identifier: "org.sera.dev.bisetka"
     )
 
-    # Force manual signing so Xcode uses the match profile
+    # Force manual signing so Xcode uses the match profile (env var set by match includes timestamp suffix)
     update_code_signing_settings(
       use_automatic_signing: false,
       path: "bisetka.xcodeproj",
       team_id: "CM52HNMXXW",
       code_sign_identity: "iPhone Distribution",
-      profile_name: "match AppStore org.sera.dev.bisetka"
+      profile_name: ENV["sigh_org.sera.dev.bisetka_appstore_profile-name"]
     )
 
     # Auto-increment build number from latest TestFlight build
