@@ -74,6 +74,11 @@ export interface AR3DOverlayProps {
    * Falls back to a simple procedural table if omitted or if load fails.
    */
   tableGlbPath?: string;
+  /**
+   * Called when the user taps a square on the 3D board.
+   * Receives logical board coordinates (row 0–7, col 0–7) from Three.js raycasting.
+   */
+  onSquareTap?: (row: number, col: number) => void;
 }
 
 // ─── GLB URI resolver ─────────────────────────────────────────────────────────
@@ -248,6 +253,37 @@ const boardGroup = new THREE.Group();
 boardGroup.position.set(0, BOARD_Y, -TABLE_DIST);
 boardGroup.rotation.x = -Math.PI / 2;
 sceneGroup.add(boardGroup);
+
+// ── Invisible hit plane for raycasting — covers the board surface exactly ────
+const raycaster = new THREE.Raycaster();
+const hitPlane = new THREE.Mesh(
+  new THREE.PlaneGeometry(BOARD_HALF_W * 2, BOARD_HALF_H * 2),
+  new THREE.MeshBasicMaterial({ visible: false, side: THREE.DoubleSide })
+);
+boardGroup.add(hitPlane);
+
+function handleTap(clientX, clientY) {
+  const nx =  (clientX / window.innerWidth)  * 2 - 1;
+  const ny = -(clientY / window.innerHeight) * 2 + 1;
+  raycaster.setFromCamera(new THREE.Vector2(nx, ny), camera);
+  const hits = raycaster.intersectObject(hitPlane, false);
+  if (!hits.length) return;
+  // Convert world hit point → boardGroup local space
+  boardGroup.updateWorldMatrix(true, false);
+  const lp = boardGroup.worldToLocal(hits[0].point.clone());
+  const col = Math.floor((lp.x + BOARD_HALF_W) / SQUARE_W);
+  const row = Math.floor((BOARD_HALF_H - lp.y) / SQUARE_H);
+  if (row >= 0 && row < 8 && col >= 0 && col < 8) {
+    if (window.ReactNativeWebView) {
+      window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'tap', row, col }));
+    }
+  }
+}
+document.addEventListener('touchend', (e) => {
+  if (e.changedTouches.length > 0) {
+    handleTap(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+  }
+}, { passive: true });
 
 // ── Procedural fallback board ─────────────────────────────────────────────────
 function buildProceduralBoard() {
@@ -593,6 +629,7 @@ export default function AR3DOverlay({
   boardGlbPath,
   piecesGlbPath,
   tableGlbPath,
+  onSquareTap,
 }: AR3DOverlayProps) {
   const attitude = useSharedAttitude();
   const webViewRef = useRef<WebView>(null);
@@ -683,10 +720,21 @@ export default function AR3DOverlay({
     webViewRef.current?.injectJavaScript(`window.handleRNMessage(${msg});true;`);
   }, []);
 
+  // Handle messages posted from Three.js (raycasted board taps)
+  const handleMessage = useCallback((event: {nativeEvent: {data: string}}) => {
+    try {
+      const data = JSON.parse(event.nativeEvent.data);
+      if (data.type === 'tap' && onSquareTap) {
+        onSquareTap(data.row, data.col);
+      }
+    } catch (_) {}
+  }, [onSquareTap]);
+
   if (!visible || !html) return null;
 
   return (
-    <View style={StyleSheet.absoluteFill} pointerEvents="none">
+    // box-none: wrapper does not capture touches but WebView child does
+    <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
       <WebView
         key={`ar-overlay-${renderKey.current}`} // Force re-render when AR enables
         ref={webViewRef}
@@ -699,6 +747,7 @@ export default function AR3DOverlay({
         allowFileAccessFromFileURLs
         allowUniversalAccessFromFileURLs
         onLoadEnd={handleLoadEnd}
+        onMessage={handleMessage}
         onShouldStartLoadWithRequest={req =>
           req.url === 'about:blank' ||
           req.url.startsWith('http') ||
