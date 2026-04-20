@@ -586,7 +586,6 @@ const CheckersScreen = ({ navigation, route }: any) => {
           onSquareTap={handleArSquareTap}
           boardGlbPath="glb/chess/chess-board/source/ui.glb"
           piecesGlbPath="glb/checkers/checker_pieces.glb"
-          tableGlbPath="glb/park/table.glb"
         />
       </Photosphere360Background>
       <View style={styles.overlay} pointerEvents="box-none">
