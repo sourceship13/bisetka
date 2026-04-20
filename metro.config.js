@@ -19,6 +19,7 @@ const photospherePath = path.resolve(__dirname, '../bisetka_photosphere');
 const hasLocalPhotosphere = fs.existsSync(photospherePath);
 
 const config = {
+  projectRoot: path.resolve(__dirname),
   watchFolders: hasLocalPhotosphere ? [photospherePath] : [],
   resolver: {
     assetExts: [...defaultConfig.resolver.assetExts, 'vrm'],
