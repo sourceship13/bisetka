@@ -20,7 +20,14 @@ const hasLocalPhotosphere = fs.existsSync(photospherePath);
 
 const config = {
   projectRoot: path.resolve(__dirname),
-  watchFolders: hasLocalPhotosphere ? [photospherePath] : [],
+  // watchFolders must include projectRoot when useWatchman is false (CI),
+  // because the Node file crawler uses roots (watchFolders) and won't crawl
+  // projectRoot unless it's explicitly listed. Watchman handles this automatically,
+  // but the Node crawler returns empty results when roots is empty.
+  watchFolders: [
+    path.resolve(__dirname),
+    ...(hasLocalPhotosphere ? [photospherePath] : []),
+  ],
   resolver: {
     assetExts: [...defaultConfig.resolver.assetExts, 'vrm'],
     nodeModulesPaths: [path.resolve(__dirname, 'node_modules')],
