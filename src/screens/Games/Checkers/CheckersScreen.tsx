@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, ImageBackground, Alert, Animated, ScrollView, Image } from 'react-native';
 import Photosphere360Background from '../../../components/Photosphere360Background';
+import AR3DOverlay, { type ARPiece } from '../../../components/AR3DOverlay';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import ReAnimated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
@@ -130,6 +131,7 @@ const CheckersScreen = ({ navigation, route }: any) => {
   const [showCustomization, setShowCustomization] = useState(false);
   const [showBlur, setShowBlur] = useState(true);
   const [showBackground, setShowBackground] = useState(true);
+  const [arEnabled, setArEnabled] = useState(true);
   const toolbarExpanded = useSharedValue(false);
   const chevronStyle = useAnimatedStyle(() => ({
     transform: [{ rotate: withTiming(toolbarExpanded.value ? '180deg' : '0deg', { duration: 250 }) }],
@@ -236,6 +238,31 @@ const CheckersScreen = ({ navigation, route }: any) => {
       console.error('❌ Prize award error:', error);
     }
   };
+
+  // ── AR board mapping ─────────────────────────────────────────────────────
+  // Converts logical board (row, col) to an ARPiece for the 3D overlay.
+  // The coordinates stay in board-space; AR3DOverlay maps them to 3D world space.
+  const arPieces = useMemo<ARPiece[]>(() => {
+    const result: ARPiece[] = [];
+    gameState.board.forEach((row, r) => {
+      row.forEach((piece, c) => {
+        if (!piece) return;
+        // Only dark squares have pieces in checkers
+        if ((r + c) % 2 === 0) return;
+        result.push({
+          key: `${r}-${c}`,
+          row: r,
+          col: c,
+          color: piece.color,
+          isKing: piece.type === 'king',
+          isSelected:
+            gameState.selectedSquare?.row === r &&
+            gameState.selectedSquare?.col === c,
+        });
+      });
+    });
+    return result;
+  }, [gameState.board, gameState.selectedSquare]);
 
   const myPieceColor: PieceColor = mySocketColor === 'black' ? 'black' : 'red';
   const isMyTurn = isMultiplayer ? serverTurn === mySocketColor : gameState.currentPlayer === 'red';
@@ -542,7 +569,16 @@ const CheckersScreen = ({ navigation, route }: any) => {
   // ── board render ──────────────────────────────────────────────────────────
   return (
     <View style={styles.container}>
-      <Photosphere360Background overlayOpacity={showBlur ? 0.5 : 0.3} />
+      <Photosphere360Background overlayOpacity={showBlur ? 0.5 : 0.3}>
+        <AR3DOverlay
+          visible={arEnabled}
+          pieces={arPieces}
+          moves={gameState.possibleMoves}
+          boardGlbPath="glb/chess/chess-board/source/ui.glb"
+          piecesGlbPath="glb/checkers/checker_pieces.glb"
+          tableGlbPath="glb/park/table.glb"
+        />
+      </Photosphere360Background>
       <View style={styles.overlay} pointerEvents="box-none">
         <SafeAreaView style={styles.safeArea} pointerEvents="box-none">
           <View>
@@ -568,6 +604,7 @@ const CheckersScreen = ({ navigation, route }: any) => {
                   { icon: '🎨', onPress: () => setShowCustomization(true) },
                   { icon: showBlur ? '🌫️' : '✨', onPress: () => setShowBlur(!showBlur) },
                   { icon: showBackground ? '🖼️' : '🔲', onPress: () => setShowBackground(!showBackground) },
+                  { icon: arEnabled ? '🥽' : '🎮', onPress: () => setArEnabled(!arEnabled) },
                   { icon: '👥', onPress: togglePanel },
                   { icon: '🚪', onPress: toggleLeave },
                 ]}
@@ -585,46 +622,78 @@ const CheckersScreen = ({ navigation, route }: any) => {
       </View>
 
       <View style={styles.boardContainer} pointerEvents="box-none">
-        <ImageBackground
-          source={require('../../../../assets/chess/board.png')}
-          style={[styles.board, { width: boardSize, height: boardSize }]}
-          resizeMode="stretch"
-        >
-          <View style={styles.gridContainer}>
-          {Array(8).fill(null).map((_,dRow) => {
-            const logRow = myPieceColor==='black' ? 7-dRow : dRow;
-            return (
-              <View key={dRow} style={styles.row}>
-                {Array(8).fill(null).map((_,dCol) => {
-                  const logCol = myPieceColor==='black' ? 7-dCol : dCol;
-                  const piece = gameState.board[logRow]?.[logCol] ?? null;
-                  const isLight = (dRow+dCol)%2===0;
-                  const isSel = gameState.selectedSquare?.row===logRow && gameState.selectedSquare?.col===logCol;
-                  const isPoss = gameState.possibleMoves.some(m=>m.row===logRow&&m.col===logCol);
-                  return (
-                    <TouchableOpacity
-                      key={`${dRow}-${dCol}`}
-                      style={[
-                        styles.square,
-                        isSel && styles.selectedSquare,
-                        isPoss && styles.possibleMoveSquare,
-                      ]}
-                      onPress={() => handleSquarePress(dRow, dCol)}
-                      hitSlop={{top:2,bottom:2,left:2,right:2}}>
-                      {piece && (
-                        <View style={[styles.piece, piece.color==='red' ? styles.redPiece : styles.blackPiece, piece.type==='king' && styles.kingPiece]}>
-                          {piece.type==='king' && <Text style={styles.kingText}>♔</Text>}
-                        </View>
-                      )}
-                      {isPoss && !piece && <View style={styles.moveIndicator} />}
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            );
-          })}
+        {arEnabled ? (
+          // ── AR mode ── invisible touch-target grid; 3D overlay shows visuals
+          <View style={[styles.board, { width: boardSize, height: boardSize }]}>
+            <View style={styles.gridContainer}>
+              {Array(8).fill(null).map((_,dRow) => {
+                const logRow = myPieceColor==='black' ? 7-dRow : dRow;
+                return (
+                  <View key={dRow} style={styles.row}>
+                    {Array(8).fill(null).map((_,dCol) => {
+                      const logCol = myPieceColor==='black' ? 7-dCol : dCol;
+                      const isSel  = gameState.selectedSquare?.row===logRow && gameState.selectedSquare?.col===logCol;
+                      const isPoss = gameState.possibleMoves.some(m=>m.row===logRow&&m.col===logCol);
+                      return (
+                        <TouchableOpacity
+                          key={`${dRow}-${dCol}`}
+                          style={[
+                            styles.square,
+                            isSel  && styles.arSelectedSquare,
+                            isPoss && styles.arPossibleSquare,
+                          ]}
+                          onPress={() => handleSquarePress(dRow, dCol)}
+                          hitSlop={{top:4,bottom:4,left:4,right:4}} />
+                      );
+                    })}
+                  </View>
+                );
+              })}
+            </View>
           </View>
-        </ImageBackground>
+        ) : (
+          // ── 2D mode — full board image + piece rendering
+          <ImageBackground
+            source={require('../../../../assets/chess/board.png')}
+            style={[styles.board, { width: boardSize, height: boardSize }]}
+            resizeMode="stretch"
+          >
+            <View style={styles.gridContainer}>
+            {Array(8).fill(null).map((_,dRow) => {
+              const logRow = myPieceColor==='black' ? 7-dRow : dRow;
+              return (
+                <View key={dRow} style={styles.row}>
+                  {Array(8).fill(null).map((_,dCol) => {
+                    const logCol = myPieceColor==='black' ? 7-dCol : dCol;
+                    const piece = gameState.board[logRow]?.[logCol] ?? null;
+                    const isLight = (dRow+dCol)%2===0;
+                    const isSel = gameState.selectedSquare?.row===logRow && gameState.selectedSquare?.col===logCol;
+                    const isPoss = gameState.possibleMoves.some(m=>m.row===logRow&&m.col===logCol);
+                    return (
+                      <TouchableOpacity
+                        key={`${dRow}-${dCol}`}
+                        style={[
+                          styles.square,
+                          isSel && styles.selectedSquare,
+                          isPoss && styles.possibleMoveSquare,
+                        ]}
+                        onPress={() => handleSquarePress(dRow, dCol)}
+                        hitSlop={{top:2,bottom:2,left:2,right:2}}>
+                        {piece && (
+                          <View style={[styles.piece, piece.color==='red' ? styles.redPiece : styles.blackPiece, piece.type==='king' && styles.kingPiece]}>
+                            {piece.type==='king' && <Text style={styles.kingText}>♔</Text>}
+                          </View>
+                        )}
+                        {isPoss && !piece && <View style={styles.moveIndicator} />}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              );
+            })}
+            </View>
+          </ImageBackground>
+        )}
       </View>
 
       {gameState.isGameOver && (
@@ -770,6 +839,9 @@ const styles = StyleSheet.create({
   darkSquare:         { backgroundColor:'transparent' },
   selectedSquare:     { backgroundColor:'rgba(130, 151, 105, 0.6)' },
   possibleMoveSquare: { backgroundColor:'rgba(100, 111, 64, 0.5)' },
+  // AR mode touch-target overlays (invisible board; 3D overlay shows visuals)
+  arSelectedSquare:   { backgroundColor:'rgba(255,215,0,0.28)', borderWidth:1.5, borderColor:'rgba(255,215,0,0.70)' },
+  arPossibleSquare:   { backgroundColor:'rgba(255,255,255,0.14)' },
   piece:              { width:'70%', height:'70%', borderRadius:100, justifyContent:'center', alignItems:'center', borderWidth:2, borderColor:'#000' },
   redPiece:           { backgroundColor:'#e74c3c' },
   blackPiece:         { backgroundColor:'#2c3e50' },
