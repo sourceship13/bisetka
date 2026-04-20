@@ -20,10 +20,9 @@ const hasLocalPhotosphere = fs.existsSync(photospherePath);
 
 const config = {
   projectRoot: path.resolve(__dirname),
-  // watchFolders must include projectRoot when useWatchman is false (CI),
-  // because the Node file crawler uses roots (watchFolders) and won't crawl
-  // projectRoot unless it's explicitly listed. Watchman handles this automatically,
-  // but the Node crawler returns empty results when roots is empty.
+  // projectRoot must be in watchFolders so Metro's Node file crawler (used in CI
+  // when useWatchman:false) has it in `roots`. Watchman ignores this since it
+  // watches globally, but the Node crawler only crawls explicit roots.
   watchFolders: [
     path.resolve(__dirname),
     ...(hasLocalPhotosphere ? [photospherePath] : []),
@@ -31,10 +30,15 @@ const config = {
   resolver: {
     assetExts: [...defaultConfig.resolver.assetExts, 'vrm'],
     nodeModulesPaths: [path.resolve(__dirname, 'node_modules')],
+    // IMPORTANT: Never use [] for blockList. metro's getIgnorePattern() calls
+    // combine([]) which produces new RegExp("") — matching every path — causing
+    // ALL files to be ignored during the Node crawler crawl (SHA-1 error).
+    // Use / ^/ (space+caret, never matches a real path) when no list is needed.
     blockList: hasLocalPhotosphere
       ? [new RegExp(`^${path.resolve(photospherePath, 'node_modules').replace(/[/\\]/g, '[/\\\\]')}\\/.*`)]
-      : [],
-    // Disable Watchman in CI to avoid SHA-1 race condition on fresh runners
+      : / ^/,
+    // Disable Watchman in CI — Watchman's async crawl races against Metro's
+    // SHA-1 lookup on fresh runners. Node crawler is synchronous, no race.
     useWatchman: !process.env.CI,
   },
 };
