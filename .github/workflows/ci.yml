@@ -57,10 +57,14 @@ jobs:
             --arg issuer_id "$APP_STORE_ISSUER_ID" \
             --arg key "$APP_STORE_API_KEY_CONTENT" \
             '{key_id: $key_id, issuer_id: $issuer_id, key: $key}' > api_key.json
-      - name: Pre-warm Watchman for Metro bundler
+      - name: Pre-bundle React Native JS (warms Watchman/Metro cache)
         run: |
-          watchman watch $GITHUB_WORKSPACE || true
-          watchman watch-project $GITHUB_WORKSPACE || true
+          npx react-native bundle \
+            --entry-file index.js \
+            --platform ios \
+            --dev false \
+            --bundle-output /tmp/main.jsbundle \
+            --assets-dest /tmp/rn-assets
       - name: Build and Deploy iOS with Fastlane
         env:
           MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
