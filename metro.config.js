@@ -28,6 +28,9 @@ const config = {
       ? [new RegExp(`^${path.resolve(photospherePath, 'node_modules').replace(/[/\\]/g, '[/\\\\]')}\\/.*`)]
       : [],
   },
+  // Disable Watchman in CI to avoid SHA-1 race condition on fresh runners.
+  // Metro falls back to the Node filesystem crawler which is synchronous.
+  ...(process.env.CI ? { watchman: false } : {}),
 };
 
 module.exports = withSentryConfig(
