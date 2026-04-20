@@ -520,6 +520,15 @@ const CheckersScreen = ({ navigation, route }: any) => {
     }
   }, [gameState, isMyTurn, myPieceColor, mpStatus, roomId, isMultiplayer, mode, userId]);
 
+  // ── AR board tap (raycasted logical coords from Three.js) ─────────────────
+  // Raycasting delivers logical (row, col) directly; handleSquarePress expects
+  // display coords, so we invert the flip before passing through.
+  const handleArSquareTap = useCallback((logRow: number, logCol: number) => {
+    const dRow = myPieceColor === 'black' ? 7 - logRow : logRow;
+    const dCol = myPieceColor === 'black' ? 7 - logCol : logCol;
+    handleSquarePress(dRow, dCol);
+  }, [myPieceColor, handleSquarePress]);
+
   // ── matchmaking / waiting screen ──────────────────────────────────────────
   if (isMultiplayer && (mpStatus==='connecting'||mpStatus==='searching'||mpStatus==='waiting')) {
     return (
@@ -574,6 +583,7 @@ const CheckersScreen = ({ navigation, route }: any) => {
           visible={arEnabled}
           pieces={arPieces}
           moves={gameState.possibleMoves}
+          onSquareTap={handleArSquareTap}
           boardGlbPath="glb/chess/chess-board/source/ui.glb"
           piecesGlbPath="glb/checkers/checker_pieces.glb"
           tableGlbPath="glb/park/table.glb"
@@ -623,34 +633,8 @@ const CheckersScreen = ({ navigation, route }: any) => {
 
       <View style={styles.boardContainer} pointerEvents="box-none">
         {arEnabled ? (
-          // ── AR mode ── invisible touch-target grid; 3D overlay shows visuals
-          <View style={[styles.board, { width: boardSize, height: boardSize }]}>
-            <View style={styles.gridContainer}>
-              {Array(8).fill(null).map((_,dRow) => {
-                const logRow = myPieceColor==='black' ? 7-dRow : dRow;
-                return (
-                  <View key={dRow} style={styles.row}>
-                    {Array(8).fill(null).map((_,dCol) => {
-                      const logCol = myPieceColor==='black' ? 7-dCol : dCol;
-                      const isSel  = gameState.selectedSquare?.row===logRow && gameState.selectedSquare?.col===logCol;
-                      const isPoss = gameState.possibleMoves.some(m=>m.row===logRow&&m.col===logCol);
-                      return (
-                        <TouchableOpacity
-                          key={`${dRow}-${dCol}`}
-                          style={[
-                            styles.square,
-                            isSel  && styles.arSelectedSquare,
-                            isPoss && styles.arPossibleSquare,
-                          ]}
-                          onPress={() => handleSquarePress(dRow, dCol)}
-                          hitSlop={{top:4,bottom:4,left:4,right:4}} />
-                      );
-                    })}
-                  </View>
-                );
-              })}
-            </View>
-          </View>
+          // ── AR mode ── touches handled by Three.js raycasting in WebView
+          <View style={[styles.board, { width: boardSize, height: boardSize }]} pointerEvents="none" />
         ) : (
           // ── 2D mode — full board image + piece rendering
           <ImageBackground
