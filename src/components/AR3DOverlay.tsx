@@ -26,7 +26,7 @@
  *   </Photosphere360Background>
  */
 
-import React, {useRef, useEffect, useState, useMemo} from 'react';
+import React, {useRef, useEffect, useState, useMemo, useCallback} from 'react';
 import {StyleSheet, View, NativeModules, Platform} from 'react-native';
 import WebView from 'react-native-webview';
 import RNFS from 'react-native-fs';
@@ -659,12 +659,26 @@ export default function AR3DOverlay({
     );
   }, [attitude.yaw, attitude.pitch, attitude.roll, visible, html]);
 
+  // Keep latest pieces/moves in a ref so onLoadEnd can access them without stale closure
+  const latestPiecesRef = useRef(pieces);
+  const latestMovesRef  = useRef(moves);
+  latestPiecesRef.current = pieces;
+  latestMovesRef.current  = moves;
+
   // Push board state on every piece/move change
   useEffect(() => {
     if (!visible || !html) return;
     const msg = JSON.stringify({type: 'scene', pieces, moves});
     webViewRef.current?.injectJavaScript(`window.handleRNMessage(${msg});true;`);
   }, [pieces, moves, visible, html]);
+
+  // Re-send pieces once the WebView has finished loading (Three.js CDN async import).
+  // The useEffect above may fire before handleRNMessage is registered, so this
+  // guarantees pieces appear after the module script has run.
+  const handleLoadEnd = useCallback(() => {
+    const msg = JSON.stringify({type: 'scene', pieces: latestPiecesRef.current, moves: latestMovesRef.current});
+    webViewRef.current?.injectJavaScript(`window.handleRNMessage(${msg});true;`);
+  }, []);
 
   if (!visible || !html) return null;
 
@@ -681,6 +695,7 @@ export default function AR3DOverlay({
         allowFileAccess
         allowFileAccessFromFileURLs
         allowUniversalAccessFromFileURLs
+        onLoadEnd={handleLoadEnd}
         onShouldStartLoadWithRequest={req =>
           req.url === 'about:blank' ||
           req.url.startsWith('http') ||
