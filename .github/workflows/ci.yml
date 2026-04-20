@@ -57,7 +57,9 @@ jobs:
             --arg issuer_id "$APP_STORE_ISSUER_ID" \
             --arg key "$APP_STORE_API_KEY_CONTENT" \
             '{key_id: $key_id, issuer_id: $issuer_id, key: $key}' > api_key.json
-      - name: Pre-bundle React Native JS (warms Watchman/Metro cache)
+      - name: Pre-bundle React Native JS (warms Metro cache, no Watchman)
+        env:
+          WATCHMAN_BINARY: /nonexistent/watchman
         run: |
           npx react-native bundle \
             --entry-file index.js \
@@ -70,6 +72,7 @@ jobs:
           MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
           MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
           APP_STORE_API_KEY_ID: ${{ secrets.APP_STORE_API_KEY_ID }}
+          WATCHMAN_BINARY: /nonexistent/watchman
         run: |
           cd ios
           bundle exec fastlane production
