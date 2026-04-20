@@ -69,7 +69,7 @@ export interface AR3DOverlayProps {
   piecesGlbPath?: string;
   /**
    * Path relative to assets/ folder for the park table GLB.
-   * e.g. "glb/park/table.glb"
+   * e.g. "glb/park/tableCoffeeGlassSquare.glb"
    * Table is placed at the centre of the 360° sphere; board sits on top of it.
    * Falls back to a simple procedural table if omitted or if load fails.
    */
@@ -105,11 +105,10 @@ async function resolveAssetUri(assetPath: string): Promise<string | null> {
       const match = scriptUrl.match(/^(https?:\/\/[^/:]+(?::\d+)?)/);
       const base = match ? match[1] : 'http://localhost:8081';
 
-      // Try cache first — avoids re-download on hot-reload
-      const cached = await RNFS.exists(tempPath);
-      if (cached) {
-        const b64 = await RNFS.readFile(tempPath, 'base64');
-        return `data:model/gltf-binary;base64,${b64}`;
+      // In dev, always re-download so asset changes are picked up immediately.
+      // Delete any stale cached copy first.
+      if (await RNFS.exists(tempPath)) {
+        await RNFS.unlink(tempPath).catch(() => {});
       }
 
       for (const url of [
@@ -149,6 +148,10 @@ async function resolveAssetUri(assetPath: string): Promise<string | null> {
 
 // ─── Three.js WebView HTML ────────────────────────────────────────────────────
 
+// tableCoffeeGlassSquare.glb (9 KB) — Kenney furniture-kit, embedded as base64
+// so it loads guaranteed on device without any Metro/bundle asset resolution.
+const EMBEDDED_COFFEE_TABLE_URI = 'data:model/gltf-binary;base64,Z2xURgIAAADoJAAAPAcAAEpTT057ImV4dGVuc2lvbnNVc2VkIjpbIktIUl9tYXRlcmlhbHNfdW5saXQiXSwiYXNzZXQiOnsiZ2VuZXJhdG9yIjoiVW5pR0xURi0xLjI0IiwidmVyc2lvbiI6IjIuMCJ9LCJidWZmZXJzIjpbeyJieXRlTGVuZ3RoIjo3NTY4fV0sImJ1ZmZlclZpZXdzIjpbeyJidWZmZXIiOjAsImJ5dGVPZmZzZXQiOjAsImJ5dGVMZW5ndGgiOjIyMDgsInRhcmdldCI6MzQ5NjJ9LHsiYnVmZmVyIjowLCJieXRlT2Zmc2V0IjoyMjA4LCJieXRlTGVuZ3RoIjoyMjA4LCJ0YXJnZXQiOjM0OTYyfSx7ImJ1ZmZlciI6MCwiYnl0ZU9mZnNldCI6NDQxNiwiYnl0ZUxlbmd0aCI6MTQ3MiwidGFyZ2V0IjozNDk2Mn0seyJidWZmZXIiOjAsImJ5dGVPZmZzZXQiOjU4ODgsImJ5dGVMZW5ndGgiOjE2MzIsInRhcmdldCI6MzQ5NjN9LHsiYnVmZmVyIjowLCJieXRlT2Zmc2V0Ijo3NTIwLCJieXRlTGVuZ3RoIjo0OCwidGFyZ2V0IjozNDk2M31dLCJhY2Nlc3NvcnMiOlt7ImJ1ZmZlclZpZXciOjAsImJ5dGVPZmZzZXQiOjAsInR5cGUiOiJWRUMzIiwiY29tcG9uZW50VHlwZSI6NTEyNiwiY291bnQiOjE4NCwibWF4IjpbLTAuMDYwOTk2MDgsMC4yMywwLjFdLCJtaW4iOlstMC40NjA5OTYxLC0zLjYwOTU1N0UtMTYsLTAuM10sIm5vcm1hbGl6ZWQiOmZhbHNlfSx7ImJ1ZmZlclZpZXciOjEsImJ5dGVPZmZzZXQiOjAsInR5cGUiOiJWRUMzIiwiY29tcG9uZW50VHlwZSI6NTEyNiwiY291bnQiOjE4NCwibm9ybWFsaXplZCI6ZmFsc2V9LHsiYnVmZmVyVmlldyI6MiwiYnl0ZU9mZnNldCI6MCwidHlwZSI6IlZFQzIiLCJjb21wb25lbnRUeXBlIjo1MTI2LCJjb3VudCI6MTg0LCJub3JtYWxpemVkIjpmYWxzZX0seyJidWZmZXJWaWV3IjozLCJieXRlT2Zmc2V0IjowLCJ0eXBlIjoiU0NBTEFSIiwiY29tcG9uZW50VHlwZSI6NTEyNSwiY291bnQiOjQwOCwibm9ybWFsaXplZCI6ZmFsc2V9LHsiYnVmZmVyVmlldyI6NCwiYnl0ZU9mZnNldCI6MCwidHlwZSI6IlNDQUxBUiIsImNvbXBvbmVudFR5cGUiOjUxMjUsImNvdW50IjoxMiwibm9ybWFsaXplZCI6ZmFsc2V9XSwibWF0ZXJpYWxzIjpbeyJuYW1lIjoibWV0YWwiLCJwYnJNZXRhbGxpY1JvdWdobmVzcyI6eyJiYXNlQ29sb3JGYWN0b3IiOlswLjc0MDYxMDU0LDAuODIyODY2NzM4LDAuODM5NjIyNiwxXSwibWV0YWxsaWNGYWN0b3IiOjAsInJvdWdobmVzc0ZhY3RvciI6MX0sImVtaXNzaXZlRmFjdG9yIjpbMCwwLDBdLCJkb3VibGVTaWRlZCI6ZmFsc2UsImFscGhhTW9kZSI6Ik9QQVFVRSJ9LHsibmFtZSI6ImdsYXNzIiwicGJyTWV0YWxsaWNSb3VnaG5lc3MiOnsiYmFzZUNvbG9yRmFjdG9yIjpbMC42OTgwMzkyMzQsMC44Mjc0NTEsMC43Njg2Mjc0NjUsMC41XSwibWV0YWxsaWNGYWN0b3IiOjAsInJvdWdobmVzc0ZhY3RvciI6MX0sImVtaXNzaXZlRmFjdG9yIjpbMCwwLDBdLCJkb3VibGVTaWRlZCI6ZmFsc2UsImFscGhhTW9kZSI6IkJMRU5EIn1dLCJtZXNoZXMiOlt7Im5hbWUiOiJNZXNoIHRhYmxlQ29mZmVlR2xhc3NTcXVhcmUiLCJwcmltaXRpdmVzIjpbeyJtb2RlIjo0LCJpbmRpY2VzIjozLCJhdHRyaWJ1dGVzIjp7IlBPU0lUSU9OIjowLCJOT1JNQUwiOjEsIlRFWENPT1JEXzAiOjJ9LCJtYXRlcmlhbCI6MH0seyJtb2RlIjo0LCJpbmRpY2VzIjo0LCJhdHRyaWJ1dGVzIjp7IlBPU0lUSU9OIjowLCJOT1JNQUwiOjEsIlRFWENPT1JEXzAiOjJ9LCJtYXRlcmlhbCI6MX1dfV0sIm5vZGVzIjpbeyJuYW1lIjoidGFibGVDb2ZmZWVHbGFzc1NxdWFyZShDbG9uZSkiLCJ0cmFuc2xhdGlvbiI6WzAsMCwwXSwicm90YXRpb24iOlsw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AAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAACAvwAAAIAAAAAAAACAvwAAAIAAAAAAAACAvwAAAIAAAAAAAACAvwAAAIAAAAAAAACAPwAAAIAAAAAAAACAPwAAAIAAAAAAAACAPwAAAIAAAAAAAACAPwAAAIAAAAAAAACAPwAAAIAAAAAAAACAPwAAAIAAAAAAAACAPwAAAIAAAAAAAACAPwAAAIAAAIA/AAAAAAAAAIAAAIA/AAAAAAAAAIAAAIA/AAAAAAAAAIAAAIA/AAAAAAAAAIAAAIA/AAAAAAAAAIAAAIA/AAAAAAAAAIAAAIA/AAAAAAAAAIAAAIA/AAAAAAAAAIAAAIA/AAAAAAAAAIAAAIA/AAAAAAAAAIAAAIA/AAAAAAAAAIAAAIA/AAAAAAAAAIAAAIC/AAAAAAAAAIAAAIC/AAAAAAAAAIAAAIC/AAAAAAAAAIAAAIC/AAAAAAAAAIAAAIC/AAAAAAAAAIAAAIC/AAAAAAAAAIAAAIC/AAAAAAAAAIAAAIC/AAAAAAAAAIAAAIC/AAAAAAAAAIAAAIC/AAAAAAAAAIAAAIC/AAAAAAAAAIAAAIC/AAAAAAAAAIAAAIC/AAAAAAAAAIAAAAAAAACAvwAAAIAAAAAAAACAvwAAAIAAAAAAAACAvwAAAIAAAAAAAACAvwAAAIAAAAAAAACAvwAAAIAAAAAAAACAvwAAAIAAAAAAAACAvwAAAIAAAAAAAACAvwAAAIAAAAAAAACAvwAAAIAAAAAAAACAvwAAAIAAAAAAAACAvwAAAIAAAAAAAACAvwAAAIAAAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAACAvwAAAIAAAAAAAACAvwAAAIAAAAAAAACAvwAAAIAAAAAAAACAvwAAAIAAAAAAAACAvwAAAIAAAAAAAACAvwAAAIAAAAAAAACAvwAAAIAAAAAAAACAvwAAAIAAAIA/AAAAAAAAAIAAAIA/AAAAAAAAAIAAAIA/AAAAAAAAAIAAAIA/AAAAAAAAAIAAAIA/AAAAAAAAAIAAAIA/AAAAAAAAAIAAAIA/AAAAAAAAAIAAAIA/AAAAAAAAAIAAAIA/AAAAAAAAAIAAAIA/AAAAAAAAAIAAAIA/AAAAAAAAAIAAAIA/AAAAAAAAAIAAAIA/AAAAAAAAAIAAAIA/AAAAAAAAAIAAAIA/AAAAAAAAAIAAAIA/AAAAAAAAAIAAAIA/AAAAAAAAAIAAAIA/AAAAAAAAAIAAAIC/AAAAAAAAAIAAAIC/AAAAAAAAAIAAAIC/AAAAAAAAAIAAAIC/AAAAAAAAAIAAAIC/AAAAAAAAAIAAAIC/AAAAAAAAAIAAAIC/AAAAAAAAAIAAAIC/AAAAAAAAAIAAAIC/AAAAAAAAAIAAAIC/AAAAAAAAAIAAAIC/AAAAAAAAAIAAAIC/AAAAAAAAAIAAAIC/AAAAAAAAAIAAAIC/AAAAAAAAAIAAAIC/AAAAAAAAAIAAAIC/AAAAAAAAAIAAAIC/AAAAAAAAAIAAAIC/AAAAAAAAAIAAAAAAAACAvwAAAIAAAAAAAACAvwAAAIAAAAAAAACAvwAAAIAAAAAAAACAvwAAAIAAAAAAAACAPwAAAIAAAAAAAACAPwAAAIAAAAAAAACAPwAAAIAAAAAAAACAPwAAAIAAAAAAAACAPwAAAIAAAAAAAACAPwAAAIAAAAAAAACAPwAAAIAAAAAAAACAPwAAAIAAAAAAAACAPwAAAIAAAAAAAACAPwAAAIAAAAAAAACAPwAAAIAAAAAAAACAPwAAAIAAAAAAAAAAAAAAgL8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAgL8AAAAAAACAvwAAAIAAAAAA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ggAAAIQAAACDAAAAdAAAAIMAAACEAAAAhQAAAIgAAACHAAAAhgAAAIcAAACIAAAAiQAAAIsAAACKAAAAhgAAAIoAAACLAAAAjAAAAIcAAACOAAAAjQAAAI4AAACHAAAAjwAAAJEAAACIAAAAkAAAAIgAAACRAAAAkgAAAJMAAACQAAAAigAAAJAAAACTAAAAlAAAAJYAAACVAAAAiQAAAJUAAACWAAAAlwAAAJoAAACZAAAAmAAAAJkAAACaAAAAmwAAAJ4AAACdAAAAnAAAAJ0AAACeAAAAnwAAAJ0AAAChAAAAoAAAAKEAAACdAAAAogAAAKQAAACjAAAAnAAAAKMAAACkAAAApQAAAKYAAACkAAAAoAAAAKQAAACmAAAApwAAAKoAAACpAAAAqAAAAKkAAACqAAAAqwAAAKsAAACqAAAArAAAAKsAAACsAAAArQAAAKwAAACqAAAArgAAAK4AAACqAAAArwAAALAAAACtAAAArAAAALEAAACtAAAAsAAAALEAAACwAAAArwAAALEAAACvAAAAqgAAALIAAACtAAAAsQAAAK0AAACyAAAAswAAADgAAAA6AAAANQAAADoAAAA4AAAAOQAAALYAAAC1AAAAtAAAALcAAAC0AAAAtQAAAA==';
+
 function buildSceneHTML(
   fov: number,
   boardUri:   string | null,
@@ -158,7 +161,8 @@ function buildSceneHTML(
 ): string {
   const BOARD_URI_JS  = boardUri  ? JSON.stringify(boardUri)  : 'null';
   const PIECES_URI_JS = piecesUri ? JSON.stringify(piecesUri) : 'null';
-  const TABLE_URI_JS  = tableUri  ? JSON.stringify(tableUri)  : 'null';
+  // Always use the embedded coffee table — falls back from external if provided
+  const TABLE_URI_JS  = JSON.stringify(tableUri ?? EMBEDDED_COFFEE_TABLE_URI);
 
   return `<!DOCTYPE html>
 <html>
@@ -221,14 +225,9 @@ const camRim = new THREE.DirectionalLight(0xffe0a0, 0.28);
 camRim.position.set(0, -1, -3); camera.add(camRim);
 
 // ── World-space constants (1 unit ≈ 1 metre) ─────────────────────────────────
-const TABLE_SCALE      = 0.40;   // table.glb raw size ~4.5m → scaled to ~1.8m
-const TABLE_DIST       = 1.5;    // metres in front of player (sceneGroup local -Z)
-const TABLE_GLB_YMIN   = -1.0;   // foot of the table in GLB local space
-const TABLE_GLB_YTOP   =  3.212; // tabletop surface in GLB local space
-const FLOOR_Y          = -2.7;   // 2.7m below viewer eye level → surface ~1m below eye
-const TABLE_ORIGIN_Y   = FLOOR_Y - TABLE_GLB_YMIN * TABLE_SCALE;           // -2.3
-const TABLE_SURFACE_Y  = TABLE_ORIGIN_Y + TABLE_GLB_YTOP * TABLE_SCALE;    // -1.015
-const BOARD_Y  = TABLE_SURFACE_Y + 0.025;  // board just above tabletop
+const TABLE_DIST = 0.9;    // metres in front of player
+const BOARD_Y    = -0.65;  // chest level (approx 65cm below eye level)
+const BOARD_THICKNESS = 0.045; // slab depth — pieces must sit above BOARD_THICKNESS/2
 const BOARD_HALF   = 0.35;  // 70 cm half-width (fits on 1.8m table)
 const BOARD_HALF_W = BOARD_HALF;
 const BOARD_HALF_H = BOARD_HALF;
@@ -287,8 +286,10 @@ document.addEventListener('touchend', (e) => {
 
 // ── Procedural fallback board ─────────────────────────────────────────────────
 function buildProceduralBoard() {
+  const THICKNESS = BOARD_THICKNESS; // board depth — gives it a solid slab look
+  // Solid slab body
   boardGroup.add(new THREE.Mesh(
-    new THREE.PlaneGeometry(BOARD_HALF_W*2+0.04, BOARD_HALF_H*2+0.04),
+    new THREE.BoxGeometry(BOARD_HALF_W*2+0.04, BOARD_HALF_H*2+0.04, THICKNESS),
     new THREE.MeshStandardMaterial({ color:0x3b2206, roughness:0.75, metalness:0.06 })
   ));
   const lMat = new THREE.MeshStandardMaterial({ color:0xe8d5b5, roughness:0.5,  metalness:0.04 });
@@ -296,51 +297,31 @@ function buildProceduralBoard() {
   const sqGeo = new THREE.PlaneGeometry(SQUARE_W*0.97, SQUARE_H*0.97);
   for (let r=0;r<8;r++) for (let c=0;c<8;c++) {
     const sq = new THREE.Mesh(sqGeo, (r+c)%2===0 ? lMat : dMat);
-    sq.position.set(-BOARD_HALF_W+(c+0.5)*SQUARE_W, BOARD_HALF_H-(r+0.5)*SQUARE_H, 0.001);
+    sq.position.set(-BOARD_HALF_W+(c+0.5)*SQUARE_W, BOARD_HALF_H-(r+0.5)*SQUARE_H, THICKNESS/2+0.001);
     boardGroup.add(sq);
   }
   const rimLine = new THREE.LineSegments(
-    new THREE.EdgesGeometry(new THREE.BoxGeometry(BOARD_HALF_W*2+0.03, BOARD_HALF_H*2+0.03, 0.005)),
+    new THREE.EdgesGeometry(new THREE.BoxGeometry(BOARD_HALF_W*2+0.03, BOARD_HALF_H*2+0.03, THICKNESS+0.002)),
     new THREE.LineBasicMaterial({ color:0xd4af37 })
   );
-  rimLine.position.z = 0.003;
+  rimLine.position.z = 0.001;
   boardGroup.add(rimLine);
 }
 
 // ── Load GLB assets ─────────────────────────────────────────────────────────────────
 const BOARD_URI  = ${BOARD_URI_JS};
 const PIECES_URI = ${PIECES_URI_JS};
-const TABLE_URI  = ${TABLE_URI_JS};
 const loader     = new GLTFLoader();
 
-// Load TABLE (world-space)
-function buildProceduralTable() {
-  const wood  = new THREE.MeshStandardMaterial({ color:0x8B5E3C, roughness:0.65, metalness:0.04 });
-  const metal = new THREE.MeshStandardMaterial({ color:0x505050, roughness:0.40, metalness:0.60 });
-  const tw = BOARD_HALF_W * 2.8, td = BOARD_HALF_H * 2.8;
-  const top = new THREE.Mesh(new THREE.BoxGeometry(tw, 0.04, td), wood);
-  top.position.set(0, TABLE_SURFACE_Y - 0.02, -TABLE_DIST);
-  top.castShadow = top.receiveShadow = true;
-  sceneGroup.add(top);
-  const legH = TABLE_SURFACE_Y - FLOOR_Y;
-  const legGeo = new THREE.CylinderGeometry(0.025, 0.025, legH, 8);
-  [[tw/2-0.05, td/2-0.05],[-(tw/2-0.05), td/2-0.05],
-   [tw/2-0.05,-(td/2-0.05)],[-(tw/2-0.05),-(td/2-0.05)]].forEach(([lx,lz])=>{
-    const leg = new THREE.Mesh(legGeo, metal);
-    leg.position.set(lx, FLOOR_Y + legH/2, -TABLE_DIST + lz);
-    sceneGroup.add(leg);
-  });
+
+function _rnLog(msg) {
+  if (window.ReactNativeWebView) {
+    window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'log', msg }));
+  }
 }
 
-if (TABLE_URI) {
-  // TEMP: Use procedural table to debug
-  console.warn('[AR3DOverlay] Using procedural table instead of GLB for debugging');
-  buildProceduralTable();
-} else {
-  buildProceduralTable();
-}
 
-// ── Load BOARD (in boardGroup — world-space, flat) ───────────────────────────
+// ── Load BOARD
 if (BOARD_URI) {
   loader.load(BOARD_URI, (gltf) => {
     const model = gltf.scene;
@@ -423,18 +404,16 @@ if (PIECES_URI) {
     const center = box.getCenter(new THREE.Vector3());
     model.position.set(-center.x/maxDim, -(box.min.y/maxDim), -center.z/maxDim);
     basePieceScene = model;
-    // Flush any update that was waiting for the GLB to load
-    if (pendingPiecesUpdate) {
-      updatePieces(pendingPiecesUpdate);
-      pendingPiecesUpdate = null;
-    }
+    // Flush pending update — fall back to window._pieces if no explicit queue
+    const toFlush = pendingPiecesUpdate || window._pieces || [];
+    pendingPiecesUpdate = null;
+    updatePieces(toFlush);
   }, undefined, () => {
     // Pieces GLB failed — clonePiece() will use fallback geometry
     console.warn('[AR3DOverlay] pieces GLB load failed, using procedural discs');
-    if (pendingPiecesUpdate) {
-      updatePieces(pendingPiecesUpdate);
-      pendingPiecesUpdate = null;
-    }
+    const toFlush = pendingPiecesUpdate || window._pieces || [];
+    pendingPiecesUpdate = null;
+    updatePieces(toFlush);
   });
 }
 
@@ -487,7 +466,7 @@ function boardToLocal(row, col) {
   return [
     -BOARD_HALF_W + (col + 0.5) * SQUARE_W,
      BOARD_HALF_H - (row + 0.5) * SQUARE_H,
-     0.010,  // BG local Z → world Y: piece center just above board surface
+     BOARD_THICKNESS / 2 + 0.010,  // above the top face of the slab
   ];
 }
 
@@ -684,11 +663,12 @@ export default function AR3DOverlay({
     return () => { cancelled = true; };
   }, [tableGlbPath]);
 
-  // Build HTML once all three URIs are resolved AND spawn yaw is captured
+  // Build HTML once board + pieces URIs are resolved AND spawn yaw is captured.
+  // Table is always embedded so we don't block on tableUri.
   const html = useMemo(() => {
-    if (boardUri === undefined || piecesUri === undefined || tableUri === undefined) return null;
+    if (boardUri === undefined || piecesUri === undefined) return null;
     if (spawnYaw === null) return null;
-    return buildSceneHTML(fov, boardUri, piecesUri, tableUri, spawnYaw);
+    return buildSceneHTML(fov, boardUri, piecesUri, tableUri ?? null, spawnYaw);
   }, [fov, boardUri, piecesUri, tableUri, spawnYaw]);
 
   // Push gyro attitude at ~60fps
@@ -715,9 +695,15 @@ export default function AR3DOverlay({
   // Re-send pieces once the WebView has finished loading (Three.js CDN async import).
   // The useEffect above may fire before handleRNMessage is registered, so this
   // guarantees pieces appear after the module script has run.
+  // Retry every 500ms for up to 5s in case the pieces GLB CDN import is still loading.
   const handleLoadEnd = useCallback(() => {
-    const msg = JSON.stringify({type: 'scene', pieces: latestPiecesRef.current, moves: latestMovesRef.current});
-    webViewRef.current?.injectJavaScript(`window.handleRNMessage(${msg});true;`);
+    const sendPieces = () => {
+      const msg = JSON.stringify({type: 'scene', pieces: latestPiecesRef.current, moves: latestMovesRef.current});
+      webViewRef.current?.injectJavaScript(`window.handleRNMessage(${msg});true;`);
+    };
+    sendPieces();
+    const retryDelays = [500, 1000, 1500, 2500, 4000];
+    retryDelays.forEach(delay => setTimeout(sendPieces, delay));
   }, []);
 
   // Handle messages posted from Three.js (raycasted board taps)
@@ -726,6 +712,8 @@ export default function AR3DOverlay({
       const data = JSON.parse(event.nativeEvent.data);
       if (data.type === 'tap' && onSquareTap) {
         onSquareTap(data.row, data.col);
+      } else if (data.type === 'log') {
+        console.log(data.msg);
       }
     } catch (_) {}
   }, [onSquareTap]);
