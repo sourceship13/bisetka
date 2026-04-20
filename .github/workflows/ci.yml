@@ -61,6 +61,8 @@ jobs:
         env:
           WATCHMAN_BINARY: /nonexistent/watchman
         run: |
+          # Kill watchman daemon so Metro falls back to Node file watcher (avoids SHA-1 race condition)
+          watchman shutdown-server || true
           npx react-native bundle \
             --entry-file index.js \
             --platform ios \
@@ -74,6 +76,7 @@ jobs:
           APP_STORE_API_KEY_ID: ${{ secrets.APP_STORE_API_KEY_ID }}
           WATCHMAN_BINARY: /nonexistent/watchman
         run: |
+          watchman shutdown-server || true
           cd ios
           bundle exec fastlane production
       - name: Upload build logs on failure
