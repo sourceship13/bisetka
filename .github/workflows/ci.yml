@@ -57,6 +57,10 @@ jobs:
             --arg issuer_id "$APP_STORE_ISSUER_ID" \
             --arg key "$APP_STORE_API_KEY_CONTENT" \
             '{key_id: $key_id, issuer_id: $issuer_id, key: $key}' > api_key.json
+      - name: Pre-warm Watchman for Metro bundler
+        run: |
+          watchman watch $GITHUB_WORKSPACE || true
+          watchman watch-project $GITHUB_WORKSPACE || true
       - name: Build and Deploy iOS with Fastlane
         env:
           MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
@@ -68,17 +72,21 @@ jobs:
       - name: Upload build logs on failure
         if: failure()
         run: |
-          echo "=== GYM LOG (last 500 lines) ==="
           GYM_LOG=$(find ~/Library/Logs/gym -name "bisetka-bisetka.log" 2>/dev/null | head -1)
+          echo "=== ERRORS FROM GYM LOG ==="
           if [ -n "$GYM_LOG" ]; then
-            tail -500 "$GYM_LOG"
+            grep -n "error:" "$GYM_LOG" 2>/dev/null | grep -v "^Binary\|\.h:\|warning:" | tail -80
           else
-            echo "gym log not found"
+            echo "gym log not found at expected path"
             find ~/Library/Logs/gym -name "*.log" 2>/dev/null
           fi
           echo ""
-          echo "=== XCODEBUILD ERRORS ==="
-          GYM_LOG=$(find ~/Library/Logs/gym -name "bisetka-bisetka.log" 2>/dev/null | head -1)
+          echo "=== LAST 100 LINES OF GYM LOG ==="
           if [ -n "$GYM_LOG" ]; then
-            grep -E "error:|Export|ExportArchive|IDEDistribution" "$GYM_LOG" 2>/dev/null | tail -50
+            tail -100 "$GYM_LOG"
+          fi
+          echo ""
+          echo "=== SCRIPT PHASE FAILURES ==="
+          if [ -n "$GYM_LOG" ]; then
+            grep -A 20 "PhaseScriptExecution\|Script Phase\|** ARCHIVE FAILED" "$GYM_LOG" 2>/dev/null | tail -60
           fi
