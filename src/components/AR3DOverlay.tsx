@@ -363,6 +363,9 @@ function makeFallbackPiece(color, isKing) {
     ring.rotation.x = Math.PI/2; ring.position.y = 0.108; ring.castShadow = true;
     g.add(ring);
   }
+  // Rotate so cylinder axis aligns with boardGroup local Z → world Y (up).
+  // boardGroup.rotation.x = -PI/2, so this cancels it: piece stands flat on board.
+  g.rotation.x = Math.PI / 2;
   return g;
 }
 
@@ -448,7 +451,7 @@ function boardToLocal(row, col) {
   return [
     -BOARD_HALF_W + (col + 0.5) * SQUARE_W,
      BOARD_HALF_H - (row + 0.5) * SQUARE_H,
-     0.016,
+     0.010,  // BG local Z → world Y: piece center just above board surface
   ];
 }
 
