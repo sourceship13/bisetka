@@ -16,6 +16,7 @@ import { useAuth } from '../../../libs/hooks/useAuth';
 import { useAchievements } from '../../../contexts/AchievementContext';
 import useDeviceType from '../../../hooks/useDeviceType';
 import { getSpacing, getFontSize } from '../../../theme/responsive';
+import SyncedYouTubePlayer from '../../../components/SyncedYouTubePlayer';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -39,6 +40,7 @@ const MrotsiScreen = ({navigation, route}: any) => {
   const mode = routeMode ?? session?.mode ?? 'ai'; // fall back to session.mode; default to 'ai' so AI always works
   const [gameState, setGameState] = useState<GameState>(initializeGame(mode));
   const [showBlur, setShowBlur] = useState(true);
+  const [showMusicPlayer, setShowMusicPlayer] = useState(false);
   const [showBackground, setShowBackground] = useState(true);
   const toolbarExpanded = useSharedValue(false);
   const chevronStyle = useAnimatedStyle(() => ({
@@ -530,6 +532,7 @@ const MrotsiScreen = ({navigation, route}: any) => {
               buttons={[
                 { icon: showBlur ? '🌫️' : '✨', onPress: () => setShowBlur(!showBlur) },
                 { icon: showBackground ? '🖼️' : '🔲', onPress: () => setShowBackground(!showBackground) },
+                { icon: showMusicPlayer ? '🎵' : '🎶', onPress: () => setShowMusicPlayer(s => !s) },
                 { icon: '🔄', onPress: resetGame },
               ]}
             />
@@ -656,6 +659,7 @@ const MrotsiScreen = ({navigation, route}: any) => {
           </View>
         )}
       </SafeAreaView>
+      <SyncedYouTubePlayer roomId={null} visible={showMusicPlayer} />
     </View>
   );
 };

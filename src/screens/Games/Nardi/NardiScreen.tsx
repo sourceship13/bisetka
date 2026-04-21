@@ -43,6 +43,7 @@ import { apiService } from '../../../services/api.service';
 import { useAuth } from '../../../libs/hooks/useAuth';
 import { useAchievements } from '../../../contexts/AchievementContext';
 import { v4 as uuidv4 } from 'uuid';
+import SyncedYouTubePlayer from '../../../components/SyncedYouTubePlayer';
 
 const { width, height } = Dimensions.get('window');
 // Must match getGameBoardSize(false, false, 600, 32) so piece coordinates
@@ -121,6 +122,7 @@ const NardiScreen = ({ navigation, route }: any) => {
 
   const [gameState, setGameState] = useState<NardiGameState | null>(null);
   const [showBlur, setShowBlur] = useState(true);
+  const [showMusicPlayer, setShowMusicPlayer] = useState(false);
   const [showBackground, setShowBackground] = useState(true);
   const [easyMode, setEasyMode] = useState(false); // Easy Mode: tap-to-move, Normal Mode: drag-to-move
   const toolbarExpanded = useSharedValue(false);
@@ -1067,6 +1069,7 @@ const NardiScreen = ({ navigation, route }: any) => {
                   { icon: showBlur ? '🌫️' : '✨', onPress: () => setShowBlur(!showBlur) },
                   { icon: showBackground ? '🖼️' : '🔲', onPress: () => setShowBackground(!showBackground) },
                   { icon: easyMode ? '🎮' : '🎯', onPress: () => setEasyMode(!easyMode), label: easyMode ? 'Easy Mode' : 'Normal Mode' },
+                  { icon: showMusicPlayer ? '🎵' : '🎶', onPress: () => setShowMusicPlayer(s => !s) },
                   ...(isMultiplayer && mpStatus === 'playing' ? [{ icon: '✏️', onPress: () => setShowRoomNameModal(true) }] : []),
                 ]}
               />
@@ -1491,6 +1494,7 @@ const NardiScreen = ({ navigation, route }: any) => {
         gameType="nardi"
         visible={isMultiplayer && mpStatus === 'playing' && !!roomId}
       />
+      <SyncedYouTubePlayer roomId={null} visible={showMusicPlayer} />
     </View>
   );
 };

@@ -25,6 +25,7 @@ import tokenService from '../../../services/token.service';
 import RoomInfoDrawer from '../../../components/RoomInfoDrawer';
 import { v4 as uuidv4 } from 'uuid';
 import {apiConfig} from '../../../libs/utils/api.utils';
+import SyncedYouTubePlayer from '../../../components/SyncedYouTubePlayer';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'PokerRoom'>;
 
@@ -121,6 +122,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
   // Multiplayer state
   const [tableId, setTableId] = useState<string | null>(null);
   const [showBlur, setShowBlur] = useState(true);
+  const [showMusicPlayer, setShowMusicPlayer] = useState(false);
   const [showBackground, setShowBackground] = useState(true);
   const toolbarExpanded = useSharedValue(false);
   const chevronStyle = useAnimatedStyle(() => ({
@@ -1307,6 +1309,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
               buttons={[
                 { icon: showBlur ? '🌫️' : '✨', onPress: () => setShowBlur(!showBlur) },
                 { icon: showBackground ? '🖼️' : '🔲', onPress: () => setShowBackground(!showBackground) },
+                { icon: showMusicPlayer ? '🎵' : '🎶', onPress: () => setShowMusicPlayer(s => !s) },
                 { icon: '✏️', onPress: () => { setDraftRoomName(roomName); setEditingRoomName(true); } },
                 { icon: '👥', onPress: togglePanel },
                 { icon: '🚪', onPress: toggleLeave },
@@ -1546,6 +1549,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
       </Animated.View>
 
     </SafeAreaView>
+      <SyncedYouTubePlayer roomId={null} visible={showMusicPlayer} />
     </View>
   );
 };

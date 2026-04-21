@@ -46,6 +46,7 @@ import {
   chooseAIBid,
   findSequences,
 } from '../../../game/baazarBlotLogic';
+import SyncedYouTubePlayer from '../../../components/SyncedYouTubePlayer';
 
 const SUIT_ICON: Record<string, string> = {
   hearts: '♥', diamonds: '♦', clubs: '♣', spades: '♠',
@@ -122,6 +123,7 @@ const BaazarBlotScreen = ({ navigation }: any) => {
 
   const [showBackground, setShowBackground] = useState(true);
   const [showBlur, setShowBlur] = useState(true);
+  const [showMusicPlayer, setShowMusicPlayer] = useState(false);
   const [showPanel, setShowPanel] = useState(false);
   const panelAnim = useRef(new Animated.Value(0)).current;
   const toolbarExpanded = useSharedValue(false);
@@ -1020,6 +1022,7 @@ const BaazarBlotScreen = ({ navigation }: any) => {
                 { icon: '🎨', onPress: () => setShowCustomization(true) },
                 { icon: showBlur ? '🌫️' : '✨', onPress: () => setShowBlur(!showBlur) },
                 { icon: showBackground ? '🖼️' : '🔲', onPress: () => setShowBackground(!showBackground) },
+                { icon: showMusicPlayer ? '🎵' : '🎶', onPress: () => setShowMusicPlayer(s => !s) },
                 { icon: '👥', onPress: togglePanel },
               ]}
             />
@@ -1138,6 +1141,7 @@ const BaazarBlotScreen = ({ navigation }: any) => {
           })}
         </ScrollView>
       </Animated.View>
+      <SyncedYouTubePlayer roomId={null} visible={showMusicPlayer} />
     </View>
   );
 };

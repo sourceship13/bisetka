@@ -31,6 +31,7 @@ import BisetkaAlert from '../../../utils/BisetkaAlert';
 import InGameChat from '../../../components/InGameChat';
 import {apiConfig} from '../../../libs/utils/api.utils';
 import useDeviceType from '../../../hooks/useDeviceType';
+import SyncedYouTubePlayer from '../../../components/SyncedYouTubePlayer';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'BilliardsGame'>;
 
@@ -468,6 +469,7 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
     variant === '9-ball' ? createRack9Ball() : createRack8Ball(),
   );
   const [showBlur, setShowBlur] = useState(true);
+  const [showMusicPlayer, setShowMusicPlayer] = useState(false);
   const [showBackground, setShowBackground] = useState(true);
   const toolbarExpanded = useSharedValue(false);
   const chevronStyle = useAnimatedStyle(() => ({
@@ -1925,6 +1927,7 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
             buttons={[
               { icon: showBlur ? '🌫️' : '✨', onPress: () => setShowBlur(!showBlur) },
               { icon: showBackground ? '🖼️' : '🔲', onPress: () => setShowBackground(!showBackground) },
+              { icon: showMusicPlayer ? '🎵' : '🎶', onPress: () => setShowMusicPlayer(s => !s) },
               ...(isMultiplayer && !gameOver ? [{ icon: '✏️', onPress: () => setShowRoomNameModal(true) }] : []),
             ]}
           />
@@ -2250,6 +2253,7 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
         gameType="Billiards"
       />
     </SafeAreaView>
+      <SyncedYouTubePlayer roomId={null} visible={showMusicPlayer} />
     </View>
   );
 };
