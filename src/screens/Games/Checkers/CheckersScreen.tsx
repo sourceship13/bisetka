@@ -15,6 +15,7 @@ import { socketService } from '../../../services/SocketService';
 import { v4 as uuidv4 } from 'uuid';
 import { useGameEndRefresh } from '../../../libs/hooks/useGameEndRefresh';
 import InGameChat from '../../../components/InGameChat';
+import SyncedYouTubePlayer from '../../../components/SyncedYouTubePlayer';
 import { apiService } from '../../../services/api.service';
 import { useAuth } from '../../../libs/hooks/useAuth';
 import { useAchievements } from '../../../contexts/AchievementContext';
@@ -129,6 +130,7 @@ const CheckersScreen = ({ navigation, route }: any) => {
   const [serverTurn,    setServerTurn]    = useState<'white'|'black'>('white');
   const [statusMsg,     setStatusMsg]     = useState('');
   const [showCustomization, setShowCustomization] = useState(false);
+  const [showMusicPlayer, setShowMusicPlayer] = useState(false);
   const [showBlur, setShowBlur] = useState(true);
   const [showBackground, setShowBackground] = useState(true);
   const [arEnabled, setArEnabled] = useState(true);
@@ -615,6 +617,7 @@ const CheckersScreen = ({ navigation, route }: any) => {
                   { icon: showBackground ? '🖼️' : '🔲', onPress: () => setShowBackground(!showBackground) },
                   { icon: arEnabled ? '🥽' : '🎮', onPress: () => setArEnabled(!arEnabled) },
                   { icon: '👥', onPress: togglePanel },
+                  { icon: showMusicPlayer ? '🎵' : '🎶', onPress: () => setShowMusicPlayer(s => !s) },
                   { icon: '🚪', onPress: toggleLeave },
                 ]}
               />
@@ -793,6 +796,10 @@ const CheckersScreen = ({ navigation, route }: any) => {
         currentUserId={userId}
         gameType="checkers"
         visible={isMultiplayer && !!roomId}
+      />
+      <SyncedYouTubePlayer
+        roomId={isMultiplayer && roomId ? roomId : null}
+        visible={showMusicPlayer}
       />
     </View>
   );
