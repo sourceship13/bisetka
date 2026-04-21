@@ -24,6 +24,7 @@ import ReAnimated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-
 import ExpandableView from '../../../../components/global/ExpandableView';
 import GameToolbarControls from '../../../../components/global/GameToolbarControls';
 import Photosphere360Background from '../../../../components/Photosphere360Background';
+import SyncedYouTubePlayer from '../../../../components/SyncedYouTubePlayer';
 
 interface Card {
   suit: 'hearts' | 'diamonds' | 'clubs' | 'spades';
@@ -55,6 +56,7 @@ const BlackjackScreen = ({ navigation }: any) => {
   const { refreshOnGameEnd } = useGameEndRefresh(undefined, 'blackjack');
 
   const [showBlur, setShowBlur] = useState(true);
+  const [showMusicPlayer, setShowMusicPlayer] = useState(false);
   const [showBackground, setShowBackground] = useState(true);
   const toolbarExpanded = useSharedValue(false);
 
@@ -462,6 +464,7 @@ const BlackjackScreen = ({ navigation }: any) => {
                 { icon: '🎨', onPress: () => setShowCustomization(true) },
                 { icon: showBlur ? '🌫️' : '✨', onPress: () => setShowBlur(!showBlur) },
                 { icon: showBackground ? '🖼️' : '🔲', onPress: () => setShowBackground(!showBackground) },
+                { icon: showMusicPlayer ? '🎵' : '🎶', onPress: () => setShowMusicPlayer(s => !s) },
               ]}
             />
           </ExpandableView>
@@ -579,6 +582,7 @@ const BlackjackScreen = ({ navigation }: any) => {
           </View>
         </ScrollView>
       </SafeAreaView>
+      <SyncedYouTubePlayer roomId={null} visible={showMusicPlayer} />
     </View>
   );
 };
