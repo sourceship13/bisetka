@@ -20,21 +20,25 @@ export const getGameBoardSize = (
   padding: number = 32,
 ): number => {
   const { width, height } = Dimensions.get('window');
-  
+
+  // Reserve space for toolbar (~60), status bar (~50), bottom safe area (~40)
+  // plus generous padding so the board never clips at the bottom.
+  const heightCap = height * 0.56;
+
   if (!isTablet) {
-    // Phone: Use almost full width
-    return Math.min(width - padding, maxSize);
+    // Phone: Use almost full width, but never taller than the height cap
+    return Math.min(width - padding, maxSize, heightCap);
   }
   
   if (isLandscape) {
     // Tablet landscape: Use 50% width (leave room for chat sidebar)
     const availableWidth = width * 0.5;
-    return Math.min(availableWidth - padding, maxSize);
+    return Math.min(availableWidth - padding, maxSize, heightCap);
   }
   
   // Tablet portrait: Use 60% width
   const availableWidth = width * 0.6;
-  return Math.min(availableWidth - padding, maxSize);
+  return Math.min(availableWidth - padding, maxSize, heightCap);
 };
 
 /**
