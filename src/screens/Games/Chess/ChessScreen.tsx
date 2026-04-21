@@ -28,6 +28,7 @@ import { useGameEndRefresh } from '../../../libs/hooks/useGameEndRefresh';
 import { apiService } from '../../../services/api.service';
 import { useAuth } from '../../../libs/hooks/useAuth';
 import { useAchievements } from '../../../contexts/AchievementContext';
+import SyncedYouTubePlayer from '../../../components/SyncedYouTubePlayer';
 import { resolveAvatar } from '../../../utils/avatars';
 import useDeviceType from '../../../hooks/useDeviceType';
 import { getGameBoardSize } from '../../../utils/gameBoardSize';
@@ -48,6 +49,7 @@ const ChessScreen = ({navigation}: any) => {
   useGameEndRefresh(!!(gameState?.isCheckmate || gameState?.isStalemate), 'chess');
   const [showCustomization, setShowCustomization] = useState(false);
   const [showBlur, setShowBlur] = useState(true);
+  const [showMusicPlayer, setShowMusicPlayer] = useState(false);
   const [showBackground, setShowBackground] = useState(true);
   const [gameTheme, setGameTheme] = useState<GameTheme>({});
   const toolbarExpanded = useSharedValue(false);
@@ -496,6 +498,7 @@ const ChessScreen = ({navigation}: any) => {
                   { icon: '🎨', onPress: () => setShowCustomization(true) },
                   { icon: showBlur ? '🌫️' : '✨', onPress: () => setShowBlur(!showBlur) },
                   { icon: showBackground ? '🖼️' : '🔲', onPress: () => setShowBackground(!showBackground) },
+                  { icon: showMusicPlayer ? '🎵' : '🎶', onPress: () => setShowMusicPlayer(s => !s) },
                   { icon: '👥', onPress: togglePanel },
                   { icon: '🚪', onPress: toggleLeave },
                 ]}
@@ -647,6 +650,7 @@ const ChessScreen = ({navigation}: any) => {
         gameType="chess"
         initialTheme={gameTheme}
       />
+      <SyncedYouTubePlayer roomId={null} visible={showMusicPlayer} />
     </View>
   );
 };

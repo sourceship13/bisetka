@@ -39,6 +39,7 @@ import {
   chooseAICard,
   dealCards,
 } from '../../../game/blotLogic';
+import SyncedYouTubePlayer from '../../../components/SyncedYouTubePlayer';
 
 const SUIT_ICON: Record<string, string> = {
   hearts: '♥',
@@ -120,6 +121,7 @@ const BlotScreen = ({ navigation }: any) => {
 
   const [showBackground, setShowBackground] = useState(true);
   const [showBlur, setShowBlur] = useState(true);
+  const [showMusicPlayer, setShowMusicPlayer] = useState(false);
   const [showPanel, setShowPanel] = useState(false);
   const panelAnim = useRef(new Animated.Value(0)).current;
   const toolbarExpanded = useSharedValue(false);
@@ -651,6 +653,7 @@ const BlotScreen = ({ navigation }: any) => {
                   { icon: '🎨', onPress: () => setShowCustomization(true) },
                   { icon: showBlur ? '🌫️' : '✨', onPress: () => setShowBlur(!showBlur) },
                   { icon: showBackground ? '🖼️' : '🔲', onPress: () => setShowBackground(!showBackground) },
+                  { icon: showMusicPlayer ? '🎵' : '🎶', onPress: () => setShowMusicPlayer(s => !s) },
                   { icon: '👥', onPress: togglePanel },
                   { icon: '🚪', onPress: toggleLeave },
                 ]}
@@ -972,6 +975,7 @@ const BlotScreen = ({ navigation }: any) => {
         }}
         theme={customTheme}
       />
+      <SyncedYouTubePlayer roomId={null} visible={showMusicPlayer} />
     </View>
   );
 };
