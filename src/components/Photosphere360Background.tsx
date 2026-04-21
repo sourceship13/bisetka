@@ -32,7 +32,7 @@ export function useSharedAttitude(): AttitudeValue {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-const DEFAULT_PANORAMA = require('../../assets/capture360/relax_inn_seaview_suite_2k.jpg');
+const DEFAULT_PANORAMA = require('../../assets/backgrounds/capture360/pano2.jpg');
 
 type Props = {
   /** A require()'d equirectangular panorama image (default: relax_inn_seaview_suite) */
