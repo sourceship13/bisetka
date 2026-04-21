@@ -564,6 +564,42 @@ class SocketService {
   }
 
   // ─────────────────────────────────────────────────────────────────────────
+  // SYNCED MUSIC (YouTube player)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /** Broadcast a music control action to all other players in the room. */
+  emitMusicControl(data: {
+    roomId: string;
+    videoId?: string;
+    action: 'load' | 'play' | 'pause' | 'seek' | 'enqueue' | 'dequeue' | 'queue_sync';
+    currentTime?: number;
+    sentAt?: number;
+    queueItem?: {videoId: string; title: string; channel?: string; thumbnail?: string};
+    queue?: {videoId: string; title: string; channel?: string; thumbnail?: string}[];
+  }): void {
+    this.socket?.emit('music_control', data);
+  }
+
+  /** Subscribe to music control events relayed by the server. */
+  onMusicControl(
+    callback: (data: {
+      roomId: string;
+      videoId?: string;
+      action: 'load' | 'play' | 'pause' | 'seek' | 'enqueue' | 'dequeue' | 'queue_sync';
+      currentTime?: number;
+      sentAt?: number;
+      queueItem?: {videoId: string; title: string; channel?: string; thumbnail?: string};
+      queue?: {videoId: string; title: string; channel?: string; thumbnail?: string}[];
+    }) => void,
+  ): void {
+    this.socket?.on('music_control', callback);
+  }
+
+  offMusicControl(): void {
+    this.socket?.off('music_control');
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
   // VOICE CHAT SIGNALING  (relayed through the backend game socket)
   // ─────────────────────────────────────────────────────────────────────────
 
