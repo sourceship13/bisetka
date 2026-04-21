@@ -23,6 +23,7 @@ import ReAnimated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-
 import ExpandableView from '../../../components/global/ExpandableView';
 import { apiService } from '../../../services/api.service';
 import { v4 as uuidv4 } from 'uuid';
+import SyncedYouTubePlayer from '../../../components/SyncedYouTubePlayer';
 
 const { width } = Dimensions.get('window');
 const CONTAINER_PADDING = 8;
@@ -87,6 +88,7 @@ const SlotsScreen = ({ navigation }: any) => {
   const [balance, setBalance] = useState(Math.floor((user as any)?.balance || 0));
   const [betAmount, setBetAmount] = useState(10);
   const [showBlur, setShowBlur] = useState(true);
+  const [showMusicPlayer, setShowMusicPlayer] = useState(false);
   const [showBackground, setShowBackground] = useState(true);
   const toolbarExpanded = useSharedValue(false);
   const chevronStyle = useAnimatedStyle(() => ({
@@ -322,6 +324,7 @@ const SlotsScreen = ({ navigation }: any) => {
               buttons={[
                 { icon: showBlur ? '🌫️' : '✨', onPress: () => setShowBlur(!showBlur) },
                 { icon: showBackground ? '🖼️' : '🔲', onPress: () => setShowBackground(!showBackground) },
+                { icon: showMusicPlayer ? '🎵' : '🎶', onPress: () => setShowMusicPlayer(s => !s) },
               ]}
             />
           </ExpandableView>
@@ -444,6 +447,7 @@ const SlotsScreen = ({ navigation }: any) => {
           </LinearGradient>
         </TouchableOpacity>
       </SafeAreaView>
+      <SyncedYouTubePlayer roomId={null} visible={showMusicPlayer} />
     </View>
   );
 };
