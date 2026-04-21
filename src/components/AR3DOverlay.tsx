@@ -79,6 +79,10 @@ export interface AR3DOverlayProps {
    * Receives logical board coordinates (row 0–7, col 0–7) from Three.js raycasting.
    */
   onSquareTap?: (row: number, col: number) => void;
+  /** CSS hex color for the 'red' player pieces. Default: '#c0392b' */
+  pieceColorRed?: string;
+  /** CSS hex color for the 'black' player pieces. Default: '#1e2d3d' */
+  pieceColorBlack?: string;
 }
 
 // ─── GLB URI resolver ─────────────────────────────────────────────────────────
@@ -154,15 +158,19 @@ const EMBEDDED_COFFEE_TABLE_URI = 'data:model/gltf-binary;base64,Z2xURgIAAADoJAA
 
 function buildSceneHTML(
   fov: number,
-  boardUri:   string | null,
-  piecesUri:  string | null,
-  tableUri:   string | null,
-  spawnYaw:   number,
+  boardUri:        string | null,
+  piecesUri:       string | null,
+  tableUri:        string | null,
+  spawnYaw:        number,
+  pieceColorRed:   number,
+  pieceColorBlack: number,
 ): string {
   const BOARD_URI_JS  = boardUri  ? JSON.stringify(boardUri)  : 'null';
   const PIECES_URI_JS = piecesUri ? JSON.stringify(piecesUri) : 'null';
   // Always use the embedded coffee table — falls back from external if provided
   const TABLE_URI_JS  = JSON.stringify(tableUri ?? EMBEDDED_COFFEE_TABLE_URI);
+  const RED_HEX   = `0x${pieceColorRed.toString(16).padStart(6, '0')}`;
+  const BLACK_HEX = `0x${pieceColorBlack.toString(16).padStart(6, '0')}`;
 
   return `<!DOCTYPE html>
 <html>
@@ -352,7 +360,7 @@ if (BOARD_URI) {
 
 // ── Procedural fallback piece ─────────────────────────────────────────────────
 function makeFallbackPiece(color, isKing) {
-  const clr = color === 'red' ? 0xc0392b : 0x1e2d3d;
+  const clr = color === 'red' ? ${RED_HEX} : ${BLACK_HEX};
   const g   = new THREE.Group();
   const body = new THREE.Mesh(
     new THREE.CylinderGeometry(0.46, 0.5, 0.22, 48),
@@ -420,7 +428,7 @@ if (PIECES_URI) {
 function clonePiece(color, isKing) {
   if (!basePieceScene) return makeFallbackPiece(color, isKing);
 
-  const pieceColor = color === 'red' ? 0xc0392b : 0x1e2d3d;
+  const pieceColor = color === 'red' ? ${RED_HEX} : ${BLACK_HEX};
   const clone = basePieceScene.clone(true);
   clone.rotation.x = Math.PI / 2;  // ← cancels boardGroup rotation → upright in world
 
@@ -609,6 +617,8 @@ export default function AR3DOverlay({
   piecesGlbPath,
   tableGlbPath,
   onSquareTap,
+  pieceColorRed   = '#c0392b',
+  pieceColorBlack = '#1e2d3d',
 }: AR3DOverlayProps) {
   const attitude = useSharedAttitude();
   const webViewRef = useRef<WebView>(null);
@@ -668,7 +678,9 @@ export default function AR3DOverlay({
   const html = useMemo(() => {
     if (boardUri === undefined || piecesUri === undefined) return null;
     if (spawnYaw === null) return null;
-    return buildSceneHTML(fov, boardUri, piecesUri, tableUri ?? null, spawnYaw);
+    const redInt   = parseInt(pieceColorRed.replace(/^#/, ''), 16);
+    const blackInt  = parseInt(pieceColorBlack.replace(/^#/, ''), 16);
+    return buildSceneHTML(fov, boardUri, piecesUri, tableUri ?? null, spawnYaw, redInt, blackInt);
   }, [fov, boardUri, piecesUri, tableUri, spawnYaw]);
 
   // Push gyro attitude at ~60fps
