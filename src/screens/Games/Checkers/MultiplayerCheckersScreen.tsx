@@ -23,6 +23,7 @@ import {socketService} from '../../../services/SocketService';
 import tokenService from '../../../services/token.service';
 import {useGameEndRefresh} from '../../../libs/hooks/useGameEndRefresh';
 import InGameChat from '../../../components/InGameChat';
+import SyncedYouTubePlayer from '../../../components/SyncedYouTubePlayer';
 import {apiConfig} from '../../../libs/utils/api.utils';
 
 // ─── types ────────────────────────────────────────────────────────────────────
@@ -130,6 +131,7 @@ const MultiplayerCheckersScreen = ({navigation, route}: any) => {
   const [showBlur, setShowBlur] = useState(true);
   const [showBackground, setShowBackground] = useState(true);
   const [showCustomization, setShowCustomization] = useState(false);
+  const [showMusicPlayer, setShowMusicPlayer]     = useState(false);
   const [gameTheme, setGameTheme] = useState<GameTheme>({});
   const handleApplyTheme = (theme: GameTheme) => setGameTheme(theme);
   const toolbarExpanded = useSharedValue(false);
@@ -575,6 +577,7 @@ const MultiplayerCheckersScreen = ({navigation, route}: any) => {
                   { icon: showBlur ? '🌫️' : '✨', onPress: () => setShowBlur(!showBlur) },
                   { icon: showBackground ? '🖼️' : '🔲', onPress: () => setShowBackground(!showBackground) },
                   { icon: '✏️', onPress: () => setShowRoomNameModal(true) },
+                  { icon: showMusicPlayer ? '🎵' : '🎶', onPress: () => setShowMusicPlayer(s => !s) },
                 ]}
               />
             </ExpandableView>
@@ -695,6 +698,12 @@ const MultiplayerCheckersScreen = ({navigation, route}: any) => {
             currentUserId={userId}
             gameType="checkers"
             visible={mode === 'game' && !!roomId}
+          />
+
+          {/* Synced music player */}
+          <SyncedYouTubePlayer
+            roomId={mode === 'game' && roomId ? roomId : null}
+            visible={showMusicPlayer}
           />
 
           {/* Room name modal */}
