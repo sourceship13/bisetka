@@ -12,7 +12,8 @@ import {
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Photosphere360Background from '../../../components/Photosphere360Background';
-import {type AR3DOverlayHandle} from '../../../components/AR3DOverlay';
+import AR3DOverlay, {type AR3DOverlayHandle} from '../../../components/AR3DOverlay';
+import SyncedYouTubePlayer from '../../../components/SyncedYouTubePlayer';
 import ReAnimated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import ExpandableView from '../../../components/global/ExpandableView';
 import GameToolbar from '../../../components/global/GameToolbar';
@@ -73,7 +74,8 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
   const [showBackground, setShowBackground] = useState(true);
   const [showCustomization, setShowCustomization] = useState(false);
   const [gameTheme, setGameTheme] = useState<GameTheme>({});
-  const [arEnabled, setArEnabled] = useState(false);
+  const [arEnabled, setArEnabled] = useState(true);
+  const [showMusicPlayer, setShowMusicPlayer] = useState(false);
   const arOverlayRef = React.useRef<AR3DOverlayHandle>(null);
   const handleApplyTheme = (theme: GameTheme) => setGameTheme(theme);
   const toolbarExpanded = useSharedValue(false);
@@ -580,7 +582,10 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
 
   return (
     <View style={styles.container}>
-      <Photosphere360Background overlayOpacity={showBlur ? 0.5 : 0.3} arEnabled={arEnabled} arOverlayRef={arOverlayRef} />
+      <Photosphere360Background overlayOpacity={showBlur ? 0.5 : 0.3}>
+        <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/chess/chess-board/source/ui.glb" />
+      </Photosphere360Background>
+      <View style={styles.overlay} pointerEvents="box-none">
         <SafeAreaView style={styles.safeArea}>
           <View>
             <GameToolbar
@@ -604,6 +609,7 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
                   { icon: showBackground ? '🖼️' : '🔲', onPress: () => setShowBackground(!showBackground) },
                   { icon: '✏️', onPress: () => setShowRoomNameModal(true) },
                   { icon: arEnabled ? '🥽' : '🎮', onPress: () => setArEnabled(!arEnabled) },
+                  { icon: showMusicPlayer ? '🎵' : '🎶', onPress: () => setShowMusicPlayer(s => !s) },
                 ]}
               />
             </ExpandableView>
@@ -720,6 +726,7 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
             gameType="Chess"
           />
         </SafeAreaView>
+      </View>
 
       {/* Join Room Modal */}
       <Modal
@@ -760,6 +767,10 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
         onApply={handleApplyTheme}
         gameType="chess"
         initialTheme={gameTheme}
+      />
+      <SyncedYouTubePlayer
+        roomId={mode === 'game' && roomId ? roomId : null}
+        visible={showMusicPlayer}
       />
       {arEnabled && (
         <TouchableOpacity

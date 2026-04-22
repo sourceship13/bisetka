@@ -1,9 +1,9 @@
-import React, {useState, useEffect, useRef} from 'react';
+import React, {useState, useEffect, useRef, useMemo} from 'react';
 import {View, Text, StyleSheet, TouchableOpacity, ImageBackground, Alert, Animated, ScrollView, Image} from 'react-native';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Photosphere360Background from '../../../components/Photosphere360Background';
-import {type AR3DOverlayHandle} from '../../../components/AR3DOverlay';
+import AR3DOverlay, {type AR3DOverlayHandle, type ARPiece} from '../../../components/AR3DOverlay';
 import ReAnimated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import ExpandableView from '../../../components/global/ExpandableView';
 import GameToolbar from '../../../components/global/GameToolbar';
@@ -51,9 +51,32 @@ const ChessScreen = ({navigation}: any) => {
   const [showCustomization, setShowCustomization] = useState(false);
   const [showBlur, setShowBlur] = useState(true);
   const [showMusicPlayer, setShowMusicPlayer] = useState(false);
-  const [arEnabled, setArEnabled] = useState(false);
+  const [arEnabled, setArEnabled] = useState(true);
   const arOverlayRef = useRef<AR3DOverlayHandle>(null);
   const [showBackground, setShowBackground] = useState(true);
+
+  // ── Chess AR pieces ──────────────────────────────────────────────────────
+  const arPieces = useMemo<ARPiece[]>(() => {
+    if (!gameState) return [];
+    const result: ARPiece[] = [];
+    gameState.board.forEach((row, r) => {
+      row.forEach((piece, c) => {
+        if (!piece) return;
+        result.push({
+          key: `${r}-${c}`,
+          row: r,
+          col: c,
+          color: piece.color === 'white' ? 'red' : 'black',
+          isKing: piece.type !== 'pawn',
+          isSelected:
+            gameState.selectedSquare?.row === r &&
+            gameState.selectedSquare?.col === c,
+        });
+      });
+    });
+    return result;
+  }, [gameState?.board, gameState?.selectedSquare]);
+
   const [gameTheme, setGameTheme] = useState<GameTheme>({});
   const toolbarExpanded = useSharedValue(false);
   const chevronStyle = useAnimatedStyle(() => ({
@@ -478,7 +501,18 @@ const ChessScreen = ({navigation}: any) => {
   // Game screen
   return (
     <View style={styles.container}>
-      <Photosphere360Background overlayOpacity={showBlur ? 0.5 : 0.3} arEnabled={arEnabled} arOverlayRef={arOverlayRef} />
+      <Photosphere360Background overlayOpacity={showBlur ? 0.5 : 0.3}>
+        <AR3DOverlay
+          ref={arOverlayRef}
+          visible={arEnabled}
+          pieces={arPieces}
+          moves={gameState?.possibleMoves}
+          onSquareTap={handleSquarePress}
+          boardGlbPath="glb/chess/chess-board/source/ui.glb"
+          piecesGlbPath="glb/checkers/checker_pieces.glb"
+        />
+      </Photosphere360Background>
+      <View style={styles.overlay} pointerEvents="box-none">
         <SafeAreaView style={styles.safeArea}>
           <View>
             <GameToolbar
@@ -646,6 +680,7 @@ const ChessScreen = ({navigation}: any) => {
         </ScrollView>
       </Animated.View>
         </SafeAreaView>
+      </View>
 
       <GameThemeCustomizer
         visible={showCustomization}
