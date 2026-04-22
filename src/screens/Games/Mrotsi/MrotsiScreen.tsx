@@ -515,10 +515,14 @@ const MrotsiScreen = ({navigation, route}: any) => {
   return (
     <View style={styles.backgroundImage}>
       <Photosphere360Background overlayOpacity={showBlur ? 0.5 : 0.3}>
-        <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/chess/chess-board/source/ui.glb" />
+        <AR3DOverlay
+          ref={arOverlayRef}
+          visible={arEnabled}
+          boardGlbPath="glb/game_boards/rounded_table_panel.glb"
+        />
       </Photosphere360Background>
       <View style={styles.overlay} pointerEvents="box-none">
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} pointerEvents="box-none">
         <View>
           <GameToolbar
             title={`Mrotsi${gameState.gameMode === 'ai' ? ' (vs AI)' : ''}`}
@@ -554,46 +558,84 @@ const MrotsiScreen = ({navigation, route}: any) => {
         </View>
 
         {/* Wooden Table with Dice */}
-        <View style={styles.tableContainer}>
-          <ImageBackground
-            source={require('../../../../assets/blot/card-table.png')}
-            style={styles.woodenTable}
-            imageStyle={styles.woodenTableImage}
-            resizeMode="cover"
-          >
-            {/* Opponent's Dice Area */}
-            <View style={styles.opponentDiceArea}>
-              <Text style={styles.areaLabel}>Opponent</Text>
-              <View style={styles.diceRow}>
-                {((isOpponentRolling ? opponentRollingDice : gameState.opponentDice).length === 5
-                  ? (isOpponentRolling ? opponentRollingDice : gameState.opponentDice)
-                  : [1, 1, 1, 1, 1]).map((d, i) => (
-                  <Dice3DSimple key={i} value={d} isRolling={isOpponentRolling} index={i} size={Math.floor(SCREEN_WIDTH / 5)} />
-                ))}
+        <View style={styles.tableContainer} pointerEvents="box-none">
+          {arEnabled ? (
+            // AR mode: transparent container so GLB board shows through from AR3DOverlay
+            <View style={[styles.woodenTable, styles.woodenTableAR]} pointerEvents="box-none">
+              {/* Opponent's Dice Area */}
+              <View style={styles.opponentDiceArea} pointerEvents="box-none">
+                <Text style={styles.areaLabel}>Opponent</Text>
+                <View style={styles.diceRow}>
+                  {((isOpponentRolling ? opponentRollingDice : gameState.opponentDice).length === 5
+                    ? (isOpponentRolling ? opponentRollingDice : gameState.opponentDice)
+                    : [1, 1, 1, 1, 1]).map((d, i) => (
+                    <Dice3DSimple key={i} value={d} isRolling={isOpponentRolling} index={i} size={Math.floor(SCREEN_WIDTH / 5)} />
+                  ))}
+                </View>
+                {gameState.opponentRolled && !isOpponentRolling && (
+                  <Text style={styles.handNameText}>{getScoreName(gameState.opponentDice)}</Text>
+                )}
               </View>
-              {gameState.opponentRolled && !isOpponentRolling && (
-                <Text style={styles.handNameText}>{getScoreName(gameState.opponentDice)}</Text>
-              )}
-            </View>
 
-            {/* Center Divider */}
-            <View style={styles.centerDivider} />
+              {/* Center Divider */}
+              <View style={styles.centerDivider} pointerEvents="none" />
 
-            {/* Player's Dice Area */}
-            <View style={styles.playerDiceArea}>
-              <Text style={styles.areaLabel}>You</Text>
-              <View style={styles.diceRow}>
-                {((isRolling ? rollingDice : gameState.playerDice).length === 5
-                  ? (isRolling ? rollingDice : gameState.playerDice)
-                  : [1, 1, 1, 1, 1]).map((d, i) => (
-                  <Dice3DSimple key={i} value={d} isRolling={isRolling} index={i} size={Math.floor(SCREEN_WIDTH / 5)} />
-                ))}
+              {/* Player's Dice Area */}
+              <View style={styles.playerDiceArea} pointerEvents="box-none">
+                <Text style={styles.areaLabel}>You</Text>
+                <View style={styles.diceRow}>
+                  {((isRolling ? rollingDice : gameState.playerDice).length === 5
+                    ? (isRolling ? rollingDice : gameState.playerDice)
+                    : [1, 1, 1, 1, 1]).map((d, i) => (
+                    <Dice3DSimple key={i} value={d} isRolling={isRolling} index={i} size={Math.floor(SCREEN_WIDTH / 5)} />
+                  ))}
+                </View>
+                {gameState.playerRolled && !isRolling && (
+                  <Text style={styles.handNameText}>{getScoreName(gameState.playerDice)}</Text>
+                )}
               </View>
-              {gameState.playerRolled && !isRolling && (
-                <Text style={styles.handNameText}>{getScoreName(gameState.playerDice)}</Text>
-              )}
             </View>
-          </ImageBackground>
+          ) : (
+            <ImageBackground
+              source={require('../../../../assets/blot/card-table.png')}
+              style={styles.woodenTable}
+              imageStyle={styles.woodenTableImage}
+              resizeMode="cover"
+            >
+              {/* Opponent's Dice Area */}
+              <View style={styles.opponentDiceArea}>
+                <Text style={styles.areaLabel}>Opponent</Text>
+                <View style={styles.diceRow}>
+                  {((isOpponentRolling ? opponentRollingDice : gameState.opponentDice).length === 5
+                    ? (isOpponentRolling ? opponentRollingDice : gameState.opponentDice)
+                    : [1, 1, 1, 1, 1]).map((d, i) => (
+                    <Dice3DSimple key={i} value={d} isRolling={isOpponentRolling} index={i} size={Math.floor(SCREEN_WIDTH / 5)} />
+                  ))}
+                </View>
+                {gameState.opponentRolled && !isOpponentRolling && (
+                  <Text style={styles.handNameText}>{getScoreName(gameState.opponentDice)}</Text>
+                )}
+              </View>
+
+              {/* Center Divider */}
+              <View style={styles.centerDivider} />
+
+              {/* Player's Dice Area */}
+              <View style={styles.playerDiceArea}>
+                <Text style={styles.areaLabel}>You</Text>
+                <View style={styles.diceRow}>
+                  {((isRolling ? rollingDice : gameState.playerDice).length === 5
+                    ? (isRolling ? rollingDice : gameState.playerDice)
+                    : [1, 1, 1, 1, 1]).map((d, i) => (
+                    <Dice3DSimple key={i} value={d} isRolling={isRolling} index={i} size={Math.floor(SCREEN_WIDTH / 5)} />
+                  ))}
+                </View>
+                {gameState.playerRolled && !isRolling && (
+                  <Text style={styles.handNameText}>{getScoreName(gameState.playerDice)}</Text>
+                )}
+              </View>
+            </ImageBackground>
+          )}
         </View>
 
         {/* Action Button */}
@@ -748,6 +790,10 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
     justifyContent: 'space-between',
+  },
+  woodenTableAR: {
+    backgroundColor: 'transparent',
+    borderRadius: 24,
   },
   woodenTableImage: {
     borderRadius: 24,
