@@ -103,6 +103,34 @@ const GlobalViewScreen = ({ navigation }: any) => {
   const [mapboxAvailable] = useState(!!MapboxGL);
   const [refreshing, setRefreshing] = useState(false);
   const [nearestBisetka, setNearestBisetka] = useState<GameSession | null>(null);
+  const [globeIntroComplete, setGlobeIntroComplete] = useState(false);
+  const [currentZoom, setCurrentZoom] = useState(1);
+
+  const handleRegionChange = useCallback((feature: any) => {
+    const zoom = feature?.properties?.zoomLevel ?? feature?.properties?.zoom;
+    if (typeof zoom === 'number' && zoom > 0) {
+      setCurrentZoom(zoom);
+    }
+  }, []);
+
+  // Geographic grid clustering — groups bisetkas within the same cell regardless of city name
+  const clusterByGrid = useCallback((items: GameSession[], cellDeg: number) => {
+    const cells: Record<string, GameSession[]> = {};
+    for (const s of items) {
+      const cellLng = Math.round(s.longitude / cellDeg) * cellDeg;
+      const cellLat = Math.round(s.latitude / cellDeg) * cellDeg;
+      const key = `${cellLng}_${cellLat}`;
+      if (!cells[key]) cells[key] = [];
+      cells[key].push(s);
+    }
+    return Object.entries(cells).map(([key, group]) => ({
+      key,
+      group,
+      avgLng: group.reduce((sum, s) => sum + s.longitude, 0) / group.length,
+      avgLat: group.reduce((sum, s) => sum + s.latitude, 0) / group.length,
+      hasNearest: nearestBisetka ? group.some(s => s.id === nearestBisetka.id) : false,
+    }));
+  }, [nearestBisetka]);
 
   const loadBisetkas = async (options?: {
     showLoader?: boolean;
@@ -191,6 +219,7 @@ const GlobalViewScreen = ({ navigation }: any) => {
   useFocusEffect(
     useCallback(() => {
       console.log('🌍 GlobalView focused, refreshing data...');
+      setGlobeIntroComplete(false);
       void loadBisetkas();
       // Refresh user to get latest points and bisetka
       refreshUser().catch(err => console.error('Failed to refresh user:', err));
@@ -345,11 +374,15 @@ const GlobalViewScreen = ({ navigation }: any) => {
       );
     }
 
-    // Center camera on nearest Bisetka if available, but allow free movement
-    const cameraCoordinate = nearestBisetka
+    // Phase 1: full globe view. Phase 2: zoom to nearest bisetka after intro.
+    const finalCoordinate = nearestBisetka
       ? [nearestBisetka.longitude, nearestBisetka.latitude]
       : [0, 20];
-    const cameraZoom = nearestBisetka ? 8 : 2; // Zoom out a bit more to see surrounding Bisetkas
+    const finalZoom = nearestBisetka ? 5 : 2;
+
+    const cameraCoordinate = globeIntroComplete ? finalCoordinate : [0, 20];
+    const cameraZoom = globeIntroComplete ? finalZoom : 1;
+    const cameraDuration = globeIntroComplete ? 2500 : 800;
 
     return (
       <MapboxGL.MapView
@@ -361,39 +394,86 @@ const GlobalViewScreen = ({ navigation }: any) => {
         rotateEnabled={true}
         pitchEnabled={true}
         compassEnabled={true}
-        scaleBarEnabled={false}>
+        scaleBarEnabled={false}
+        onDidFinishLoadingMap={() => {
+          setTimeout(() => setGlobeIntroComplete(true), 1200);
+        }}
+        onRegionIsChanging={handleRegionChange}
+        onRegionDidChange={handleRegionChange}>
         <MapboxGL.Camera
           zoomLevel={cameraZoom}
           centerCoordinate={cameraCoordinate}
-          animationMode="easeTo"
-          animationDuration={1500}
+          animationMode="flyTo"
+          animationDuration={cameraDuration}
           minZoomLevel={1}
           maxZoomLevel={18}
         />
 
-        {/* Render markers for each Bisetka */}
-        {sessions.map((session) => {
-          const isNearest = nearestBisetka && session.id === nearestBisetka.id;
-          return (
-            <MapboxGL.MarkerView
-              key={session.id}
-              id={session.id}
-              coordinate={[session.longitude, session.latitude]}>
-              <TouchableOpacity
-                style={styles.marker}
-                onPress={() => handleSessionPress(session)}>
-                <LinearGradient
-                  colors={isNearest ? ['#f59e0b', '#fbbf24'] : ['#10b981', '#34d399']}
-                  style={[styles.markerGrad, isNearest && styles.markerGradNearest]}>
-                  <Text style={styles.markerIcon}>
-                    {isNearest ? '📍' : GAME_ICONS[session.gameType] || '🏘️'}
-                  </Text>
-                  <Text style={styles.markerCount}>{session.playerCount}</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            </MapboxGL.MarkerView>
-          );
-        })}
+        {/* Hierarchical markers: country → metro → individual based on zoom */}
+        {(() => {
+          // LEVEL 1: continental clusters — 15° grid cells (zoom < 3)
+          if (currentZoom < 3) {
+            return clusterByGrid(sessions, 15).map(({ key, group, avgLng, avgLat, hasNearest }) => {
+              // Find dominant country for the flag
+              const countryCounts: Record<string, number> = {};
+              for (const s of group) { const c = s.country || 'World'; countryCounts[c] = (countryCounts[c] || 0) + 1; }
+              const dominantCountry = Object.entries(countryCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || 'World';
+              return (
+                <MapboxGL.MarkerView key={`cont-${key}`} id={`cont-${key}`} coordinate={[avgLng, avgLat]}>
+                  <TouchableOpacity style={styles.clusterMarker} activeOpacity={0.85}
+                    onPress={() => group.length === 1 && handleSessionPress(group[0])}>
+                    <LinearGradient
+                      colors={hasNearest ? ['#f59e0b', '#fbbf24'] : ['#6366f1', '#8b5cf6']}
+                      style={styles.clusterGrad}>
+                      <Text style={styles.clusterEmoji}>{countryCodeToFlag(dominantCountry)}</Text>
+                      <Text style={styles.clusterCount}>{group.length}</Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                </MapboxGL.MarkerView>
+              );
+            });
+          }
+
+          // LEVEL 2: metro/region clusters — 2° grid cells (~200 km, groups suburbs together) (zoom 3–6)
+          if (currentZoom < 6) {
+            return clusterByGrid(sessions, 2).map(({ key, group, avgLng, avgLat, hasNearest }) => (
+              <MapboxGL.MarkerView key={`metro-${key}`} id={`metro-${key}`} coordinate={[avgLng, avgLat]}>
+                <TouchableOpacity style={styles.cityMarker} activeOpacity={0.85}
+                  onPress={() => group.length === 1 && handleSessionPress(group[0])}>
+                  <LinearGradient
+                    colors={hasNearest ? ['#f59e0b', '#fbbf24'] : ['#10b981', '#34d399']}
+                    style={styles.clusterGrad}>
+                    <Text style={styles.cityMarkerIcon}>🏙️</Text>
+                    <Text style={styles.cityMarkerCount}>{group.length}</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              </MapboxGL.MarkerView>
+            ));
+          }
+
+          // LEVEL 3: individual bisetka pins (zoom >= 6)
+          return sessions.map((session) => {
+            const isNearest = nearestBisetka && session.id === nearestBisetka.id;
+            return (
+              <MapboxGL.MarkerView
+                key={session.id}
+                id={session.id}
+                coordinate={[session.longitude, session.latitude]}>
+                <TouchableOpacity
+                  style={styles.marker}
+                  onPress={() => handleSessionPress(session)}>
+                  <LinearGradient
+                    colors={isNearest ? ['#f59e0b', '#fbbf24'] : ['#10b981', '#34d399']}
+                    style={[styles.markerGrad, isNearest && styles.markerGradNearest]}>
+                    <Text style={styles.markerIcon}>
+                      {isNearest ? '📍' : '🏘️'}
+                    </Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              </MapboxGL.MarkerView>
+            );
+          });
+        })()}
       </MapboxGL.MapView>
     );
   };
@@ -660,6 +740,51 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#fff',
     marginTop: 2,
+  },
+  clusterMarker: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    overflow: 'hidden',
+    shadowColor: '#6366f1',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.6,
+    shadowRadius: 6,
+    elevation: 8,
+  },
+  clusterGrad: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  clusterEmoji: {
+    fontSize: 22,
+  },
+  clusterCount: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#fff',
+    marginTop: 1,
+  },
+  cityMarker: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    overflow: 'hidden',
+    shadowColor: '#10b981',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.6,
+    shadowRadius: 5,
+    elevation: 7,
+  },
+  cityMarkerIcon: {
+    fontSize: 18,
+  },
+  cityMarkerCount: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#fff',
+    marginTop: 1,
   },
   listContainer: {
     flex: 1,
