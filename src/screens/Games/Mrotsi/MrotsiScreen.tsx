@@ -8,6 +8,7 @@ import ReAnimated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-
 import ExpandableView from '../../../components/global/ExpandableView';
 import { aiMoveLogService } from '../../../services/aiMoveLog.service';
 import Photosphere360Background from '../../../components/Photosphere360Background';
+import {type AR3DOverlayHandle} from '../../../components/AR3DOverlay';
 import { v4 as uuidv4 } from 'uuid';
 import { useGameEndRefresh } from '../../../libs/hooks/useGameEndRefresh';
 import Dice3DSimple from '../../../components/Games/Dice3DSimple';
@@ -41,6 +42,8 @@ const MrotsiScreen = ({navigation, route}: any) => {
   const [gameState, setGameState] = useState<GameState>(initializeGame(mode));
   const [showBlur, setShowBlur] = useState(true);
   const [showMusicPlayer, setShowMusicPlayer] = useState(false);
+  const [arEnabled, setArEnabled] = useState(false);
+  const arOverlayRef = useRef<AR3DOverlayHandle>(null);
   const [showBackground, setShowBackground] = useState(true);
   const toolbarExpanded = useSharedValue(false);
   const chevronStyle = useAnimatedStyle(() => ({
@@ -511,7 +514,7 @@ const MrotsiScreen = ({navigation, route}: any) => {
 
   return (
     <View style={styles.backgroundImage}>
-      <Photosphere360Background overlayOpacity={showBlur ? 0.5 : 0.3} />
+      <Photosphere360Background overlayOpacity={showBlur ? 0.5 : 0.3} arEnabled={arEnabled} arOverlayRef={arOverlayRef} />
       <SafeAreaView style={styles.container}>
         <View>
           <GameToolbar
@@ -532,6 +535,7 @@ const MrotsiScreen = ({navigation, route}: any) => {
               buttons={[
                 { icon: showBlur ? '🌫️' : '✨', onPress: () => setShowBlur(!showBlur) },
                 { icon: showBackground ? '🖼️' : '🔲', onPress: () => setShowBackground(!showBackground) },
+                { icon: arEnabled ? '🥽' : '🎮', onPress: () => setArEnabled(!arEnabled) },
                 { icon: showMusicPlayer ? '🎵' : '🎶', onPress: () => setShowMusicPlayer(s => !s) },
                 { icon: '🔄', onPress: resetGame },
               ]}
@@ -660,6 +664,16 @@ const MrotsiScreen = ({navigation, route}: any) => {
         )}
       </SafeAreaView>
       <SyncedYouTubePlayer roomId={null} visible={showMusicPlayer} />
+      {arEnabled && (
+        <TouchableOpacity
+          style={styles.recenterBtn}
+          onPress={() => arOverlayRef.current?.recenter()}
+          hitSlop={{top:12,bottom:12,left:12,right:12}}
+          activeOpacity={0.7}>
+          <Text style={styles.recenterIcon}>⊕</Text>
+          <Text style={styles.recenterLabel}>Re-center</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 };
@@ -949,6 +963,9 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 2,
   },
+  recenterBtn: { position:'absolute', bottom:90, alignSelf:'center', left:'50%', transform:[{translateX:-54}], flexDirection:'row', alignItems:'center', gap:6, backgroundColor:'rgba(0,0,0,0.35)', borderWidth:1, borderColor:'rgba(255,255,255,0.25)', borderRadius:24, paddingHorizontal:18, paddingVertical:10 },
+  recenterIcon: { fontSize:20, color:'#fff' },
+  recenterLabel: { fontSize:13, color:'#fff', fontWeight:'600', letterSpacing:0.3 },
 });
 
 export default MrotsiScreen;

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, ImageBackground, Alert, Animated, ScrollView, Image } from 'react-native';
 import Photosphere360Background from '../../../components/Photosphere360Background';
-import AR3DOverlay, { type ARPiece } from '../../../components/AR3DOverlay';
+import AR3DOverlay, { type ARPiece, type AR3DOverlayHandle } from '../../../components/AR3DOverlay';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import ReAnimated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
@@ -134,6 +134,7 @@ const CheckersScreen = ({ navigation, route }: any) => {
   const [showBlur, setShowBlur] = useState(true);
   const [showBackground, setShowBackground] = useState(true);
   const [arEnabled, setArEnabled] = useState(true);
+  const arOverlayRef = useRef<AR3DOverlayHandle>(null);
   const toolbarExpanded = useSharedValue(false);
   const chevronStyle = useAnimatedStyle(() => ({
     transform: [{ rotate: withTiming(toolbarExpanded.value ? '180deg' : '0deg', { duration: 250 }) }],
@@ -582,6 +583,7 @@ const CheckersScreen = ({ navigation, route }: any) => {
     <View style={styles.container}>
       <Photosphere360Background overlayOpacity={showBlur ? 0.5 : 0.3}>
         <AR3DOverlay
+          ref={arOverlayRef}
           visible={arEnabled}
           pieces={arPieces}
           moves={gameState.possibleMoves}
@@ -801,6 +803,16 @@ const CheckersScreen = ({ navigation, route }: any) => {
         roomId={isMultiplayer && roomId ? roomId : null}
         visible={showMusicPlayer}
       />
+      {arEnabled && (
+        <TouchableOpacity
+          style={styles.recenterBtn}
+          onPress={() => arOverlayRef.current?.recenter()}
+          hitSlop={{top:12,bottom:12,left:12,right:12}}
+          activeOpacity={0.7}>
+          <Text style={styles.recenterIcon}>⊕</Text>
+          <Text style={styles.recenterLabel}>Re-center</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 };
@@ -838,6 +850,24 @@ const styles = StyleSheet.create({
   kingPiece:          { borderColor:'#f39c12', borderWidth:3 },
   kingText:           { fontSize:24, color:'#f39c12' },
   moveIndicator:      { width:12, height:12, borderRadius:6, backgroundColor:'rgba(255,255,255,0.6)' },
+  recenterBtn: {
+    position: 'absolute',
+    bottom: 90,
+    alignSelf: 'center',
+    left: '50%',
+    transform: [{ translateX: -54 }],
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.25)',
+    borderRadius: 24,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+  },
+  recenterIcon:  { fontSize: 20, color: '#fff' },
+  recenterLabel: { fontSize: 13, color: '#fff', fontWeight: '600', letterSpacing: 0.3 },
   gameOverOverlay:    { ...StyleSheet.absoluteFillObject, backgroundColor:'rgba(0,0,0,0.7)', justifyContent:'center', alignItems:'center' },
   gameOverBox:        { backgroundColor:'#fff', padding:30, borderRadius:10, alignItems:'center', minWidth:250 },
   gameOverTitle:      { fontSize:24, fontWeight:'bold', marginBottom:10, color:'#2c3e50' },

@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import Photosphere360Background from '../../../components/Photosphere360Background';
+import {type AR3DOverlayHandle} from '../../../components/AR3DOverlay';
 import { useAuth } from '../../../libs/hooks/useAuth';
 import { useGameEndRefresh } from '../../../libs/hooks/useGameEndRefresh';
 import Svg, { Polyline } from 'react-native-svg';
@@ -89,6 +90,8 @@ const SlotsScreen = ({ navigation }: any) => {
   const [betAmount, setBetAmount] = useState(10);
   const [showBlur, setShowBlur] = useState(true);
   const [showMusicPlayer, setShowMusicPlayer] = useState(false);
+  const [arEnabled, setArEnabled] = useState(false);
+  const arOverlayRef = useRef<AR3DOverlayHandle>(null);
   const [showBackground, setShowBackground] = useState(true);
   const toolbarExpanded = useSharedValue(false);
   const chevronStyle = useAnimatedStyle(() => ({
@@ -303,7 +306,7 @@ const SlotsScreen = ({ navigation }: any) => {
 
   return (
     <View style={styles.container}>
-      <Photosphere360Background overlayOpacity={0.5} />
+      <Photosphere360Background overlayOpacity={0.5} arEnabled={arEnabled} arOverlayRef={arOverlayRef} />
       <SafeAreaView style={{flex: 1}}>
         <View>
           <GameToolbar
@@ -324,6 +327,7 @@ const SlotsScreen = ({ navigation }: any) => {
               buttons={[
                 { icon: showBlur ? '🌫️' : '✨', onPress: () => setShowBlur(!showBlur) },
                 { icon: showBackground ? '🖼️' : '🔲', onPress: () => setShowBackground(!showBackground) },
+                { icon: arEnabled ? '🥽' : '🎮', onPress: () => setArEnabled(!arEnabled) },
                 { icon: showMusicPlayer ? '🎵' : '🎶', onPress: () => setShowMusicPlayer(s => !s) },
               ]}
             />
@@ -448,6 +452,16 @@ const SlotsScreen = ({ navigation }: any) => {
         </TouchableOpacity>
       </SafeAreaView>
       <SyncedYouTubePlayer roomId={null} visible={showMusicPlayer} />
+      {arEnabled && (
+        <TouchableOpacity
+          style={styles.recenterBtn}
+          onPress={() => arOverlayRef.current?.recenter()}
+          hitSlop={{top:12,bottom:12,left:12,right:12}}
+          activeOpacity={0.7}>
+          <Text style={styles.recenterIcon}>⊕</Text>
+          <Text style={styles.recenterLabel}>Re-center</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 };
@@ -728,6 +742,9 @@ const styles = StyleSheet.create({
     shadowRadius: 15,
     elevation: 10,
   },
+  recenterBtn: { position:'absolute', bottom:90, alignSelf:'center', left:'50%', transform:[{translateX:-54}], flexDirection:'row', alignItems:'center', gap:6, backgroundColor:'rgba(0,0,0,0.35)', borderWidth:1, borderColor:'rgba(255,255,255,0.25)', borderRadius:24, paddingHorizontal:18, paddingVertical:10 },
+  recenterIcon: { fontSize:20, color:'#fff' },
+  recenterLabel: { fontSize:13, color:'#fff', fontWeight:'600', letterSpacing:0.3 },
 });
 
 export default SlotsScreen;
