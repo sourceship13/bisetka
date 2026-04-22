@@ -19,6 +19,7 @@ import GameToolbarControls from '../../../components/global/GameToolbarControls'
 import RoomNameModal from '../../../components/RoomNameModal';
 import ReAnimated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import Photosphere360Background from '../../../components/Photosphere360Background';
+import {type AR3DOverlayHandle} from '../../../components/AR3DOverlay';
 import ExpandableView from '../../../components/global/ExpandableView';
 import {socketService} from '../../../services/SocketService';
 import tokenService from '../../../services/token.service';
@@ -185,6 +186,8 @@ const MultiplayerMrotsiScreen = ({navigation, route}: any) => {
   const [screen, setScreen] = useState<'menu' | 'matchmaking' | 'game'>('menu');
   const [showBlur, setShowBlur] = useState(true);
   const [showBackground, setShowBackground] = useState(true);
+  const [arEnabled, setArEnabled] = useState(false);
+  const arOverlayRef = useRef<AR3DOverlayHandle>(null);
   const toolbarExpanded = useSharedValue(false);
   const chevronStyle = useAnimatedStyle(() => ({
     transform: [{ rotate: withTiming(toolbarExpanded.value ? '180deg' : '0deg', { duration: 250 }) }],
@@ -573,7 +576,7 @@ const MultiplayerMrotsiScreen = ({navigation, route}: any) => {
   // ─── Game screen ─────────────────────────────────────────────────────────────
   return (
     <View style={styles.backgroundImage}>
-    <Photosphere360Background overlayOpacity={showBlur ? 0.5 : 0.3} />
+    <Photosphere360Background overlayOpacity={showBlur ? 0.5 : 0.3} arEnabled={arEnabled} arOverlayRef={arOverlayRef} />
     <SafeAreaView style={styles.container}>
       <View>
         <GameToolbar
@@ -603,6 +606,7 @@ const MultiplayerMrotsiScreen = ({navigation, route}: any) => {
               { icon: showBlur ? '🌫️' : '✨', onPress: () => setShowBlur(!showBlur) },
               { icon: showBackground ? '🖼️' : '🔲', onPress: () => setShowBackground(!showBackground) },
               { icon: '✏️', onPress: () => setShowRoomNameModal(true) },
+              { icon: arEnabled ? '🥽' : '🎮', onPress: () => setArEnabled(!arEnabled) },
             ]}
           />
         </ExpandableView>
@@ -714,6 +718,16 @@ const MultiplayerMrotsiScreen = ({navigation, route}: any) => {
         gameType="mrotsi"
         visible={screen === 'game' && !!roomIdRef.current}
       />
+      {arEnabled && (
+        <TouchableOpacity
+          style={styles.recenterBtn}
+          onPress={() => arOverlayRef.current?.recenter()}
+          hitSlop={{top:12,bottom:12,left:12,right:12}}
+          activeOpacity={0.7}>
+          <Text style={styles.recenterIcon}>⊕</Text>
+          <Text style={styles.recenterLabel}>Re-center</Text>
+        </TouchableOpacity>
+      )}
     </SafeAreaView>
     </View>
   );
@@ -816,6 +830,9 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   animDiceText: {fontSize: 32},
+  recenterBtn: { position:'absolute', bottom:90, alignSelf:'center', left:'50%', transform:[{translateX:-54}], flexDirection:'row', alignItems:'center', gap:6, backgroundColor:'rgba(0,0,0,0.35)', borderWidth:1, borderColor:'rgba(255,255,255,0.25)', borderRadius:24, paddingHorizontal:18, paddingVertical:10 },
+  recenterIcon: { fontSize:20, color:'#fff' },
+  recenterLabel: { fontSize:13, color:'#fff', fontWeight:'600', letterSpacing:0.3 },
 });
 
 export default MultiplayerMrotsiScreen;

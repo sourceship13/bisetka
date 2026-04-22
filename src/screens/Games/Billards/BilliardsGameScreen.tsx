@@ -14,6 +14,7 @@ import {
 import { apiService } from '../../../services/api.service';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Photosphere360Background from '../../../components/Photosphere360Background';
+import {type AR3DOverlayHandle} from '../../../components/AR3DOverlay';
 import GameToolbar from '../../../components/global/GameToolbar';
 import GameToolbarControls from '../../../components/global/GameToolbarControls';
 import RoomNameModal from '../../../components/RoomNameModal';
@@ -470,6 +471,8 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
   );
   const [showBlur, setShowBlur] = useState(true);
   const [showMusicPlayer, setShowMusicPlayer] = useState(false);
+  const [arEnabled, setArEnabled] = useState(false);
+  const arOverlayRef = useRef<AR3DOverlayHandle>(null);
   const [showBackground, setShowBackground] = useState(true);
   const toolbarExpanded = useSharedValue(false);
   const chevronStyle = useAnimatedStyle(() => ({
@@ -1906,7 +1909,7 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
 
   return (
     <View style={{flex: 1}}>
-    <Photosphere360Background overlayOpacity={showBlur ? 0.65 : 0.3} />
+    <Photosphere360Background overlayOpacity={showBlur ? 0.65 : 0.3} arEnabled={arEnabled} arOverlayRef={arOverlayRef} />
     <SafeAreaView style={styles.safeArea}>
       <View>
         <GameToolbar
@@ -1927,6 +1930,7 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
             buttons={[
               { icon: showBlur ? '🌫️' : '✨', onPress: () => setShowBlur(!showBlur) },
               { icon: showBackground ? '🖼️' : '🔲', onPress: () => setShowBackground(!showBackground) },
+              { icon: arEnabled ? '🥽' : '🎮', onPress: () => setArEnabled(!arEnabled) },
               { icon: showMusicPlayer ? '🎵' : '🎶', onPress: () => setShowMusicPlayer(s => !s) },
               ...(isMultiplayer && !gameOver ? [{ icon: '✏️', onPress: () => setShowRoomNameModal(true) }] : []),
             ]}
@@ -2254,6 +2258,16 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
       />
     </SafeAreaView>
       <SyncedYouTubePlayer roomId={null} visible={showMusicPlayer} />
+      {arEnabled && (
+        <TouchableOpacity
+          style={styles.recenterBtn}
+          onPress={() => arOverlayRef.current?.recenter()}
+          hitSlop={{top:12,bottom:12,left:12,right:12}}
+          activeOpacity={0.7}>
+          <Text style={styles.recenterIcon}>⊕</Text>
+          <Text style={styles.recenterLabel}>Re-center</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 };
@@ -2434,6 +2448,9 @@ const styles = StyleSheet.create({
     borderColor: '#555',
   },
   mpCancelText: {color: '#fff', fontSize: 14, fontWeight: '600'},
+  recenterBtn: { position:'absolute', bottom:90, alignSelf:'center', left:'50%', transform:[{translateX:-54}], flexDirection:'row', alignItems:'center', gap:6, backgroundColor:'rgba(0,0,0,0.35)', borderWidth:1, borderColor:'rgba(255,255,255,0.25)', borderRadius:24, paddingHorizontal:18, paddingVertical:10 },
+  recenterIcon: { fontSize:20, color:'#fff' },
+  recenterLabel: { fontSize:13, color:'#fff', fontWeight:'600', letterSpacing:0.3 },
 });
 
 export default BilliardsGameScreen;

@@ -16,6 +16,7 @@ import RiffleDealAnimation from '../../../components/RiffleDealAnimation';
 import type { CardTheme } from '../../../components/DynamicCard';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Photosphere360Background from '../../../components/Photosphere360Background';
+import {type AR3DOverlayHandle} from '../../../components/AR3DOverlay';
 
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {RootStackParamList} from '../../../navigation/AppNavigator';
@@ -123,6 +124,8 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
   const [tableId, setTableId] = useState<string | null>(null);
   const [showBlur, setShowBlur] = useState(true);
   const [showMusicPlayer, setShowMusicPlayer] = useState(false);
+  const [arEnabled, setArEnabled] = useState(false);
+  const arOverlayRef = useRef<AR3DOverlayHandle>(null);
   const [showBackground, setShowBackground] = useState(true);
   const toolbarExpanded = useSharedValue(false);
   const chevronStyle = useAnimatedStyle(() => ({
@@ -1173,7 +1176,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
 
   return (
     <View style={styles.container}>
-      <Photosphere360Background overlayOpacity={showBlur ? 0.65 : 0.3} />
+      <Photosphere360Background overlayOpacity={showBlur ? 0.65 : 0.3} arEnabled={arEnabled} arOverlayRef={arOverlayRef} />
       <SafeAreaView style={styles.safeArea}>
 
       {/* ── Connecting / Waiting Room Overlay ── */}
@@ -1309,6 +1312,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
               buttons={[
                 { icon: showBlur ? '🌫️' : '✨', onPress: () => setShowBlur(!showBlur) },
                 { icon: showBackground ? '🖼️' : '🔲', onPress: () => setShowBackground(!showBackground) },
+                { icon: arEnabled ? '🥽' : '🎮', onPress: () => setArEnabled(!arEnabled) },
                 { icon: showMusicPlayer ? '🎵' : '🎶', onPress: () => setShowMusicPlayer(s => !s) },
                 { icon: '✏️', onPress: () => { setDraftRoomName(roomName); setEditingRoomName(true); } },
                 { icon: '👥', onPress: togglePanel },
@@ -1550,6 +1554,16 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
 
     </SafeAreaView>
       <SyncedYouTubePlayer roomId={null} visible={showMusicPlayer} />
+      {arEnabled && (
+        <TouchableOpacity
+          style={styles.recenterBtn}
+          onPress={() => arOverlayRef.current?.recenter()}
+          hitSlop={{top:12,bottom:12,left:12,right:12}}
+          activeOpacity={0.7}>
+          <Text style={styles.recenterIcon}>⊕</Text>
+          <Text style={styles.recenterLabel}>Re-center</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 };
@@ -2080,6 +2094,9 @@ const styles = StyleSheet.create({
   panelPlayerName: { fontSize: 15, fontWeight: '600', color: '#fff', marginBottom: 2 },
   panelTeamBadge: { alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
   panelTeamText: { fontSize: 11, fontWeight: '700', color: '#fff' },
+  recenterBtn: { position:'absolute', bottom:90, alignSelf:'center', left:'50%', transform:[{translateX:-54}], flexDirection:'row', alignItems:'center', gap:6, backgroundColor:'rgba(0,0,0,0.35)', borderWidth:1, borderColor:'rgba(255,255,255,0.25)', borderRadius:24, paddingHorizontal:18, paddingVertical:10 },
+  recenterIcon: { fontSize:20, color:'#fff' },
+  recenterLabel: { fontSize:13, color:'#fff', fontWeight:'600', letterSpacing:0.3 },
 });
 
 export default PokerRoomScreen;
