@@ -233,7 +233,7 @@ const camRim = new THREE.DirectionalLight(0xffe0a0, 0.28);
 camRim.position.set(0, -1, -3); camera.add(camRim);
 
 // ── World-space constants (1 unit ≈ 1 metre) ─────────────────────────────────
-const TABLE_DIST = 0.9;    // metres in front of player
+const TABLE_DIST = 1.0;    // metres in front of player
 const BOARD_Y    = -0.65;  // chest level (approx 65cm below eye level)
 const BOARD_THICKNESS = 0.045; // slab depth — pieces must sit above BOARD_THICKNESS/2
 const BOARD_HALF   = 0.35;  // 70 cm half-width (fits on 1.8m table)
