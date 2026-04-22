@@ -349,32 +349,45 @@ export default function SyncedYouTubePlayer({
   return (
     <View style={[styles.container, {bottom: keyboardHeight}]}>
 
-      {/* ── WebView: always mounted so music persists across tab switches ── */}
-      <View style={[styles.playerContainer, !(expanded && activeTab === 'player') && {display: 'none'}]}>
-        <WebView
-          key={videoId ?? 'empty'}
-          ref={webViewRef}
-          source={videoId
-            ? {html: buildPlayerHtml(videoId, embedStartTime), baseUrl: 'https://bisetka.io'}
-            : {html: '<html><body style="background:#000"></body></html>'}
-          }
-          style={styles.webview}
-          scrollEnabled={false}
-          bounces={false}
-          javaScriptEnabled
-          mediaPlaybackRequiresUserAction={false}
-          allowsInlineMediaPlayback
-          allowsFullscreenVideo
-          originWhitelist={['*']}
-          userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
-          onMessage={handleMessage}
-        />
-        {videoId && !playerReady && (
-          <View style={styles.loadingOverlay}>
-            <ActivityIndicator size="large" color="#fff" />
+      {/* ── WebView: always mounted & always has non-zero bounds so audio
+           continues when collapsed. Use opacity:0 + position:absolute
+           instead of display:none — display:none zeroes the WKWebView
+           frame and suspends JS/audio. The overflow:hidden on the
+           container clips it visually but does NOT affect the native
+           WKWebView frame, so playback continues. ── */}
+      {(() => {
+        const webViewVisible = expanded && activeTab === 'player';
+        return (
+          <View
+            style={[styles.playerContainer, !webViewVisible && styles.playerContainerHidden]}
+            pointerEvents={webViewVisible ? 'auto' : 'none'}
+          >
+            <WebView
+              key={videoId ?? 'empty'}
+              ref={webViewRef}
+              source={videoId
+                ? {html: buildPlayerHtml(videoId, embedStartTime), baseUrl: 'https://bisetka.io'}
+                : {html: '<html><body style="background:#000"></body></html>'}
+              }
+              style={styles.webview}
+              scrollEnabled={false}
+              bounces={false}
+              javaScriptEnabled
+              mediaPlaybackRequiresUserAction={false}
+              allowsInlineMediaPlayback
+              allowsFullscreenVideo
+              originWhitelist={['*']}
+              userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
+              onMessage={handleMessage}
+            />
+            {videoId && !playerReady && (
+              <View style={styles.loadingOverlay}>
+                <ActivityIndicator size="large" color="#fff" />
+              </View>
+            )}
           </View>
-        )}
-      </View>
+        );
+      })()}
 
       {/* ── Mini bar ─────────────────────────────────────────────────── */}
       <View style={styles.bar}>
@@ -617,6 +630,9 @@ const styles = StyleSheet.create({
   tabTextActive: { color: '#d4af37', fontWeight: '600' },
   // ── Player tab ─────────────────────────────────────────────────────────────
   playerContainer: { width: '100%', aspectRatio: 16 / 9, backgroundColor: '#000' },
+  // position:absolute takes it out of flow (bar renders at top when collapsed)
+  // opacity:0 hides it visually — display:none zeroes native bounds and kills audio
+  playerContainerHidden: { position: 'absolute', opacity: 0 },
   webview:         { flex: 1, backgroundColor: '#000' },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
