@@ -233,8 +233,6 @@ const camRim = new THREE.DirectionalLight(0xffe0a0, 0.28);
 camRim.position.set(0, -1, -3); camera.add(camRim);
 
 // ── World-space constants (1 unit ≈ 1 metre) ─────────────────────────────────
-const TABLE_DIST = 1.0;    // metres in front of player
-const BOARD_Y    = -0.65;  // chest level (approx 65cm below eye level)
 const BOARD_THICKNESS = 0.045; // slab depth — pieces must sit above BOARD_THICKNESS/2
 const BOARD_HALF   = 0.35;  // 70 cm half-width (fits on 1.8m table)
 const BOARD_HALF_W = BOARD_HALF;
@@ -242,6 +240,17 @@ const BOARD_HALF_H = BOARD_HALF;
 const SQUARE_W     = (BOARD_HALF_W * 2) / 8;
 const SQUARE_H     = SQUARE_W;
 const PIECE_SCALE  = SQUARE_W * 0.80;
+const BOARD_Y    = -0.65;  // chest level (approx 65cm below eye level)
+
+// ── Dynamic TABLE_DIST: push board far enough so all corners fit in view ──────
+// hFov/2 = atan(tan(vFov/2) * aspect) — naturally handles every screen size.
+// For the board's nearest corners (at depth TABLE_DIST - BOARD_HALF) to fill
+// no more than 1/MARGIN of the half-horizontal-FOV:
+//   TABLE_DIST = BOARD_HALF * MARGIN / tan(hFov/2) + BOARD_HALF
+const _halfVFovRad = (${fov} / 2) * (Math.PI / 180);
+const _aspect      = W / H;
+const _halfHFovRad = Math.atan(Math.tan(_halfVFovRad) * _aspect);
+const TABLE_DIST   = (BOARD_HALF * 1.15 / Math.tan(_halfHFovRad)) + BOARD_HALF;
 
 // ── sceneGroup starts as a camera child so it is always in front ─────────────────
 // On the first animation frame (after camera rotation is applied from live gyro)
