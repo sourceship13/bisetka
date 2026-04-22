@@ -12,6 +12,7 @@ import {
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Photosphere360Background from '../../../components/Photosphere360Background';
+import {type AR3DOverlayHandle} from '../../../components/AR3DOverlay';
 import ReAnimated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import ExpandableView from '../../../components/global/ExpandableView';
 import GameToolbar from '../../../components/global/GameToolbar';
@@ -72,6 +73,8 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
   const [showBackground, setShowBackground] = useState(true);
   const [showCustomization, setShowCustomization] = useState(false);
   const [gameTheme, setGameTheme] = useState<GameTheme>({});
+  const [arEnabled, setArEnabled] = useState(false);
+  const arOverlayRef = React.useRef<AR3DOverlayHandle>(null);
   const handleApplyTheme = (theme: GameTheme) => setGameTheme(theme);
   const toolbarExpanded = useSharedValue(false);
   const chevronStyle = useAnimatedStyle(() => ({
@@ -577,7 +580,7 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
 
   return (
     <View style={styles.container}>
-      <Photosphere360Background overlayOpacity={showBlur ? 0.5 : 0.3} />
+      <Photosphere360Background overlayOpacity={showBlur ? 0.5 : 0.3} arEnabled={arEnabled} arOverlayRef={arOverlayRef} />
         <SafeAreaView style={styles.safeArea}>
           <View>
             <GameToolbar
@@ -600,6 +603,7 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
                   { icon: showBlur ? '🌫️' : '✨', onPress: () => setShowBlur(!showBlur) },
                   { icon: showBackground ? '🖼️' : '🔲', onPress: () => setShowBackground(!showBackground) },
                   { icon: '✏️', onPress: () => setShowRoomNameModal(true) },
+                  { icon: arEnabled ? '🥽' : '🎮', onPress: () => setArEnabled(!arEnabled) },
                 ]}
               />
             </ExpandableView>
@@ -757,6 +761,16 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
         gameType="chess"
         initialTheme={gameTheme}
       />
+      {arEnabled && (
+        <TouchableOpacity
+          style={styles.recenterBtn}
+          onPress={() => arOverlayRef.current?.recenter()}
+          hitSlop={{top:12,bottom:12,left:12,right:12}}
+          activeOpacity={0.7}>
+          <Text style={styles.recenterIcon}>⊕</Text>
+          <Text style={styles.recenterLabel}>Re-center</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 };
@@ -1025,6 +1039,9 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: '#1C1917',
   },
+  recenterBtn: { position:'absolute', bottom:90, alignSelf:'center', left:'50%', transform:[{translateX:-54}], flexDirection:'row', alignItems:'center', gap:6, backgroundColor:'rgba(0,0,0,0.35)', borderWidth:1, borderColor:'rgba(255,255,255,0.25)', borderRadius:24, paddingHorizontal:18, paddingVertical:10 },
+  recenterIcon: { fontSize:20, color:'#fff' },
+  recenterLabel: { fontSize:13, color:'#fff', fontWeight:'600', letterSpacing:0.3 },
 });
 
 export default MultiplayerChessScreen;

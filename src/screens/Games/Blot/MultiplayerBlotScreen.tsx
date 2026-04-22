@@ -16,6 +16,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import Photosphere360Background from '../../../components/Photosphere360Background';
+import {type AR3DOverlayHandle} from '../../../components/AR3DOverlay';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { socketService } from '../../../services/SocketService';
 import { blotAIService, LocalGameState, Card } from '../../../services/blotAI.service';
@@ -205,6 +206,8 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
   const [customTheme, setCustomTheme] = useState<CardTheme | undefined>(undefined);
   const [showBackground, setShowBackground] = useState(true);
   const [showBlur, setShowBlur] = useState(true);
+  const [arEnabled, setArEnabled] = useState(false);
+  const arOverlayRef = useRef<AR3DOverlayHandle>(null);
   const [showRiffleDealAnimation, setShowRiffleDealAnimation] = useState(false);
   const isRoundTransitioningRef = useRef(false);
   const prevGameStatePhaseRef = useRef<string | null>(null);
@@ -1566,7 +1569,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
 
   return (
     <View style={styles.container}>
-      <Photosphere360Background overlayOpacity={showBlur ? 0.65 : 0.3} />
+      <Photosphere360Background overlayOpacity={showBlur ? 0.65 : 0.3} arEnabled={arEnabled} arOverlayRef={arOverlayRef} />
         <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right']}>
       {(gameMode === 'game' || gameMode === 'local') && (
         <View>
@@ -1591,6 +1594,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
                 { icon: showBlur ? '🌫️' : '✨', onPress: () => setShowBlur(!showBlur) },
                 { icon: showBackground ? '🖼️' : '🔲', onPress: () => setShowBackground(!showBackground) },
                 { icon: '👥', onPress: () => roomInfoRef.current?.open() },
+                { icon: arEnabled ? '🥽' : '🎮', onPress: () => setArEnabled(!arEnabled) },
                 { icon: '✏️', onPress: () => setShowRoomNameModal(true) },
               ]}
             />
@@ -1719,6 +1723,16 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
         onComplete={() => { isRoundTransitioningRef.current = false; setShowRiffleDealAnimation(false); }}
         theme={customTheme}
       />
+      {arEnabled && (
+        <TouchableOpacity
+          style={styles.recenterBtn}
+          onPress={() => arOverlayRef.current?.recenter()}
+          hitSlop={{top:12,bottom:12,left:12,right:12}}
+          activeOpacity={0.7}>
+          <Text style={styles.recenterIcon}>⊕</Text>
+          <Text style={styles.recenterLabel}>Re-center</Text>
+        </TouchableOpacity>
+      )}
         </SafeAreaView>
     </View>
   );
@@ -2212,6 +2226,9 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
     flexWrap: 'wrap',
   },
+  recenterBtn: { position:'absolute', bottom:90, alignSelf:'center', left:'50%', transform:[{translateX:-54}], flexDirection:'row', alignItems:'center', gap:6, backgroundColor:'rgba(0,0,0,0.35)', borderWidth:1, borderColor:'rgba(255,255,255,0.25)', borderRadius:24, paddingHorizontal:18, paddingVertical:10 },
+  recenterIcon: { fontSize:20, color:'#fff' },
+  recenterLabel: { fontSize:13, color:'#fff', fontWeight:'600', letterSpacing:0.3 },
 });
 
 export default MultiplayerBlotScreen;
