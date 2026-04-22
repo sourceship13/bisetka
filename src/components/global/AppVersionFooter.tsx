@@ -21,9 +21,9 @@ const AppVersionFooter = ({
         mode === 'floating' ? styles.floatingContainer : styles.inlineContainer,
         containerStyle,
       ]}>
-      <Text style={mode === 'floating' ? styles.floatingText : styles.inlineText}>
+      {/* <Text style={mode === 'floating' ? styles.floatingText : styles.inlineText}>
         {showBrand ? `🇦🇲 Bisetka v${version}` : `v${version}`}
-      </Text>
+      </Text> */}
     </View>
   );
 };
