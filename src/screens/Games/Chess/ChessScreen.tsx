@@ -519,17 +519,8 @@ const ChessScreen = ({navigation}: any) => {
               title={`Chess - ${difficulty}`}
               onBack={resetGame}
               backgroundColor="transparent"
-              rightElement={
-                <TouchableOpacity
-                  onPress={() => { toolbarExpanded.value = !toolbarExpanded.value; }}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                  style={styles.editRoomButton}
-                >
-                  <ReAnimated.Text style={[styles.editRoomIcon, chevronStyle]}>⌄</ReAnimated.Text>
-                </TouchableOpacity>
-              }
             />
-            <ExpandableView isExpanded={toolbarExpanded} viewKey="chessToolbarControls" duration={300}>
+            <View>
                <GameToolbarControls
                 buttons={[
                   { icon: '🎨', onPress: () => setShowCustomization(true) },
@@ -541,7 +532,7 @@ const ChessScreen = ({navigation}: any) => {
                   { icon: '🚪', onPress: toggleLeave },
                 ]}
               />
-            </ExpandableView>
+            </View>
           </View>
 
       <View style={styles.statusBar}>

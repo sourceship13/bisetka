@@ -1582,17 +1582,8 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
             title={roomName}
             onBack={() => navigation.goBack()}
             backgroundColor="transparent"
-            rightElement={
-              <TouchableOpacity
-                onPress={() => { toolbarExpanded.value = !toolbarExpanded.value; }}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                style={styles.editRoomButton}
-              >
-                <ReAnimated.Text style={[styles.editRoomIcon, chevronStyle]}>⌄</ReAnimated.Text>
-              </TouchableOpacity>
-            }
           />
-          <ExpandableView isExpanded={toolbarExpanded} viewKey="toolbarControls" duration={300}>
+          <View>
             <GameToolbarControls
               buttons={[
                 { icon: '🎨', onPress: () => setShowCustomization(true) },
@@ -1604,7 +1595,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
                 { icon: '✏️', onPress: () => setShowRoomNameModal(true) },
               ]}
             />
-          </ExpandableView>
+          </View>
         </View>
       )}
       {gameMode === 'menu' && renderMenu()}
