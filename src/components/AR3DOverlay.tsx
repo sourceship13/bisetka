@@ -242,15 +242,15 @@ const SQUARE_H     = SQUARE_W;
 const PIECE_SCALE  = SQUARE_W * 0.80;
 const BOARD_Y    = -0.65;  // chest level (approx 65cm below eye level)
 
-// ── Dynamic TABLE_DIST: push board far enough so all corners fit in view ──────
-// hFov/2 = atan(tan(vFov/2) * aspect) — naturally handles every screen size.
-// For the board's nearest corners (at depth TABLE_DIST - BOARD_HALF) to fill
-// no more than 1/MARGIN of the half-horizontal-FOV:
-//   TABLE_DIST = BOARD_HALF * MARGIN / tan(hFov/2) + BOARD_HALF
+// ── Dynamic TABLE_DIST: closest distance where board corners fit in view ──────
+// hFov derived from vFov + aspect ratio so it adapts to every screen/orientation.
+// MARGIN 0.75 keeps the board close; raw result is clamped [0.70, 1.10] so it
+// never clips on ultra-wide landscape and never floats away on narrow portrait.
 const _halfVFovRad = (${fov} / 2) * (Math.PI / 180);
 const _aspect      = W / H;
 const _halfHFovRad = Math.atan(Math.tan(_halfVFovRad) * _aspect);
-const TABLE_DIST   = (BOARD_HALF * 1.15 / Math.tan(_halfHFovRad)) + BOARD_HALF;
+const _rawDist     = (BOARD_HALF * 0.75 / Math.tan(_halfHFovRad)) + BOARD_HALF;
+const TABLE_DIST   = Math.min(Math.max(_rawDist, 0.70), 1.10);
 
 // ── sceneGroup starts as a camera child so it is always in front ─────────────────
 // On the first animation frame (after camera rotation is applied from live gyro)
