@@ -213,7 +213,9 @@ const MrotsiScreen = ({navigation, route}: any) => {
     // AI opponent's turn - use full gameState to avoid stale closures in production builds
     if (gameState.gameMode === 'ai' && gameState.playerRolled && !gameState.opponentRolled && !gameState.isGameOver) {
       const currentRound = gameState.currentRound;
+      const delayTimer = setTimeout(() => {
       animateOpponentDice();
+      }, 2500);
       const timer = setTimeout(() => {
         // Calculate AI dice roll inline to avoid stale closure
         const newDice = [
@@ -281,8 +283,9 @@ const MrotsiScreen = ({navigation, route}: any) => {
             opponentRolled: true,
           };
         });
-      }, 1000);
+      }, 3500);
       return () => {
+        clearTimeout(delayTimer);
         clearTimeout(timer);
         if (opponentRollingIntervalRef.current) {
           clearInterval(opponentRollingIntervalRef.current);
@@ -442,6 +445,10 @@ const MrotsiScreen = ({navigation, route}: any) => {
   function rollPlayerDice() {
     if (gameState.playerRolled || gameState.isGameOver) return;
 
+    // Roll first so Dice3DSimple receives the final values when isRolling turns true
+    const newDice = rollDice();
+    const score = calculateScore(newDice);
+    setRollingDice(newDice);
     animateDice();
     
     setTimeout(() => {
@@ -451,9 +458,6 @@ const MrotsiScreen = ({navigation, route}: any) => {
         rollingIntervalRef.current = null;
       }
       setIsRolling(false);
-
-      const newDice = rollDice();
-      const score = calculateScore(newDice);
       
       // Capture player dice for AI logging
       if (gameState.gameMode === 'ai') {
@@ -557,41 +561,40 @@ const MrotsiScreen = ({navigation, route}: any) => {
           </View>
         </View>
 
-        {/* Wooden Table with Dice */}
+        {/* Dice display — single central area, one player at a time */}
         <View style={styles.tableContainer} pointerEvents="box-none">
           {arEnabled ? (
-            // AR mode: transparent container so GLB board shows through from AR3DOverlay
             <View style={[styles.woodenTable, styles.woodenTableAR]} pointerEvents="box-none">
-              {/* Opponent's Dice Area */}
-              <View style={styles.opponentDiceArea} pointerEvents="box-none">
-                <Text style={styles.areaLabel}>Opponent</Text>
-                <View style={styles.diceRow}>
-                  {((isOpponentRolling ? opponentRollingDice : gameState.opponentDice).length === 5
-                    ? (isOpponentRolling ? opponentRollingDice : gameState.opponentDice)
-                    : [1, 1, 1, 1, 1]).map((d, i) => (
-                    <Dice3DSimple key={i} value={d} isRolling={isOpponentRolling} index={i} size={Math.floor(SCREEN_WIDTH / 5)} />
-                  ))}
-                </View>
-                {gameState.opponentRolled && !isOpponentRolling && (
-                  <Text style={styles.handNameText}>{getScoreName(gameState.opponentDice)}</Text>
-                )}
-              </View>
-
-              {/* Center Divider */}
-              <View style={styles.centerDivider} pointerEvents="none" />
-
-              {/* Player's Dice Area */}
-              <View style={styles.playerDiceArea} pointerEvents="box-none">
-                <Text style={styles.areaLabel}>You</Text>
-                <View style={styles.diceRow}>
-                  {((isRolling ? rollingDice : gameState.playerDice).length === 5
-                    ? (isRolling ? rollingDice : gameState.playerDice)
-                    : [1, 1, 1, 1, 1]).map((d, i) => (
-                    <Dice3DSimple key={i} value={d} isRolling={isRolling} index={i} size={Math.floor(SCREEN_WIDTH / 5)} />
-                  ))}
-                </View>
-                {gameState.playerRolled && !isRolling && (
-                  <Text style={styles.handNameText}>{getScoreName(gameState.playerDice)}</Text>
+              <View style={styles.centerDiceArea} pointerEvents="box-none">
+                {!gameState.playerRolled || isRolling ? (
+                  /* Phase A: player's turn */
+                  isRolling ? (
+                    <>
+                      <Text style={styles.areaLabel}>You</Text>
+                      <View style={styles.diceRow}>
+                        {rollingDice.map((d, i) => (
+                          <Dice3DSimple key={i} value={d} isRolling={true} index={i} size={Math.floor(SCREEN_WIDTH / 5)} />
+                        ))}
+                      </View>
+                    </>
+                  ) : (
+                    <Text style={styles.rollPromptText}>Tap below to roll your dice 🎲</Text>
+                  )
+                ) : (
+                  /* Phase B: opponent's turn / showing opponent result */
+                  <>
+                    <Text style={styles.areaLabel}>
+                      {isOpponentRolling ? 'Opponent rolling...' : 'Opponent'}
+                    </Text>
+                    <View style={styles.diceRow}>
+                      {(isOpponentRolling ? opponentRollingDice : gameState.opponentDice).map((d, i) => (
+                        <Dice3DSimple key={i} value={d} isRolling={isOpponentRolling} index={i} size={Math.floor(SCREEN_WIDTH / 5)} />
+                      ))}
+                    </View>
+                    {gameState.opponentRolled && !isOpponentRolling && (
+                      <Text style={styles.handNameText}>{getScoreName(gameState.opponentDice)}</Text>
+                    )}
+                  </>
                 )}
               </View>
             </View>
@@ -602,41 +605,51 @@ const MrotsiScreen = ({navigation, route}: any) => {
               imageStyle={styles.woodenTableImage}
               resizeMode="cover"
             >
-              {/* Opponent's Dice Area */}
-              <View style={styles.opponentDiceArea}>
-                <Text style={styles.areaLabel}>Opponent</Text>
-                <View style={styles.diceRow}>
-                  {((isOpponentRolling ? opponentRollingDice : gameState.opponentDice).length === 5
-                    ? (isOpponentRolling ? opponentRollingDice : gameState.opponentDice)
-                    : [1, 1, 1, 1, 1]).map((d, i) => (
-                    <Dice3DSimple key={i} value={d} isRolling={isOpponentRolling} index={i} size={Math.floor(SCREEN_WIDTH / 5)} />
-                  ))}
-                </View>
-                {gameState.opponentRolled && !isOpponentRolling && (
-                  <Text style={styles.handNameText}>{getScoreName(gameState.opponentDice)}</Text>
-                )}
-              </View>
-
-              {/* Center Divider */}
-              <View style={styles.centerDivider} />
-
-              {/* Player's Dice Area */}
-              <View style={styles.playerDiceArea}>
-                <Text style={styles.areaLabel}>You</Text>
-                <View style={styles.diceRow}>
-                  {((isRolling ? rollingDice : gameState.playerDice).length === 5
-                    ? (isRolling ? rollingDice : gameState.playerDice)
-                    : [1, 1, 1, 1, 1]).map((d, i) => (
-                    <Dice3DSimple key={i} value={d} isRolling={isRolling} index={i} size={Math.floor(SCREEN_WIDTH / 5)} />
-                  ))}
-                </View>
-                {gameState.playerRolled && !isRolling && (
-                  <Text style={styles.handNameText}>{getScoreName(gameState.playerDice)}</Text>
+              <View style={styles.centerDiceArea}>
+                {!gameState.playerRolled || isRolling ? (
+                  isRolling ? (
+                    <>
+                      <Text style={styles.areaLabel}>You</Text>
+                      <View style={styles.diceRow}>
+                        {rollingDice.map((d, i) => (
+                          <Dice3DSimple key={i} value={d} isRolling={true} index={i} size={Math.floor(SCREEN_WIDTH / 5)} />
+                        ))}
+                      </View>
+                    </>
+                  ) : (
+                    <Text style={styles.rollPromptText}>Tap below to roll your dice 🎲</Text>
+                  )
+                ) : (
+                  <>
+                    <Text style={styles.areaLabel}>
+                      {isOpponentRolling ? 'Opponent rolling...' : 'Opponent'}
+                    </Text>
+                    <View style={styles.diceRow}>
+                      {(isOpponentRolling ? opponentRollingDice : gameState.opponentDice).map((d, i) => (
+                        <Dice3DSimple key={i} value={d} isRolling={isOpponentRolling} index={i} size={Math.floor(SCREEN_WIDTH / 5)} />
+                      ))}
+                    </View>
+                    {gameState.opponentRolled && !isOpponentRolling && (
+                      <Text style={styles.handNameText}>{getScoreName(gameState.opponentDice)}</Text>
+                    )}
+                  </>
                 )}
               </View>
             </ImageBackground>
           )}
         </View>
+
+        {/* Player's rolled dice — compact row beneath the board */}
+        {gameState.playerRolled && !isRolling && (
+          <View style={styles.playerResultRow}>
+            <Text style={styles.playerResultLabel}>You: {getScoreName(gameState.playerDice)}</Text>
+            <View style={styles.playerResultDiceRow}>
+              {gameState.playerDice.map((d, i) => (
+                <Dice3DSimple key={i} value={d} isRolling={false} index={i} size={Math.floor(SCREEN_WIDTH / 8)} />
+              ))}
+            </View>
+          </View>
+        )}
 
         {/* Action Button */}
         <View style={styles.actionContainer}>
@@ -810,6 +823,48 @@ const styles = StyleSheet.create({
     height: 2,
     backgroundColor: 'rgba(139, 69, 19, 0.6)',
     marginVertical: 8,
+  },
+  centerDiceArea: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+  },
+  rollPromptText: {
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.65)',
+    fontStyle: 'italic',
+    textAlign: 'center',
+    textShadowColor: 'rgba(0, 0, 0, 0.9)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 3,
+  },
+  playerResultRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 16,
+    marginBottom: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.50)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 215, 0, 0.3)',
+  },
+  playerResultLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#FFD700',
+    marginRight: 10,
+    textShadowColor: 'rgba(0, 0, 0, 0.9)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
+  },
+  playerResultDiceRow: {
+    flexDirection: 'row',
+    gap: 2,
+    flex: 1,
+    justifyContent: 'flex-end',
   },
   areaLabel: {
     fontSize: 18,

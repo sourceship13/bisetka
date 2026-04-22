@@ -308,13 +308,19 @@ const Dice3DSimple: React.FC<Dice3DSimpleProps> = ({
   const prevRolling = useRef(false);
   const prevValue = useRef(value);
 
+  // Stable ref so onLoadEnd callback always sees current props
+  const valueRef = useRef(value);
+  const isRollingRef = useRef(isRolling);
+  valueRef.current = value;
+  isRollingRef.current = isRolling;
+
   const html = useMemo(() => buildHTML(index), [index]);
 
   useEffect(() => {
     if (!webViewRef.current) return;
 
     if (isRolling && !prevRolling.current) {
-      // Start rolling animation
+      // Start rolling animation with the final target value
       webViewRef.current.postMessage(
         JSON.stringify({ type: 'roll', value }),
       );
@@ -334,6 +340,20 @@ const Dice3DSimple: React.FC<Dice3DSimpleProps> = ({
     prevValue.current = value;
   }, [isRolling, value]);
 
+  // Send initial value once the WebView has loaded its HTML
+  const onLoadEnd = () => {
+    if (!webViewRef.current) return;
+    if (isRollingRef.current) {
+      webViewRef.current.postMessage(
+        JSON.stringify({ type: 'roll', value: valueRef.current }),
+      );
+    } else {
+      webViewRef.current.postMessage(
+        JSON.stringify({ type: 'setValue', value: valueRef.current }),
+      );
+    }
+  };
+
   const onMessage = (event: any) => {
     if (event.nativeEvent.data === 'rollComplete') {
       onRollComplete?.();
@@ -345,6 +365,7 @@ const Dice3DSimple: React.FC<Dice3DSimpleProps> = ({
       <WebView
         ref={webViewRef}
         source={{ html }}
+        onLoadEnd={onLoadEnd}
         style={{ flex: 1, backgroundColor: 'transparent' }}
         scrollEnabled={false}
         bounces={false}
