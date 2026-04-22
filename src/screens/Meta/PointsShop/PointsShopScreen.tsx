@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {
   View,
   Text,
@@ -7,8 +7,8 @@ import {
   TouchableOpacity,
   StatusBar,
   ActivityIndicator,
-  ImageBackground,
-  Animated,
+  Image,
+  Dimensions,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -16,6 +16,33 @@ import {colors, spacing} from '../../../theme';
 import {BisetkaAlert} from '../../../utils/BisetkaAlert';
 import {useAuth} from '../../../libs/hooks/useAuth';
 import apiService from '../../../services/api.service';
+import {ClothingItem, ClothingType, Rarity} from '../../../types/avatar2d';
+import {ALL_CLOTHING_ITEMS} from '../../../data/clothingItems';
+
+const {width} = Dimensions.get('window');
+const CARD_WIDTH = (width - 48) / 2;
+
+// ── Tabs ─────────────────────────────────────────────────────────────────────
+type StoreTab = 'points' | 'clothing';
+
+// ── Clothing store constants ──────────────────────────────────────────────────
+const RARITY_COLORS: Record<Rarity, string> = {
+  common: '#9ca3af',
+  rare: '#60a5fa',
+  epic: '#a78bfa',
+  legendary: '#fbbf24',
+};
+
+const CATEGORY_TABS: {type: ClothingType | 'all'; label: string; icon: string}[] = [
+  {type: 'all', label: 'All', icon: '🛍️'},
+  {type: 'hair', label: 'Hair', icon: '💇'},
+  {type: 'top', label: 'Tops', icon: '👕'},
+  {type: 'bottom', label: 'Bottoms', icon: '👖'},
+  {type: 'shoes', label: 'Shoes', icon: '👟'},
+  {type: 'jewelry', label: 'Jewelry', icon: '💎'},
+  {type: 'hat', label: 'Hats', icon: '🧢'},
+  {type: 'other', label: 'Other', icon: '🛹'},
+];
 
 interface PointPack {
   id: string;
@@ -77,11 +104,99 @@ const getGradientViewStyle = (
   borderRadius: 16,
 });
 
-const PointsShopScreen = ({navigation}: any) => {
+const PointsShopScreen = ({navigation, route}: any) => {
+  // ── Shared state ─────────────────────────────────────────────────────────
+  const [activeTab, setActiveTab] = useState<StoreTab>(
+    route?.params?.initialTab ?? 'points',
+  );
+
+  // ── Points tab state ──────────────────────────────────────────────────────
   const [loading, setLoading] = useState<string | null>(null);
   const [isSyncingProfile, setIsSyncingProfile] = useState(false);
   const [hasPurchased, setHasPurchased] = useState(false);
   const {setUser, refreshUser} = useAuth();
+
+  // ── Clothing tab state ────────────────────────────────────────────────────
+  const [clothingItems, setClothingItems] = useState<ClothingItem[]>([]);
+  const [ownedItems, setOwnedItems] = useState<Set<string>>(new Set());
+  const [selectedCategory, setSelectedCategory] = useState<ClothingType | 'all'>('all');
+  const [clothingLoading, setClothingLoading] = useState(true);
+  const [purchasing, setPurchasing] = useState<string | null>(null);
+
+  useEffect(() => {
+    loadClothingStore();
+    loadUserInventory();
+  }, []);
+
+  const loadClothingStore = () => {
+    setTimeout(() => {
+      setClothingItems(ALL_CLOTHING_ITEMS);
+      setClothingLoading(false);
+    }, 300);
+  };
+
+  const loadUserInventory = async () => {
+    try {
+      const AsyncStorage =
+        require('@react-native-async-storage/async-storage').default;
+      const ownedStr = await AsyncStorage.getItem('ownedClothing');
+      const defaultOwned = ALL_CLOTHING_ITEMS.filter(i => i.isDefault).map(i => i.id);
+      setOwnedItems(
+        ownedStr ? new Set(JSON.parse(ownedStr)) : new Set(defaultOwned),
+      );
+    } catch {
+      const defaultOwned = ALL_CLOTHING_ITEMS.filter(i => i.isDefault).map(i => i.id);
+      setOwnedItems(new Set(defaultOwned));
+    }
+  };
+
+  const handleClothingPurchase = async (item: ClothingItem) => {
+    if (ownedItems.has(item.id)) {
+      BisetkaAlert({title: 'Already Owned', message: 'You already own this item!', type: 'warning'});
+      return;
+    }
+    if (item.price === 0) {
+      try {
+        setPurchasing(item.id);
+        const AsyncStorage =
+          require('@react-native-async-storage/async-storage').default;
+        const newOwned = new Set([...ownedItems, item.id]);
+        await AsyncStorage.setItem('ownedClothing', JSON.stringify([...newOwned]));
+        setOwnedItems(newOwned);
+        BisetkaAlert({title: 'Claimed!', message: `${item.name} added to your wardrobe`, type: 'success'});
+      } catch {
+        BisetkaAlert({title: 'Error', message: 'Failed to claim item', type: 'error'});
+      } finally {
+        setPurchasing(null);
+      }
+      return;
+    }
+    BisetkaAlert({
+      title: 'Purchase Item',
+      message: `Buy ${item.name} for $${(item.price / 100).toFixed(2)}?\n\n(Payment integration coming soon!)`,
+      type: 'confirm',
+      confirmText: 'Purchase',
+      onConfirm: async () => {
+        try {
+          setPurchasing(item.id);
+          const AsyncStorage =
+            require('@react-native-async-storage/async-storage').default;
+          const newOwned = new Set([...ownedItems, item.id]);
+          await AsyncStorage.setItem('ownedClothing', JSON.stringify([...newOwned]));
+          setOwnedItems(newOwned);
+          BisetkaAlert({title: 'Success!', message: `${item.name} purchased!`, type: 'success'});
+        } catch {
+          BisetkaAlert({title: 'Purchase Failed', message: 'Failed to purchase', type: 'error'});
+        } finally {
+          setPurchasing(null);
+        }
+      },
+    });
+  };
+
+  const filteredClothingItems = clothingItems.filter(
+    item => selectedCategory === 'all' || item.type === selectedCategory,
+  );
 
   const syncUserBalance = (pointsAdded: number, newBalance: number) => {
     setUser(currentUser => {
@@ -245,123 +360,189 @@ const PointsShopScreen = ({navigation}: any) => {
 
   return (
     <View style={styles.container}>
-      <View
-        style={[
-          styles.backgroundGradient,
-          getGradientViewStyle(['#0f172a', '#1e293b', '#0f172a'], 0),
-        ]}>
-        
+      <View style={[styles.backgroundGradient, getGradientViewStyle(['#0f172a', '#1e293b', '#0f172a'], 0)]}>
         <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
         <SafeAreaView style={styles.safeArea} edges={['top']}>
-          {/* Header */}
+          {/* ── Header ──────────────────────────────────────────────────── */}
           <View style={styles.header}>
             <TouchableOpacity
               style={styles.backButton}
               onPress={handleBackPress}
               disabled={isSyncingProfile}>
-              <View
-                style={[
-                  styles.backButtonGradient,
-                  getGradientViewStyle(['rgba(255,255,255,0.15)', 'rgba(255,255,255,0.05)']),
-                ]}>
+              <View style={[styles.backButtonGradient, getGradientViewStyle(['rgba(255,255,255,0.15)', 'rgba(255,255,255,0.05)'])]}>
                 <Icon name="arrow-left" size={24} color="#fff" />
               </View>
             </TouchableOpacity>
 
             <View style={styles.headerCenter}>
               <View style={styles.headerTitleRow}>
-                <Icon name="poker-chip" size={28} color="#fbbf24" />
-                <Text style={styles.headerTitle}>Points Casino</Text>
+                <Icon name="storefront" size={26} color="#fbbf24" />
+                <Text style={styles.headerTitle}>Bisetka Store</Text>
               </View>
-              <Text style={styles.headerSubtitle}>✨ Premium Packages ✨</Text>
             </View>
 
             <View style={styles.headerRight} />
           </View>
 
-          <ScrollView
-            style={styles.scrollView}
-            contentContainerStyle={styles.scrollContent}
-            showsVerticalScrollIndicator={false}>
-            
-            {/* Promotional Banner */}
-            <View
-              style={[styles.promoBanner, getGradientViewStyle(['#ec4899', '#8b5cf6'])]}>
-              <View style={styles.promoContent}>
-                <Icon name="sale" size={32} color="#fff" />
-                <View style={styles.promoText}>
-                  <Text style={styles.promoTitle}>🎰 SPECIAL OFFER</Text>
-                  <Text style={styles.promoDescription}>
-                    Buy any pack and get INSTANT bonus points!
-                  </Text>
+          {/* ── Tab selector ─────────────────────────────────────────────── */}
+          <View style={styles.tabBar}>
+            <TouchableOpacity
+              style={[styles.tabItem, activeTab === 'points' && styles.tabItemActive]}
+              onPress={() => setActiveTab('points')}>
+              <Icon name="poker-chip" size={18} color={activeTab === 'points' ? '#fbbf24' : 'rgba(255,255,255,0.45)'} />
+              <Text style={[styles.tabLabel, activeTab === 'points' && styles.tabLabelActive]}>
+                Points
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.tabItem, activeTab === 'clothing' && styles.tabItemActive]}
+              onPress={() => setActiveTab('clothing')}>
+              <Icon name="tshirt-crew" size={18} color={activeTab === 'clothing' ? '#a78bfa' : 'rgba(255,255,255,0.45)'} />
+              <Text style={[styles.tabLabel, activeTab === 'clothing' && styles.tabLabelClothing]}>
+                Clothing
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* ── Points tab ───────────────────────────────────────────────── */}
+          {activeTab === 'points' && (
+            <ScrollView
+              style={styles.scrollView}
+              contentContainerStyle={styles.scrollContent}
+              showsVerticalScrollIndicator={false}>
+
+              <View style={[styles.promoBanner, getGradientViewStyle(['#ec4899', '#8b5cf6'])]}>
+                <View style={styles.promoContent}>
+                  <Icon name="sale" size={32} color="#fff" />
+                  <View style={styles.promoText}>
+                    <Text style={styles.promoTitle}>🎰 SPECIAL OFFER</Text>
+                    <Text style={styles.promoDescription}>
+                      Buy any pack and get INSTANT bonus points!
+                    </Text>
+                  </View>
                 </View>
               </View>
-            </View>
 
-            {/* Point Packs Grid */}
-            <View style={styles.packsGrid}>
-              {POINT_PACKS.map(pack => renderPointPack(pack))}
-            </View>
+              <View style={styles.packsGrid}>
+                {POINT_PACKS.map(pack => renderPointPack(pack))}
+              </View>
 
-            {/* Features List */}
-            <View
-              style={[
-                styles.featuresContainer,
-                getGradientViewStyle(['rgba(255,255,255,0.05)', 'rgba(255,255,255,0.02)']),
-              ]}>
-              <Text style={styles.featuresTitle}>💎 What You Get</Text>
-              
-              <View style={styles.featureItem}>
-                <View style={styles.featureIconCircle}>
-                  <Icon name="airplane-takeoff" size={20} color="#10b981" />
+              <View style={[styles.featuresContainer, getGradientViewStyle(['rgba(255,255,255,0.05)', 'rgba(255,255,255,0.02)'])]}>
+                <Text style={styles.featuresTitle}>💎 What You Get</Text>
+                {[
+                  {icon: 'airplane-takeoff', color: '#10b981', text: 'Travel anywhere worldwide'},
+                  {icon: 'trophy-variant', color: '#f59e0b', text: 'Unlock exclusive achievements'},
+                  {icon: 'account-group', color: '#6366f1', text: 'Compete globally'},
+                  {icon: 'crown', color: '#ef4444', text: 'Dominate leaderboards'},
+                ].map(f => (
+                  <View key={f.icon} style={styles.featureItem}>
+                    <View style={styles.featureIconCircle}>
+                      <Icon name={f.icon} size={20} color={f.color} />
+                    </View>
+                    <Text style={styles.featureText}>{f.text}</Text>
+                  </View>
+                ))}
+              </View>
+
+              <View style={styles.trustBadges}>
+                {[
+                  {icon: 'shield-check', color: '#10b981', label: 'Secure'},
+                  {icon: 'flash', color: '#f59e0b', label: 'Instant'},
+                  {icon: 'credit-card', color: '#6366f1', label: 'Safe'},
+                ].map(b => (
+                  <View key={b.label} style={styles.trustBadge}>
+                    <Icon name={b.icon} size={16} color={b.color} />
+                    <Text style={styles.trustBadgeText}>{b.label}</Text>
+                  </View>
+                ))}
+              </View>
+
+              <Text style={styles.footerNote}>
+                🔒 256-bit encryption • 💳 All cards accepted • ⚡ Instant delivery
+              </Text>
+            </ScrollView>
+          )}
+
+          {/* ── Clothing tab ─────────────────────────────────────────────── */}
+          {activeTab === 'clothing' && (
+            <>
+              {/* Category filter */}
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.categoryScroll}
+                contentContainerStyle={styles.categoryContainer}>
+                {CATEGORY_TABS.map(tab => (
+                  <TouchableOpacity
+                    key={tab.type}
+                    style={[styles.categoryTab, selectedCategory === tab.type && styles.categoryTabActive]}
+                    onPress={() => setSelectedCategory(tab.type)}>
+                    <Text style={styles.categoryIcon}>{tab.icon}</Text>
+                    <Text style={[styles.categoryLabel, selectedCategory === tab.type && styles.categoryLabelActive]}>
+                      {tab.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+
+              {clothingLoading ? (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator size="large" color="#a78bfa" />
                 </View>
-                <Text style={styles.featureText}>Travel anywhere worldwide</Text>
-              </View>
+              ) : (
+                <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+                  <View style={styles.itemsGrid}>
+                    {filteredClothingItems.map(item => {
+                      const owned = ownedItems.has(item.id);
+                      const isPurchasing = purchasing === item.id;
+                      const rarityColor = RARITY_COLORS[item.rarity] ?? '#9ca3af';
+                      return (
+                        <TouchableOpacity
+                          key={item.id}
+                          style={[styles.itemCard, {borderColor: rarityColor + '55'}]}
+                          onPress={() => !owned && !isPurchasing && handleClothingPurchase(item)}
+                          disabled={owned || isPurchasing}>
+                          <View style={styles.itemContent}>
+                            <View style={styles.itemImageWrapper}>
+                              <Image
+                                source={item.thumbnailUrl || item.imageUrl}
+                                style={styles.itemImage}
+                                resizeMode="contain"
+                              />
+                            </View>
 
-              <View style={styles.featureItem}>
-                <View style={styles.featureIconCircle}>
-                  <Icon name="trophy-variant" size={20} color="#f59e0b" />
-                </View>
-                <Text style={styles.featureText}>Unlock exclusive achievements</Text>
-              </View>
+                            {owned && (
+                              <View style={styles.ownedBadge}>
+                                <Text style={styles.ownedText}>✓ Owned</Text>
+                              </View>
+                            )}
 
-              <View style={styles.featureItem}>
-                <View style={styles.featureIconCircle}>
-                  <Icon name="account-group" size={20} color="#6366f1" />
-                </View>
-                <Text style={styles.featureText}>Compete globally</Text>
-              </View>
-
-              <View style={styles.featureItem}>
-                <View style={styles.featureIconCircle}>
-                  <Icon name="crown" size={20} color="#ef4444" />
-                </View>
-                <Text style={styles.featureText}>Dominate leaderboards</Text>
-              </View>
-            </View>
-
-            {/* Trust Badges */}
-            <View style={styles.trustBadges}>
-              <View style={styles.trustBadge}>
-                <Icon name="shield-check" size={16} color="#10b981" />
-                <Text style={styles.trustBadgeText}>Secure</Text>
-              </View>
-              <View style={styles.trustBadge}>
-                <Icon name="flash" size={16} color="#f59e0b" />
-                <Text style={styles.trustBadgeText}>Instant</Text>
-              </View>
-              <View style={styles.trustBadge}>
-                <Icon name="credit-card" size={16} color="#6366f1" />
-                <Text style={styles.trustBadgeText}>Safe</Text>
-              </View>
-            </View>
-
-            {/* Footer Note */}
-            <Text style={styles.footerNote}>
-              🔒 256-bit encryption • 💳 All cards accepted • ⚡ Instant delivery
-            </Text>
-          </ScrollView>
+                            <View style={styles.itemInfo}>
+                              <Text style={styles.itemName} numberOfLines={1}>{item.name}</Text>
+                              <Text style={[styles.itemRarity, {color: rarityColor}]}>
+                                {item.rarity.toUpperCase()}
+                              </Text>
+                              {isPurchasing ? (
+                                <ActivityIndicator size="small" color="#a78bfa" />
+                              ) : (
+                                <View style={styles.itemPriceContainer}>
+                                  <Text style={styles.itemPriceText}>
+                                    {item.price === 0 ? 'FREE' : `$${(item.price / 100).toFixed(2)}`}
+                                  </Text>
+                                </View>
+                              )}
+                            </View>
+                          </View>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </ScrollView>
+              )}
+            </>
+          )}
         </SafeAreaView>
       </View>
     </View>
@@ -423,6 +604,154 @@ const styles = StyleSheet.create({
   },
   headerRight: {
     width: 44,
+  },
+  // ── Tab bar ────────────────────────────────────────────────────────────────
+  tabBar: {
+    flexDirection: 'row',
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.sm,
+    marginBottom: spacing.md,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderRadius: 14,
+    padding: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  tabItem: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  tabItemActive: {
+    backgroundColor: 'rgba(255,255,255,0.12)',
+  },
+  tabLabel: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: 'rgba(255,255,255,0.45)',
+  },
+  tabLabelActive: {
+    color: '#fbbf24',
+  },
+  tabLabelClothing: {
+    color: '#a78bfa',
+  },
+  // ── Clothing ───────────────────────────────────────────────────────────────
+  categoryScroll: {
+    maxHeight: 56,
+  },
+  categoryContainer: {
+    paddingHorizontal: spacing.lg,
+    gap: 8,
+    alignItems: 'center',
+  },
+  categoryTab: {
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    marginRight: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  categoryTabActive: {
+    backgroundColor: 'rgba(167,139,250,0.25)',
+    borderColor: '#a78bfa',
+  },
+  categoryIcon: {
+    fontSize: 15,
+  },
+  categoryLabel: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  categoryLabelActive: {
+    color: '#a78bfa',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  itemsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    padding: spacing.lg,
+    gap: 14,
+  },
+  itemCard: {
+    width: CARD_WIDTH,
+    borderRadius: 14,
+    overflow: 'hidden',
+    backgroundColor: '#1e2a3a',
+    borderWidth: 1,
+  },
+  itemContent: {
+    padding: 12,
+    minHeight: 230,
+  },
+  itemImageWrapper: {
+    width: '100%',
+    height: 150,
+    borderRadius: 8,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    marginBottom: 10,
+  },
+  itemImage: {
+    width: '100%',
+    height: '100%',
+  },
+  ownedBadge: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    backgroundColor: 'rgba(16,185,129,0.9)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  ownedText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: 'bold',
+  },
+  itemInfo: {
+    marginTop: 4,
+  },
+  itemName: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginBottom: 3,
+  },
+  itemRarity: {
+    fontSize: 10,
+    fontWeight: '700',
+    marginBottom: 7,
+    letterSpacing: 0.5,
+  },
+  itemPriceContainer: {
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+  },
+  itemPriceText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
   scrollView: {
     flex: 1,
