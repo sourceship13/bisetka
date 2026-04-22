@@ -33,6 +33,7 @@ import InGameChat from '../../../components/InGameChat';
 import {apiConfig} from '../../../libs/utils/api.utils';
 import useDeviceType from '../../../hooks/useDeviceType';
 import SyncedYouTubePlayer from '../../../components/SyncedYouTubePlayer';
+import DynamicBilliardBall, { type BilliardBallNumber } from '../../../components/Games/DynamicBilliardBall';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'BilliardsGame'>;
 
@@ -1919,16 +1920,8 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
           title={variant === '9-ball' ? '9-Ball' : '8-Ball'}
           onBack={() => navigation.goBack()}
           backgroundColor="transparent"
-          rightElement={
-            <TouchableOpacity
-              onPress={() => { toolbarExpanded.value = !toolbarExpanded.value; }}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              style={{ padding: 6, borderRadius: 8 }}>
-              <ReAnimated.Text style={[{ fontSize: 22, color: '#FFD700' }, chevronStyle]}>⌄</ReAnimated.Text>
-            </TouchableOpacity>
-          }
         />
-        <ExpandableView isExpanded={toolbarExpanded} viewKey="billiardsToolbarControls" duration={300}>
+        <View>
           <GameToolbarControls
             buttons={[
               { icon: showBlur ? '🌫️' : '✨', onPress: () => setShowBlur(!showBlur) },
@@ -1938,7 +1931,7 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
               ...(isMultiplayer && !gameOver ? [{ icon: '✏️', onPress: () => setShowRoomNameModal(true) }] : []),
             ]}
           />
-        </ExpandableView>
+        </View>
       </View>
 
       {/* Turn status */}
@@ -2006,84 +1999,30 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
             {/* Cue stick */}
             {renderCueStick()}
 
-            {/* Balls */}
-            {balls.filter(b => !b.pocketed).map(ball => {
-              const isRolling = ball.rotation !== 0;
-              // While rolling, simulate the look of the ball spinning:
-              // - Solids: show color with a moving highlight
-              // - Stripes: oscillate the stripe band position
-              // When stopped: show number clearly on top
-              const stripeOffset = isRolling
-                ? BALL_RADIUS * 0.5 + Math.sin((ball.rotation * Math.PI) / 180) * BALL_RADIUS * 0.4
-                : BALL_RADIUS * 0.5;
-              const numberOpacity = isRolling ? Math.max(0, Math.cos((ball.rotation * Math.PI) / 90) * 0.8 + 0.2) : 1;
-
-              return (
-                <View key={ball.id} style={[styles.ball, {
+            {/* Balls — rendered as 3D SVG pool balls via DynamicBilliardBall */}
+            {balls.filter(b => !b.pocketed).map(ball => (
+              <View
+                key={ball.id}
+                pointerEvents="none"
+                style={{
+                  position: 'absolute',
                   left: ball.pos.x - BALL_RADIUS,
                   top: ball.pos.y - BALL_RADIUS,
-                  width: BALL_RADIUS * 2,
-                  height: BALL_RADIUS * 2,
-                  backgroundColor: ball.stripe ? '#FFFFFF' : ball.color,
-                  borderColor: ball.type === 'cue' ? '#bbb' : '#222',
-                  overflow: 'hidden',
-                }]}>
-                  {/* Rolling highlight for solid balls */}
-                  {!ball.stripe && ball.type !== 'cue' && isRolling && (
-                    <View style={{
-                      position: 'absolute',
-                      top: -BALL_RADIUS * 0.3,
-                      left: BALL_RADIUS * 0.2 + Math.sin((ball.rotation * Math.PI) / 180) * BALL_RADIUS * 0.5,
-                      width: BALL_RADIUS * 0.8,
-                      height: BALL_RADIUS * 0.8,
-                      borderRadius: BALL_RADIUS * 0.4,
-                      backgroundColor: 'rgba(255,255,255,0.25)',
-                    }} />
-                  )}
-                  {/* Stripe band — oscillates while rolling */}
-                  {ball.stripe && (
-                    <View style={{
-                      position: 'absolute',
-                      top: stripeOffset,
-                      left: -2,
-                      right: -2,
-                      height: BALL_RADIUS * 1.0,
-                      backgroundColor: ball.color,
-                    }} />
-                  )}
-                  {/* Number circle — fades in/out while rolling, fully visible when stopped */}
-                  {ball.number > 0 && (
-                    <View style={[styles.numberCircle, {
-                      width: BALL_RADIUS * 1.0,
-                      height: BALL_RADIUS * 1.0,
-                      borderRadius: BALL_RADIUS * 0.5,
-                      opacity: numberOpacity,
-                      transform: isRolling ? [{rotate: `${ball.rotation * 2}deg`}] : [],
-                    }]}>
-                      <Text style={[styles.ballNumber, {
-                        fontSize: BALL_RADIUS * 0.7,
-                        color: '#111',
-                        transform: isRolling ? [{rotate: `-${ball.rotation * 2}deg`}] : [],
-                      }]}>
-                        {ball.number}
-                      </Text>
-                    </View>
-                  )}
-                  {/* Cue ball dot while rolling */}
-                  {ball.type === 'cue' && isRolling && (
-                    <View style={{
-                      width: BALL_RADIUS * 0.3,
-                      height: BALL_RADIUS * 0.3,
-                      borderRadius: BALL_RADIUS * 0.15,
-                      backgroundColor: '#ddd',
-                      position: 'absolute',
-                      top: BALL_RADIUS * 0.4 + Math.sin((ball.rotation * Math.PI) / 180) * BALL_RADIUS * 0.3,
-                      left: BALL_RADIUS * 0.6 + Math.cos((ball.rotation * Math.PI) / 180) * BALL_RADIUS * 0.3,
-                    }} />
-                  )}
-                </View>
-              );
-            })}
+                  zIndex: 20,
+                  // subtle drop shadow
+                  shadowColor: '#000',
+                  shadowOffset: {width: 1, height: 2},
+                  shadowOpacity: 0.5,
+                  shadowRadius: 3,
+                  elevation: 4,
+                }}>
+                <DynamicBilliardBall
+                  number={ball.number as BilliardBallNumber}
+                  size={BALL_RADIUS * 2}
+                  rotation={ball.rotation}
+                />
+              </View>
+            ))}
           </ImageBackground>
         </View>
       </View>
@@ -2095,11 +2034,12 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
             <Text style={styles.pocketedLabel}>Solids</Text>
             <View style={styles.miniRow}>
               {pocketedSolids.map((b, i) => (
-                <View key={`s-${b.id}-${i}`} style={[styles.miniBall, {backgroundColor: b.color}]}>
-                  <View style={styles.miniNumberCircle}>
-                    <Text style={styles.miniNum}>{b.number}</Text>
-                  </View>
-                </View>
+                <DynamicBilliardBall
+                  key={`s-${b.id}-${i}`}
+                  number={b.number as BilliardBallNumber}
+                  size={22}
+                  dimmed={0.85}
+                />
               ))}
             </View>
           </View>
@@ -2107,16 +2047,15 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
             <Text style={styles.pocketedLabel}>Stripes</Text>
             <View style={styles.miniRow}>
               {pocketedStripes.map((b, i) => (
-                <View key={`st-${b.id}-${i}`} style={[styles.miniBall, {backgroundColor: '#fff', overflow: 'hidden'}]}>
-                  {/* Stripe band */}
-                  <View style={{
-                    position: 'absolute',
-                    top: 5,
-                    left: -1,
-                    right: -1,
-                    height: 10,
-                    backgroundColor: b.color,
-                  }} />
+                <DynamicBilliardBall
+                  key={`st-${b.id}-${i}`}
+                  number={b.number as BilliardBallNumber}
+                  size={22}
+                  dimmed={0.85}
+                />
+              ))}
+              {false && pocketedStripes.map((b, i) => (
+                <View key={`st-dummy-${i}`} style={[styles.miniBall, {backgroundColor: '#fff', overflow: 'hidden'}]}>
                   <View style={styles.miniNumberCircle}>
                     <Text style={styles.miniNum}>{b.number}</Text>
                   </View>
@@ -2133,20 +2072,12 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
               {[...pocketedSolids, ...pocketedStripes]
                 .sort((a, b) => a.number - b.number)
                 .map((b, i) => (
-                  <View key={`p-${b.id}-${i}`} style={[styles.miniBall, {
-                    backgroundColor: b.stripe ? '#fff' : b.color,
-                    overflow: 'hidden',
-                  }]}>
-                    {b.stripe && (
-                      <View style={{
-                        position: 'absolute', top: 5, left: -1, right: -1,
-                        height: 10, backgroundColor: b.color,
-                      }} />
-                    )}
-                    <View style={styles.miniNumberCircle}>
-                      <Text style={styles.miniNum}>{b.number}</Text>
-                    </View>
-                  </View>
+                  <DynamicBilliardBall
+                    key={`p-${b.id}-${i}`}
+                    number={b.number as BilliardBallNumber}
+                    size={22}
+                    dimmed={0.85}
+                  />
                 ))}
             </View>
           </View>

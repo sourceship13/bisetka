@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, ImageBackground, Alert, Animated, ScrollView, Image } from 'react-native';
 import Photosphere360Background from '../../../components/Photosphere360Background';
-import AR3DOverlay, { type ARPiece, type AR3DOverlayHandle } from '../../../components/AR3DOverlay';
+import AR3DOverlay, { type ARPiece, type AR3DOverlayHandle, type ARCard } from '../../../components/AR3DOverlay';
+import { createTestDeck, fanOutCards } from '../../../utils/cardARTest';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import ReAnimated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
@@ -134,6 +135,7 @@ const CheckersScreen = ({ navigation, route }: any) => {
   const [showBlur, setShowBlur] = useState(true);
   const [showBackground, setShowBackground] = useState(true);
   const [arEnabled, setArEnabled] = useState(true);
+  const [arCards, setArCards] = useState<ARCard[]>([]);
   const arOverlayRef = useRef<AR3DOverlayHandle>(null);
   const toolbarExpanded = useSharedValue(false);
   const chevronStyle = useAnimatedStyle(() => ({
@@ -587,9 +589,12 @@ const CheckersScreen = ({ navigation, route }: any) => {
           visible={arEnabled}
           pieces={arPieces}
           moves={gameState.possibleMoves}
+          cards={arCards}
           onSquareTap={handleArSquareTap}
           boardGlbPath="glb/chess/chess-board/source/ui.glb"
           piecesGlbPath="glb/checkers/checker_pieces.glb"
+          cardGlbPath="glb/cards/card-template.glb"
+          cardBackTexturePath="assets/cards/default-card-back.png"
         />
       </Photosphere360Background>
       <View style={styles.overlay} pointerEvents="box-none">
@@ -602,16 +607,19 @@ const CheckersScreen = ({ navigation, route }: any) => {
                 navigation.goBack();
               }}
               backgroundColor="transparent"
-              rightElement={
+              leftElement={
                 <TouchableOpacity
-                  onPress={() => { toolbarExpanded.value = !toolbarExpanded.value; }}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                  style={styles.editRoomButton}>
-                  <ReAnimated.Text style={[styles.editRoomIcon, chevronStyle]}>⌄</ReAnimated.Text>
+                  onPress={() => {
+                    const testCards = createTestDeck();
+                    const fannedCards = fanOutCards(testCards);
+                    setArCards(fannedCards);
+                  }}
+                  style={styles.testButton}>
+                  <Text style={styles.testButtonText}>🃏 Cards</Text>
                 </TouchableOpacity>
               }
             />
-            <ExpandableView isExpanded={toolbarExpanded} viewKey="checkersToolbarControls" duration={300}>
+            <View>
               <GameToolbarControls
                 buttons={[
                   { icon: '🎨', onPress: () => setShowCustomization(true) },
@@ -623,7 +631,7 @@ const CheckersScreen = ({ navigation, route }: any) => {
                   { icon: '🚪', onPress: toggleLeave },
                 ]}
               />
-            </ExpandableView>
+            </View>
           </View>
 
       <View style={styles.statusBar}>
@@ -890,6 +898,8 @@ const styles = StyleSheet.create({
   panelPlayerInfo: { flex: 1 },
   panelPlayerName: { fontSize: 15, fontWeight: '600', color: '#fff', marginBottom: 2 },
   panelTeamBadge: { alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
-  panelTeamText: { fontSize: 11, fontWeight: '700', color: '#fff' },});
+  panelTeamText: { fontSize: 11, fontWeight: '700', color: '#fff' },
+  testButton: { backgroundColor: 'rgba(255,215,0,0.2)', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6 },
+  testButtonText: { fontSize: 14, color: '#FFD700', fontWeight: '600' },});
 
 export default CheckersScreen;

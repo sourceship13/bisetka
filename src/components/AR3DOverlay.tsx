@@ -48,6 +48,24 @@ export interface ARMove {
   col: number;
 }
 
+export interface ARCard {
+  /** Unique identifier for the card */
+  key: string;
+  /** Position in 3D space (meters) relative to sceneGroup origin */
+  position: { x: number; y: number; z: number };
+  /** Rotation in radians */
+  rotation?: { x?: number; y?: number; z?: number };
+  /** Scale factor */
+  scale?: number;
+  /** Card data */
+  cardData: {
+    suit: 'hearts' | 'diamonds' | 'clubs' | 'spades';
+    rank: '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' | '10' | 'J' | 'Q' | 'K' | 'A';
+    value: number;
+    faceDown?: boolean;
+  };
+}
+
 export interface AR3DOverlayHandle {
   /** Re-centers the board in front of the player's current looking direction */
   recenter: () => void;
@@ -79,6 +97,23 @@ export interface AR3DOverlayProps {
    * Falls back to a simple procedural table if omitted or if load fails.
    */
   tableGlbPath?: string;
+  /**
+   * Cards to render in 3D AR space.
+   * Each card has a unique key, position (x,y,z in meters), rotation, and card data.
+   */
+  cards?: ARCard[];
+  /**
+   * Path relative to assets/ folder for the card GLB template.
+   * e.g. "glb/cards/card-template.glb"
+   * Falls back to procedural card if omitted or if load fails.
+   */
+  cardGlbPath?: string;
+  /**
+   * Path relative to assets/ folder for the card back GLB texture.
+   * e.g. "glb/cards/card-back.glb" or "assets/cards/default-card-back.png"
+   * Falls back to default card back if omitted.
+   */
+  cardBackTexturePath?: string;
   /**
    * Called when the user taps a square on the 3D board.
    * Receives logical board coordinates (row 0–7, col 0–7) from Three.js raycasting.
@@ -169,9 +204,14 @@ function buildSceneHTML(
   spawnYaw:        number,
   pieceColorRed:   number,
   pieceColorBlack: number,
+  cardGlbPath?:    string,
+  cardBackPath?:   string,
 ): string {
   const BOARD_URI_JS  = boardUri  ? JSON.stringify(boardUri)  : 'null';
   const PIECES_URI_JS = piecesUri ? JSON.stringify(piecesUri) : 'null';
+  const CARD_URI_JS   = cardGlbPath ? JSON.stringify(cardGlbPath) : 'null';
+  const CARD_BACK_URI_JS = cardBackPath ? JSON.stringify(cardBackPath) : 'null';
+  
   // Always use the embedded coffee table — falls back from external if provided
   const TABLE_URI_JS  = JSON.stringify(tableUri ?? EMBEDDED_COFFEE_TABLE_URI);
   const RED_HEX   = `0x${pieceColorRed.toString(16).padStart(6, '0')}`;
@@ -480,6 +520,161 @@ function clonePiece(color, isKing) {
   return clone;
 }
 
+// ── CARD RENDERING ─────────────────────────────────────────────────────────────
+let baseCardScene: THREE.Scene | null = null;
+let baseCardBackTexture: THREE.Texture | null = null;
+
+// Card scene group - separate from boardGroup to avoid interference
+const cardGroup = new THREE.Group();
+scene.add(cardGroup);
+
+function loadCardResources() {
+  const CARD_URI = ${CARD_URI_JS};
+  const CARD_BACK_URI = ${CARD_BACK_URI_JS};
+  
+  if (!CARD_URI) {
+    console.warn('[AR3DOverlay] CARD_URI not provided, skipping card loading');
+    return;
+  }
+  
+  // Load card back texture
+  const textureLoader = new THREE.TextureLoader();
+  textureLoader.load(
+    CARD_BACK_URI,
+    (texture) => {
+      texture.colorSpace = THREE.SRGBColorSpace;
+      baseCardBackTexture = texture;
+      console.log('[AR3DOverlay] Card back texture loaded');
+    },
+    undefined,
+    () => {
+      console.warn('[AR3DOverlay] Card back texture failed to load, using fallback');
+      // Fallback: create a simple black texture
+      const canvas = document.createElement('canvas');
+      canvas.width = 256;
+      canvas.height = 256;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(0, 0, 256, 256);
+        baseCardBackTexture = new THREE.CanvasTexture(canvas);
+      }
+    }
+  );
+  
+  // Load card GLB
+  const loader = new GLTFLoader();
+  loader.load(
+    CARD_URI,
+    (gltf) => {
+      baseCardScene = gltf.scene;
+      console.log('[AR3DOverlay] Card GLB loaded');
+    },
+    undefined,
+    () => {
+      console.warn('[AR3DOverlay] Card GLB failed to load');
+    }
+  );
+}
+
+// Call card resource loader
+loadCardResources();
+
+function updateCards(cards: ARCard[] | undefined) {
+  if (!baseCardScene) {
+    console.warn('[AR3DOverlay] Card GLB not loaded yet, skipping card update');
+    return;
+  }
+  
+  if (!cards || cards.length === 0) {
+    // Clear all cards
+    while (cardGroup.children.length > 0) {
+      const child = cardGroup.children[0];
+      cardGroup.remove(child);
+      if (child.geometry) child.geometry.dispose();
+      if (child.material) {
+        if (Array.isArray(child.material)) {
+          child.material.forEach(m => m.dispose());
+        } else {
+          child.material.dispose();
+        }
+      }
+    }
+    return;
+  }
+  
+  // Build a map of existing cards by key
+  const existingCards = new Map<string, THREE.Mesh>();
+  cardGroup.traverse((child) => {
+    if (child.isMesh && child.userData && child.userData.cardKey) {
+      existingCards.set(child.userData.cardKey, child as THREE.Mesh);
+    }
+  });
+  
+  // Process each card
+  cards.forEach(card => {
+    let cardMesh: THREE.Mesh;
+    
+    if (existingCards.has(card.key)) {
+      // Reuse existing card
+      cardMesh = existingCards.get(card.key)!;
+      existingCards.delete(card.key);
+    } else {
+      // Create new card
+      cardMesh = baseCardScene.clone(true) as THREE.Mesh;
+      cardMesh.userData.cardKey = card.key;
+      
+      // Apply textures
+      if (baseCardBackTexture) {
+        cardMesh.traverse((child) => {
+          if (child.isMesh && child.material) {
+            const material = child.material as THREE.MeshStandardMaterial;
+            material.map = baseCardBackTexture;
+            material.needsUpdate = true;
+          }
+        });
+      }
+      
+      cardGroup.add(cardMesh);
+    }
+    
+    // Update position
+    cardMesh.position.set(card.position.x, card.position.y, card.position.z);
+    
+    // Update rotation
+    if (card.rotation) {
+      cardMesh.rotation.set(
+        card.rotation.x || 0,
+        card.rotation.y || 0,
+        card.rotation.z || 0
+      );
+    }
+    
+    // Update scale
+    if (card.scale !== undefined) {
+      cardMesh.scale.set(card.scale, card.scale, card.scale);
+    } else {
+      cardMesh.scale.set(1, 1, 1);
+    }
+    
+    // Set card data in userData for reference
+    cardMesh.userData.cardData = card.cardData;
+  });
+  
+  // Remove any cards not in the new list
+  existingCards.forEach((mesh) => {
+    cardGroup.remove(mesh);
+    if (mesh.geometry) mesh.geometry.dispose();
+    if (mesh.material) {
+      if (Array.isArray(mesh.material)) {
+        mesh.material.forEach(m => m.dispose());
+      } else {
+        mesh.material.dispose();
+      }
+    }
+  });
+}
+
 // ── Piece management ──────────────────────────────────────────────────────────
 const pieceMeshes = {};
 const pieceState  = {};
@@ -647,10 +842,13 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
   visible = true,
   pieces = [],
   moves  = [],
+  cards  = [],
   fov = 75,
   boardGlbPath,
   piecesGlbPath,
   tableGlbPath,
+  cardGlbPath = 'glb/cards/card-template.glb',
+  cardBackTexturePath = 'assets/cards/default-card-back.png',
   onSquareTap,
   pieceColorRed   = '#c0392b',
   pieceColorBlack = '#1e2d3d',
@@ -694,6 +892,8 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
   const [boardUri,  setBoardUri]  = useState<string | null | undefined>(boardGlbPath  ? undefined : null);
   const [piecesUri, setPiecesUri] = useState<string | null | undefined>(piecesGlbPath ? undefined : null);
   const [tableUri,  setTableUri]  = useState<string | null | undefined>(tableGlbPath  ? undefined : null);
+  const [cardUri,   setCardUri]   = useState<string | null | undefined>(cardGlbPath   ? undefined : null);
+  const [cardBackUri, setCardBackUri] = useState<string | null | undefined>(cardBackTexturePath ? undefined : null);
 
   useEffect(() => {
     if (!boardGlbPath) { setBoardUri(null); return; }
@@ -716,6 +916,20 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
     return () => { cancelled = true; };
   }, [tableGlbPath]);
 
+  useEffect(() => {
+    if (!cardGlbPath) { setCardUri(null); return; }
+    let cancelled = false;
+    resolveAssetUri(cardGlbPath).then(u => { if (!cancelled) setCardUri(u); });
+    return () => { cancelled = true; };
+  }, [cardGlbPath]);
+
+  useEffect(() => {
+    if (!cardBackTexturePath) { setCardBackUri(null); return; }
+    let cancelled = false;
+    resolveAssetUri(cardBackTexturePath).then(u => { if (!cancelled) setCardBackUri(u); });
+    return () => { cancelled = true; };
+  }, [cardBackTexturePath]);
+
   // Build HTML once board + pieces URIs are resolved AND spawn yaw is captured.
   // Table is always embedded so we don't block on tableUri.
   const html = useMemo(() => {
@@ -723,8 +937,8 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
     if (spawnYaw === null) return null;
     const redInt   = parseInt(pieceColorRed.replace(/^#/, ''), 16);
     const blackInt  = parseInt(pieceColorBlack.replace(/^#/, ''), 16);
-    return buildSceneHTML(fov, boardUri, piecesUri, tableUri ?? null, spawnYaw, redInt, blackInt);
-  }, [fov, boardUri, piecesUri, tableUri, spawnYaw]);
+    return buildSceneHTML(fov, boardUri, piecesUri, tableUri ?? null, spawnYaw, redInt, blackInt, cardGlbPath, cardBackTexturePath);
+  }, [fov, boardUri, piecesUri, tableUri, spawnYaw, cardGlbPath, cardBackTexturePath]);
 
   // Push gyro attitude at ~60fps
   useEffect(() => {
@@ -737,15 +951,18 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
   // Keep latest pieces/moves in a ref so onLoadEnd can access them without stale closure
   const latestPiecesRef = useRef(pieces);
   const latestMovesRef  = useRef(moves);
+  const latestCardsRef  = useRef(cards);
+  
   latestPiecesRef.current = pieces;
   latestMovesRef.current  = moves;
+  latestCardsRef.current  = cards;
 
   // Push board state on every piece/move change
   useEffect(() => {
     if (!visible || !html) return;
-    const msg = JSON.stringify({type: 'scene', pieces, moves});
+    const msg = JSON.stringify({type: 'scene', pieces, moves, cards});
     webViewRef.current?.injectJavaScript(`window.handleRNMessage(${msg});true;`);
-  }, [pieces, moves, visible, html]);
+  }, [pieces, moves, cards, visible, html]);
 
   // Re-send pieces once the WebView has finished loading (Three.js CDN async import).
   // The useEffect above may fire before handleRNMessage is registered, so this
