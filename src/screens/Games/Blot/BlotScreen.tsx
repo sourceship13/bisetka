@@ -20,7 +20,7 @@ import { resolveAvatar } from '../../../utils/avatars';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Photosphere360Background from '../../../components/Photosphere360Background';
-import {type AR3DOverlayHandle} from '../../../components/AR3DOverlay';
+import AR3DOverlay, {type AR3DOverlayHandle} from '../../../components/AR3DOverlay';
 import GameToolbar from '../../../components/global/GameToolbar';
 import GameToolbarControls from '../../../components/global/GameToolbarControls';
 import { CardType, Suit } from '../../../components/Card';
@@ -93,8 +93,9 @@ const BlotScreen = ({ navigation }: any) => {
 
   // Track phase transitions (deal animation handled by mount effect and redeal logic)
   useEffect(() => {
+    if (!gameState) return;
     prevPhaseRef.current = gameState.phase;
-  }, [gameState.phase]);
+  }, [gameState?.phase]);
 
   // Load saved theme from storage on mount
   useEffect(() => {
@@ -123,7 +124,7 @@ const BlotScreen = ({ navigation }: any) => {
   const [showBackground, setShowBackground] = useState(true);
   const [showBlur, setShowBlur] = useState(true);
   const [showMusicPlayer, setShowMusicPlayer] = useState(false);
-  const [arEnabled, setArEnabled] = useState(false);
+  const [arEnabled, setArEnabled] = useState(true);
   const arOverlayRef = useRef<AR3DOverlayHandle>(null);
   const [showPanel, setShowPanel] = useState(false);
   const panelAnim = useRef(new Animated.Value(0)).current;
@@ -633,7 +634,10 @@ const BlotScreen = ({ navigation }: any) => {
 
   return (
     <View style={styles.container}>
-      <Photosphere360Background overlayOpacity={showBlur ? 0.65 : 0.3} arEnabled={arEnabled} arOverlayRef={arOverlayRef} />
+      <Photosphere360Background overlayOpacity={showBlur ? 0.65 : 0.3}>
+        <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/chess/chess-board/source/ui.glb" />
+      </Photosphere360Background>
+      <View style={styles.overlay} pointerEvents="box-none">
         <SafeAreaView style={[styles.safeArea,]} onLayout={handleBoardLayout}>
           <View>
             <GameToolbar
@@ -867,6 +871,7 @@ const BlotScreen = ({ navigation }: any) => {
             </>
           )}
         </SafeAreaView>
+      </View>
 
       {showCustomization && (
         <CardCustomizationModal

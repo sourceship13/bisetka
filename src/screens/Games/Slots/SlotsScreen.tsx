@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import Photosphere360Background from '../../../components/Photosphere360Background';
-import {type AR3DOverlayHandle} from '../../../components/AR3DOverlay';
+import AR3DOverlay, {type AR3DOverlayHandle} from '../../../components/AR3DOverlay';
 import { useAuth } from '../../../libs/hooks/useAuth';
 import { useGameEndRefresh } from '../../../libs/hooks/useGameEndRefresh';
 import Svg, { Polyline } from 'react-native-svg';
@@ -90,7 +90,7 @@ const SlotsScreen = ({ navigation }: any) => {
   const [betAmount, setBetAmount] = useState(10);
   const [showBlur, setShowBlur] = useState(true);
   const [showMusicPlayer, setShowMusicPlayer] = useState(false);
-  const [arEnabled, setArEnabled] = useState(false);
+  const [arEnabled, setArEnabled] = useState(true);
   const arOverlayRef = useRef<AR3DOverlayHandle>(null);
   const [showBackground, setShowBackground] = useState(true);
   const toolbarExpanded = useSharedValue(false);
@@ -306,7 +306,10 @@ const SlotsScreen = ({ navigation }: any) => {
 
   return (
     <View style={styles.container}>
-      <Photosphere360Background overlayOpacity={0.5} arEnabled={arEnabled} arOverlayRef={arOverlayRef} />
+      <Photosphere360Background overlayOpacity={0.5}>
+        <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/chess/chess-board/source/ui.glb" />
+      </Photosphere360Background>
+      <View style={styles.overlay} pointerEvents="box-none">
       <SafeAreaView style={{flex: 1}}>
         <View>
           <GameToolbar
@@ -451,6 +454,7 @@ const SlotsScreen = ({ navigation }: any) => {
           </LinearGradient>
         </TouchableOpacity>
       </SafeAreaView>
+      </View>
       <SyncedYouTubePlayer roomId={null} visible={showMusicPlayer} />
       {arEnabled && (
         <TouchableOpacity
@@ -471,6 +475,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#0f0f23',
   },
+  overlay: {flex: 1},
   gradient: {
     flex: 1,
   },

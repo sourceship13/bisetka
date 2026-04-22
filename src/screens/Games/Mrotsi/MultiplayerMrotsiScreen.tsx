@@ -19,7 +19,8 @@ import GameToolbarControls from '../../../components/global/GameToolbarControls'
 import RoomNameModal from '../../../components/RoomNameModal';
 import ReAnimated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import Photosphere360Background from '../../../components/Photosphere360Background';
-import {type AR3DOverlayHandle} from '../../../components/AR3DOverlay';
+import AR3DOverlay, {type AR3DOverlayHandle} from '../../../components/AR3DOverlay';
+import SyncedYouTubePlayer from '../../../components/SyncedYouTubePlayer';
 import ExpandableView from '../../../components/global/ExpandableView';
 import {socketService} from '../../../services/SocketService';
 import tokenService from '../../../services/token.service';
@@ -186,7 +187,8 @@ const MultiplayerMrotsiScreen = ({navigation, route}: any) => {
   const [screen, setScreen] = useState<'menu' | 'matchmaking' | 'game'>('menu');
   const [showBlur, setShowBlur] = useState(true);
   const [showBackground, setShowBackground] = useState(true);
-  const [arEnabled, setArEnabled] = useState(false);
+  const [arEnabled, setArEnabled] = useState(true);
+  const [showMusicPlayer, setShowMusicPlayer] = useState(false);
   const arOverlayRef = useRef<AR3DOverlayHandle>(null);
   const toolbarExpanded = useSharedValue(false);
   const chevronStyle = useAnimatedStyle(() => ({
@@ -576,7 +578,10 @@ const MultiplayerMrotsiScreen = ({navigation, route}: any) => {
   // ─── Game screen ─────────────────────────────────────────────────────────────
   return (
     <View style={styles.backgroundImage}>
-    <Photosphere360Background overlayOpacity={showBlur ? 0.5 : 0.3} arEnabled={arEnabled} arOverlayRef={arOverlayRef} />
+    <Photosphere360Background overlayOpacity={showBlur ? 0.5 : 0.3}>
+      <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/chess/chess-board/source/ui.glb" />
+    </Photosphere360Background>
+    <View style={styles.overlay} pointerEvents="box-none">
     <SafeAreaView style={styles.container}>
       <View>
         <GameToolbar
@@ -607,6 +612,7 @@ const MultiplayerMrotsiScreen = ({navigation, route}: any) => {
               { icon: showBackground ? '🖼️' : '🔲', onPress: () => setShowBackground(!showBackground) },
               { icon: '✏️', onPress: () => setShowRoomNameModal(true) },
               { icon: arEnabled ? '🥽' : '🎮', onPress: () => setArEnabled(!arEnabled) },
+              { icon: showMusicPlayer ? '🎵' : '🎶', onPress: () => setShowMusicPlayer(s => !s) },
             ]}
           />
         </ExpandableView>
@@ -730,6 +736,11 @@ const MultiplayerMrotsiScreen = ({navigation, route}: any) => {
       )}
     </SafeAreaView>
     </View>
+    <SyncedYouTubePlayer
+      roomId={screen === 'game' && roomIdRef.current ? roomIdRef.current : null}
+      visible={showMusicPlayer}
+    />
+    </View>
   );
 };
 
@@ -737,6 +748,7 @@ const MultiplayerMrotsiScreen = ({navigation, route}: any) => {
 const styles = StyleSheet.create({
   backgroundImage: {flex: 1, width: '100%', height: '100%'},
   container: {flex: 1, backgroundColor: 'transparent'},
+  overlay: {flex: 1},
   menuContainer: {flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24, gap: 16},
   title: {fontSize: 36, fontWeight: 'bold', color: '#F5A623'},
   subtitle: {fontSize: 14, color: '#aaa', marginBottom: 8},

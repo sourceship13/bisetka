@@ -24,7 +24,7 @@ import ReAnimated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-
 import ExpandableView from '../../../../components/global/ExpandableView';
 import GameToolbarControls from '../../../../components/global/GameToolbarControls';
 import Photosphere360Background from '../../../../components/Photosphere360Background';
-import {type AR3DOverlayHandle} from '../../../../components/AR3DOverlay';
+import AR3DOverlay, {type AR3DOverlayHandle} from '../../../../components/AR3DOverlay';
 import SyncedYouTubePlayer from '../../../../components/SyncedYouTubePlayer';
 
 interface Card {
@@ -58,7 +58,7 @@ const BlackjackScreen = ({ navigation }: any) => {
 
   const [showBlur, setShowBlur] = useState(true);
   const [showMusicPlayer, setShowMusicPlayer] = useState(false);
-  const [arEnabled, setArEnabled] = useState(false);
+  const [arEnabled, setArEnabled] = useState(true);
   const arOverlayRef = useRef<AR3DOverlayHandle>(null);
   const [showBackground, setShowBackground] = useState(true);
   const toolbarExpanded = useSharedValue(false);
@@ -444,7 +444,10 @@ const BlackjackScreen = ({ navigation }: any) => {
 
   return (
     <View style={styles.container}>
-      <Photosphere360Background overlayOpacity={showBlur ? 0.65 : 0.3} arEnabled={arEnabled} arOverlayRef={arOverlayRef} />
+      <Photosphere360Background overlayOpacity={showBlur ? 0.65 : 0.3}>
+        <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/chess/chess-board/source/ui.glb" />
+      </Photosphere360Background>
+      <View style={styles.overlay} pointerEvents="box-none">
       <SafeAreaView style={styles.safeArea}>
         <View>
           <GameToolbar
@@ -586,6 +589,7 @@ const BlackjackScreen = ({ navigation }: any) => {
           </View>
         </ScrollView>
       </SafeAreaView>
+      </View>
       <SyncedYouTubePlayer roomId={null} visible={showMusicPlayer} />
       {arEnabled && (
         <TouchableOpacity
