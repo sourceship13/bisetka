@@ -567,16 +567,8 @@ const MultiplayerCheckersScreen = ({navigation, route}: any) => {
               title={roomName}
               onBack={() => navigation.goBack()}
               backgroundColor="transparent"
-              rightElement={
-                <TouchableOpacity
-                  onPress={() => { toolbarExpanded.value = !toolbarExpanded.value; }}
-                  hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}
-                  style={styles.editRoomButton}>
-                  <ReAnimated.Text style={[styles.editRoomIcon, chevronStyle]}>⌄</ReAnimated.Text>
-                </TouchableOpacity>
-              }
             />
-            <ExpandableView isExpanded={toolbarExpanded} viewKey="mpCheckersToolbarControls" duration={300}>
+            <View>
               <GameToolbarControls
                 buttons={[
                   { icon: '🎨', onPress: () => setShowCustomization(true) },
@@ -587,7 +579,7 @@ const MultiplayerCheckersScreen = ({navigation, route}: any) => {
                   { icon: showMusicPlayer ? '🎵' : '🎶', onPress: () => setShowMusicPlayer(s => !s) },
                 ]}
               />
-            </ExpandableView>
+            </View>
           </View>
 
           {mode === 'menu' && renderMenu()}
