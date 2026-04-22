@@ -90,14 +90,14 @@ export type RootStackParamList = {
   Store: undefined;
   FontTest: undefined;
   AvatarSelection: undefined;
-  ClothingStore: undefined;
+  ClothingStore: { initialTab?: 'points' | 'clothing' } | undefined;
   Wardrobe: undefined;
   Travel: undefined;
   GlobalView: { userId?: string };
   BisetkaDetail: { bisetkaId: string; bisetkaName: string; city: string; country: string };
   Achievements: undefined;
   AchievementTest: undefined;
-  PointsShop: undefined;
+  PointsShop: { initialTab?: 'points' | 'clothing' } | undefined;
   Photosphere: undefined;
 };
 
@@ -296,7 +296,7 @@ const AppNavigator = () => {
               <Stack.Screen name="Store" component={StoreScreen} />
               <Stack.Screen name="FontTest" component={FontTestScreen} />
               <Stack.Screen name="AvatarSelection" component={AvatarSelectionScreen} />
-              <Stack.Screen name="ClothingStore" component={ClothingStoreScreen} />
+              <Stack.Screen name="ClothingStore" component={PointsShopScreen} initialParams={{ initialTab: 'clothing' }} />
               <Stack.Screen name="Wardrobe" component={WardrobeScreen} />
               <Stack.Screen name="Travel" component={TravelScreen} />
               <Stack.Screen name="GlobalView" component={GlobalViewScreen} />
