@@ -518,7 +518,7 @@ const MrotsiScreen = ({navigation, route}: any) => {
         <AR3DOverlay
           ref={arOverlayRef}
           visible={arEnabled}
-          boardGlbPath="glb/game_boards/rounded_table_panel.glb"
+          boardGlbPath="glb/game_boards/rounded_table_panel_v4.glb"
         />
       </Photosphere360Background>
       <View style={styles.overlay} pointerEvents="box-none">
