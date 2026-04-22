@@ -1301,16 +1301,8 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
             title={roomName}
             onBack={() => navigation.goBack()}
             backgroundColor="transparent"
-            rightElement={
-              <TouchableOpacity
-                onPress={() => { toolbarExpanded.value = !toolbarExpanded.value; }}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                style={{ padding: 6, borderRadius: 8 }}>
-                <ReAnimated.Text style={[{ fontSize: 22, color: '#FFD700' }, chevronStyle]}>⌄</ReAnimated.Text>
-              </TouchableOpacity>
-            }
           />
-          <ExpandableView isExpanded={toolbarExpanded} viewKey="pokerToolbarControls" duration={300}>
+          <View>
             <GameToolbarControls
               buttons={[
                 { icon: showBlur ? '🌫️' : '✨', onPress: () => setShowBlur(!showBlur) },
@@ -1322,7 +1314,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
                 { icon: '🚪', onPress: toggleLeave },
               ]}
             />
-          </ExpandableView>
+          </View>
         </View>
       )}
 

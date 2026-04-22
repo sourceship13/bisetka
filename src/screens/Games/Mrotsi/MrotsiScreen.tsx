@@ -524,16 +524,8 @@ const MrotsiScreen = ({navigation, route}: any) => {
             title={`Mrotsi${gameState.gameMode === 'ai' ? ' (vs AI)' : ''}`}
             onBack={handleBackPress}
             backgroundColor="transparent"
-            rightElement={
-              <TouchableOpacity
-                onPress={() => { toolbarExpanded.value = !toolbarExpanded.value; }}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                style={{ padding: 6, borderRadius: 8 }}>
-                <ReAnimated.Text style={[{ fontSize: 22, color: '#FFD700' }, chevronStyle]}>⌄</ReAnimated.Text>
-              </TouchableOpacity>
-            }
           />
-          <ExpandableView isExpanded={toolbarExpanded} viewKey="mrotsiToolbarControls" duration={300}>
+          <View>
             <GameToolbarControls
               buttons={[
                 { icon: showBlur ? '🌫️' : '✨', onPress: () => setShowBlur(!showBlur) },
@@ -543,7 +535,7 @@ const MrotsiScreen = ({navigation, route}: any) => {
                 { icon: '🔄', onPress: resetGame },
               ]}
             />
-          </ExpandableView>
+          </View>
         </View>
 
         {/* Score Display */}
