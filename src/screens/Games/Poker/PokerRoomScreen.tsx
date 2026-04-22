@@ -16,7 +16,7 @@ import RiffleDealAnimation from '../../../components/RiffleDealAnimation';
 import type { CardTheme } from '../../../components/DynamicCard';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Photosphere360Background from '../../../components/Photosphere360Background';
-import {type AR3DOverlayHandle} from '../../../components/AR3DOverlay';
+import AR3DOverlay, {type AR3DOverlayHandle} from '../../../components/AR3DOverlay';
 
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {RootStackParamList} from '../../../navigation/AppNavigator';
@@ -124,7 +124,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
   const [tableId, setTableId] = useState<string | null>(null);
   const [showBlur, setShowBlur] = useState(true);
   const [showMusicPlayer, setShowMusicPlayer] = useState(false);
-  const [arEnabled, setArEnabled] = useState(false);
+  const [arEnabled, setArEnabled] = useState(true);
   const arOverlayRef = useRef<AR3DOverlayHandle>(null);
   const [showBackground, setShowBackground] = useState(true);
   const toolbarExpanded = useSharedValue(false);
@@ -1176,7 +1176,10 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
 
   return (
     <View style={styles.container}>
-      <Photosphere360Background overlayOpacity={showBlur ? 0.65 : 0.3} arEnabled={arEnabled} arOverlayRef={arOverlayRef} />
+      <Photosphere360Background overlayOpacity={showBlur ? 0.65 : 0.3}>
+        <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/chess/chess-board/source/ui.glb" />
+      </Photosphere360Background>
+      <View style={styles.overlay} pointerEvents="box-none">
       <SafeAreaView style={styles.safeArea}>
 
       {/* ── Connecting / Waiting Room Overlay ── */}
@@ -1553,6 +1556,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
       </Animated.View>
 
     </SafeAreaView>
+      </View>
       <SyncedYouTubePlayer roomId={null} visible={showMusicPlayer} />
       {arEnabled && (
         <TouchableOpacity
@@ -1573,6 +1577,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'transparent',
   },
+  overlay: {flex: 1},
   pokerCardWrapper: {
     transform: [{ scale: 0.6 }],
     marginHorizontal: -18,

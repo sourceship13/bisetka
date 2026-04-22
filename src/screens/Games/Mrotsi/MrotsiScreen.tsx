@@ -8,7 +8,7 @@ import ReAnimated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-
 import ExpandableView from '../../../components/global/ExpandableView';
 import { aiMoveLogService } from '../../../services/aiMoveLog.service';
 import Photosphere360Background from '../../../components/Photosphere360Background';
-import {type AR3DOverlayHandle} from '../../../components/AR3DOverlay';
+import AR3DOverlay, {type AR3DOverlayHandle} from '../../../components/AR3DOverlay';
 import { v4 as uuidv4 } from 'uuid';
 import { useGameEndRefresh } from '../../../libs/hooks/useGameEndRefresh';
 import Dice3DSimple from '../../../components/Games/Dice3DSimple';
@@ -42,7 +42,7 @@ const MrotsiScreen = ({navigation, route}: any) => {
   const [gameState, setGameState] = useState<GameState>(initializeGame(mode));
   const [showBlur, setShowBlur] = useState(true);
   const [showMusicPlayer, setShowMusicPlayer] = useState(false);
-  const [arEnabled, setArEnabled] = useState(false);
+  const [arEnabled, setArEnabled] = useState(true);
   const arOverlayRef = useRef<AR3DOverlayHandle>(null);
   const [showBackground, setShowBackground] = useState(true);
   const toolbarExpanded = useSharedValue(false);
@@ -514,7 +514,10 @@ const MrotsiScreen = ({navigation, route}: any) => {
 
   return (
     <View style={styles.backgroundImage}>
-      <Photosphere360Background overlayOpacity={showBlur ? 0.5 : 0.3} arEnabled={arEnabled} arOverlayRef={arOverlayRef} />
+      <Photosphere360Background overlayOpacity={showBlur ? 0.5 : 0.3}>
+        <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/chess/chess-board/source/ui.glb" />
+      </Photosphere360Background>
+      <View style={styles.overlay} pointerEvents="box-none">
       <SafeAreaView style={styles.container}>
         <View>
           <GameToolbar
@@ -663,6 +666,7 @@ const MrotsiScreen = ({navigation, route}: any) => {
           </View>
         )}
       </SafeAreaView>
+      </View>
       <SyncedYouTubePlayer roomId={null} visible={showMusicPlayer} />
       {arEnabled && (
         <TouchableOpacity
@@ -688,6 +692,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'transparent',
   },
+  overlay: {flex: 1},
   newGameText: {
     fontSize: 16,
     color: '#FFD700',

@@ -19,7 +19,7 @@ import ReAnimated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-
 import ExpandableView from '../../../components/global/ExpandableView';
 import { useGameEndRefresh } from '../../../libs/hooks/useGameEndRefresh';
 import Photosphere360Background from '../../../components/Photosphere360Background';
-import {type AR3DOverlayHandle} from '../../../components/AR3DOverlay';
+import AR3DOverlay, {type AR3DOverlayHandle} from '../../../components/AR3DOverlay';
 import LinearGradient from 'react-native-linear-gradient';
 import {
   GameMode,
@@ -124,7 +124,7 @@ const NardiScreen = ({ navigation, route }: any) => {
   const [gameState, setGameState] = useState<NardiGameState | null>(null);
   const [showBlur, setShowBlur] = useState(true);
   const [showMusicPlayer, setShowMusicPlayer] = useState(false);
-  const [arEnabled, setArEnabled] = useState(false);
+  const [arEnabled, setArEnabled] = useState(true);
   const arOverlayRef = useRef<AR3DOverlayHandle>(null);
   const [showBackground, setShowBackground] = useState(true);
   const [easyMode, setEasyMode] = useState(false); // Easy Mode: tap-to-move, Normal Mode: drag-to-move
@@ -1044,8 +1044,10 @@ const NardiScreen = ({ navigation, route }: any) => {
 
   return (
     <View style={styles.container}>
-      <Photosphere360Background overlayOpacity={showBlur ? 0.5 : 0.3} arEnabled={arEnabled} arOverlayRef={arOverlayRef} />
-        
+      <Photosphere360Background overlayOpacity={showBlur ? 0.5 : 0.3}>
+        <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/chess/chess-board/source/ui.glb" />
+      </Photosphere360Background>
+      <View style={styles.overlay} pointerEvents="box-none">
         <SafeAreaView style={styles.safeArea}>
           <View>
             <GameToolbar
@@ -1481,6 +1483,7 @@ const NardiScreen = ({ navigation, route }: any) => {
             </View>
           )}
         </SafeAreaView>
+      </View>
 
           {/* Room Name Editor Modal */}
           <RoomNameModal

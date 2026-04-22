@@ -12,7 +12,7 @@ import {
 import {BisetkaAlert} from '../../../utils/BisetkaAlert';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import Photosphere360Background from '../../../components/Photosphere360Background';
-import {type AR3DOverlayHandle} from '../../../components/AR3DOverlay';
+import AR3DOverlay, {type AR3DOverlayHandle} from '../../../components/AR3DOverlay';
 import ReAnimated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import ExpandableView from '../../../components/global/ExpandableView';
 import GameToolbar from '../../../components/global/GameToolbar';
@@ -133,7 +133,7 @@ const MultiplayerCheckersScreen = ({navigation, route}: any) => {
   const [showBackground, setShowBackground] = useState(true);
   const [showCustomization, setShowCustomization] = useState(false);
   const [showMusicPlayer, setShowMusicPlayer]     = useState(false);
-  const [arEnabled, setArEnabled] = useState(false);
+  const [arEnabled, setArEnabled] = useState(true);
   const arOverlayRef = useRef<AR3DOverlayHandle>(null);
   const [gameTheme, setGameTheme] = useState<GameTheme>({});
   const handleApplyTheme = (theme: GameTheme) => setGameTheme(theme);
@@ -557,7 +557,10 @@ const MultiplayerCheckersScreen = ({navigation, route}: any) => {
   // ── main render ────────────────────────────────────────────────────────────
   return (
     <View style={styles.container}>
-      <Photosphere360Background overlayOpacity={showBlur ? 0.5 : 0.3} arEnabled={arEnabled} arOverlayRef={arOverlayRef} />
+      <Photosphere360Background overlayOpacity={showBlur ? 0.5 : 0.3}>
+        <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/chess/chess-board/source/ui.glb" />
+      </Photosphere360Background>
+      <View style={styles.overlay} pointerEvents="box-none">
         <SafeAreaView style={styles.safeArea}>
           <View>
             <GameToolbar
@@ -719,6 +722,7 @@ const MultiplayerCheckersScreen = ({navigation, route}: any) => {
             gameType="Checkers"
           />
         </SafeAreaView>
+      </View>
 
       {/* Join room modal */}
       <Modal

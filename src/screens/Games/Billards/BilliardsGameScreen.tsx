@@ -14,7 +14,7 @@ import {
 import { apiService } from '../../../services/api.service';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Photosphere360Background from '../../../components/Photosphere360Background';
-import {type AR3DOverlayHandle} from '../../../components/AR3DOverlay';
+import AR3DOverlay, {type AR3DOverlayHandle} from '../../../components/AR3DOverlay';
 import GameToolbar from '../../../components/global/GameToolbar';
 import GameToolbarControls from '../../../components/global/GameToolbarControls';
 import RoomNameModal from '../../../components/RoomNameModal';
@@ -471,7 +471,7 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
   );
   const [showBlur, setShowBlur] = useState(true);
   const [showMusicPlayer, setShowMusicPlayer] = useState(false);
-  const [arEnabled, setArEnabled] = useState(false);
+  const [arEnabled, setArEnabled] = useState(true);
   const arOverlayRef = useRef<AR3DOverlayHandle>(null);
   const [showBackground, setShowBackground] = useState(true);
   const toolbarExpanded = useSharedValue(false);
@@ -1909,7 +1909,10 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
 
   return (
     <View style={{flex: 1}}>
-    <Photosphere360Background overlayOpacity={showBlur ? 0.65 : 0.3} arEnabled={arEnabled} arOverlayRef={arOverlayRef} />
+    <Photosphere360Background overlayOpacity={showBlur ? 0.65 : 0.3}>
+      <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/chess/chess-board/source/ui.glb" />
+    </Photosphere360Background>
+    <View style={styles.overlay} pointerEvents="box-none">
     <SafeAreaView style={styles.safeArea}>
       <View>
         <GameToolbar
@@ -2257,6 +2260,7 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
         gameType="Billiards"
       />
     </SafeAreaView>
+    </View>
       <SyncedYouTubePlayer roomId={null} visible={showMusicPlayer} />
       {arEnabled && (
         <TouchableOpacity
@@ -2274,6 +2278,7 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
 
 const styles = StyleSheet.create({
   safeArea: {flex: 1},
+  overlay: {flex: 1},
   header: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingHorizontal: 16, paddingVertical: 8,
