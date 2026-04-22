@@ -635,7 +635,7 @@ const BlotScreen = ({ navigation }: any) => {
   return (
     <View style={styles.container}>
       <Photosphere360Background overlayOpacity={showBlur ? 0.65 : 0.3}>
-        <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/chess/chess-board/source/ui.glb" />
+        <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/game_boards/rounded_table_panel.glb" />
       </Photosphere360Background>
       <View style={styles.overlay} pointerEvents="box-none">
         <SafeAreaView style={[styles.safeArea,]} onLayout={handleBoardLayout}>

@@ -23,7 +23,7 @@ import { useAchievements } from '../../../contexts/AchievementContext';
 import { resolveAvatar } from '../../../utils/avatars';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Photosphere360Background from '../../../components/Photosphere360Background';
-import AR3DOverlay, {type AR3DOverlayHandle} from '../../../components/AR3DOverlay';
+import AR3DOverlay, {type AR3DOverlayHandle, type ARCard} from '../../../components/AR3DOverlay';
 import GameToolbar from '../../../components/global/GameToolbar';
 import GameToolbarControls from '../../../components/global/GameToolbarControls';
 import { CardType, Suit } from '../../../components/Card';
@@ -126,6 +126,7 @@ const BaazarBlotScreen = ({ navigation }: any) => {
   const [showBlur, setShowBlur] = useState(true);
   const [showMusicPlayer, setShowMusicPlayer] = useState(false);
   const [arEnabled, setArEnabled] = useState(true);
+  const [arCards, setArCards] = useState<ARCard[]>([]);
   const arOverlayRef = useRef<AR3DOverlayHandle>(null);
   const [showPanel, setShowPanel] = useState(false);
   const panelAnim = useRef(new Animated.Value(0)).current;
@@ -347,6 +348,34 @@ const BaazarBlotScreen = ({ navigation }: any) => {
 
     return () => clearTimeout(timer);
   }, [gameState?.phase, gameState?.currentPlayer, gameState?.currentTrick, isResolvingTrick, showDealAnimation]);
+
+  // Sync trick cards to AR overlay
+  useEffect(() => {
+    if (!arEnabled || !gameState?.currentTrick?.cards) { setArCards([]); return; }
+    // Positions are in boardGroup local XY space (flat on table surface, Z = height above surface)
+    // boardGroup.rotation.x = -PI/2 so local Z points up in world space
+    const positions: Record<number, { x: number; y: number; z: number }> = {
+      0: { x:  0.00, y: -0.14, z: 0.005 }, // player 0 (bottom)
+      1: { x:  0.14, y:  0.00, z: 0.005 }, // player 1 (right)
+      2: { x:  0.00, y:  0.14, z: 0.005 }, // player 2 (top)
+      3: { x: -0.14, y:  0.00, z: 0.005 }, // player 3 (left)
+    };
+    const mapped: ARCard[] = gameState.currentTrick.cards
+      .filter(cp => cp?.card?.suit && cp?.card?.rank)
+      .map(cp => ({
+        key: `trick-${cp.playerId}-${cp.card.suit}-${cp.card.rank}`,
+        position: positions[cp.playerId] ?? { x: 0, y: 0, z: 0.005 },
+        rotation: { x: 0, y: 0, z: 0 }, // card lies flat in boardGroup XY plane
+        scale: 0.12,
+        cardData: {
+          suit: cp.card.suit as ARCard['cardData']['suit'],
+          rank: cp.card.rank as ARCard['cardData']['rank'],
+          value: 0,
+          faceDown: false,
+        },
+      }));
+    setArCards(mapped);
+  }, [arEnabled, gameState?.currentTrick?.cards]);
 
   const applyCardPlay = (
     prev: BaazarGameState,
@@ -808,7 +837,7 @@ const BaazarBlotScreen = ({ navigation }: any) => {
               { width: TABLE_SIZE, height: TABLE_SIZE },
             ]}
           >
-            {showBackground ? (
+            {showBackground && !arEnabled ? (
               <ImageBackground
                 source={customTheme?.boardImage ? { uri: customTheme.boardImage } : require('../../../../assets/blot/card-table.png')}
                 style={styles.cardTable}
@@ -1003,7 +1032,14 @@ const BaazarBlotScreen = ({ navigation }: any) => {
   return (
     <View style={styles.bg}>
       <Photosphere360Background overlayOpacity={showBlur ? 0.65 : 0.3}>
-        <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/chess/chess-board/source/ui.glb" />
+        <AR3DOverlay
+          ref={arOverlayRef}
+          visible={arEnabled}
+          boardGlbPath="glb/game_boards/rounded_table_panel.glb"
+          cardGlbPath="glb/cards/card-template.glb"
+          cardBackTexturePath="assets/cards/default-card-back.png"
+          cards={arCards}
+        />
       </Photosphere360Background>
       <View style={styles.overlay} pointerEvents="box-none">
       <SafeAreaView style={styles.safe}>

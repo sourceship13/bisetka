@@ -138,7 +138,7 @@ export interface AR3DOverlayProps {
  * Prod — Reads directly from the app bundle via RNFS.
  */
 async function resolveAssetUri(assetPath: string): Promise<string | null> {
-  // Stable temp-file name reused across calls (avoids re-downloading same GLB)
+  // Stable temp-file name — reused across calls so the same GLB isn't re-downloaded
   const safeFileName = assetPath.replace(/[\/\\]/g, '_');
   const tempPath = `${RNFS.TemporaryDirectoryPath}ar_glb_${safeFileName}`;
 
@@ -148,23 +148,28 @@ async function resolveAssetUri(assetPath: string): Promise<string | null> {
         (NativeModules.SourceCode as any)?.scriptURL ?? '';
       const match = scriptUrl.match(/^(https?:\/\/[^/:]+(?::\d+)?)/);
       const base = match ? match[1] : 'http://localhost:8081';
+      // URL-encode each path segment to handle spaces in folder names
+      const encodedPath = assetPath.split('/').map(encodeURIComponent).join('/');
 
       // In dev, always re-download so asset changes are picked up immediately.
-      // Delete any stale cached copy first.
       if (await RNFS.exists(tempPath)) {
         await RNFS.unlink(tempPath).catch(() => {});
       }
 
       for (const url of [
-        `${base}/assets/assets/${assetPath}`,  // Metro ≥ 0.73 (RN 0.73+)
-        `${base}/assets/${assetPath}`,           // legacy Metro
+        `${base}/assets/assets/${encodedPath}`,  // Metro ≥ 0.73 (RN 0.73+)
+        `${base}/assets/${encodedPath}`,           // legacy Metro
       ]) {
         try {
           const dl = RNFS.downloadFile({fromUrl: url, toFile: tempPath});
           const res = await dl.promise;
           if (res.statusCode === 200) {
-            const b64 = await RNFS.readFile(tempPath, 'base64');
-            return `data:model/gltf-binary;base64,${b64}`;
+            // Return a file:// URL instead of base64-encoding the binary.
+            // Large GLBs (e.g. 5+ MB) would produce multi-MB data URIs that
+            // crash or time out the WebView when embedded inline in HTML.
+            // With baseUrl set to the temp directory, Three.js fetch() can
+            // load file:// URLs directly without any size limit.
+            return `file://${tempPath}`;
           }
         } catch {/* try next URL format */}
       }
@@ -173,17 +178,15 @@ async function resolveAssetUri(assetPath: string): Promise<string | null> {
       return null;
     }
 
-    // Production: read directly from the app bundle
+    // Production: reference the file directly — no need to read & re-encode
     if (Platform.OS === 'ios') {
-      const b64 = await RNFS.readFile(
-        `${RNFS.MainBundlePath}/assets/${assetPath}`,
-        'base64',
-      );
-      return `data:model/gltf-binary;base64,${b64}`;
+      return `file://${RNFS.MainBundlePath}/assets/${assetPath}`;
     }
-    // Android
-    const b64 = await RNFS.readFileAssets(`assets/${assetPath}`, 'base64');
-    return `data:model/gltf-binary;base64,${b64}`;
+    // Android: copy from APK assets to the writable temp dir, then reference
+    if (!(await RNFS.exists(tempPath))) {
+      await (RNFS as any).copyFileAssets(`assets/${assetPath}`, tempPath);
+    }
+    return `file://${tempPath}`;
   } catch (e) {
     console.warn('[AR3DOverlay] asset resolve failed:', assetPath, e);
     return null;
@@ -204,13 +207,13 @@ function buildSceneHTML(
   spawnYaw:        number,
   pieceColorRed:   number,
   pieceColorBlack: number,
-  cardGlbPath?:    string,
-  cardBackPath?:   string,
+  cardUri:    string | null,
+  cardBackUri: string | null,
 ): string {
   const BOARD_URI_JS  = boardUri  ? JSON.stringify(boardUri)  : 'null';
   const PIECES_URI_JS = piecesUri ? JSON.stringify(piecesUri) : 'null';
-  const CARD_URI_JS   = cardGlbPath ? JSON.stringify(cardGlbPath) : 'null';
-  const CARD_BACK_URI_JS = cardBackPath ? JSON.stringify(cardBackPath) : 'null';
+  const CARD_URI_JS   = cardUri ? JSON.stringify(cardUri) : 'null';
+  const CARD_BACK_URI_JS = cardBackUri ? JSON.stringify(cardBackUri) : 'null';
   
   // Always use the embedded coffee table — falls back from external if provided
   const TABLE_URI_JS  = JSON.stringify(tableUri ?? EMBEDDED_COFFEE_TABLE_URI);
@@ -387,8 +390,8 @@ function _rnLog(msg) {
 if (BOARD_URI) {
   loader.load(BOARD_URI, (gltf) => {
     const model = gltf.scene;
-    // GLB boards are typically Y-up; rotate to lie flat in boardGroup's XY plane
-    model.rotation.x = -Math.PI / 2;
+    // GLB boards are Y-up; rotate +PI/2 so normals face up when boardGroup.rotation.x=-PI/2
+    model.rotation.x = Math.PI / 2;
     model.updateMatrixWorld(true);
     const box    = new THREE.Box3().setFromObject(model);
     const size   = box.getSize(new THREE.Vector3());
@@ -403,7 +406,12 @@ if (BOARD_URI) {
       if (ch.isMesh) {
         ch.receiveShadow = true;
         const mats = Array.isArray(ch.material) ? ch.material : [ch.material];
-        mats.forEach(m => { if (m) m.roughness = Math.max((m.roughness||0.5)*0.8, 0.35); });
+        mats.forEach(m => {
+          if (m) {
+            m.roughness = Math.max((m.roughness||0.5)*0.8, 0.35);
+            m.side = THREE.DoubleSide; // visible regardless of face orientation
+          }
+        });
       }
     });
     boardGroup.add(model);
@@ -524,9 +532,9 @@ function clonePiece(color, isKing) {
 let baseCardScene: THREE.Scene | null = null;
 let baseCardBackTexture: THREE.Texture | null = null;
 
-// Card scene group - separate from boardGroup to avoid interference
+// Card scene group — parented to boardGroup so positions are board-relative
 const cardGroup = new THREE.Group();
-scene.add(cardGroup);
+boardGroup.add(cardGroup);
 
 function loadCardResources() {
   const CARD_URI = ${CARD_URI_JS};
@@ -934,11 +942,12 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
   // Table is always embedded so we don't block on tableUri.
   const html = useMemo(() => {
     if (boardUri === undefined || piecesUri === undefined) return null;
+    if (cardUri === undefined || cardBackUri === undefined) return null;
     if (spawnYaw === null) return null;
     const redInt   = parseInt(pieceColorRed.replace(/^#/, ''), 16);
     const blackInt  = parseInt(pieceColorBlack.replace(/^#/, ''), 16);
-    return buildSceneHTML(fov, boardUri, piecesUri, tableUri ?? null, spawnYaw, redInt, blackInt, cardGlbPath, cardBackTexturePath);
-  }, [fov, boardUri, piecesUri, tableUri, spawnYaw, cardGlbPath, cardBackTexturePath]);
+    return buildSceneHTML(fov, boardUri, piecesUri, tableUri ?? null, spawnYaw, redInt, blackInt, cardUri ?? null, cardBackUri ?? null);
+  }, [fov, boardUri, piecesUri, tableUri, spawnYaw, cardUri, cardBackUri]);
 
   // Push gyro attitude at ~60fps
   useEffect(() => {
@@ -998,7 +1007,7 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
       <WebView
         key={`ar-overlay-${renderKey.current}`} // Force re-render when AR enables
         ref={webViewRef}
-        source={{html}}
+        source={{ html, baseUrl: `file://${RNFS.TemporaryDirectoryPath}` }}
         style={styles.webview}
         scrollEnabled={false}
         bounces={false}
@@ -1011,7 +1020,8 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
         onShouldStartLoadWithRequest={req =>
           req.url === 'about:blank' ||
           req.url.startsWith('http') ||
-          req.url.startsWith('data:')
+          req.url.startsWith('data:') ||
+          req.url.startsWith('file:')
         }
       />
     </View>
