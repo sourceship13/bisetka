@@ -266,7 +266,7 @@ const BlotScreen = ({ navigation }: any) => {
   // ------------------------------------------------------------------
   useEffect(() => {
     if (showRiffleDealAnimation || isRoundTransitioningRef.current) return;
-    if (gameState.phase !== 'bidding' || gameState.currentPlayer === 0) return;
+    if (!gameState || gameState.phase !== 'bidding' || gameState.currentPlayer === 0) return;
     const timer = setTimeout(() => {
       // AI strategy: take if they hold J or 9 of proposed suit, else pass in round 1
       //              in round 2 AI always passes (could be improved)
@@ -288,9 +288,9 @@ const BlotScreen = ({ navigation }: any) => {
     return () => clearTimeout(timer);
   }, [
     showRiffleDealAnimation,
-    gameState.phase,
-    gameState.currentPlayer,
-    gameState.bidRound,
+    gameState?.phase,
+    gameState?.currentPlayer,
+    gameState?.bidRound,
     acceptTrump,
     passBid,
   ]);
@@ -300,7 +300,7 @@ const BlotScreen = ({ navigation }: any) => {
   // ------------------------------------------------------------------
   useEffect(() => {
     if (showRiffleDealAnimation || isRoundTransitioningRef.current) return;
-    if (gameState.phase !== 'playing' || gameState.currentPlayer === 0) return;
+    if (!gameState || gameState.phase !== 'playing' || gameState.currentPlayer === 0) return;
     if (isResolvingTrick) return;
     const timer = setTimeout(() => {
       const aiPlayer = gameState.players[gameState.currentPlayer];
@@ -315,7 +315,7 @@ const BlotScreen = ({ navigation }: any) => {
     }, 700);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showRiffleDealAnimation, gameState.phase, gameState.currentPlayer, gameState.currentTrick, isResolvingTrick]);
+  }, [showRiffleDealAnimation, gameState?.phase, gameState?.currentPlayer, gameState?.currentTrick, isResolvingTrick]);
 
   const TABLE_SIZE = Math.min(screenWidth - 32, screenHeight * 0.5);
 
@@ -415,7 +415,7 @@ const BlotScreen = ({ navigation }: any) => {
 
   // Auto-resolve trick 1.5s after all 4 cards are played
   useEffect(() => {
-    if (gameState.phase !== 'playing') return;
+    if (!gameState || gameState.phase !== 'playing') return;
     if (gameState.currentTrick.cards.length !== TOTAL_PLAYERS) return;
     if (resolutionInProgressRef.current) return;
 
@@ -431,7 +431,7 @@ const BlotScreen = ({ navigation }: any) => {
     }, 1500);
 
     return () => clearTimeout(timer);
-  }, [gameState.currentTrick.cards.length, gameState.phase, resolveTrick]);
+  }, [gameState?.currentTrick?.cards?.length, gameState?.phase, resolveTrick]);
 
   // ------------------------------------------------------------------
   // Card play — only adds the card; resolution handled by useEffect above
