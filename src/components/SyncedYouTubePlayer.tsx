@@ -61,10 +61,10 @@ const YT_BUFFERING =  3;
 type Tab = 'player' | 'search' | 'queue';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-// ─── YouTube IFrame HTML ──────────────────────────────────────────────────────
-
-const YOUTUBE_HTML = `<!DOCTYPE html>
+// The videoId is baked into the YT.Player constructor HTML — this avoids
+// calling loadVideoById() as a post-load command, which triggers error 153.
+// key={videoId} on the WebView forces a clean remount for each new video.
+const buildPlayerHtml = (videoId: string, startTime = 0) => `<!DOCTYPE html>
 <html>
 <head>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
@@ -80,68 +80,42 @@ const YOUTUBE_HTML = `<!DOCTYPE html>
   var tag = document.createElement('script');
   tag.src = 'https://www.youtube.com/iframe_api';
   document.head.appendChild(tag);
-
   var player;
-
   function onYouTubeIframeAPIReady() {
     player = new YT.Player('player', {
+      videoId: '${videoId}',
       width: '100%',
       height: '100%',
       playerVars: {
+        autoplay: 1,
         controls: 1,
-        modestbranding: 1,
-        rel: 0,
         playsinline: 1,
+        enablejsapi: 1,
+        origin: 'https://bisetka.io',
+        rel: 0,
+        ${startTime > 0 ? 'start: ' + Math.floor(startTime) + ',' : ''}
       },
       events: {
-        onReady: function() {
+        onReady: function(e) {
+          e.target.playVideo();
           notify({ type: 'ready' });
         },
-        onStateChange: function(event) {
-          var ct = 0;
-          try { ct = player.getCurrentTime() || 0; } catch(e) {}
-          var vd = {};
-          try { vd = player.getVideoData() || {}; } catch(e) {}
-          notify({
-            type: 'stateChange',
-            state: event.data,
-            currentTime: ct,
-            title: vd.title || '',
-            videoId: vd.video_id || '',
-          });
+        onStateChange: function(e) {
+          notify({ type: 'state', state: e.data });
         },
-        onError: function(event) {
-          notify({ type: 'error', code: event.data });
-        }
-      }
+        onError: function(e) {
+          notify({ type: 'error', code: e.data });
+        },
+      },
     });
   }
-
-  function notify(data) {
-    if (window.ReactNativeWebView) {
-      window.ReactNativeWebView.postMessage(JSON.stringify(data));
-    }
+  function notify(d) {
+    if (window.ReactNativeWebView) window.ReactNativeWebView.postMessage(JSON.stringify(d));
   }
-
-  // Called by React Native via injectJavaScript
   window.rnControl = function(cmd) {
-    if (!player || typeof player.playVideo !== 'function') return;
-    try {
-      if (cmd.action === 'load') {
-        player.loadVideoById({ videoId: cmd.videoId, startSeconds: cmd.startTime || 0 });
-      } else if (cmd.action === 'play') {
-        if (cmd.currentTime != null) player.seekTo(cmd.currentTime, true);
-        player.playVideo();
-      } else if (cmd.action === 'pause') {
-        player.pauseVideo();
-      } else if (cmd.action === 'seek') {
-        player.seekTo(cmd.currentTime, true);
-      } else if (cmd.action === 'getTime') {
-        var t = 0;
-        try { t = player.getCurrentTime() || 0; } catch(e) {}
-        notify({ type: 'timeReport', pendingAction: cmd.pendingAction, currentTime: t });
-      }
-    } catch(e) {}
+    if (!player) return;
+    if (cmd === 'play')  player.playVideo();
+    if (cmd === 'pause') player.pauseVideo();
   };
 </script>
 </body>
@@ -162,13 +136,16 @@ export default function SyncedYouTubePlayer({
 }: SyncedYouTubePlayerProps) {
   const webViewRef = useRef<WebView>(null);
 
-  const [expanded, setExpanded]       = useState(false);
+  const [expanded, setExpanded]       = useState(true);
   const [activeTab, setActiveTab]     = useState<Tab>('player');
   const [playerReady, setPlayerReady] = useState(false);
-  const [videoId, setVideoId]         = useState<string | null>(null);
+  const [currentItem, setCurrentItem] = useState<QueueItem | null>(null);
+  const [embedStartTime, setEmbedStartTime] = useState(0);
   const [playing, setPlaying]         = useState(false);
   const [buffering, setBuffering]     = useState(false);
-  const [videoTitle, setVideoTitle]   = useState('');
+
+  const videoId    = currentItem?.videoId ?? null;
+  const videoTitle = currentItem?.title   ?? '';
 
   // Queue
   const [queue, setQueue]             = useState<QueueItem[]>([]);
@@ -193,11 +170,9 @@ export default function SyncedYouTubePlayer({
     return () => { sub1.remove(); sub2.remove(); };
   }, []);
 
-  // ── Send a command to the YouTube player in the WebView ─────────────────
-  const control = useCallback((cmd: object) => {
-    webViewRef.current?.injectJavaScript(
-      `window.rnControl(${JSON.stringify(cmd)});true;`,
-    );
+  // ── Send play/pause to the YT.Player inside the WebView ───────────────────
+  const control = useCallback((action: 'play' | 'pause') => {
+    webViewRef.current?.injectJavaScript(`window.rnControl('${action}');true;`);
   }, []);
 
   // ── Emit a socket event to sync other players ────────────────────────────
@@ -209,15 +184,15 @@ export default function SyncedYouTubePlayer({
     [roomId],
   );
 
-  // ── Load a video locally (no socket emit) ────────────────────────────────
+  // ── Load a video — changing currentItem remounts the WebView via key ──
   const loadVideo = useCallback(
     (item: QueueItem, startTime = 0) => {
-      setVideoId(item.videoId);
-      setVideoTitle(item.title);
+      setPlayerReady(false);
       setPlaying(true);
-      control({action: 'load', videoId: item.videoId, startTime});
+      setEmbedStartTime(startTime);
+      setCurrentItem(item); // key={videoId} on WebView triggers remount
     },
-    [control],
+    [],
   );
 
   // ── Play next from queue ──────────────────────────────────────────────────
@@ -235,18 +210,18 @@ export default function SyncedYouTubePlayer({
   const applyRemote = useCallback(
     (data: MusicPayload) => {
       if (data.action === 'load' && data.videoId) {
-        setVideoId(data.videoId);
-        setPlaying(true);
-        control({action: 'load', videoId: data.videoId, startTime: data.currentTime ?? 0});
+        // Find title from queue if we have it, otherwise use videoId as placeholder
+        const existing = queue.find(q => q.videoId === data.videoId);
+        loadVideo(
+          existing ?? {videoId: data.videoId, title: data.videoId},
+          data.currentTime ?? 0,
+        );
       } else if (data.action === 'play') {
         setPlaying(true);
-        const elapsed = data.sentAt ? (Date.now() - data.sentAt) / 1000 : 0;
-        control({action: 'play', currentTime: (data.currentTime ?? 0) + elapsed});
+        control('play');
       } else if (data.action === 'pause') {
         setPlaying(false);
-        control({action: 'pause'});
-      } else if (data.action === 'seek') {
-        control({action: 'seek', currentTime: data.currentTime ?? 0});
+        control('pause');
       } else if (data.action === 'enqueue' && data.queueItem) {
         setQueue(q => [...q, data.queueItem!]);
       } else if (data.action === 'dequeue' && data.videoId !== undefined) {
@@ -270,44 +245,36 @@ export default function SyncedYouTubePlayer({
     return () => { socketService.offMusicControl(); };
   }, [roomId, applyRemote]);
 
-  // ── Handle messages from the WebView (YouTube player events) ─────────────
+  // ── Handle messages from the injected JS (video element events) ──────────
   const handleMessage = useCallback(
     (event: {nativeEvent: {data: string}}) => {
       let msg: any;
       try { msg = JSON.parse(event.nativeEvent.data); } catch { return; }
 
-      if (msg.type === 'ready') { setPlayerReady(true); return; }
+      if (msg.type === 'ready') {
+        setPlayerReady(true);
+        return;
+      }
 
-      if (msg.type === 'stateChange') {
-        if (msg.title)   setVideoTitle(msg.title);
-        if (msg.videoId) setVideoId(msg.videoId);
+      if (msg.type === 'state') {
         if (msg.state === YT_PLAYING)        { setPlaying(true);  setBuffering(false); }
         else if (msg.state === YT_PAUSED)    { setPlaying(false); setBuffering(false); }
         else if (msg.state === YT_BUFFERING) { setBuffering(true); }
         else if (msg.state === YT_ENDED)     { playNext(); }
-        return;
-      }
-
-      if (msg.type === 'timeReport') {
-        if (msg.pendingAction === 'play') {
-          syncToRoom({action: 'play', videoId: videoId ?? undefined, currentTime: msg.currentTime});
-        } else if (msg.pendingAction === 'pause') {
-          syncToRoom({action: 'pause', videoId: videoId ?? undefined, currentTime: msg.currentTime});
-        }
       }
     },
-    [syncToRoom, videoId, playNext],
+    [playNext],
   );
 
   // ── User presses Play / Pause ─────────────────────────────────────────────
   const handlePlayPause = useCallback(() => {
     if (!videoId || !playerReady) return;
     if (playing) {
-      control({action: 'pause'});
-      control({action: 'getTime', pendingAction: 'pause'});
+      control('pause');
+      setPlaying(false);
     } else {
-      control({action: 'play'});
-      control({action: 'getTime', pendingAction: 'play'});
+      control('play');
+      setPlaying(true);
     }
   }, [videoId, playerReady, playing, control]);
 
@@ -382,6 +349,33 @@ export default function SyncedYouTubePlayer({
   return (
     <View style={[styles.container, {bottom: keyboardHeight}]}>
 
+      {/* ── WebView: always mounted so music persists across tab switches ── */}
+      <View style={[styles.playerContainer, !(expanded && activeTab === 'player') && {display: 'none'}]}>
+        <WebView
+          key={videoId ?? 'empty'}
+          ref={webViewRef}
+          source={videoId
+            ? {html: buildPlayerHtml(videoId, embedStartTime), baseUrl: 'https://bisetka.io'}
+            : {html: '<html><body style="background:#000"></body></html>'}
+          }
+          style={styles.webview}
+          scrollEnabled={false}
+          bounces={false}
+          javaScriptEnabled
+          mediaPlaybackRequiresUserAction={false}
+          allowsInlineMediaPlayback
+          allowsFullscreenVideo
+          originWhitelist={['*']}
+          userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
+          onMessage={handleMessage}
+        />
+        {videoId && !playerReady && (
+          <View style={styles.loadingOverlay}>
+            <ActivityIndicator size="large" color="#fff" />
+          </View>
+        )}
+      </View>
+
       {/* ── Mini bar ─────────────────────────────────────────────────── */}
       <View style={styles.bar}>
         <View style={styles.noteIcon}>
@@ -440,36 +434,8 @@ export default function SyncedYouTubePlayer({
           </View>
 
           {/* ── Player tab ──────────────────────────────────────────── */}
-          {activeTab === 'player' && (
-            <View>
-              <View style={styles.playerContainer}>
-                <WebView
-                  ref={webViewRef}
-                  source={{html: YOUTUBE_HTML}}
-                  style={styles.webview}
-                  scrollEnabled={false}
-                  bounces={false}
-                  mediaPlaybackRequiresUserAction={false}
-                  allowsInlineMediaPlayback
-                  originWhitelist={['*']}
-                  onMessage={handleMessage}
-                  onShouldStartLoadWithRequest={req =>
-                    req.url === 'about:blank' ||
-                    req.url.startsWith('http') ||
-                    req.url.startsWith('https') ||
-                    req.url.startsWith('data:')
-                  }
-                />
-                {!playerReady && (
-                  <View style={styles.loadingOverlay}>
-                    <ActivityIndicator size="large" color="#fff" />
-                  </View>
-                )}
-              </View>
-              {roomId && (
-                <Text style={styles.syncNote}>🔗 Controls sync to all players</Text>
-              )}
-            </View>
+          {activeTab === 'player' && roomId && (
+            <Text style={styles.syncNote}>🔗 Controls sync to all players</Text>
           )}
 
           {/* ── Search tab ──────────────────────────────────────────── */}
