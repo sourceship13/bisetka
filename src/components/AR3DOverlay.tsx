@@ -27,7 +27,7 @@
  */
 
 import React, {useRef, useEffect, useState, useMemo, useCallback, useImperativeHandle, forwardRef} from 'react';
-import {StyleSheet, View, NativeModules, Platform} from 'react-native';
+import {StyleSheet, View, NativeModules, Platform, Image} from 'react-native';
 import WebView from 'react-native-webview';
 import RNFS from 'react-native-fs';
 import {useSharedAttitude} from './Photosphere360Background';
@@ -127,10 +127,24 @@ export interface AR3DOverlayProps {
 
 // ─── GLB URI resolver ─────────────────────────────────────────────────────────
 
+// Static require map for all GLBs used by AR3DOverlay across all game screens.
+// Because 'glb' is in Metro's assetExts, each require() registers the file as a
+// Metro asset.  Image.resolveAssetSource(ref) then returns the correct URL —
+// including the actual LAN IP of the Metro server, not 'localhost' — for both
+// simulator (via USB tunnel) and physical device (over Wi-Fi).
+const GLB_ASSET_MAP: Record<string, any> = {
+  'glb/game_boards/rounded_table_panel_v4.glb': require('../../assets/glb/game_boards/rounded_table_panel_v4.glb'),
+  'glb/game_boards/rounded_table_panel.glb':    require('../../assets/glb/game_boards/rounded_table_panel.glb'),
+  'glb/chess/chess-board/source/ui.glb':        require('../../assets/glb/chess/chess-board/source/ui.glb'),
+  'glb/checkers/checker_pieces.glb':            require('../../assets/glb/checkers/checker_pieces.glb'),
+  'glb/cards/card-template.glb':                require('../../assets/glb/cards/card-template.glb'),
+};
+
 /**
  * Turns a project-assets-relative path into a base64 data URI for the WebView.
  *
- * Dev  — Downloads from Metro's asset server via RNFS.downloadFile.
+ * Dev  — Downloads from Metro's asset server via fetch() (more reliable than
+ *         RNFS.downloadFile in the iOS simulator for binary assets).
  *         Metro path format varies by version, so we try both:
  *           /assets/assets/<path>  (RN ≥ 0.73 / Metro ≥ 0.73)
  *           /assets/<path>         (legacy)
@@ -138,55 +152,80 @@ export interface AR3DOverlayProps {
  * Prod — Reads directly from the app bundle via RNFS.
  */
 async function resolveAssetUri(assetPath: string): Promise<string | null> {
-  // Stable temp-file name — reused across calls so the same GLB isn't re-downloaded
-  const safeFileName = assetPath.replace(/[\/\\]/g, '_');
-  const tempPath = `${RNFS.TemporaryDirectoryPath}ar_glb_${safeFileName}`;
+  console.log('[AR3DOverlay] resolveAssetUri START:', assetPath);
 
   try {
     if (__DEV__) {
-      const scriptUrl: string =
-        (NativeModules.SourceCode as any)?.scriptURL ?? '';
-      const match = scriptUrl.match(/^(https?:\/\/[^/:]+(?::\d+)?)/);
-      const base = match ? match[1] : 'http://localhost:8081';
-      // URL-encode each path segment to handle spaces in folder names
-      const encodedPath = assetPath.split('/').map(encodeURIComponent).join('/');
+      // Get the Metro server URL for this asset via Image.resolveAssetSource.
+      // Since 'glb' is in assetExts, Metro registers these files and
+      // resolveAssetSource returns the correct URL — e.g.
+      // http://192.168.x.x:8081/assets/... — regardless of whether the device
+      // is on Wi-Fi or USB tunnel (unlike NativeModules.SourceCode.scriptURL
+      // which can return 'localhost' even when Metro is on a LAN IP).
+      const assetRef = GLB_ASSET_MAP[assetPath];
+      let metroUrl: string | null = null;
 
-      // In dev, always re-download so asset changes are picked up immediately.
+      if (assetRef != null) {
+        const resolved = Image.resolveAssetSource(assetRef);
+        metroUrl = resolved?.uri ?? null;
+        console.log('[AR3DOverlay] resolveAssetSource →', metroUrl);
+      } else {
+        // Fallback for paths not in the map: construct from scriptURL
+        const scriptUrl: string = (NativeModules.SourceCode as any)?.scriptURL ?? '';
+        const match = scriptUrl.match(/^(https?:\/\/[^/:]+(?::\d+)?)/);
+        const base = match ? match[1] : null;
+        console.log('[AR3DOverlay] scriptURL fallback — scriptURL:', JSON.stringify(scriptUrl), '→ base:', base);
+        if (base) {
+          const encodedPath = assetPath.split('/').map(encodeURIComponent).join('/');
+          metroUrl = `${base}/assets/assets/${encodedPath}`;
+        }
+      }
+
+      if (!metroUrl) {
+        console.warn('[AR3DOverlay] no Metro URL for:', assetPath);
+        return null;
+      }
+
+      const safeFileName = assetPath.replace(/[\/\\]/g, '_');
+      const tempPath = `${RNFS.TemporaryDirectoryPath}ar_${safeFileName}`;
+
+      // Always re-download so stale cache doesn't block new assets.
       if (await RNFS.exists(tempPath)) {
         await RNFS.unlink(tempPath).catch(() => {});
       }
 
-      for (const url of [
-        `${base}/assets/assets/${encodedPath}`,  // Metro ≥ 0.73 (RN 0.73+)
-        `${base}/assets/${encodedPath}`,           // legacy Metro
-      ]) {
-        try {
-          const dl = RNFS.downloadFile({fromUrl: url, toFile: tempPath});
-          const res = await dl.promise;
-          if (res.statusCode === 200) {
-            // Return a file:// URL instead of base64-encoding the binary.
-            // Large GLBs (e.g. 5+ MB) would produce multi-MB data URIs that
-            // crash or time out the WebView when embedded inline in HTML.
-            // With baseUrl set to the temp directory, Three.js fetch() can
-            // load file:// URLs directly without any size limit.
-            return `file://${tempPath}`;
-          }
-        } catch {/* try next URL format */}
+      try {
+        console.log('[AR3DOverlay] downloading:', metroUrl, '→', tempPath);
+        const dl = RNFS.downloadFile({fromUrl: metroUrl, toFile: tempPath});
+        const res = await dl.promise;
+        // Metro sometimes returns statusCode 0 even on HTTP 200 — accept if
+        // bytesWritten > 0 so a partial/empty file doesn't count as success.
+        const ok = res.statusCode === 200 || (res.statusCode === 0 && res.bytesWritten > 100);
+        console.log('[AR3DOverlay] download result — status:', res.statusCode, 'bytes:', res.bytesWritten, 'ok:', ok);
+        if (ok) {
+          const fileUri = `file://${tempPath}`;
+          console.log('[AR3DOverlay] resolveAssetUri → file URI:', fileUri);
+          return fileUri;
+        }
+      } catch (dlErr) {
+        console.log('[AR3DOverlay] download threw:', metroUrl, String(dlErr));
       }
 
-      console.warn('[AR3DOverlay] GLB not found on Metro server:', assetPath);
+      console.warn('[AR3DOverlay] GLB download failed:', assetPath);
       return null;
     }
 
-    // Production: reference the file directly — no need to read & re-encode
+    // Production: read from the app bundle and base64-encode
     if (Platform.OS === 'ios') {
-      return `file://${RNFS.MainBundlePath}/assets/${assetPath}`;
+      const b64 = await RNFS.readFile(
+        `${RNFS.MainBundlePath}/assets/${assetPath}`,
+        'base64',
+      );
+      return `data:model/gltf-binary;base64,${b64}`;
     }
-    // Android: copy from APK assets to the writable temp dir, then reference
-    if (!(await RNFS.exists(tempPath))) {
-      await (RNFS as any).copyFileAssets(`assets/${assetPath}`, tempPath);
-    }
-    return `file://${tempPath}`;
+    // Android
+    const b64 = await RNFS.readFileAssets(`assets/${assetPath}`, 'base64');
+    return `data:model/gltf-binary;base64,${b64}`;
   } catch (e) {
     console.warn('[AR3DOverlay] asset resolve failed:', assetPath, e);
     return null;
@@ -229,19 +268,30 @@ function buildSceneHTML(
   html, body { width:100%; height:100%; background:transparent; overflow:hidden; }
   canvas { display:block; }
 </style>
-<script type="importmap">
-{
-  "imports": {
-    "three": "https://unpkg.com/three@0.166.1/build/three.module.js",
-    "three/addons/": "https://unpkg.com/three@0.166.1/examples/jsm/"
-  }
-}
-</script>
 </head>
 <body>
+<script>
+window.onerror = function(msg, src, line, col, err) {
+  var info = '[AR3D-onerror] ' + msg + ' @ ' + src + ':' + line + ':' + col;
+  if (window.ReactNativeWebView) window.ReactNativeWebView.postMessage(JSON.stringify({type:'log',msg:info}));
+};
+document.addEventListener('securitypolicyviolation', function(e) {
+  var info = '[AR3D-CSP] blocked: ' + e.blockedURI + ' directive: ' + e.violatedDirective;
+  if (window.ReactNativeWebView) window.ReactNativeWebView.postMessage(JSON.stringify({type:'log',msg:info}));
+});
+// Queue messages that arrive before the ES module finishes loading Three.js.
+// The module script replaces this stub with the real handler and flushes the queue.
+window._rnMsgQueue = [];
+window.handleRNMessage = function(data) { window._rnMsgQueue.push(data); };
+window.addEventListener('unhandledrejection', function(e) {
+  var info = '[AR3D-reject] ' + (e.reason && e.reason.message ? e.reason.message : String(e.reason));
+  if (window.ReactNativeWebView) window.ReactNativeWebView.postMessage(JSON.stringify({type:'log',msg:info}));
+});
+</script>
 <script type="module">
-import * as THREE from 'three';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import * as THREE from 'https://esm.sh/three@0.166.1';
+import { GLTFLoader } from 'https://esm.sh/three@0.166.1/examples/jsm/loaders/GLTFLoader';
+import { DRACOLoader } from 'https://esm.sh/three@0.166.1/examples/jsm/loaders/DRACOLoader';
 
 // ── Shared mutable state (updated by injectJavaScript) ───────────────────────
 // Use || so that if injectJavaScript already set window._att with the live gyro
@@ -376,8 +426,12 @@ function buildProceduralBoard() {
 // ── Load GLB assets ─────────────────────────────────────────────────────────────────
 const BOARD_URI  = ${BOARD_URI_JS};
 const PIECES_URI = ${PIECES_URI_JS};
+// Use Google's Draco CDN with JS-only decoder to avoid WASM/Worker issues in WKWebView
+const dracoLoader = new DRACOLoader();
+dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
+dracoLoader.setDecoderConfig({ type: 'js' });
 const loader     = new GLTFLoader();
-
+loader.setDRACOLoader(dracoLoader);
 
 function _rnLog(msg) {
   if (window.ReactNativeWebView) {
@@ -385,13 +439,31 @@ function _rnLog(msg) {
   }
 }
 
+_rnLog('[AR3D-HTML] module running. BOARD_URI type=' + (BOARD_URI ? 'data(' + BOARD_URI.length + ')' : 'null') + ' PIECES_URI=' + (PIECES_URI ? 'set' : 'null'));
 
 // ── Load BOARD
 if (BOARD_URI) {
+  var _boardDone = false;
+  var _boardTimer = setTimeout(function() {
+    if (!_boardDone) {
+      _boardDone = true;
+      _rnLog('[AR3D-HTML] Board GLB timed out, using procedural fallback');
+      buildProceduralBoard();
+    }
+  }, 10000);
   loader.load(BOARD_URI, (gltf) => {
     const model = gltf.scene;
-    // GLB boards are Y-up; rotate +PI/2 so normals face up when boardGroup.rotation.x=-PI/2
-    model.rotation.x = Math.PI / 2;
+    // Determine the model's natural orientation before applying any correction.
+    // Two common conventions from DCC tools:
+    //   (A) Y-up / XZ-flat  — e.g. chess board ui.glb (roughly cubic bounding box)
+    //       boardGroup.rotation.x = -π/2 would stand it up, so we need +π/2 to lay it flat.
+    //   (B) Z-normal / XY-flat — e.g. rounded_table_panel_v4.glb (very thin in Z)
+    //       boardGroup.rotation.x = -π/2 maps XY → world XZ (already horizontal), so
+    //       adding +π/2 would stand it back up — we want rotation.x = 0 here.
+    const rawBox  = new THREE.Box3().setFromObject(model);
+    const rawSize = rawBox.getSize(new THREE.Vector3());
+    const isXYFlat = rawSize.z < Math.min(rawSize.x, rawSize.y) * 0.25;
+    model.rotation.x = isXYFlat ? 0 : Math.PI / 2;
     model.updateMatrixWorld(true);
     const box    = new THREE.Box3().setFromObject(model);
     const size   = box.getSize(new THREE.Vector3());
@@ -415,7 +487,13 @@ if (BOARD_URI) {
       }
     });
     boardGroup.add(model);
-  }, undefined, () => buildProceduralBoard());
+    clearTimeout(_boardTimer); _boardDone = true;
+    _rnLog('[AR3D-HTML] Board GLB loaded OK');
+  }, undefined, (err) => {
+    clearTimeout(_boardTimer); _boardDone = true;
+    _rnLog('[AR3D-HTML] Board GLB FAILED: ' + (err && err.message ? err.message : String(err)));
+    buildProceduralBoard();
+  });
 } else {
   buildProceduralBoard();
 }
@@ -529,8 +607,8 @@ function clonePiece(color, isKing) {
 }
 
 // ── CARD RENDERING ─────────────────────────────────────────────────────────────
-let baseCardScene: THREE.Scene | null = null;
-let baseCardBackTexture: THREE.Texture | null = null;
+let baseCardScene = null;
+let baseCardBackTexture = null;
 
 // Card scene group — parented to boardGroup so positions are board-relative
 const cardGroup = new THREE.Group();
@@ -588,7 +666,7 @@ function loadCardResources() {
 // Call card resource loader
 loadCardResources();
 
-function updateCards(cards: ARCard[] | undefined) {
+function updateCards(cards) {
   if (!baseCardScene) {
     console.warn('[AR3DOverlay] Card GLB not loaded yet, skipping card update');
     return;
@@ -612,31 +690,31 @@ function updateCards(cards: ARCard[] | undefined) {
   }
   
   // Build a map of existing cards by key
-  const existingCards = new Map<string, THREE.Mesh>();
+  const existingCards = new Map();
   cardGroup.traverse((child) => {
     if (child.isMesh && child.userData && child.userData.cardKey) {
-      existingCards.set(child.userData.cardKey, child as THREE.Mesh);
+      existingCards.set(child.userData.cardKey, child);
     }
   });
   
   // Process each card
   cards.forEach(card => {
-    let cardMesh: THREE.Mesh;
+    let cardMesh;
     
     if (existingCards.has(card.key)) {
       // Reuse existing card
-      cardMesh = existingCards.get(card.key)!;
+      cardMesh = existingCards.get(card.key);
       existingCards.delete(card.key);
     } else {
       // Create new card
-      cardMesh = baseCardScene.clone(true) as THREE.Mesh;
+      cardMesh = baseCardScene.clone(true);
       cardMesh.userData.cardKey = card.key;
       
       // Apply textures
       if (baseCardBackTexture) {
         cardMesh.traverse((child) => {
           if (child.isMesh && child.material) {
-            const material = child.material as THREE.MeshStandardMaterial;
+            const material = child.material;
             material.map = baseCardBackTexture;
             material.needsUpdate = true;
           }
@@ -750,6 +828,10 @@ function updateDots(moves) {
 }
 
 // ── RN bridge ────────────────────────────────────────────────────────────────
+// Replace the early-queuing stub with the real handler, then flush any
+// messages that arrived while Three.js was loading.
+const _rnQueuedMessages = window._rnMsgQueue || [];
+window._rnMsgQueue = null;
 window.handleRNMessage = function(data) {
   if (!data || !data.type) return;
   if (data.type === 'spawn') {
@@ -785,6 +867,8 @@ window.handleRNMessage = function(data) {
     }
   }
 };
+// Flush messages that arrived before Three.js finished loading.
+_rnQueuedMessages.forEach(function(d) { window.handleRNMessage(d); });
 function onMsg(e) { try { window.handleRNMessage(JSON.parse(e.data)); } catch(_){} }
 window.addEventListener('message',  onMsg);
 document.addEventListener('message', onMsg);
@@ -855,12 +939,13 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
   boardGlbPath,
   piecesGlbPath,
   tableGlbPath,
-  cardGlbPath = 'glb/cards/card-template.glb',
-  cardBackTexturePath = 'assets/cards/default-card-back.png',
+  cardGlbPath,
+  cardBackTexturePath,
   onSquareTap,
   pieceColorRed   = '#c0392b',
   pieceColorBlack = '#1e2d3d',
 }: AR3DOverlayProps, ref: React.Ref<AR3DOverlayHandle>) {
+  console.log('[AR3DOverlay] RENDER visible=%s boardGlbPath=%s', visible, boardGlbPath);
   const attitude = useSharedAttitude();
   const webViewRef = useRef<WebView>(null);
   const renderKey = useRef(0); // Force re-render on demand
@@ -938,24 +1023,54 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
     return () => { cancelled = true; };
   }, [cardBackTexturePath]);
 
+  // Debug: trace all blocking state so we can see exactly where the HTML build stalls
+  useEffect(() => {
+    console.log('[AR3DOverlay] STATE boardUri:', boardUri === undefined ? 'PENDING' : boardUri === null ? 'null(failed)' : `resolved(${String(boardUri).length}ch)`);
+    console.log('[AR3DOverlay] STATE piecesUri:', piecesUri === undefined ? 'PENDING' : piecesUri === null ? 'null(no prop)' : 'resolved');
+    console.log('[AR3DOverlay] STATE cardUri:', cardUri === undefined ? 'PENDING' : cardUri === null ? 'null(no prop)' : 'resolved');
+    console.log('[AR3DOverlay] STATE cardBackUri:', cardBackUri === undefined ? 'PENDING' : cardBackUri === null ? 'null(no prop)' : 'resolved');
+    console.log('[AR3DOverlay] STATE spawnYaw:', spawnYaw, 'htmlFileUri:', htmlFileUri ? 'set' : 'null');
+  }, [boardUri, piecesUri, cardUri, cardBackUri, spawnYaw, htmlFileUri]);
+
   // Build HTML once board + pieces URIs are resolved AND spawn yaw is captured.
   // Table is always embedded so we don't block on tableUri.
-  const html = useMemo(() => {
+  const htmlString = useMemo(() => {
+    console.log('[AR3DOverlay] useMemo check — boardUri:', boardUri === undefined ? 'undefined' : boardUri === null ? 'null' : `data(${typeof boardUri === 'string' ? boardUri.length : 0}chars)`, 'piecesUri:', piecesUri === undefined ? 'undefined' : piecesUri === null ? 'null' : 'set', 'cardUri:', cardUri, 'cardBackUri:', cardBackUri, 'spawnYaw:', spawnYaw);
     if (boardUri === undefined || piecesUri === undefined) return null;
     if (cardUri === undefined || cardBackUri === undefined) return null;
     if (spawnYaw === null) return null;
     const redInt   = parseInt(pieceColorRed.replace(/^#/, ''), 16);
     const blackInt  = parseInt(pieceColorBlack.replace(/^#/, ''), 16);
-    return buildSceneHTML(fov, boardUri, piecesUri, tableUri ?? null, spawnYaw, redInt, blackInt, cardUri ?? null, cardBackUri ?? null);
+    const result = buildSceneHTML(fov, boardUri, piecesUri, tableUri ?? null, spawnYaw, redInt, blackInt, cardUri ?? null, cardBackUri ?? null);
+    console.log('[AR3DOverlay] htmlString built, length:', result.length);
+    return result;
   }, [fov, boardUri, piecesUri, tableUri, spawnYaw, cardUri, cardBackUri]);
+
+  // Write the HTML to a temp file and give WebView a file:// URI.
+  // WKWebView.loadHTMLString silently fails on iOS with large strings (>5 MB).
+  // WKWebView.loadFileURL has no such limit.
+  const htmlFileUriKeyRef = useRef(0);
+  const [htmlFileUri, setHtmlFileUri] = useState<string | null>(null);
+  useEffect(() => {
+    if (!htmlString) { setHtmlFileUri(null); return; }
+    const filePath = `${RNFS.TemporaryDirectoryPath}ar_scene.html`;
+    console.log('[AR3DOverlay] writing HTML to', filePath, 'length:', htmlString.length);
+    RNFS.writeFile(filePath, htmlString, 'utf8')
+      .then(() => {
+        console.log('[AR3DOverlay] HTML written OK, mounting WebView with file://', filePath);
+        htmlFileUriKeyRef.current += 1;
+        setHtmlFileUri(`file://${filePath}`);
+      })
+      .catch(e => console.warn('[AR3DOverlay] failed to write scene HTML:', e));
+  }, [htmlString]);
 
   // Push gyro attitude at ~60fps
   useEffect(() => {
-    if (!visible || !html) return;
+    if (!visible || !htmlFileUri) return;
     webViewRef.current?.injectJavaScript(
       `window._att={yaw:${attitude.yaw.toFixed(4)},pitch:${attitude.pitch.toFixed(4)},roll:${attitude.roll.toFixed(4)}};true;`,
     );
-  }, [attitude.yaw, attitude.pitch, attitude.roll, visible, html]);
+  }, [attitude.yaw, attitude.pitch, attitude.roll, visible, htmlFileUri]);
 
   // Keep latest pieces/moves in a ref so onLoadEnd can access them without stale closure
   const latestPiecesRef = useRef(pieces);
@@ -968,10 +1083,10 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
 
   // Push board state on every piece/move change
   useEffect(() => {
-    if (!visible || !html) return;
+    if (!visible || !htmlFileUri) return;
     const msg = JSON.stringify({type: 'scene', pieces, moves, cards});
     webViewRef.current?.injectJavaScript(`window.handleRNMessage(${msg});true;`);
-  }, [pieces, moves, cards, visible, html]);
+  }, [pieces, moves, cards, visible, htmlFileUri]);
 
   // Re-send pieces once the WebView has finished loading (Three.js CDN async import).
   // The useEffect above may fire before handleRNMessage is registered, so this
@@ -999,15 +1114,15 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
     } catch (_) {}
   }, [onSquareTap]);
 
-  if (!visible || !html) return null;
+  if (!visible || !htmlFileUri) return null;
 
   return (
     // box-none: wrapper does not capture touches but WebView child does
     <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
       <WebView
-        key={`ar-overlay-${renderKey.current}`} // Force re-render when AR enables
+        key={`ar-overlay-${renderKey.current}-${htmlFileUriKeyRef.current}`} // Force re-render when AR enables or HTML changes
         ref={webViewRef}
-        source={{ html, baseUrl: `file://${RNFS.TemporaryDirectoryPath}` }}
+        source={{ uri: htmlFileUri }}
         style={styles.webview}
         scrollEnabled={false}
         bounces={false}
@@ -1017,6 +1132,8 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
         allowUniversalAccessFromFileURLs
         onLoadEnd={handleLoadEnd}
         onMessage={handleMessage}
+        onError={e => console.warn('[AR3DOverlay] WebView error:', JSON.stringify(e.nativeEvent))}
+        onHttpError={e => console.warn('[AR3DOverlay] WebView HTTP error:', e.nativeEvent.statusCode, e.nativeEvent.url)}
         onShouldStartLoadWithRequest={req =>
           req.url === 'about:blank' ||
           req.url.startsWith('http') ||
