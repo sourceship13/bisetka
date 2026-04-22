@@ -26,7 +26,7 @@
  *   </Photosphere360Background>
  */
 
-import React, {useRef, useEffect, useState, useMemo, useCallback} from 'react';
+import React, {useRef, useEffect, useState, useMemo, useCallback, useImperativeHandle, forwardRef} from 'react';
 import {StyleSheet, View, NativeModules, Platform} from 'react-native';
 import WebView from 'react-native-webview';
 import RNFS from 'react-native-fs';
@@ -46,6 +46,11 @@ export interface ARPiece {
 export interface ARMove {
   row: number;
   col: number;
+}
+
+export interface AR3DOverlayHandle {
+  /** Re-centers the board in front of the player's current looking direction */
+  recenter: () => void;
 }
 
 export interface AR3DOverlayProps {
@@ -555,6 +560,27 @@ window.handleRNMessage = function(data) {
     updatePieces(window._pieces);
     updateDots(data.moves || []);
   }
+  if (data.type === 'recenter') {
+    // Re-attach sceneGroup to camera so it tracks the player again,
+    // then let the freeze countdown re-fire to lock it in the new direction.
+    if (_frozen) {
+      // Preserve world matrix when re-parenting back to camera
+      camera.updateMatrixWorld(true);
+      sceneGroup.updateMatrixWorld(true);
+      const _wp = new THREE.Vector3();
+      const _wq = new THREE.Quaternion();
+      const _ws = new THREE.Vector3();
+      sceneGroup.matrixWorld.decompose(_wp, _wq, _ws);
+      scene.remove(sceneGroup);
+      camera.add(sceneGroup);
+      // Reset sceneGroup to its original camera-local position (centered ahead)
+      sceneGroup.position.set(0, 0, 0);
+      sceneGroup.rotation.set(0, 0, 0);
+      sceneGroup.scale.set(1, 1, 1);
+      _frozen = false;
+      _freezeCountdown = 8;
+    }
+  }
 };
 function onMsg(e) { try { window.handleRNMessage(JSON.parse(e.data)); } catch(_){} }
 window.addEventListener('message',  onMsg);
@@ -617,7 +643,7 @@ window.addEventListener('resize', () => {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default function AR3DOverlay({
+const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3DOverlay({
   visible = true,
   pieces = [],
   moves  = [],
@@ -628,10 +654,18 @@ export default function AR3DOverlay({
   onSquareTap,
   pieceColorRed   = '#c0392b',
   pieceColorBlack = '#1e2d3d',
-}: AR3DOverlayProps) {
+}: AR3DOverlayProps, ref: React.Ref<AR3DOverlayHandle>) {
   const attitude = useSharedAttitude();
   const webViewRef = useRef<WebView>(null);
   const renderKey = useRef(0); // Force re-render on demand
+
+  useImperativeHandle(ref, () => ({
+    recenter() {
+      webViewRef.current?.injectJavaScript(
+        `window.handleRNMessage({type:'recenter'});true;`
+      );
+    },
+  }));
   
   // Increment key when visible changes from false to true (new AR session)
   useEffect(() => {
@@ -765,8 +799,10 @@ export default function AR3DOverlay({
       />
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   webview: { flex: 1, backgroundColor: 'transparent' },
 });
+
+export default AR3DOverlay;

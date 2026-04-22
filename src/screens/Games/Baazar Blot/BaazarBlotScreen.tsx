@@ -23,6 +23,7 @@ import { useAchievements } from '../../../contexts/AchievementContext';
 import { resolveAvatar } from '../../../utils/avatars';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Photosphere360Background from '../../../components/Photosphere360Background';
+import {type AR3DOverlayHandle} from '../../../components/AR3DOverlay';
 import GameToolbar from '../../../components/global/GameToolbar';
 import GameToolbarControls from '../../../components/global/GameToolbarControls';
 import { CardType, Suit } from '../../../components/Card';
@@ -124,6 +125,8 @@ const BaazarBlotScreen = ({ navigation }: any) => {
   const [showBackground, setShowBackground] = useState(true);
   const [showBlur, setShowBlur] = useState(true);
   const [showMusicPlayer, setShowMusicPlayer] = useState(false);
+  const [arEnabled, setArEnabled] = useState(false);
+  const arOverlayRef = useRef<AR3DOverlayHandle>(null);
   const [showPanel, setShowPanel] = useState(false);
   const panelAnim = useRef(new Animated.Value(0)).current;
   const toolbarExpanded = useSharedValue(false);
@@ -999,7 +1002,7 @@ const BaazarBlotScreen = ({ navigation }: any) => {
 
   return (
     <View style={styles.bg}>
-      <Photosphere360Background overlayOpacity={showBlur ? 0.65 : 0.3} />
+      <Photosphere360Background overlayOpacity={showBlur ? 0.65 : 0.3} arEnabled={arEnabled} arOverlayRef={arOverlayRef} />
       <SafeAreaView style={styles.safe}>
         <View>
           <GameToolbar
@@ -1022,6 +1025,7 @@ const BaazarBlotScreen = ({ navigation }: any) => {
                 { icon: '🎨', onPress: () => setShowCustomization(true) },
                 { icon: showBlur ? '🌫️' : '✨', onPress: () => setShowBlur(!showBlur) },
                 { icon: showBackground ? '🖼️' : '🔲', onPress: () => setShowBackground(!showBackground) },
+                { icon: arEnabled ? '🥽' : '🎮', onPress: () => setArEnabled(!arEnabled) },
                 { icon: showMusicPlayer ? '🎵' : '🎶', onPress: () => setShowMusicPlayer(s => !s) },
                 { icon: '👥', onPress: togglePanel },
               ]}
@@ -1142,6 +1146,16 @@ const BaazarBlotScreen = ({ navigation }: any) => {
         </ScrollView>
       </Animated.View>
       <SyncedYouTubePlayer roomId={null} visible={showMusicPlayer} />
+      {arEnabled && (
+        <TouchableOpacity
+          style={styles.recenterBtn}
+          onPress={() => arOverlayRef.current?.recenter()}
+          hitSlop={{top:12,bottom:12,left:12,right:12}}
+          activeOpacity={0.7}>
+          <Text style={styles.recenterIcon}>⊕</Text>
+          <Text style={styles.recenterLabel}>Re-center</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 };
@@ -1541,6 +1555,9 @@ const styles = StyleSheet.create({
   panelPlayerName: { fontSize: 14, fontWeight: '600', color: '#fff' },
   panelTeamBadge: { alignSelf: 'flex-start', borderRadius: 6, borderWidth: 1, paddingHorizontal: 8, paddingVertical: 2 },
   panelTeamText: { fontSize: 11, fontWeight: '700' },
+  recenterBtn: { position:'absolute', bottom:90, alignSelf:'center', left:'50%', transform:[{translateX:-54}], flexDirection:'row', alignItems:'center', gap:6, backgroundColor:'rgba(0,0,0,0.35)', borderWidth:1, borderColor:'rgba(255,255,255,0.25)', borderRadius:24, paddingHorizontal:18, paddingVertical:10 },
+  recenterIcon: { fontSize:20, color:'#fff' },
+  recenterLabel: { fontSize:13, color:'#fff', fontWeight:'600', letterSpacing:0.3 },
 });
 
 export default BaazarBlotScreen;

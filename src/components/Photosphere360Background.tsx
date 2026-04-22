@@ -10,6 +10,7 @@
 import React, {createContext, useContext} from 'react';
 import {View, StyleSheet} from 'react-native';
 import {SphereViewer, useAttitude} from '@sourceship13/react-native-capture360';
+import AR3DOverlay, {type AR3DOverlayHandle} from './AR3DOverlay';
 
 // ─── Shared attitude context ──────────────────────────────────────────────────
 
@@ -50,6 +51,10 @@ type Props = {
    * Render AR3DOverlay here so it sits between the photosphere and the game UI.
    */
   children?: React.ReactNode;
+  /** When true, renders a generic AR3DOverlay (no game pieces). */
+  arEnabled?: boolean;
+  /** Ref forwarded to the internal AR3DOverlay so callers can invoke recenter(). */
+  arOverlayRef?: React.Ref<AR3DOverlayHandle>;
 };
 
 export default function Photosphere360Background({
@@ -59,6 +64,8 @@ export default function Photosphere360Background({
   heightOffset = 0.08,
   overlayOpacity = 0.3,
   children,
+  arEnabled = false,
+  arOverlayRef,
 }: Props) {
   const attitude = useAttitude();
 
@@ -81,6 +88,8 @@ export default function Photosphere360Background({
           />
         )}
       </View>
+      {/* Generic AR overlay (no pieces) when arEnabled=true */}
+      {arEnabled && <AR3DOverlay ref={arOverlayRef} visible={true} />}
       {/* Children (AR3DOverlay etc.) render on top of the sphere viewer */}
       {children}
     </AttitudeContext.Provider>
