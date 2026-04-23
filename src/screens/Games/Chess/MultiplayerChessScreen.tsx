@@ -7,12 +7,11 @@ import {
   ActivityIndicator,
   TextInput,
   Modal,
-  ImageBackground,
 } from 'react-native';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Photosphere360Background from '../../../components/Photosphere360Background';
-import AR3DOverlay, {type AR3DOverlayHandle} from '../../../components/AR3DOverlay';
+import AR3DOverlay, {type AR3DOverlayHandle, type ARPiece} from '../../../components/AR3DOverlay';
 import SyncedYouTubePlayer from '../../../components/SyncedYouTubePlayer';
 import ReAnimated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import ExpandableView from '../../../components/global/ExpandableView';
@@ -31,7 +30,6 @@ import {
   getDrawReason,
   Position,
 } from '../../../game/chessLogic';
-import ChessPiece from '../../../components/ChessPiece';
 import {socketService, GameMove} from '../../../services/SocketService';
 import tokenService from '../../../services/token.service';
 import { useGameEndRefresh } from '../../../libs/hooks/useGameEndRefresh';
@@ -71,7 +69,6 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
   const [mode, setMode] = useState<'menu' | 'matchmaking' | 'private' | 'game'>('menu');
   const [isSpectating, setIsSpectating] = useState(false);
   const [showBlur, setShowBlur] = useState(true);
-  const [showBackground, setShowBackground] = useState(true);
   const [showCustomization, setShowCustomization] = useState(false);
   const [gameTheme, setGameTheme] = useState<GameTheme>({});
   const [arEnabled, setArEnabled] = useState(true);
@@ -100,6 +97,29 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
   const [showRoomNameModal, setShowRoomNameModal] = useState(false);
   const roomNameRef = React.useRef(roomName);
   useEffect(() => { roomNameRef.current = roomName; }, [roomName]);
+
+  const arPieces = React.useMemo<ARPiece[]>(() => {
+    if (!gameState) return [];
+    const result: ARPiece[] = [];
+    gameState.board.forEach((row, r) => {
+      row.forEach((piece, c) => {
+        if (!piece) return;
+        result.push({
+          key: `${r}-${c}`,
+          row: r,
+          col: c,
+          color: piece.color === 'white' ? 'red' : 'black',
+          isKing: piece.type !== 'pawn',
+          pieceType: piece.type,
+          side: piece.color,
+          isSelected:
+            gameState.selectedSquare?.row === r &&
+            gameState.selectedSquare?.col === c,
+        });
+      });
+    });
+    return result;
+  }, [gameState?.board, gameState?.selectedSquare]);
 
   useEffect(() => {
     // Connect first, then register listeners on the live socket, then start matchmaking.
@@ -583,7 +603,28 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
   return (
     <View style={styles.container}>
       <Photosphere360Background overlayOpacity={showBlur ? 0.5 : 0.3}>
-        <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/chess/chess-board/source/ui.glb" />
+        <AR3DOverlay
+          ref={arOverlayRef}
+          visible={arEnabled}
+          pieces={arPieces}
+          moves={gameState?.possibleMoves || []}
+          boardGlbPath="glb/chess/chess-board/source/ui.glb"
+          chessPieceGlbPaths={{
+            white_pawn: 'glb/chess/pieces/white_pawn.glb',
+            white_knight: 'glb/chess/pieces/white_knight.glb',
+            white_bishop: 'glb/chess/pieces/white_bishop.glb',
+            white_rook: 'glb/chess/pieces/white_rook.glb',
+            white_queen: 'glb/chess/pieces/white_queen.glb',
+            white_king: 'glb/chess/pieces/white_king.glb',
+            black_pawn: 'glb/chess/pieces/black_pawn.glb',
+            black_knight: 'glb/chess/pieces/black_knight.glb',
+            black_bishop: 'glb/chess/pieces/black_bishop.glb',
+            black_rook: 'glb/chess/pieces/black_rook.glb',
+            black_queen: 'glb/chess/pieces/black_queen.glb',
+            black_king: 'glb/chess/pieces/black_king.glb',
+          }}
+          onSquareTap={handleSquarePress}
+        />
       </Photosphere360Background>
       <View style={styles.overlay} pointerEvents="box-none">
         <SafeAreaView style={styles.safeArea}>
@@ -598,7 +639,6 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
                 buttons={[
                   { icon: '🎨', onPress: () => setShowCustomization(true) },
                   { icon: showBlur ? '🌫️' : '✨', onPress: () => setShowBlur(!showBlur) },
-                  { icon: showBackground ? '🖼️' : '🔲', onPress: () => setShowBackground(!showBackground) },
                   { icon: '✏️', onPress: () => setShowRoomNameModal(true) },
                   { icon: arEnabled ? '🥽' : '🎮', onPress: () => setArEnabled(!arEnabled) },
                   { icon: showMusicPlayer ? '🎵' : '🎶', onPress: () => setShowMusicPlayer(s => !s) },
@@ -626,43 +666,6 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
                   {myColor === 'white' ? '⚪ White' : '⚫ Black'}
                 </Text>
                 {gameState.isCheck && <Text style={styles.checkText}>CHECK!</Text>}
-              </View>
-
-              {/* Board */}
-              <View style={styles.boardContainer}>
-                <ImageBackground
-                  source={require('../../../../assets/chess/board.png')}
-                  style={styles.board}
-                  resizeMode="stretch">
-                  <View style={styles.gridContainer}>
-                    {gameState.board.map((row, rowIndex) => (
-                      <View key={rowIndex} style={styles.row}>
-                        {row.map((piece, colIndex) => {
-                          const isSelected =
-                            gameState.selectedSquare?.row === rowIndex &&
-                            gameState.selectedSquare?.col === colIndex;
-                          const isPossibleMove = (gameState.possibleMoves || []).some(
-                            m => m.row === rowIndex && m.col === colIndex,
-                          );
-                          return (
-                            <TouchableOpacity
-                              key={`${rowIndex}-${colIndex}`}
-                              style={[
-                                styles.square,
-                                isSelected && styles.selectedSquare,
-                                isPossibleMove && styles.possibleMoveSquare,
-                              ]}
-                              onPress={() => handleSquarePress(rowIndex, colIndex)}
-                              hitSlop={{top: 2, bottom: 2, left: 2, right: 2}}>
-                              {piece && <ChessPiece type={piece.type} color={piece.color} />}
-                              {isPossibleMove && <View style={styles.moveIndicator} />}
-                            </TouchableOpacity>
-                          );
-                        })}
-                      </View>
-                    ))}
-                  </View>
-                </ImageBackground>
               </View>
 
               {/* Game over overlay */}
