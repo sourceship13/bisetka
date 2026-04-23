@@ -5,8 +5,9 @@
 
 import React, { useEffect, useRef } from 'react';
 import { Animated, Dimensions, View } from 'react-native';
-import DynamicCard from './DynamicCard';
-import type { CardType, CardTheme } from './DynamicCard';
+import Card3D from './Card3D';
+import type { CardType } from './Card';
+import type { CardTheme } from './global/GameCustomizationModal';
 import CardAnimations from '../utils/CardAnimations';
 
 interface AnimatedDealingSequenceProps {
@@ -85,13 +86,7 @@ const AnimatedDealingSequence: React.FC<AnimatedDealingSequenceProps> = ({
                 ],
               },
             ]}>
-            <DynamicCard
-              card={card}
-              faceDown={true}
-              size="medium"
-              theme={theme}
-              isPlayable={false}
-            />
+            <Card3D suit={(card as any).suit} rank={(card as any).rank} faceDown={true} size={60} />
           </Animated.View>
         );
       })}

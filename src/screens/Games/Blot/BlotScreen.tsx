@@ -24,7 +24,7 @@ import AR3DOverlay, {type AR3DOverlayHandle} from '../../../components/AR3DOverl
 import GameToolbar from '../../../components/global/GameToolbar';
 import GameToolbarControls from '../../../components/global/GameToolbarControls';
 import { CardType, Suit } from '../../../components/Card';
-import DynamicCard from '../../../components/DynamicCard';
+import Card3D from '../../../components/Card3D';
 import RiffleDealAnimation from '../../../components/RiffleDealAnimation';
 import CardCustomizationModal from '../../../components/global/GameCustomizationModal';
 import CardHandFan from '../../../components/CardHandFan';
@@ -121,7 +121,7 @@ const BlotScreen = ({ navigation }: any) => {
     }
   };
 
-  const [showBackground, setShowBackground] = useState(true);
+
   const [showBlur, setShowBlur] = useState(true);
   const [showMusicPlayer, setShowMusicPlayer] = useState(false);
   const [arEnabled, setArEnabled] = useState(true);
@@ -480,10 +480,17 @@ const BlotScreen = ({ navigation }: any) => {
     onPress?: () => void,
     playable = true,
   ) => {
-    const baseStyle = isTrickCard ? styles.trickCard : styles.card;
+    const cardSize = isTrickCard ? 52 : 68;
     const cardContent = (
-      <DynamicCard card={card as any} size={isTrickCard ? 'small' : 'medium'} theme={customTheme} />
+      <Card3D
+        key={card.id}
+        suit={card.suit as any}
+        rank={card.rank as any}
+        faceDown={false}
+        size={cardSize}
+      />
     );
+    const baseStyle = isTrickCard ? styles.trickCard : styles.card;
     if (!onPress) {
       return <View style={baseStyle}>{cardContent}</View>;
     }
@@ -650,7 +657,6 @@ const BlotScreen = ({ navigation }: any) => {
                 buttons={[
                   { icon: '🎨', onPress: () => setShowCustomization(true) },
                   { icon: showBlur ? '🌫️' : '✨', onPress: () => setShowBlur(!showBlur) },
-                  { icon: showBackground ? '🖼️' : '🔲', onPress: () => setShowBackground(!showBackground) },
                   { icon: arEnabled ? '🥽' : '🎮', onPress: () => setArEnabled(!arEnabled) },
                   { icon: showMusicPlayer ? '🎵' : '🎶', onPress: () => setShowMusicPlayer(s => !s) },
                   { icon: '👥', onPress: togglePanel },
@@ -732,71 +738,17 @@ const BlotScreen = ({ navigation }: any) => {
                     { width: TABLE_SIZE, height: TABLE_SIZE },
                   ]}
                 >
-                  {showBackground ? (
-                    <ImageBackground
-                      source={customTheme?.boardImage ? { uri: customTheme.boardImage } : require('../../../../assets/blot/card-table.png')}
-                      style={styles.cardTable}
-                      imageStyle={{ borderRadius: 16 }}
-                    >
-                      {/* Card placement placeholders - always visible */}
-                      <View style={styles.trickArea}>
-                      <View style={[styles.cardPlaceholder, styles.trickSlotTop]} />
-                      <View style={[styles.cardPlaceholder, styles.trickSlotBottom]} />
-                      <View style={[styles.cardPlaceholder, styles.trickSlotLeft]} />
-                      <View style={[styles.cardPlaceholder, styles.trickSlotRight]} />
-                    </View>
-                    
-                    {gameState.currentTrick.cards.length > 0 && (() => {
-                        const ledSuit = gameState.currentTrick.cards[0].card.suit;
-                        // Map player IDs to visual table positions
-                        // Player 0 = bottom, 1 = right, 2 = top, 3 = left
-                        const positionStyle: Record<number, object> = {
-                          0: styles.trickSlotBottom,
-                          1: styles.trickSlotRight,
-                          2: styles.trickSlotTop,
-                          3: styles.trickSlotLeft,
-                        };
-                        return (
-                          <View style={styles.trickArea}>
-                            {/* Led suit indicator in the center */}
-                            <View style={styles.ledSuitBadge}>
-                              <Text style={[styles.ledSuitIcon, { color: SUIT_COLOR[ledSuit] }]}>
-                                {SUIT_ICON[ledSuit]}
-                              </Text>
-                              <Text style={styles.ledSuitLabel}>
-                                Led: {SUIT_NAME[ledSuit]}
-                              </Text>
-                            </View>
-                            {/* Cards positioned at table edges */}
-                            {gameState.currentTrick.cards.map((cardPlay, idx) => (
-                              <View
-                                key={idx}
-                                style={[
-                                  styles.trickSlot,
-                                  positionStyle[cardPlay.playerId] ?? styles.trickSlotTop,
-                                ]}
-                              >
-                                {renderCard(cardPlay.card, idx, true)}
-                              </View>
-                            ))}
-                          </View>
-                        );
-                      })()}
-                    </ImageBackground>
-                  ) : (
-                    <View style={styles.cardTable}>
-                      {/* Card placement placeholders - always visible */}
+                  <View style={styles.cardTable}>
+                      {/* Card placement placeholders */}
                       <View style={styles.trickArea}>
                         <View style={[styles.cardPlaceholder, styles.trickSlotTop]} />
                         <View style={[styles.cardPlaceholder, styles.trickSlotBottom]} />
                         <View style={[styles.cardPlaceholder, styles.trickSlotLeft]} />
                         <View style={[styles.cardPlaceholder, styles.trickSlotRight]} />
                       </View>
-                      
+
                       {gameState.currentTrick.cards.length > 0 && (() => {
                           const ledSuit = gameState.currentTrick.cards[0].card.suit;
-                          // Map player IDs to visual table positions
-                          // Player 0 = bottom, 1 = right, 2 = top, 3 = left
                           const positionStyle: Record<number, object> = {
                             0: styles.trickSlotBottom,
                             1: styles.trickSlotRight,
@@ -805,7 +757,6 @@ const BlotScreen = ({ navigation }: any) => {
                           };
                           return (
                             <View style={styles.trickArea}>
-                              {/* Led suit indicator in the center */}
                               <View style={styles.ledSuitBadge}>
                                 <Text style={[styles.ledSuitIcon, { color: SUIT_COLOR[ledSuit] }]}>
                                   {SUIT_ICON[ledSuit]}
@@ -814,7 +765,6 @@ const BlotScreen = ({ navigation }: any) => {
                                   Led: {SUIT_NAME[ledSuit]}
                                 </Text>
                               </View>
-                              {/* Cards positioned at table edges */}
                               {gameState.currentTrick.cards.map((cardPlay, idx) => (
                                 <View
                                   key={idx}
@@ -829,8 +779,7 @@ const BlotScreen = ({ navigation }: any) => {
                             </View>
                           );
                         })()}
-                    </View>
-                  )}
+                  </View>
                 </View>
               </View>
 
