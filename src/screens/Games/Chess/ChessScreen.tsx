@@ -1,5 +1,5 @@
 import React, {useState, useEffect, useRef, useMemo} from 'react';
-import {View, Text, StyleSheet, TouchableOpacity, ImageBackground, Alert, Animated, ScrollView, Image} from 'react-native';
+import {View, Text, StyleSheet, TouchableOpacity, Alert, Animated, ScrollView, Image} from 'react-native';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Photosphere360Background from '../../../components/Photosphere360Background';
@@ -20,7 +20,6 @@ import {
   getComputerMove,
   Position,
 } from '../../../game/chessLogic';
-import ChessPiece from '../../../components/ChessPiece';
 import GameThemeCustomizer from '../../../components/global/GameThemeCustomizer';
 import type { GameTheme } from '../../../components/global/GameThemeCustomizer';
 import { aiMoveLogService } from '../../../services/aiMoveLog.service';
@@ -31,17 +30,11 @@ import { useAuth } from '../../../libs/hooks/useAuth';
 import { useAchievements } from '../../../contexts/AchievementContext';
 import SyncedYouTubePlayer from '../../../components/SyncedYouTubePlayer';
 import { resolveAvatar } from '../../../utils/avatars';
-import useDeviceType from '../../../hooks/useDeviceType';
-import { getGameBoardSize } from '../../../utils/gameBoardSize';
 
 const ChessScreen = ({navigation}: any) => {
   const { user, refreshUser } = useAuth();
   const { showAchievements } = useAchievements();
-  const { isTablet, isLandscape } = useDeviceType();
-  
-  // Calculate responsive board size
-  const boardSize = getGameBoardSize(isTablet, isLandscape, 600, 32);
-  const squareSize = boardSize / 8;
+
   const [difficulty, setDifficulty] = useState<Difficulty | null>(null);
   const [gameState, setGameState] = useState<ChessGameState | null>(null);
   const gameIdRef = useRef<string | null>(null);
@@ -53,7 +46,6 @@ const ChessScreen = ({navigation}: any) => {
   const [showMusicPlayer, setShowMusicPlayer] = useState(false);
   const [arEnabled, setArEnabled] = useState(true);
   const arOverlayRef = useRef<AR3DOverlayHandle>(null);
-  const [showBackground, setShowBackground] = useState(true);
 
   // ── Chess AR pieces ──────────────────────────────────────────────────────
   const arPieces = useMemo<ARPiece[]>(() => {
@@ -68,6 +60,8 @@ const ChessScreen = ({navigation}: any) => {
           col: c,
           color: piece.color === 'white' ? 'red' : 'black',
           isKing: piece.type !== 'pawn',
+          pieceType: piece.type,
+          side: piece.color,
           isSelected:
             gameState.selectedSquare?.row === r &&
             gameState.selectedSquare?.col === c,
@@ -507,9 +501,22 @@ const ChessScreen = ({navigation}: any) => {
           visible={arEnabled}
           pieces={arPieces}
           moves={gameState?.possibleMoves}
-          onSquareTap={handleSquarePress}
           boardGlbPath="glb/chess/chess-board/source/ui.glb"
-          piecesGlbPath="glb/checkers/checker_pieces.glb"
+          chessPieceGlbPaths={{
+            white_pawn: 'glb/chess/pieces/white_pawn.glb',
+            white_knight: 'glb/chess/pieces/white_knight.glb',
+            white_bishop: 'glb/chess/pieces/white_bishop.glb',
+            white_rook: 'glb/chess/pieces/white_rook.glb',
+            white_queen: 'glb/chess/pieces/white_queen.glb',
+            white_king: 'glb/chess/pieces/white_king.glb',
+            black_pawn: 'glb/chess/pieces/black_pawn.glb',
+            black_knight: 'glb/chess/pieces/black_knight.glb',
+            black_bishop: 'glb/chess/pieces/black_bishop.glb',
+            black_rook: 'glb/chess/pieces/black_rook.glb',
+            black_queen: 'glb/chess/pieces/black_queen.glb',
+            black_king: 'glb/chess/pieces/black_king.glb',
+          }}
+          onSquareTap={handleSquarePress}
         />
       </Photosphere360Background>
       <View style={styles.overlay} pointerEvents="box-none">
@@ -525,7 +532,6 @@ const ChessScreen = ({navigation}: any) => {
                 buttons={[
                   { icon: '🎨', onPress: () => setShowCustomization(true) },
                   { icon: showBlur ? '🌫️' : '✨', onPress: () => setShowBlur(!showBlur) },
-                  { icon: showBackground ? '🖼️' : '🔲', onPress: () => setShowBackground(!showBackground) },
                   { icon: arEnabled ? '🥽' : '🎮', onPress: () => setArEnabled(!arEnabled) },
                   { icon: showMusicPlayer ? '🎵' : '🎶', onPress: () => setShowMusicPlayer(s => !s) },
                   { icon: '👥', onPress: togglePanel },
@@ -540,44 +546,6 @@ const ChessScreen = ({navigation}: any) => {
           {gameState.currentPlayer === 'white' ? "Your Turn (White)" : "Computer's Turn (Black)"}
         </Text>
         {gameState.isCheck && <Text style={styles.checkText}>CHECK!</Text>}
-      </View>
-
-      <View style={styles.boardContainer}>
-        <ImageBackground
-          source={require('../../../../assets/chess/board.png')}
-          style={[styles.board, { width: boardSize, height: boardSize }]}
-          resizeMode="stretch"
-        >
-          <View style={styles.gridContainer}>
-          {gameState.board.map((row, rowIndex) => (
-            <View key={rowIndex} style={styles.row}>
-              {row.map((piece, colIndex) => {
-                const isLight = (rowIndex + colIndex) % 2 === 0;
-                const isSelected = gameState.selectedSquare?.row === rowIndex && 
-                                  gameState.selectedSquare?.col === colIndex;
-                const isPossibleMove = gameState.possibleMoves.some(
-                  m => m.row === rowIndex && m.col === colIndex
-                );
-
-                return (
-                  <TouchableOpacity
-                    key={`${rowIndex}-${colIndex}`}
-                    style={[
-                      styles.square,
-                      isSelected && styles.selectedSquare,
-                      isPossibleMove && styles.possibleMoveSquare,
-                    ]}
-                    onPress={() => handleSquarePress(rowIndex, colIndex)}
-                    hitSlop={{ top: 2, bottom: 2, left: 2, right: 2 }}>
-                    {piece && <ChessPiece type={piece.type} color={piece.color} />}
-                    {isPossibleMove && <View style={styles.moveIndicator} />}
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          ))}
-          </View>
-        </ImageBackground>
       </View>
 
       {(gameState.isCheckmate || gameState.isStalemate) && (

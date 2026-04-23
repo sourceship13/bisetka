@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, ImageBackground, Alert, Animated, ScrollView, Image } from 'react-native';
 import Photosphere360Background from '../../../components/Photosphere360Background';
-import AR3DOverlay, { type ARPiece, type AR3DOverlayHandle, type ARCard } from '../../../components/AR3DOverlay';
-import { createTestDeck, fanOutCards } from '../../../utils/cardARTest';
+import AR3DOverlay, { type ARPiece, type AR3DOverlayHandle } from '../../../components/AR3DOverlay';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import ReAnimated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
@@ -135,7 +134,6 @@ const CheckersScreen = ({ navigation, route }: any) => {
   const [showBlur, setShowBlur] = useState(true);
   const [showBackground, setShowBackground] = useState(true);
   const [arEnabled, setArEnabled] = useState(true);
-  const [arCards, setArCards] = useState<ARCard[]>([]);
   const arOverlayRef = useRef<AR3DOverlayHandle>(null);
   const toolbarExpanded = useSharedValue(false);
   const chevronStyle = useAnimatedStyle(() => ({
@@ -589,12 +587,7 @@ const CheckersScreen = ({ navigation, route }: any) => {
           visible={arEnabled}
           pieces={arPieces}
           moves={gameState.possibleMoves}
-          cards={arCards}
           onSquareTap={handleArSquareTap}
-          boardGlbPath="glb/chess/chess-board/source/ui.glb"
-          piecesGlbPath="glb/checkers/checker_pieces.glb"
-          cardGlbPath="glb/cards/card-template.glb"
-          cardBackTexturePath="assets/cards/default-card-back.png"
         />
       </Photosphere360Background>
       <View style={styles.overlay} pointerEvents="box-none">
@@ -607,17 +600,6 @@ const CheckersScreen = ({ navigation, route }: any) => {
                 navigation.goBack();
               }}
               backgroundColor="transparent"
-              leftElement={
-                <TouchableOpacity
-                  onPress={() => {
-                    const testCards = createTestDeck();
-                    const fannedCards = fanOutCards(testCards);
-                    setArCards(fannedCards);
-                  }}
-                  style={styles.testButton}>
-                  <Text style={styles.testButtonText}>🃏 Cards</Text>
-                </TouchableOpacity>
-              }
             />
             <View>
               <GameToolbarControls
