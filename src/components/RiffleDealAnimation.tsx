@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Animated, StyleSheet, Text, Dimensions } from 'react-native';
-import DynamicCard from './DynamicCard';
-import type { CardTheme } from './DynamicCard';
+import Card3D from './Card3D';
+import type { CardTheme } from './global/GameCustomizationModal';
 
 interface RiffleDealAnimationProps {
   visible: boolean;
@@ -334,12 +334,7 @@ export const RiffleDealAnimation: React.FC<RiffleDealAnimationProps> = ({
                   opacity: anim.opacity,
                 },
               ]}>
-              <DynamicCard
-                card={dummyCard as any}
-                faceDown={true}
-                size="small"
-                theme={theme}
-              />
+                <Card3D suit="spades" rank="A" faceDown={true} size={44} />
             </Animated.View>
           ))}
         </View>
@@ -365,12 +360,7 @@ export const RiffleDealAnimation: React.FC<RiffleDealAnimationProps> = ({
                   opacity: anim.opacity,
                 },
               ]}>
-              <DynamicCard
-                card={dummyCard as any}
-                faceDown={true}
-                size="small"
-                theme={theme}
-              />
+              <Card3D suit="spades" rank="A" faceDown={true} size={44} />
             </Animated.View>
           ))}
         </View>
@@ -398,12 +388,7 @@ export const RiffleDealAnimation: React.FC<RiffleDealAnimationProps> = ({
               opacity: anim.opacity,
             },
           ]}>
-          <DynamicCard
-            card={dummyCard as any}
-            faceDown={true}
-            size="small"
-            theme={theme}
-          />
+          <Card3D suit="spades" rank="A" faceDown={true} size={44} />
         </Animated.View>
       ))}
     </View>

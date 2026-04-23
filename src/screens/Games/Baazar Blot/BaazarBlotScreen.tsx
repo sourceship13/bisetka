@@ -27,7 +27,7 @@ import AR3DOverlay, {type AR3DOverlayHandle, type ARCard} from '../../../compone
 import GameToolbar from '../../../components/global/GameToolbar';
 import GameToolbarControls from '../../../components/global/GameToolbarControls';
 import { CardType, Suit } from '../../../components/Card';
-import DynamicCard from '../../../components/DynamicCard';
+import Card3D from '../../../components/Card3D';
 import CardCustomizationModal from '../../../components/global/GameCustomizationModal';
 import CardHandFan from '../../../components/CardHandFan';
 import { RiffleDealAnimation } from '../../../components/RiffleDealAnimation';
@@ -865,7 +865,7 @@ const BaazarBlotScreen = ({ navigation }: any) => {
                         .filter(cardPlay => cardPlay && cardPlay.card && cardPlay.card.suit)
                         .map((cardPlay, idx) => (
                         <View key={idx} style={[styles.trickSlot, positionStyle[cardPlay.playerId] ?? styles.trickSlotTop]}>
-                          <DynamicCard card={cardPlay.card} theme={customTheme} size="small" />
+                          <Card3D suit={(cardPlay.card as any).suit} rank={(cardPlay.card as any).rank} faceDown={false} size={44} />
                         </View>
                       ))}
                     </View>
@@ -896,7 +896,7 @@ const BaazarBlotScreen = ({ navigation }: any) => {
                         .filter(cardPlay => cardPlay && cardPlay.card && cardPlay.card.suit)
                         .map((cardPlay, idx) => (
                         <View key={idx} style={[styles.trickSlot, positionStyle[cardPlay.playerId] ?? styles.trickSlotTop]}>
-                          <DynamicCard card={cardPlay.card} theme={customTheme} size="small" />
+                          <Card3D suit={(cardPlay.card as any).suit} rank={(cardPlay.card as any).rank} faceDown={false} size={44} />
                         </View>
                       ))}
                     </View>
@@ -930,7 +930,7 @@ const BaazarBlotScreen = ({ navigation }: any) => {
                   ]}
                   disabled={!canPlay}
                 >
-                  <DynamicCard card={card} theme={customTheme} size="medium" />
+                  <Card3D suit={(card as any).suit} rank={(card as any).rank} faceDown={false} size={60} />
                 </TouchableOpacity>
               );
             }}

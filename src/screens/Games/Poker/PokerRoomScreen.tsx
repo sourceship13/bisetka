@@ -10,10 +10,10 @@ import GameToolbar from '../../../components/global/GameToolbar';
 import GameToolbarControls from '../../../components/global/GameToolbarControls';
 import ReAnimated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import ExpandableView from '../../../components/global/ExpandableView';
-import DynamicCard from '../../../components/DynamicCard';
+import Card3D from '../../../components/Card3D';
 import CardShuffleAnimation from '../../../components/CardShuffleAnimation';
 import RiffleDealAnimation from '../../../components/RiffleDealAnimation';
-import type { CardTheme } from '../../../components/DynamicCard';
+import type { CardTheme } from '../../../components/global/GameCustomizationModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Photosphere360Background from '../../../components/Photosphere360Background';
 import AR3DOverlay, {type AR3DOverlayHandle} from '../../../components/AR3DOverlay';
@@ -1117,12 +1117,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
   const renderCard = (card: Card, hidden = false, _playerIndex?: number, _cardIndex?: number) => {
     return (
       <View style={styles.pokerCardWrapper}>
-        <DynamicCard
-          card={card as any}
-          faceDown={hidden}
-          size="small"
-          theme={customTheme}
-        />
+        <Card3D suit={card.suit as any} rank={card.rank as any} faceDown={hidden} size={44} />
       </View>
     );
   };

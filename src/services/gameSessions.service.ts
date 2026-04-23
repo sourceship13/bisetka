@@ -11,6 +11,7 @@ export type GameType =
   | 'cards'
   | 'checkers'
   | 'poker'
+  | 'blackjack'
   | 'slots'
   | 'nardi'
   | 'mrotsi'
@@ -101,6 +102,7 @@ export const GAME_LABELS: Record<GameType, { title: string; description: string 
   chess: { title: 'Chess (AI)', description: 'Training vs Bisetka AI' },
   'chess-multiplayer': { title: 'Chess (Multiplayer)', description: 'Private or random opponents' },
   poker: { title: 'Poker', description: 'Texas Hold ’Em tables' },
+  blackjack: { title: 'Blackjack', description: 'Beat the dealer in classic 21' },
   slots: { title: 'Slots', description: 'Play for fun and practice' },
   nardi: { title: 'Nardi', description: 'Armenian backgammon showdowns' },
   mrotsi: { title: 'Mrotsi', description: 'Traditional dice battles' },

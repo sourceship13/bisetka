@@ -15,7 +15,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../../../../libs/hooks/useAuth';
 import { BisetkaAlert } from '../../../../utils/BisetkaAlert';
 import GameToolbar from '../../../../components/global/GameToolbar';
-import DynamicCard from '../../../../components/DynamicCard';
+import Card3D from '../../../../components/Card3D';
 import CardCustomizationModal from '../../../../components/global/GameCustomizationModal';
 import type { CardTheme } from '../../../../components/global/GameCustomizationModal';
 import { gameResultService } from '../../../../services/gameResult.service';
@@ -434,10 +434,9 @@ const BlackjackScreen = ({ navigation }: any) => {
 
   const renderCard = (card: Card | undefined, faceDown = false, key?: string) => {
     if (!card) return null;
-
     return (
       <View key={key || card.id} style={styles.cardWrapper}>
-        <DynamicCard card={card as any} faceDown={faceDown} size="medium" theme={customTheme as any} />
+        <Card3D suit={card.suit as any} rank={card.rank as any} faceDown={faceDown} size={60} />
       </View>
     );
   };
@@ -460,7 +459,6 @@ const BlackjackScreen = ({ navigation }: any) => {
               buttons={[
                 { icon: '🎨', onPress: () => setShowCustomization(true) },
                 { icon: showBlur ? '🌫️' : '✨', onPress: () => setShowBlur(!showBlur) },
-                { icon: showBackground ? '🖼️' : '🔲', onPress: () => setShowBackground(!showBackground) },
                 { icon: arEnabled ? '🥽' : '🎮', onPress: () => setArEnabled(!arEnabled) },
                 { icon: showMusicPlayer ? '🎵' : '🎶', onPress: () => setShowMusicPlayer(s => !s) },
               ]}
@@ -485,11 +483,7 @@ const BlackjackScreen = ({ navigation }: any) => {
           </View>
 
           {/* Card Table */}
-          <ImageBackground
-            source={showBackground ? (customTheme?.boardImage ? { uri: customTheme.boardImage } : require('../../../../../assets/blot/card-table.png')) : undefined}
-            style={styles.cardTable}
-            imageStyle={styles.cardTableImage}
-            resizeMode="cover">
+          <View style={styles.cardTable}>
             {/* Dealer Section */}
             <View style={styles.tableSection}>
               <Text style={styles.sectionTitle}>🎲 Dealer</Text>
@@ -517,7 +511,7 @@ const BlackjackScreen = ({ navigation }: any) => {
                 </Text>
               )}
             </View>
-          </ImageBackground>
+          </View>
 
           {/* Current Bet */}
           {gameState.currentBet > 0 && (

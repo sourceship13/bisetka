@@ -18,7 +18,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { socketService } from '../services/SocketService';
 import tokenService from '../services/token.service';
 import apiService from '../services/api.service';
-import DynamicCard from '../components/DynamicCard';
+import Card3D from '../components/Card3D';
 import { CardType } from '../components/Card';
 import InGameChat from '../components/InGameChat';
 import GameToolbar from '../components/global/GameToolbar';
@@ -813,11 +813,12 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
                 cards={myHand}
                 maxWidth={SW - 32}
                 renderCard={(card, idx) => (
-                  <DynamicCard
+                  <Card3D
                     key={`${card.suit}-${card.rank}-${idx}`}
-                    card={card}
-                    theme={customTheme}
-                    size="medium"
+                    suit={(card as any).suit}
+                    rank={(card as any).rank}
+                    faceDown={false}
+                    size={60}
                   />
                 )}
               />
@@ -932,7 +933,7 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
                         const relativePos = (tc.playerPosition - myPosition + 4) % 4;
                         return (
                           <View key={idx} style={[styles.trickSlot, positionStyle[relativePos] ?? styles.trickSlotTop]}>
-                            <DynamicCard card={tc.card} theme={customTheme} size="small" />
+                            <Card3D suit={(tc.card as any).suit} rank={(tc.card as any).rank} faceDown={false} size={44} />
                           </View>
                         );
                       })}
@@ -964,7 +965,7 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
                         const relativePos = (tc.playerPosition - myPosition + 4) % 4;
                         return (
                           <View key={idx} style={[styles.trickSlot, positionStyle[relativePos] ?? styles.trickSlotTop]}>
-                            <DynamicCard card={tc.card} theme={customTheme} size="small" />
+                            <Card3D suit={(tc.card as any).suit} rank={(tc.card as any).rank} faceDown={false} size={44} />
                           </View>
                         );
                       })}
@@ -1008,7 +1009,7 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
                         !isMyTurn ? styles.cardDimmed : styles.cardLegal,
                         selectedCard === card && styles.selectedCard,
                       ]}>
-                      <DynamicCard card={card} theme={customTheme} size="medium" />
+                      <Card3D suit={(card as any).suit} rank={(card as any).rank} faceDown={false} size={60} />
                     </TouchableOpacity>
                   );
                 }}

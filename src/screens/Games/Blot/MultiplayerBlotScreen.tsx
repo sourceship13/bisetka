@@ -27,7 +27,7 @@ import tokenService from '../../../services/token.service';
 import { v4 as uuidv4 } from 'uuid';
 import { useGameEndRefresh } from '../../../libs/hooks/useGameEndRefresh';
 import CardHandFan from '../../../components/CardHandFan';
-import DynamicCard from '../../../components/DynamicCard';
+import Card3D from '../../../components/Card3D';
 import InGameChat from '../../../components/InGameChat';
 import GameToolbar from '../../../components/global/GameToolbar';
 import GameToolbarControls from '../../../components/global/GameToolbarControls';
@@ -1112,10 +1112,11 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
     let animatedOpacity: any = undefined;
 
     const cardContent = (
-      <DynamicCard
-        card={card as any}
-        size={isTrickCard ? 'small' : 'medium'}
-        theme={customTheme}
+      <Card3D
+        suit={(card as any).suit}
+        rank={(card as any).rank}
+        faceDown={false}
+        size={isTrickCard ? 44 : 60}
       />
     );
 

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Animated, StyleSheet, Text } from 'react-native';
-import DynamicCard from './DynamicCard';
-import type { CardTheme } from './DynamicCard';
+import Card3D from './Card3D';
+import type { CardTheme } from './global/GameCustomizationModal';
 
 interface CardShuffleAnimationProps {
   visible: boolean;
@@ -171,12 +171,7 @@ export const CardShuffleAnimation: React.FC<CardShuffleAnimationProps> = ({
                 ],
               },
             ]}>
-            <DynamicCard
-              card={dummyCard as any}
-              faceDown={false}
-              size="small"
-              theme={theme}
-            />
+            <Card3D suit="spades" rank="A" faceDown={false} size={44} />
           </Animated.View>
         ))}
       </View>
