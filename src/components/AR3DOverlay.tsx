@@ -41,6 +41,8 @@ export interface ARPiece {
   color: 'red' | 'black';
   isKing: boolean;
   isSelected?: boolean;
+  pieceType?: 'pawn' | 'knight' | 'bishop' | 'rook' | 'queen' | 'king';
+  side?: 'white' | 'black';
 }
 
 export interface ARMove {
@@ -91,6 +93,15 @@ export interface AR3DOverlayProps {
    */
   piecesGlbPath?: string;
   /**
+   * Piece-type-specific GLB paths for chess.
+   * If provided, these override the generic `piecesGlbPath` model per piece.
+   */
+  chessPieceGlbPaths?: Partial<Record<
+    | 'white_pawn' | 'white_knight' | 'white_bishop' | 'white_rook' | 'white_queen' | 'white_king'
+    | 'black_pawn' | 'black_knight' | 'black_bishop' | 'black_rook' | 'black_queen' | 'black_king',
+    string
+  >>;
+  /**
    * Path relative to assets/ folder for the park table GLB.
    * e.g. "glb/park/tableCoffeeGlassSquare.glb"
    * Table is placed at the centre of the 360° sphere; board sits on top of it.
@@ -136,6 +147,18 @@ const GLB_ASSET_MAP: Record<string, any> = {
   'glb/game_boards/rounded_table_panel_v4.glb': require('../../assets/glb/game_boards/rounded_table_panel_v4.glb'),
   'glb/game_boards/rounded_table_panel.glb':    require('../../assets/glb/game_boards/rounded_table_panel.glb'),
   'glb/chess/chess-board/source/ui.glb':        require('../../assets/glb/chess/chess-board/source/ui.glb'),
+  'glb/chess/pieces/white_pawn.glb':            require('../../assets/glb/chess/pieces/white_pawn.glb'),
+  'glb/chess/pieces/white_knight.glb':          require('../../assets/glb/chess/pieces/white_knight.glb'),
+  'glb/chess/pieces/white_bishop.glb':          require('../../assets/glb/chess/pieces/white_bishop.glb'),
+  'glb/chess/pieces/white_rook.glb':            require('../../assets/glb/chess/pieces/white_rook.glb'),
+  'glb/chess/pieces/white_queen.glb':           require('../../assets/glb/chess/pieces/white_queen.glb'),
+  'glb/chess/pieces/white_king.glb':            require('../../assets/glb/chess/pieces/white_king.glb'),
+  'glb/chess/pieces/black_pawn.glb':            require('../../assets/glb/chess/pieces/black_pawn.glb'),
+  'glb/chess/pieces/black_knight.glb':          require('../../assets/glb/chess/pieces/black_knight.glb'),
+  'glb/chess/pieces/black_bishop.glb':          require('../../assets/glb/chess/pieces/black_bishop.glb'),
+  'glb/chess/pieces/black_rook.glb':            require('../../assets/glb/chess/pieces/black_rook.glb'),
+  'glb/chess/pieces/black_queen.glb':           require('../../assets/glb/chess/pieces/black_queen.glb'),
+  'glb/chess/pieces/black_king.glb':            require('../../assets/glb/chess/pieces/black_king.glb'),
   'glb/checkers/checker_pieces.glb':            require('../../assets/glb/checkers/checker_pieces.glb'),
   'glb/cards/card-template.glb':                require('../../assets/glb/cards/card-template.glb'),
 };
@@ -242,6 +265,7 @@ function buildSceneHTML(
   fov: number,
   boardUri:        string | null,
   piecesUri:       string | null,
+  chessPieceUris:  Record<string, string | null>,
   tableUri:        string | null,
   spawnYaw:        number,
   pieceColorRed:   number,
@@ -251,11 +275,13 @@ function buildSceneHTML(
 ): string {
   const BOARD_URI_JS  = boardUri  ? JSON.stringify(boardUri)  : 'null';
   const PIECES_URI_JS = piecesUri ? JSON.stringify(piecesUri) : 'null';
+  const CHESS_PIECE_URIS_JS = JSON.stringify(chessPieceUris ?? {});
   const CARD_URI_JS   = cardUri ? JSON.stringify(cardUri) : 'null';
   const CARD_BACK_URI_JS = cardBackUri ? JSON.stringify(cardBackUri) : 'null';
   
-  // Always use the embedded coffee table — falls back from external if provided
-  const TABLE_URI_JS  = JSON.stringify(tableUri ?? EMBEDDED_COFFEE_TABLE_URI);
+  // Only load a table when explicitly requested by the screen.
+  // Chess/Checkers should not auto-load an embedded table model.
+  const TABLE_URI_JS  = tableUri ? JSON.stringify(tableUri) : 'null';
   const RED_HEX   = `0x${pieceColorRed.toString(16).padStart(6, '0')}`;
   const BLACK_HEX = `0x${pieceColorBlack.toString(16).padStart(6, '0')}`;
 
@@ -426,6 +452,7 @@ function buildProceduralBoard() {
 // ── Load GLB assets ─────────────────────────────────────────────────────────────────
 const BOARD_URI  = ${BOARD_URI_JS};
 const PIECES_URI = ${PIECES_URI_JS};
+const CHESS_PIECE_URIS = ${CHESS_PIECE_URIS_JS};
 // Use Google's Draco CDN with JS-only decoder to avoid WASM/Worker issues in WKWebView
 const dracoLoader = new DRACOLoader();
 dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
@@ -534,24 +561,35 @@ function makeFallbackPiece(color, isKing) {
   return g;
 }
 
-// ── Load GLB checker piece (base mesh, cloned per piece) ─────────────────────
+// ── Load GLB pieces (generic + per-chess-piece overrides) ─────────────────────
 let basePieceScene = null;
+const baseChessPieceScenes = {};
 // Track pending pieces to place once GLB loads
 let pendingPiecesUpdate = null;
 
+function normalizePieceModel(model) {
+  const box = new THREE.Box3().setFromObject(model);
+  const size = box.getSize(new THREE.Vector3());
+  const maxDim = Math.max(size.x, size.y, size.z, 0.001);
+  model.scale.setScalar(1 / maxDim);
+  const center = box.getCenter(new THREE.Vector3());
+  model.position.set(-center.x/maxDim, -(box.min.y/maxDim), -center.z/maxDim);
+  return model;
+}
+
+Object.entries(CHESS_PIECE_URIS || {}).forEach(([pieceKey, pieceUri]) => {
+  if (!pieceUri) return;
+  loader.load(pieceUri, (gltf) => {
+    baseChessPieceScenes[pieceKey] = normalizePieceModel(gltf.scene);
+    updatePieces(window._pieces || []);
+  }, undefined, () => {
+    console.warn('[AR3DOverlay] chess piece GLB failed:', pieceKey);
+  });
+});
+
 if (PIECES_URI) {
   loader.load(PIECES_URI, (gltf) => {
-    const model = gltf.scene;
-    // Scale: the GLB piece spans ~16 units; we want it to fit inside a square
-    const box  = new THREE.Box3().setFromObject(model);
-    const size = box.getSize(new THREE.Vector3());
-    // Normalise to unit-cube so we can re-scale per piece
-    const maxDim = Math.max(size.x, size.y, size.z, 0.001);
-    model.scale.setScalar(1 / maxDim);
-    // Centre at origin, sit flat
-    const center = box.getCenter(new THREE.Vector3());
-    model.position.set(-center.x/maxDim, -(box.min.y/maxDim), -center.z/maxDim);
-    basePieceScene = model;
+    basePieceScene = normalizePieceModel(gltf.scene);
     // Flush pending update — fall back to window._pieces if no explicit queue
     const toFlush = pendingPiecesUpdate || window._pieces || [];
     pendingPiecesUpdate = null;
@@ -565,11 +603,15 @@ if (PIECES_URI) {
   });
 }
 
-function clonePiece(color, isKing) {
-  if (!basePieceScene) return makeFallbackPiece(color, isKing);
+function clonePiece(piece) {
+  const color = piece.color;
+  const isKing = piece.isKing;
+  const chessKey = piece.side && piece.pieceType ? (piece.side + '_' + piece.pieceType) : null;
+  const sourceScene = (chessKey && baseChessPieceScenes[chessKey]) || basePieceScene;
+  if (!sourceScene) return makeFallbackPiece(color, isKing);
 
   const pieceColor = color === 'red' ? ${RED_HEX} : ${BLACK_HEX};
-  const clone = basePieceScene.clone(true);
+  const clone = sourceScene.clone(true);
   clone.rotation.x = Math.PI / 2;  // ← cancels boardGroup rotation → upright in world
 
   clone.traverse(ch => {
@@ -793,11 +835,22 @@ function updatePieces(pieces) {
 
   for (const p of pieces) {
     const prev = pieceState[p.key];
-    if (!prev || prev.color !== p.color || prev.isKing !== p.isKing) {
+    if (
+      !prev ||
+      prev.color !== p.color ||
+      prev.isKing !== p.isKing ||
+      prev.pieceType !== p.pieceType ||
+      prev.side !== p.side
+    ) {
       if (pieceMeshes[p.key]) boardGroup.remove(pieceMeshes[p.key]);
-      pieceMeshes[p.key] = clonePiece(p.color, p.isKing);
+      pieceMeshes[p.key] = clonePiece(p);
       boardGroup.add(pieceMeshes[p.key]);
-      pieceState[p.key] = { color: p.color, isKing: p.isKing };
+      pieceState[p.key] = {
+        color: p.color,
+        isKing: p.isKing,
+        pieceType: p.pieceType,
+        side: p.side,
+      };
     }
 
     const mesh  = pieceMeshes[p.key];
@@ -938,6 +991,7 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
   fov = 75,
   boardGlbPath,
   piecesGlbPath,
+  chessPieceGlbPaths,
   tableGlbPath,
   cardGlbPath,
   cardBackTexturePath,
@@ -984,6 +1038,9 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
 
   const [boardUri,  setBoardUri]  = useState<string | null | undefined>(boardGlbPath  ? undefined : null);
   const [piecesUri, setPiecesUri] = useState<string | null | undefined>(piecesGlbPath ? undefined : null);
+  const [chessPieceUris, setChessPieceUris] = useState<Record<string, string | null> | undefined>(
+    chessPieceGlbPaths ? undefined : {}
+  );
   const [tableUri,  setTableUri]  = useState<string | null | undefined>(tableGlbPath  ? undefined : null);
   const [cardUri,   setCardUri]   = useState<string | null | undefined>(cardGlbPath   ? undefined : null);
   const [cardBackUri, setCardBackUri] = useState<string | null | undefined>(cardBackTexturePath ? undefined : null);
@@ -1001,6 +1058,29 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
     resolveAssetUri(piecesGlbPath).then(u => { if (!cancelled) setPiecesUri(u); });
     return () => { cancelled = true; };
   }, [piecesGlbPath]);
+
+  useEffect(() => {
+    if (!chessPieceGlbPaths) {
+      setChessPieceUris({});
+      return;
+    }
+    let cancelled = false;
+    const entries = Object.entries(chessPieceGlbPaths).filter(([, path]) => !!path);
+    Promise.all(
+      entries.map(async ([pieceKey, path]) => {
+        const uri = await resolveAssetUri(path as string);
+        return [pieceKey, uri] as const;
+      })
+    ).then(resolvedEntries => {
+      if (cancelled) return;
+      const resolvedMap: Record<string, string | null> = {};
+      resolvedEntries.forEach(([pieceKey, uri]) => {
+        resolvedMap[pieceKey] = uri;
+      });
+      setChessPieceUris(resolvedMap);
+    });
+    return () => { cancelled = true; };
+  }, [chessPieceGlbPaths]);
 
   useEffect(() => {
     if (!tableGlbPath) { setTableUri(null); return; }
@@ -1027,24 +1107,37 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
   useEffect(() => {
     console.log('[AR3DOverlay] STATE boardUri:', boardUri === undefined ? 'PENDING' : boardUri === null ? 'null(failed)' : `resolved(${String(boardUri).length}ch)`);
     console.log('[AR3DOverlay] STATE piecesUri:', piecesUri === undefined ? 'PENDING' : piecesUri === null ? 'null(no prop)' : 'resolved');
+    console.log('[AR3DOverlay] STATE chessPieceUris:', chessPieceUris === undefined ? 'PENDING' : `resolved(${Object.keys(chessPieceUris).length})`);
     console.log('[AR3DOverlay] STATE cardUri:', cardUri === undefined ? 'PENDING' : cardUri === null ? 'null(no prop)' : 'resolved');
     console.log('[AR3DOverlay] STATE cardBackUri:', cardBackUri === undefined ? 'PENDING' : cardBackUri === null ? 'null(no prop)' : 'resolved');
-    console.log('[AR3DOverlay] STATE spawnYaw:', spawnYaw, 'htmlFileUri:', htmlFileUri ? 'set' : 'null');
-  }, [boardUri, piecesUri, cardUri, cardBackUri, spawnYaw, htmlFileUri]);
+    console.log('[AR3DOverlay] STATE spawnYaw:', spawnYaw);
+  }, [boardUri, piecesUri, chessPieceUris, cardUri, cardBackUri, spawnYaw]);
 
   // Build HTML once board + pieces URIs are resolved AND spawn yaw is captured.
   // Table is always embedded so we don't block on tableUri.
   const htmlString = useMemo(() => {
     console.log('[AR3DOverlay] useMemo check — boardUri:', boardUri === undefined ? 'undefined' : boardUri === null ? 'null' : `data(${typeof boardUri === 'string' ? boardUri.length : 0}chars)`, 'piecesUri:', piecesUri === undefined ? 'undefined' : piecesUri === null ? 'null' : 'set', 'cardUri:', cardUri, 'cardBackUri:', cardBackUri, 'spawnYaw:', spawnYaw);
     if (boardUri === undefined || piecesUri === undefined) return null;
+    if (chessPieceUris === undefined) return null;
     if (cardUri === undefined || cardBackUri === undefined) return null;
     if (spawnYaw === null) return null;
     const redInt   = parseInt(pieceColorRed.replace(/^#/, ''), 16);
     const blackInt  = parseInt(pieceColorBlack.replace(/^#/, ''), 16);
-    const result = buildSceneHTML(fov, boardUri, piecesUri, tableUri ?? null, spawnYaw, redInt, blackInt, cardUri ?? null, cardBackUri ?? null);
+    const result = buildSceneHTML(
+      fov,
+      boardUri,
+      piecesUri,
+      chessPieceUris,
+      tableUri ?? null,
+      spawnYaw,
+      redInt,
+      blackInt,
+      cardUri ?? null,
+      cardBackUri ?? null,
+    );
     console.log('[AR3DOverlay] htmlString built, length:', result.length);
     return result;
-  }, [fov, boardUri, piecesUri, tableUri, spawnYaw, cardUri, cardBackUri]);
+  }, [fov, boardUri, piecesUri, chessPieceUris, tableUri, spawnYaw, cardUri, cardBackUri]);
 
   // Write the HTML to a temp file and give WebView a file:// URI.
   // WKWebView.loadHTMLString silently fails on iOS with large strings (>5 MB).
