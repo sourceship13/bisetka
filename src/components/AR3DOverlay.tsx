@@ -561,11 +561,127 @@ function makeFallbackPiece(color, isKing) {
   return g;
 }
 
+function makeFallbackChessPiece(color, pieceType, isKing) {
+  const clr = color === 'red' ? ${RED_HEX} : ${BLACK_HEX};
+  const gold = 0xf5c842;
+  const material = new THREE.MeshStandardMaterial({
+    color: clr,
+    metalness: 0.35,
+    roughness: 0.42,
+  });
+  const accentMaterial = new THREE.MeshStandardMaterial({
+    color: gold,
+    metalness: 0.92,
+    roughness: 0.08,
+  });
+  const group = new THREE.Group();
+
+  const addBase = () => {
+    const base = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.46, 0.16, 40), material.clone());
+    base.castShadow = true;
+    group.add(base);
+    return 0.08;
+  };
+
+  const topY = addBase();
+
+  if (pieceType === 'pawn') {
+    const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.22, 0.42, 28), material.clone());
+    stem.position.y = topY + 0.20;
+    stem.castShadow = true;
+    group.add(stem);
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.18, 24, 24), material.clone());
+    head.position.y = topY + 0.48;
+    head.castShadow = true;
+    group.add(head);
+  } else if (pieceType === 'rook') {
+    const tower = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.28, 0.62, 28), material.clone());
+    tower.position.y = topY + 0.30;
+    tower.castShadow = true;
+    group.add(tower);
+    for (let i = 0; i < 4; i++) {
+      const crenel = new THREE.Mesh(new THREE.BoxGeometry(0.10, 0.12, 0.10), material.clone());
+      const angle = (i / 4) * Math.PI * 2;
+      crenel.position.set(Math.cos(angle) * 0.23, topY + 0.64, Math.sin(angle) * 0.23);
+      crenel.castShadow = true;
+      group.add(crenel);
+    }
+  } else if (pieceType === 'knight') {
+    const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.22, 0.40, 20), material.clone());
+    neck.position.y = topY + 0.20;
+    neck.castShadow = true;
+    group.add(neck);
+    const head = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.42, 0.16), material.clone());
+    head.position.y = topY + 0.52;
+    head.rotation.z = -0.35;
+    head.castShadow = true;
+    group.add(head);
+  } else if (pieceType === 'bishop') {
+    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.24, 0.60, 28), material.clone());
+    body.position.y = topY + 0.28;
+    body.castShadow = true;
+    group.add(body);
+    const cap = new THREE.Mesh(new THREE.SphereGeometry(0.16, 24, 24), material.clone());
+    cap.position.y = topY + 0.62;
+    cap.castShadow = true;
+    group.add(cap);
+  } else if (pieceType === 'queen') {
+    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.26, 0.66, 32), material.clone());
+    body.position.y = topY + 0.30;
+    body.castShadow = true;
+    group.add(body);
+    const crown = new THREE.Mesh(new THREE.TorusGeometry(0.18, 0.04, 8, 28), accentMaterial.clone());
+    crown.position.y = topY + 0.70;
+    crown.rotation.x = Math.PI / 2;
+    crown.castShadow = true;
+    group.add(crown);
+  } else if (pieceType === 'king') {
+    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.27, 0.72, 32), material.clone());
+    body.position.y = topY + 0.32;
+    body.castShadow = true;
+    group.add(body);
+    const vertical = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.24, 0.06), accentMaterial.clone());
+    vertical.position.y = topY + 0.78;
+    vertical.castShadow = true;
+    group.add(vertical);
+    const horizontal = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.06, 0.06), accentMaterial.clone());
+    horizontal.position.y = topY + 0.78;
+    horizontal.castShadow = true;
+    group.add(horizontal);
+  } else {
+    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.24, 0.60, 32), material.clone());
+    body.position.y = topY + 0.28;
+    body.castShadow = true;
+    group.add(body);
+    const cone = new THREE.Mesh(new THREE.ConeGeometry(0.16, 0.28, 24), material.clone());
+    cone.position.y = topY + 0.64;
+    cone.castShadow = true;
+    group.add(cone);
+  }
+
+  if (isKing && pieceType !== 'king') {
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.42, 0.04, 8, 32), accentMaterial.clone());
+    ring.rotation.x = Math.PI / 2;
+    ring.position.y = 0.08;
+    ring.castShadow = true;
+    group.add(ring);
+  }
+
+  group.rotation.x = Math.PI / 2;
+  return group;
+}
+
 // ── Load GLB pieces (generic + per-chess-piece overrides) ─────────────────────
 let basePieceScene = null;
 const baseChessPieceScenes = {};
 // Track pending pieces to place once GLB loads
 let pendingPiecesUpdate = null;
+
+function invalidatePieceCache() {
+  Object.keys(pieceState).forEach(key => {
+    delete pieceState[key];
+  });
+}
 
 function normalizePieceModel(model) {
   const box = new THREE.Box3().setFromObject(model);
@@ -581,6 +697,7 @@ Object.entries(CHESS_PIECE_URIS || {}).forEach(([pieceKey, pieceUri]) => {
   if (!pieceUri) return;
   loader.load(pieceUri, (gltf) => {
     baseChessPieceScenes[pieceKey] = normalizePieceModel(gltf.scene);
+    invalidatePieceCache();
     updatePieces(window._pieces || []);
   }, undefined, () => {
     console.warn('[AR3DOverlay] chess piece GLB failed:', pieceKey);
@@ -590,6 +707,7 @@ Object.entries(CHESS_PIECE_URIS || {}).forEach(([pieceKey, pieceUri]) => {
 if (PIECES_URI) {
   loader.load(PIECES_URI, (gltf) => {
     basePieceScene = normalizePieceModel(gltf.scene);
+    invalidatePieceCache();
     // Flush pending update — fall back to window._pieces if no explicit queue
     const toFlush = pendingPiecesUpdate || window._pieces || [];
     pendingPiecesUpdate = null;
@@ -607,8 +725,12 @@ function clonePiece(piece) {
   const color = piece.color;
   const isKing = piece.isKing;
   const chessKey = piece.side && piece.pieceType ? (piece.side + '_' + piece.pieceType) : null;
-  const sourceScene = (chessKey && baseChessPieceScenes[chessKey]) || basePieceScene;
-  if (!sourceScene) return makeFallbackPiece(color, isKing);
+  const sourceScene = chessKey ? baseChessPieceScenes[chessKey] : basePieceScene;
+  if (!sourceScene) {
+    return chessKey
+      ? makeFallbackChessPiece(color, piece.pieceType, isKing)
+      : makeFallbackPiece(color, isKing);
+  }
 
   const pieceColor = color === 'red' ? ${RED_HEX} : ${BLACK_HEX};
   const clone = sourceScene.clone(true);
@@ -856,10 +978,15 @@ function updatePieces(pieces) {
     const mesh  = pieceMeshes[p.key];
     const loc   = boardToLocal(p.row, p.col);
     const lift  = p.isSelected ? 0.12 : 0;
+    const isChessPiece = !!(p.pieceType && p.side);
     const scale = (p.isSelected ? PIECE_SCALE * 1.12 : PIECE_SCALE);
-    mesh.position.set(loc[0], loc[1], loc[2] + lift);
-    // Y in scale = world-Y puck height (via rotation chain)
-    mesh.scale.set(scale, scale * 0.35, scale);
+    mesh.position.set(loc[0], loc[1], loc[2] + lift + (isChessPiece ? 0.004 : 0));
+    if (isChessPiece) {
+      mesh.scale.setScalar(scale * 0.92);
+    } else {
+      // Checker-style fallback discs stay flattened.
+      mesh.scale.set(scale, scale * 0.35, scale);
+    }
   }
 }
 
@@ -1110,7 +1237,7 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
     console.log('[AR3DOverlay] STATE chessPieceUris:', chessPieceUris === undefined ? 'PENDING' : `resolved(${Object.keys(chessPieceUris).length})`);
     console.log('[AR3DOverlay] STATE cardUri:', cardUri === undefined ? 'PENDING' : cardUri === null ? 'null(no prop)' : 'resolved');
     console.log('[AR3DOverlay] STATE cardBackUri:', cardBackUri === undefined ? 'PENDING' : cardBackUri === null ? 'null(no prop)' : 'resolved');
-    console.log('[AR3DOverlay] STATE spawnYaw:', spawnYaw);
+    console.log('[AR3DOverlay] STATE spawnYaw:', spawnYaw, 'htmlFileUri:', htmlFileUri ? 'set' : 'null');
   }, [boardUri, piecesUri, chessPieceUris, cardUri, cardBackUri, spawnYaw]);
 
   // Build HTML once board + pieces URIs are resolved AND spawn yaw is captured.
@@ -1123,18 +1250,7 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
     if (spawnYaw === null) return null;
     const redInt   = parseInt(pieceColorRed.replace(/^#/, ''), 16);
     const blackInt  = parseInt(pieceColorBlack.replace(/^#/, ''), 16);
-    const result = buildSceneHTML(
-      fov,
-      boardUri,
-      piecesUri,
-      chessPieceUris,
-      tableUri ?? null,
-      spawnYaw,
-      redInt,
-      blackInt,
-      cardUri ?? null,
-      cardBackUri ?? null,
-    );
+    const result = buildSceneHTML(fov, boardUri, piecesUri, chessPieceUris, tableUri ?? null, spawnYaw, redInt, blackInt, cardUri ?? null, cardBackUri ?? null);
     console.log('[AR3DOverlay] htmlString built, length:', result.length);
     return result;
   }, [fov, boardUri, piecesUri, chessPieceUris, tableUri, spawnYaw, cardUri, cardBackUri]);
