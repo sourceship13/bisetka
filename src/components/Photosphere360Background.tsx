@@ -8,7 +8,8 @@
  * consume the same gyro subscription without creating a second sensor read.
  */
 import React, {createContext, useContext} from 'react';
-import {View, StyleSheet} from 'react-native';
+import {View, StyleSheet, Image, Platform} from 'react-native';
+import RNFS from 'react-native-fs';
 import {SphereViewer, useAttitude} from '@sourceship13/react-native-capture360';
 import AR3DOverlay, {type AR3DOverlayHandle} from './AR3DOverlay';
 
@@ -69,10 +70,33 @@ export default function Photosphere360Background({
 }: Props) {
   const attitude = useAttitude();
 
+  const panoramaImagePath = React.useMemo(() => {
+    const resolved = Image.resolveAssetSource(panoramaSource);
+    const uri = resolved?.uri;
+    if (!uri) {
+      return undefined;
+    }
+
+    // SphereViewer's native readFileBase64 expects a local file path.
+    // In release/TestFlight, this avoids fetch-based placeholder loading getting stuck.
+    if (uri.startsWith('file://') || uri.startsWith('/')) {
+      return uri;
+    }
+
+    // iOS release may return a bundle-relative asset path (no URI scheme).
+    if (Platform.OS === 'ios' && !uri.includes('://')) {
+      return `${RNFS.MainBundlePath}/${uri.replace(/^\/+/, '')}`;
+    }
+
+    // Dev Metro URLs (http://...) continue through placeholderSource fallback.
+    return undefined;
+  }, [panoramaSource]);
+
   return (
     <AttitudeContext.Provider value={attitude}>
       <View style={StyleSheet.absoluteFill} pointerEvents="none">
         <SphereViewer
+          imagePath={panoramaImagePath}
           placeholderSource={panoramaSource}
           initialPitch={initialPitch}
           attitude={attitude}
