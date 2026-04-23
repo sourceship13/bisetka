@@ -34,7 +34,6 @@ import { resolveAvatar } from '../../../utils/avatars';
 const ChessScreen = ({navigation}: any) => {
   const { user, refreshUser } = useAuth();
   const { showAchievements } = useAchievements();
-
   const [difficulty, setDifficulty] = useState<Difficulty | null>(null);
   const [gameState, setGameState] = useState<ChessGameState | null>(null);
   const gameIdRef = useRef<string | null>(null);
