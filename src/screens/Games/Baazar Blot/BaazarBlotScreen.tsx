@@ -249,9 +249,9 @@ const BaazarBlotScreen = ({ navigation }: any) => {
 
 
 
-  // Trigger deal animation when entering bidding (cards were just dealt)
+  // Trigger deal animation when entering dealing phase
   useEffect(() => {
-    if (gameState?.phase === 'bidding') {
+    if (gameState?.phase === 'dealing') {
       pendingDealAnimRef.current = true;
     }
     prevPhaseRef.current = gameState?.phase ?? null;
@@ -682,6 +682,40 @@ const BaazarBlotScreen = ({ navigation }: any) => {
     </View>
   );
 
+  // ── Dealing (show hand before bidding) ────────────────────────────────────
+  const renderDealing = () => {
+    if (!gameState) return null;
+    const myPlayer = gameState.players[0];
+    return (
+      <View style={styles.centeredSection} onLayout={handleBiddingLayout}>
+        <Text style={styles.bigTitle}>🃏 Your Hand</Text>
+        <Text style={styles.subtitle}>Review your cards, then start the auction</Text>
+
+        <View style={styles.handContainer}>
+          <CardHandFan
+            cards={myPlayer.hand.filter(c => c && c.suit && c.rank)}
+            renderCard={(card, idx) => (
+              <View key={`${card.suit}-${card.rank}-${idx}`} style={styles.cardWrapper}>
+                <Card3D suit={(card as any).suit} rank={(card as any).rank} faceDown={false} size={72} />
+              </View>
+            )}
+          />
+        </View>
+
+        <TouchableOpacity
+          style={[styles.primaryBtn, { marginTop: 24 }]}
+          onPress={() => {
+            setGameState(prev => prev ? { ...prev, phase: 'bidding', currentPlayer: (prev.dealer + 1) % 4 } : prev);
+            setPendingBidLevel(9);
+            setPendingBidSuit(null);
+          }}
+        >
+          <Text style={styles.primaryBtnText}>Start Bidding →</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
   // ── Bidding ──────────────────────────────────────────────────────────────
   const renderBidding = () => {
     if (!gameState) return null;
@@ -695,7 +729,7 @@ const BaazarBlotScreen = ({ navigation }: any) => {
     const canRecontra = gameState.contracted && isBidderSameTeam;
 
     return (
-      <View style={styles.centeredSection} onLayout={handleBiddingLayout}>
+      <View style={styles.centeredSection}>
         <Text style={styles.sectionTitle}>🃏 Bazaar Blot</Text>
 
         {hasBid ? (
@@ -1021,6 +1055,7 @@ const BaazarBlotScreen = ({ navigation }: any) => {
   const renderContent = () => {
     if (!gameState) return renderSetup();
     switch (gameState.phase) {
+      case 'dealing':  return renderDealing();
       case 'bidding':  return renderBidding();
       case 'playing':  return renderPlaying();
       case 'roundEnd': return renderRoundEnd();
