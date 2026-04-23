@@ -52,7 +52,7 @@ export interface BaazarGameState {
   currentPlayer: number;
   dealer: number;
   trump: Suit | null;
-  phase: 'setup' | 'bidding' | 'selectingTrump' | 'playing' | 'roundEnd' | 'gameEnd';
+  phase: 'setup' | 'dealing' | 'bidding' | 'selectingTrump' | 'playing' | 'roundEnd' | 'gameEnd';
 
   // Auction
   currentBid: BidLevel;       // current winning bid (8 = floor / no bid yet)
@@ -594,7 +594,7 @@ export const initializeBaazarGame = (targetScore: GameTarget = 101): BaazarGameS
     currentPlayer: 1, // player after dealer bids first
     dealer: 0,
     trump: null,
-    phase: 'bidding',
+    phase: 'dealing',
 
     currentBid: 8 as BidLevel,
     bidderPlayer: null,
@@ -628,7 +628,7 @@ export const startNewRound = (prev: BaazarGameState): BaazarGameState => {
     currentPlayer: (newDealer + 1) % 4,
     dealer: newDealer,
     trump: null,
-    phase: 'bidding',
+    phase: 'dealing',
     currentBid: 8 as BidLevel,
     bidderPlayer: null,
     bidderTeam: null,
