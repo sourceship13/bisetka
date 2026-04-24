@@ -128,11 +128,17 @@ interface SyncedYouTubePlayerProps {
   roomId: string | null;
   /** Whether to show the player UI. */
   visible: boolean;
+  /** Track to auto-load and play when the player first becomes visible. */
+  defaultTrack?: QueueItem;
+  /** Tracks to pre-fill the queue with (after defaultTrack). */
+  defaultQueue?: QueueItem[];
 }
 
 export default function SyncedYouTubePlayer({
   roomId,
   visible,
+  defaultTrack,
+  defaultQueue = [],
 }: SyncedYouTubePlayerProps) {
   const webViewRef = useRef<WebView>(null);
 
@@ -156,6 +162,9 @@ export default function SyncedYouTubePlayer({
   const [searching, setSearching]     = useState(false);
   const [searchError, setSearchError] = useState('');
 
+  // Track whether we've auto-loaded the default track yet
+  const autoLoadedRef = useRef(false);
+
   // Keyboard
   const [keyboardHeight, setKeyboardHeight] = useState(0);
 
@@ -169,6 +178,22 @@ export default function SyncedYouTubePlayer({
     const sub2 = Keyboard.addListener(hideEvent, onHide);
     return () => { sub1.remove(); sub2.remove(); };
   }, []);
+
+  // ── Auto-load default track the first time the player becomes visible ──────
+  useEffect(() => {
+    if (!visible || autoLoadedRef.current) return;
+    if (!defaultTrack) return;
+    autoLoadedRef.current = true;
+    // Pre-fill queue with any additional default tracks
+    if (defaultQueue.length > 0) {
+      setQueue(defaultQueue);
+    }
+    // Load and play the default track
+    setPlayerReady(false);
+    setPlaying(true);
+    setEmbedStartTime(0);
+    setCurrentItem(defaultTrack);
+  }, [visible, defaultTrack, defaultQueue]);
 
   // ── Send play/pause to the YT.Player inside the WebView ───────────────────
   const control = useCallback((action: 'play' | 'pause') => {

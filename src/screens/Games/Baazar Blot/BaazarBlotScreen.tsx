@@ -50,6 +50,15 @@ import {
 } from '../../../game/baazarBlotLogic';
 import SyncedYouTubePlayer from '../../../components/SyncedYouTubePlayer';
 
+// ─── Default game music ─────────────────────────────────────────────────────
+// Change videoId/title to whatever track you want auto-playing at game start.
+const DEFAULT_GAME_TRACK = {
+  videoId: '_2kPf5NgVsY',
+  title: 'ARMENIAN DEEP HOUSE MIX 2026 💥 1 Hour Luxury Folk & Vocal Deep [By Navasard]',
+  channel: 'Navasard',
+  thumbnail: 'https://i.ytimg.com/vi/_2kPf5NgVsY/hqdefault.jpg',
+};
+
 const SUIT_ICON: Record<string, string> = {
   hearts: '♥', diamonds: '♦', clubs: '♣', spades: '♠',
 };
@@ -255,6 +264,7 @@ const BaazarBlotScreen = ({ navigation }: any) => {
   useEffect(() => {
     if (gameState?.phase === 'dealing') {
       setDealRevealReady(false); // hide hand until animation finishes
+      setShowMusicPlayer(true);  // auto-start music at game start
       const t = setTimeout(() => setShowDealAnimation(true), 50);
       return () => clearTimeout(t);
     }
@@ -1272,7 +1282,11 @@ const BaazarBlotScreen = ({ navigation }: any) => {
           })}
         </ScrollView>
       </Animated.View>
-      <SyncedYouTubePlayer roomId={null} visible={showMusicPlayer} />
+      <SyncedYouTubePlayer
+        roomId={null}
+        visible={showMusicPlayer}
+        defaultTrack={DEFAULT_GAME_TRACK}
+      />
       {arEnabled && (
         <TouchableOpacity
           style={styles.recenterBtn}
