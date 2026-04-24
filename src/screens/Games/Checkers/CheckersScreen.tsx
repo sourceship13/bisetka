@@ -135,7 +135,7 @@ const CheckersScreen = ({ navigation, route }: any) => {
   const [showMusicPlayer, setShowMusicPlayer] = useState(false);
   const [showBlur, setShowBlur] = useState(true);
   const [showBackground, setShowBackground] = useState(true);
-  const [arEnabled, setArEnabled] = useState(false); // start 2D; tap 🥽 to enter VR mode
+  const [arEnabled, setArEnabled] = useState(true); // default to VR/photosphere mode
   const arOverlayRef = useRef<AR3DOverlayHandle>(null);
   const toolbarExpanded = useSharedValue(false);
   const chevronStyle = useAnimatedStyle(() => ({
@@ -584,7 +584,7 @@ const CheckersScreen = ({ navigation, route }: any) => {
   return (
     <View style={styles.container}>
       {/* Non-AR fallback background */}
-      {!arEnabled && <Photosphere360Background overlayOpacity={showBlur ? 0.5 : 0.3} />}
+      {/* Photosphere handled by ViroSceneNavigator when arEnabled */}
       {/* ViroReact VR overlay — photosphere env + GLB board */}
       <AR3DOverlay
         ref={arOverlayRef}
@@ -631,52 +631,8 @@ const CheckersScreen = ({ navigation, route }: any) => {
       </View>
 
       <View style={styles.boardContainer} pointerEvents="box-none">
-        {arEnabled ? (
-          // ── AR mode ── touches handled by Three.js raycasting in WebView
+        {/* Board rendered in 3D by ViroSceneNavigator — transparent passthrough */}
           <View style={[styles.board, { width: boardSize, height: boardSize }]} pointerEvents="none" />
-        ) : (
-          // ── 2D mode — full board image + piece rendering
-          <ImageBackground
-            source={require('../../../../assets/chess/board.png')}
-            style={[styles.board, { width: boardSize, height: boardSize }]}
-            resizeMode="stretch"
-          >
-            <View style={styles.gridContainer}>
-            {Array(8).fill(null).map((_,dRow) => {
-              const logRow = myPieceColor==='black' ? 7-dRow : dRow;
-              return (
-                <View key={dRow} style={styles.row}>
-                  {Array(8).fill(null).map((_,dCol) => {
-                    const logCol = myPieceColor==='black' ? 7-dCol : dCol;
-                    const piece = gameState.board[logRow]?.[logCol] ?? null;
-                    const isLight = (dRow+dCol)%2===0;
-                    const isSel = gameState.selectedSquare?.row===logRow && gameState.selectedSquare?.col===logCol;
-                    const isPoss = gameState.possibleMoves.some(m=>m.row===logRow&&m.col===logCol);
-                    return (
-                      <TouchableOpacity
-                        key={`${dRow}-${dCol}`}
-                        style={[
-                          styles.square,
-                          isSel && styles.selectedSquare,
-                          isPoss && styles.possibleMoveSquare,
-                        ]}
-                        onPress={() => handleSquarePress(dRow, dCol)}
-                        hitSlop={{top:2,bottom:2,left:2,right:2}}>
-                        {piece && (
-                          <View style={[styles.piece, piece.color==='red' ? styles.redPiece : styles.blackPiece, piece.type==='king' && styles.kingPiece]}>
-                            {piece.type==='king' && <Text style={styles.kingText}>♔</Text>}
-                          </View>
-                        )}
-                        {isPoss && !piece && <View style={styles.moveIndicator} />}
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              );
-            })}
-            </View>
-          </ImageBackground>
-        )}
       </View>
 
       {gameState.isGameOver && (
