@@ -65,6 +65,12 @@ export interface ARCard {
     rank: '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' | '10' | 'J' | 'Q' | 'K' | 'A';
     value: number;
     faceDown?: boolean;
+    /** URI to custom card face background image (from CardTheme.backgroundImage) */
+    backgroundImageUri?: string;
+    /** URI to custom card back image (from CardTheme.cardBackImage) */
+    cardBackImageUri?: string;
+    /** Font family for rank/suit text (from CardTheme.font) */
+    font?: string;
   };
 }
 
@@ -175,7 +181,6 @@ const GLB_ASSET_MAP: Record<string, any> = {
  * Prod — Reads directly from the app bundle via RNFS.
  */
 async function resolveAssetUri(assetPath: string): Promise<string | null> {
-  console.log('[AR3DOverlay] resolveAssetUri START:', assetPath);
 
   try {
     if (__DEV__) {
@@ -191,13 +196,11 @@ async function resolveAssetUri(assetPath: string): Promise<string | null> {
       if (assetRef != null) {
         const resolved = Image.resolveAssetSource(assetRef);
         metroUrl = resolved?.uri ?? null;
-        console.log('[AR3DOverlay] resolveAssetSource →', metroUrl);
       } else {
         // Fallback for paths not in the map: construct from scriptURL
         const scriptUrl: string = (NativeModules.SourceCode as any)?.scriptURL ?? '';
         const match = scriptUrl.match(/^(https?:\/\/[^/:]+(?::\d+)?)/);
         const base = match ? match[1] : null;
-        console.log('[AR3DOverlay] scriptURL fallback — scriptURL:', JSON.stringify(scriptUrl), '→ base:', base);
         if (base) {
           const encodedPath = assetPath.split('/').map(encodeURIComponent).join('/');
           metroUrl = `${base}/assets/assets/${encodedPath}`;
@@ -218,20 +221,16 @@ async function resolveAssetUri(assetPath: string): Promise<string | null> {
       }
 
       try {
-        console.log('[AR3DOverlay] downloading:', metroUrl, '→', tempPath);
         const dl = RNFS.downloadFile({fromUrl: metroUrl, toFile: tempPath});
         const res = await dl.promise;
         // Metro sometimes returns statusCode 0 even on HTTP 200 — accept if
         // bytesWritten > 0 so a partial/empty file doesn't count as success.
         const ok = res.statusCode === 200 || (res.statusCode === 0 && res.bytesWritten > 100);
-        console.log('[AR3DOverlay] download result — status:', res.statusCode, 'bytes:', res.bytesWritten, 'ok:', ok);
         if (ok) {
           const fileUri = `file://${tempPath}`;
-          console.log('[AR3DOverlay] resolveAssetUri → file URI:', fileUri);
           return fileUri;
         }
       } catch (dlErr) {
-        console.log('[AR3DOverlay] download threw:', metroUrl, String(dlErr));
       }
 
       console.warn('[AR3DOverlay] GLB download failed:', assetPath);
@@ -770,158 +769,313 @@ function clonePiece(piece) {
   return clone;
 }
 
-// ── CARD RENDERING ─────────────────────────────────────────────────────────────
-let baseCardScene = null;
-let baseCardBackTexture = null;
+// ── CARD RENDERING (procedural — no GLB needed) ───────────────────────────────
+// Cards are flat PlaneGeometry quads with a CanvasTexture showing suit + rank.
+// This avoids GLB loading failures and gives sharp, readable cards in AR.
 
 // Card scene group — parented to boardGroup so positions are board-relative
 const cardGroup = new THREE.Group();
 boardGroup.add(cardGroup);
 
-function loadCardResources() {
-  const CARD_URI = ${CARD_URI_JS};
-  const CARD_BACK_URI = ${CARD_BACK_URI_JS};
-  
-  if (!CARD_URI) {
-    console.warn('[AR3DOverlay] CARD_URI not provided, skipping card loading');
-    return;
-  }
-  
-  // Load card back texture
-  const textureLoader = new THREE.TextureLoader();
-  textureLoader.load(
-    CARD_BACK_URI,
-    (texture) => {
-      texture.colorSpace = THREE.SRGBColorSpace;
-      baseCardBackTexture = texture;
-      console.log('[AR3DOverlay] Card back texture loaded');
-    },
-    undefined,
-    () => {
-      console.warn('[AR3DOverlay] Card back texture failed to load, using fallback');
-      // Fallback: create a simple black texture
-      const canvas = document.createElement('canvas');
-      canvas.width = 256;
-      canvas.height = 256;
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.fillStyle = '#000000';
-        ctx.fillRect(0, 0, 256, 256);
-        baseCardBackTexture = new THREE.CanvasTexture(canvas);
-      }
-    }
-  );
-  
-  // Load card GLB
-  const loader = new GLTFLoader();
-  loader.load(
-    CARD_URI,
-    (gltf) => {
-      baseCardScene = gltf.scene;
-      console.log('[AR3DOverlay] Card GLB loaded');
-    },
-    undefined,
-    () => {
-      console.warn('[AR3DOverlay] Card GLB failed to load');
-    }
-  );
+// ─── Card dimensions — bigger so rank/suit is clearly readable on the 3D table ─
+// ─── Card dimensions ──────────────────────────────────────────────────────────
+// Bigger than a real card so they read clearly on the 3D table from phone distance
+// ─── Card dimensions ──────────────────────────────────────────────────────────
+// ─── Card dimensions ──────────────────────────────────────────────────────────
+const CARD_W = 0.16;
+const CARD_H = 0.22;
+
+const SUIT_COLORS_3D = { hearts:'#cc0000', diamonds:'#cc0000', clubs:'#111111', spades:'#111111' };
+
+const _cardTextureCache = new Map();
+
+// ── Canvas rounded-rect path helper ──────────────────────────────────────────
+function _rrPath(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x+r, y);
+  ctx.lineTo(x+w-r, y);         ctx.quadraticCurveTo(x+w, y,   x+w, y+r);
+  ctx.lineTo(x+w,   y+h-r);     ctx.quadraticCurveTo(x+w, y+h, x+w-r, y+h);
+  ctx.lineTo(x+r,   y+h);       ctx.quadraticCurveTo(x,   y+h, x,   y+h-r);
+  ctx.lineTo(x,     y+r);       ctx.quadraticCurveTo(x,   y,   x+r, y);
+  ctx.closePath();
 }
 
-// Call card resource loader
-loadCardResources();
+// ── Suit shape drawers — pure canvas paths, zero unicode/font dependency ──────
+// Heart: two circles + triangle, all joined into one clean shape
+function _drawHeart(ctx, cx, cy, size, color) {
+  var s = size * 0.5;
+  ctx.save();
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  // Start at bottom tip
+  ctx.moveTo(cx, cy + s);
+  // Left arc (bottom-left curve up to top-left bump)
+  ctx.bezierCurveTo(
+    cx - s*0.1, cy + s*0.6,
+    cx - s,     cy + s*0.3,
+    cx - s,     cy - s*0.1
+  );
+  // Left top bump (circle-like arc)
+  ctx.bezierCurveTo(
+    cx - s,     cy - s*0.7,
+    cx - s*0.1, cy - s*0.8,
+    cx,         cy - s*0.4
+  );
+  // Right top bump
+  ctx.bezierCurveTo(
+    cx + s*0.1, cy - s*0.8,
+    cx + s,     cy - s*0.7,
+    cx + s,     cy - s*0.1
+  );
+  // Right arc (top-right down to bottom tip)
+  ctx.bezierCurveTo(
+    cx + s,     cy + s*0.3,
+    cx + s*0.1, cy + s*0.6,
+    cx,         cy + s
+  );
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
+function _drawDiamond(ctx, cx, cy, size, color) {
+  var s = size * 0.52;
+  ctx.save();
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(cx,     cy - s);
+  ctx.lineTo(cx + s*0.65, cy);
+  ctx.lineTo(cx,     cy + s);
+  ctx.lineTo(cx - s*0.65, cy);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
+function _drawClub(ctx, cx, cy, size, color) {
+  var r = size * 0.28;
+  ctx.save();
+  ctx.fillStyle = color;
+  // Three overlapping circles
+  ctx.beginPath(); ctx.arc(cx,         cy - r*0.55, r, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(cx - r*0.8, cy + r*0.3,  r, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(cx + r*0.8, cy + r*0.3,  r, 0, Math.PI*2); ctx.fill();
+  // Stem + base
+  ctx.beginPath();
+  ctx.moveTo(cx - r*0.55, cy + r*1.1);
+  ctx.lineTo(cx + r*0.55, cy + r*1.1);
+  ctx.lineTo(cx + r*0.2,  cy + r*0.5);
+  ctx.lineTo(cx - r*0.2,  cy + r*0.5);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
+// Spade: upside-down heart head + stem
+function _drawSpade(ctx, cx, cy, size, color) {
+  var s = size * 0.46;
+  var headY = cy - size * 0.08; // shift head slightly up
+  ctx.save();
+  ctx.fillStyle = color;
+  // Spade head = inverted heart
+  ctx.beginPath();
+  ctx.moveTo(cx, headY - s);
+  ctx.bezierCurveTo(
+    cx - s*0.1, headY - s*0.6,
+    cx - s,     headY - s*0.3,
+    cx - s,     headY + s*0.1
+  );
+  ctx.bezierCurveTo(
+    cx - s,     headY + s*0.7,
+    cx - s*0.1, headY + s*0.8,
+    cx,         headY + s*0.4
+  );
+  ctx.bezierCurveTo(
+    cx + s*0.1, headY + s*0.8,
+    cx + s,     headY + s*0.7,
+    cx + s,     headY + s*0.1
+  );
+  ctx.bezierCurveTo(
+    cx + s,     headY - s*0.3,
+    cx + s*0.1, headY - s*0.6,
+    cx,         headY - s
+  );
+  ctx.closePath();
+  ctx.fill();
+  // Stem
+  ctx.beginPath();
+  ctx.moveTo(cx - s*0.55, cy + size*0.42);
+  ctx.lineTo(cx + s*0.55, cy + size*0.42);
+  ctx.lineTo(cx + s*0.18, cy + size*0.1);
+  ctx.lineTo(cx - s*0.18, cy + size*0.1);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
+function _drawSuit(ctx, suit, cx, cy, size) {
+  var color = SUIT_COLORS_3D[suit] || '#111';
+  if      (suit === 'hearts')   _drawHeart(ctx, cx, cy, size, color);
+  else if (suit === 'diamonds') _drawDiamond(ctx, cx, cy, size, color);
+  else if (suit === 'clubs')    _drawClub(ctx, cx, cy, size, color);
+  else                          _drawSpade(ctx, cx, cy, size, color);
+}
+
+// ── Card face painter ─────────────────────────────────────────────────────────
+function _paintCardFace(ctx, W, H, suit, rank) {
+  var color = SUIT_COLORS_3D[suit] || '#111';
+
+  // White card with rounded corners
+  ctx.save();
+  _rrPath(ctx, 0, 0, W, H, 60);
+  ctx.fillStyle = '#ffffff';
+  ctx.fill();
+  ctx.clip();
+
+  // ── Top-left: rank text ──
+  ctx.fillStyle = color;
+  ctx.font = 'bold 160px Arial';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'top';
+  ctx.fillText(rank, 36, 20);
+
+  // ── Top-left: small suit shape ──
+  _drawSuit(ctx, suit, 82, 310, 100);
+
+  // ── Centre: large suit shape ──
+  _drawSuit(ctx, suit, W/2, H/2, 280);
+
+  // ── Bottom-right: mirrored (rotate 180°) ──
+  ctx.save();
+  ctx.translate(W, H);
+  ctx.rotate(Math.PI);
+  ctx.fillStyle = color;
+  ctx.font = 'bold 160px Arial';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'top';
+  ctx.fillText(rank, 36, 20);
+  ctx.restore();
+  _drawSuit(ctx, suit, W - 82, H - 310, 100);
+
+  // ── Inner border ──
+  ctx.strokeStyle = '#cccccc';
+  ctx.lineWidth = 8;
+  _rrPath(ctx, 8, 8, W-16, H-16, 52);
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+function _paintCardBack(ctx, W, H) {
+  ctx.save();
+  _rrPath(ctx, 0, 0, W, H, 60);
+  ctx.fillStyle = '#0d1b4b';
+  ctx.fill();
+  ctx.clip();
+  ctx.strokeStyle = 'rgba(255,255,255,0.09)'; ctx.lineWidth = 2;
+  for (var i = -(H+W); i < W+H; i += 22) {
+    ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i+H,H); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(i+H,0); ctx.lineTo(i,H); ctx.stroke();
+  }
+  ctx.strokeStyle = 'rgba(255,255,255,0.45)'; ctx.lineWidth = 7;
+  _rrPath(ctx, 18, 18, W-36, H-36, 44);
+  ctx.stroke();
+  ctx.restore();
+}
+
+// ── Texture builder ───────────────────────────────────────────────────────────
+function makeCardTexture(suit, rank, faceDown, opts) {
+  var imageUri = faceDown ? ((opts||{}).cardBackImageUri||'') : ((opts||{}).backgroundImageUri||'');
+  var cacheKey = ['v3', faceDown ? '__back__' : suit+'-'+rank, (opts||{}).font||'', imageUri].join('|');
+  if (_cardTextureCache.has(cacheKey)) return _cardTextureCache.get(cacheKey);
+
+  var W = 1024, H = 1434;
+  var canvas = document.createElement('canvas');
+  canvas.width = W; canvas.height = H;
+  var ctx = canvas.getContext('2d');
+
+  if (faceDown) { _paintCardBack(ctx, W, H); }
+  else          { _paintCardFace(ctx, W, H, suit, rank); }
+
+  var tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 4;
+  _cardTextureCache.set(cacheKey, tex);
+
+  if (imageUri) {
+    var img = new window.Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = function() {
+      ctx.clearRect(0,0,W,H);
+      ctx.drawImage(img,0,0,W,H);
+      if (!faceDown) _paintCardFace(ctx,W,H,suit,rank);
+      tex.needsUpdate = true;
+    };
+    img.src = imageUri;
+  }
+  return tex;
+}
+
+// ── Mesh builder ──────────────────────────────────────────────────────────────
+function makeCardMesh(suit, rank, faceDown, opts) {
+  var geo = new THREE.PlaneGeometry(CARD_W, CARD_H);
+  var frontTex = makeCardTexture(suit, rank, false, opts);
+  var backTex  = makeCardTexture(suit, rank, true,  opts);
+
+  var group = new THREE.Group();
+
+  var front = new THREE.Mesh(geo,
+    new THREE.MeshBasicMaterial({ map: frontTex, side: THREE.FrontSide, depthTest: false }));
+  front.renderOrder = 999;
+  front.position.z = 0.0003;
+  group.add(front);
+
+  var back = new THREE.Mesh(geo,
+    new THREE.MeshBasicMaterial({ map: backTex, side: THREE.BackSide, depthTest: false }));
+  back.renderOrder = 998;
+  group.add(back);
+
+  group.add(new THREE.Mesh(
+    new THREE.BoxGeometry(CARD_W, CARD_H, 0.002),
+    new THREE.MeshBasicMaterial({ color: 0xfafafa, depthTest: false })
+  ));
+
+  group.renderOrder = 997;
+  return group;
+}
+
+
+const _cardMeshMap = new Map();
 
 function updateCards(cards) {
-  if (!baseCardScene) {
-    console.warn('[AR3DOverlay] Card GLB not loaded yet, skipping card update');
-    return;
-  }
-  
+  console.log('[AR] updateCards called, count:', cards ? cards.length : 0);
   if (!cards || cards.length === 0) {
-    // Clear all cards
-    while (cardGroup.children.length > 0) {
-      const child = cardGroup.children[0];
-      cardGroup.remove(child);
-      if (child.geometry) child.geometry.dispose();
-      if (child.material) {
-        if (Array.isArray(child.material)) {
-          child.material.forEach(m => m.dispose());
-        } else {
-          child.material.dispose();
-        }
-      }
-    }
+    _cardMeshMap.forEach(grp => cardGroup.remove(grp));
+    _cardMeshMap.clear();
     return;
   }
-  
-  // Build a map of existing cards by key
-  const existingCards = new Map();
-  cardGroup.traverse((child) => {
-    if (child.isMesh && child.userData && child.userData.cardKey) {
-      existingCards.set(child.userData.cardKey, child);
-    }
+  const incoming = new Set(cards.map(c => c.key));
+  _cardMeshMap.forEach((grp, key) => {
+    if (!incoming.has(key)) { cardGroup.remove(grp); _cardMeshMap.delete(key); }
   });
-  
-  // Process each card
   cards.forEach(card => {
-    let cardMesh;
-    
-    if (existingCards.has(card.key)) {
-      // Reuse existing card
-      cardMesh = existingCards.get(card.key);
-      existingCards.delete(card.key);
-    } else {
-      // Create new card
-      cardMesh = baseCardScene.clone(true);
-      cardMesh.userData.cardKey = card.key;
-      
-      // Apply textures
-      if (baseCardBackTexture) {
-        cardMesh.traverse((child) => {
-          if (child.isMesh && child.material) {
-            const material = child.material;
-            material.map = baseCardBackTexture;
-            material.needsUpdate = true;
-          }
-        });
-      }
-      
-      cardGroup.add(cardMesh);
+    const cd = card.cardData || {};
+    const { suit='spades', rank='A', faceDown=false,
+            backgroundImageUri, cardBackImageUri, font } = cd;
+    const themeKey = ['v3', backgroundImageUri||'', cardBackImageUri||'', font||'', faceDown].join('|');
+    let grp = _cardMeshMap.get(card.key);
+    if (!grp || grp.userData.themeKey !== themeKey) {
+      if (grp) cardGroup.remove(grp);
+      grp = makeCardMesh(suit, rank, faceDown, { font, backgroundImageUri, cardBackImageUri });
+      grp.userData.cardKey  = card.key;
+      grp.userData.themeKey = themeKey;
+      cardGroup.add(grp);
+      _cardMeshMap.set(card.key, grp);
     }
-    
-    // Update position
-    cardMesh.position.set(card.position.x, card.position.y, card.position.z);
-    
-    // Update rotation
-    if (card.rotation) {
-      cardMesh.rotation.set(
-        card.rotation.x || 0,
-        card.rotation.y || 0,
-        card.rotation.z || 0
-      );
-    }
-    
-    // Update scale
-    if (card.scale !== undefined) {
-      cardMesh.scale.set(card.scale, card.scale, card.scale);
-    } else {
-      cardMesh.scale.set(1, 1, 1);
-    }
-    
-    // Set card data in userData for reference
-    cardMesh.userData.cardData = card.cardData;
-  });
-  
-  // Remove any cards not in the new list
-  existingCards.forEach((mesh) => {
-    cardGroup.remove(mesh);
-    if (mesh.geometry) mesh.geometry.dispose();
-    if (mesh.material) {
-      if (Array.isArray(mesh.material)) {
-        mesh.material.forEach(m => m.dispose());
-      } else {
-        mesh.material.dispose();
-      }
-    }
+    grp.position.set(card.position.x, card.position.y, card.position.z);
+    if (card.rotation) grp.rotation.set(card.rotation.x||0, card.rotation.y||0, card.rotation.z||0);
+    const s = card.scale !== undefined ? card.scale : 1;
+    grp.scale.set(s, s, s);
   });
 }
 
@@ -1024,6 +1178,7 @@ window.handleRNMessage = function(data) {
     window._pieces = data.pieces || [];
     updatePieces(window._pieces);
     updateDots(data.moves || []);
+    updateCards(data.cards || []);
   }
   if (data.type === 'recenter') {
     // Re-attach sceneGroup to camera so it tracks the player again,
@@ -1126,7 +1281,6 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
   pieceColorRed   = '#c0392b',
   pieceColorBlack = '#1e2d3d',
 }: AR3DOverlayProps, ref: React.Ref<AR3DOverlayHandle>) {
-  console.log('[AR3DOverlay] RENDER visible=%s boardGlbPath=%s', visible, boardGlbPath);
   const attitude = useSharedAttitude();
   const webViewRef = useRef<WebView>(null);
   const renderKey = useRef(0); // Force re-render on demand
@@ -1232,18 +1386,11 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
 
   // Debug: trace all blocking state so we can see exactly where the HTML build stalls
   useEffect(() => {
-    console.log('[AR3DOverlay] STATE boardUri:', boardUri === undefined ? 'PENDING' : boardUri === null ? 'null(failed)' : `resolved(${String(boardUri).length}ch)`);
-    console.log('[AR3DOverlay] STATE piecesUri:', piecesUri === undefined ? 'PENDING' : piecesUri === null ? 'null(no prop)' : 'resolved');
-    console.log('[AR3DOverlay] STATE chessPieceUris:', chessPieceUris === undefined ? 'PENDING' : `resolved(${Object.keys(chessPieceUris).length})`);
-    console.log('[AR3DOverlay] STATE cardUri:', cardUri === undefined ? 'PENDING' : cardUri === null ? 'null(no prop)' : 'resolved');
-    console.log('[AR3DOverlay] STATE cardBackUri:', cardBackUri === undefined ? 'PENDING' : cardBackUri === null ? 'null(no prop)' : 'resolved');
-    console.log('[AR3DOverlay] STATE spawnYaw:', spawnYaw, 'htmlFileUri:', htmlFileUri ? 'set' : 'null');
   }, [boardUri, piecesUri, chessPieceUris, cardUri, cardBackUri, spawnYaw]);
 
   // Build HTML once board + pieces URIs are resolved AND spawn yaw is captured.
   // Table is always embedded so we don't block on tableUri.
   const htmlString = useMemo(() => {
-    console.log('[AR3DOverlay] useMemo check — boardUri:', boardUri === undefined ? 'undefined' : boardUri === null ? 'null' : `data(${typeof boardUri === 'string' ? boardUri.length : 0}chars)`, 'piecesUri:', piecesUri === undefined ? 'undefined' : piecesUri === null ? 'null' : 'set', 'cardUri:', cardUri, 'cardBackUri:', cardBackUri, 'spawnYaw:', spawnYaw);
     if (boardUri === undefined || piecesUri === undefined) return null;
     if (chessPieceUris === undefined) return null;
     if (cardUri === undefined || cardBackUri === undefined) return null;
@@ -1251,7 +1398,6 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
     const redInt   = parseInt(pieceColorRed.replace(/^#/, ''), 16);
     const blackInt  = parseInt(pieceColorBlack.replace(/^#/, ''), 16);
     const result = buildSceneHTML(fov, boardUri, piecesUri, chessPieceUris, tableUri ?? null, spawnYaw, redInt, blackInt, cardUri ?? null, cardBackUri ?? null);
-    console.log('[AR3DOverlay] htmlString built, length:', result.length);
     return result;
   }, [fov, boardUri, piecesUri, chessPieceUris, tableUri, spawnYaw, cardUri, cardBackUri]);
 
@@ -1262,12 +1408,13 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
   const [htmlFileUri, setHtmlFileUri] = useState<string | null>(null);
   useEffect(() => {
     if (!htmlString) { setHtmlFileUri(null); return; }
-    const filePath = `${RNFS.TemporaryDirectoryPath}ar_scene.html`;
-    console.log('[AR3DOverlay] writing HTML to', filePath, 'length:', htmlString.length);
+    // Use a unique filename per session so WKWebView never serves a cached version.
+    // Same URL = cached HTML = stale spawnYaw baked in = locked rotation on game 2+.
+    const sessionId = htmlFileUriKeyRef.current;
+    htmlFileUriKeyRef.current += 1;
+    const filePath = `${RNFS.TemporaryDirectoryPath}ar_scene_${sessionId}.html`;
     RNFS.writeFile(filePath, htmlString, 'utf8')
       .then(() => {
-        console.log('[AR3DOverlay] HTML written OK, mounting WebView with file://', filePath);
-        htmlFileUriKeyRef.current += 1;
         setHtmlFileUri(`file://${filePath}`);
       })
       .catch(e => console.warn('[AR3DOverlay] failed to write scene HTML:', e));
@@ -1293,6 +1440,7 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
   // Push board state on every piece/move change
   useEffect(() => {
     if (!visible || !htmlFileUri) return;
+    console.log('[AR3DOverlay] pushing scene — cards:', cards?.length ?? 0, 'pieces:', pieces?.length ?? 0);
     const msg = JSON.stringify({type: 'scene', pieces, moves, cards});
     webViewRef.current?.injectJavaScript(`window.handleRNMessage(${msg});true;`);
   }, [pieces, moves, cards, visible, htmlFileUri]);
@@ -1302,13 +1450,18 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
   // guarantees pieces appear after the module script has run.
   // Retry every 500ms for up to 5s in case the pieces GLB CDN import is still loading.
   const handleLoadEnd = useCallback(() => {
-    const sendPieces = () => {
-      const msg = JSON.stringify({type: 'scene', pieces: latestPiecesRef.current, moves: latestMovesRef.current});
+    const sendScene = () => {
+      const msg = JSON.stringify({
+        type: 'scene',
+        pieces: latestPiecesRef.current,
+        moves:  latestMovesRef.current,
+        cards:  latestCardsRef.current,
+      });
       webViewRef.current?.injectJavaScript(`window.handleRNMessage(${msg});true;`);
     };
-    sendPieces();
+    sendScene();
     const retryDelays = [500, 1000, 1500, 2500, 4000];
-    retryDelays.forEach(delay => setTimeout(sendPieces, delay));
+    retryDelays.forEach(delay => setTimeout(sendScene, delay));
   }, []);
 
   // Handle messages posted from Three.js (raycasted board taps)
@@ -1318,7 +1471,6 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
       if (data.type === 'tap' && onSquareTap) {
         onSquareTap(data.row, data.col);
       } else if (data.type === 'log') {
-        console.log(data.msg);
       }
     } catch (_) {}
   }, [onSquareTap]);
@@ -1329,7 +1481,7 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
     // box-none: wrapper does not capture touches but WebView child does
     <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
       <WebView
-        key={`ar-overlay-${renderKey.current}-${htmlFileUriKeyRef.current}`} // Force re-render when AR enables or HTML changes
+        key={htmlFileUri} // Unique file URL per session = WebView always remounts with fresh spawnYaw
         ref={webViewRef}
         source={{ uri: htmlFileUri }}
         style={styles.webview}

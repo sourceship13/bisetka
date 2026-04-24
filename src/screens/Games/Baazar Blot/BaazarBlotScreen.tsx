@@ -28,6 +28,7 @@ import GameToolbar from '../../../components/global/GameToolbar';
 import GameToolbarControls from '../../../components/global/GameToolbarControls';
 import { CardType, Suit } from '../../../components/Card';
 import Card3D from '../../../components/Card3D';
+import DynamicCard from '../../../components/DynamicCard';
 import CardCustomizationModal from '../../../components/global/GameCustomizationModal';
 import CardHandFan from '../../../components/CardHandFan';
 import { RiffleDealAnimation } from '../../../components/RiffleDealAnimation';
@@ -71,6 +72,7 @@ const BaazarBlotScreen = ({ navigation }: any) => {
   const [pendingBidSuit, setPendingBidSuit] = useState<Suit | null>(null);
   const [isResolvingTrick, setIsResolvingTrick] = useState(false);
   const [showDealAnimation, setShowDealAnimation] = useState(false);
+  const [dealRevealReady, setDealRevealReady] = useState(false);
   const pendingDealAnimRef = useRef(false);
   const resolutionInProgressRef = useRef(false);
   const resolutionStartTimeRef = useRef<number>(0);
@@ -252,17 +254,14 @@ const BaazarBlotScreen = ({ navigation }: any) => {
   // Trigger deal animation when entering dealing phase
   useEffect(() => {
     if (gameState?.phase === 'dealing') {
-      pendingDealAnimRef.current = true;
+      setDealRevealReady(false); // hide hand until animation finishes
+      const t = setTimeout(() => setShowDealAnimation(true), 50);
+      return () => clearTimeout(t);
     }
     prevPhaseRef.current = gameState?.phase ?? null;
   }, [gameState?.phase]);
 
-  const handleBiddingLayout = useCallback(() => {
-    if (pendingDealAnimRef.current) {
-      pendingDealAnimRef.current = false;
-      setShowDealAnimation(true);
-    }
-  }, []);
+  const handleBiddingLayout = useCallback(() => {}, []);
 
   // Kept for layout measurement; no longer triggers deal animation
   const handlePlayingLayout = useCallback(() => {}, []);
@@ -352,30 +351,44 @@ const BaazarBlotScreen = ({ navigation }: any) => {
   // Sync trick cards to AR overlay
   useEffect(() => {
     if (!arEnabled || !gameState?.currentTrick?.cards) { setArCards([]); return; }
-    // Positions are in boardGroup local XY space (flat on table surface, Z = height above surface)
-    // boardGroup.rotation.x = -PI/2 so local Z points up in world space
+    // Positions are in boardGroup local space.
+    // boardGroup.rotation.x = -PI/2, so boardGroup local-Z points world-UP.
+    // Cards lie flat on the table: their plane faces +Z (world-up) by default since
+    // PlaneGeometry faces +Z in its local space, and boardGroup already tilts it flat.
+    // Spread the 4 slots around the centre of the table.
     const positions: Record<number, { x: number; y: number; z: number }> = {
-      0: { x:  0.00, y: -0.14, z: 0.005 }, // player 0 (bottom)
-      1: { x:  0.14, y:  0.00, z: 0.005 }, // player 1 (right)
-      2: { x:  0.00, y:  0.14, z: 0.005 }, // player 2 (top)
-      3: { x: -0.14, y:  0.00, z: 0.005 }, // player 3 (left)
+      0: { x:  0.00, y: -0.18, z: 0.025 }, // bottom (you)
+      1: { x:  0.18, y:  0.00, z: 0.025 }, // right
+      2: { x:  0.00, y:  0.18, z: 0.025 }, // top
+      3: { x: -0.18, y:  0.00, z: 0.025 }, // left
+    };
+    // Rotations: face-up flat. PlaneGeometry's normal is +Z; boardGroup flips that to
+    // world-up already. No extra rotation needed for flat face-up cards.
+    const rotations: Record<number, { x: number; y: number; z: number }> = {
+      0: { x: 0, y: 0, z: 0 },
+      1: { x: 0, y: 0, z: -Math.PI / 2 },
+      2: { x: 0, y: 0, z: Math.PI },
+      3: { x: 0, y: 0, z:  Math.PI / 2 },
     };
     const mapped: ARCard[] = gameState.currentTrick.cards
       .filter(cp => cp?.card?.suit && cp?.card?.rank)
       .map(cp => ({
         key: `trick-${cp.playerId}-${cp.card.suit}-${cp.card.rank}`,
-        position: positions[cp.playerId] ?? { x: 0, y: 0, z: 0.005 },
-        rotation: { x: 0, y: 0, z: 0 }, // card lies flat in boardGroup XY plane
-        scale: 0.12,
+        position: positions[cp.playerId] ?? { x: 0, y: 0, z: 0.004 },
+        rotation: rotations[cp.playerId] ?? { x: 0, y: 0, z: 0 },
+        scale: 1, // CARD_W/H already sized in metres in makeCardMesh
         cardData: {
           suit: cp.card.suit as ARCard['cardData']['suit'],
           rank: cp.card.rank as ARCard['cardData']['rank'],
           value: 0,
           faceDown: false,
+          backgroundImageUri: customTheme?.backgroundImage ?? undefined,
+          cardBackImageUri:   customTheme?.cardBackImage   ?? undefined,
+          font:               customTheme?.font             ?? undefined,
         },
       }));
     setArCards(mapped);
-  }, [arEnabled, gameState?.currentTrick?.cards]);
+  }, [arEnabled, gameState?.currentTrick?.cards, customTheme]);
 
   const applyCardPlay = (
     prev: BaazarGameState,
@@ -685,6 +698,8 @@ const BaazarBlotScreen = ({ navigation }: any) => {
   // ── Dealing (show hand before bidding) ────────────────────────────────────
   const renderDealing = () => {
     if (!gameState) return null;
+    // Only reveal hand after animation has fully completed
+    if (!dealRevealReady) return null;
     const myPlayer = gameState.players[0];
     return (
       <View style={styles.centeredSection} onLayout={handleBiddingLayout}>
@@ -696,7 +711,13 @@ const BaazarBlotScreen = ({ navigation }: any) => {
             cards={myPlayer.hand.filter(c => c && c.suit && c.rank)}
             renderCard={(card, idx) => (
               <View key={`${card.suit}-${card.rank}-${idx}`} style={styles.cardWrapper}>
-                <Card3D suit={(card as any).suit} rank={(card as any).rank} faceDown={false} size={72} />
+                <DynamicCard
+                  card={card as any}
+                  faceDown={false}
+                  size="medium"
+                  theme={customTheme as any}
+                  isPlayable={false}
+                />
               </View>
             )}
           />
@@ -823,25 +844,26 @@ const BaazarBlotScreen = ({ navigation }: any) => {
           </Text>
         )}
 
-        <View style={styles.scoreBoard}>
-          <View style={styles.teamScore}>
-            <Text style={styles.teamLabel}>Team 1</Text>
-            <Text style={styles.score}>{gameState.gameScore.team1}</Text>
-          </View>
-          {gameState.trump && (
-            <View style={styles.trumpDisplay}>
-              <Text style={styles.trumpLabel}>Trump</Text>
-              <Text style={styles.trumpSuit}>
-                {SUIT_ICON[gameState.trump]}
-              </Text>
-            </View>
-          )}
-          <View style={styles.teamScore}>
-            <Text style={styles.teamLabel}>Team 2</Text>
-            <Text style={styles.score}>{gameState.gameScore.team2}</Text>
-          </View>
-        </View>
         <Text style={styles.targetText}>Target: {gameState.targetScore}</Text>
+
+        {/* Hand preview during bidding — read-only, not tappable */}
+        <View style={[styles.handContainer, { paddingTop: 12 }]}>
+          <Text style={styles.handLabel}>Your Hand:</Text>
+          <CardHandFan
+            cards={gameState.players[0].hand.filter(c => c && c.suit && c.rank)}
+            renderCard={(card, idx) => (
+              <View key={`bid-${card.suit}-${card.rank}-${idx}`} style={styles.cardWrapper}>
+                <DynamicCard
+                  card={card as any}
+                  faceDown={false}
+                  size="large"
+                  theme={customTheme as any}
+                  isPlayable={false}
+                />
+              </View>
+            )}
+          />
+        </View>
       </View>
     );
   };
@@ -857,21 +879,14 @@ const BaazarBlotScreen = ({ navigation }: any) => {
     return (
       <>
         <View style={styles.playArea} onLayout={handlePlayingLayout}>
-          <Text style={styles.currentPlayerText}>
-            {gameState.currentPlayer === 0
-              ? '★ Your Turn (Team 1)'
-              : `${playerName(gameState.currentPlayer)}'s Turn (Team ${
-                  gameState.players[gameState.currentPlayer].team
-                })`}
-          </Text>
-
-          <View
+          {/* 2D table: hidden when AR is active — trick cards render in 3D AR space */}
+          {!arEnabled && <View
             style={[
               styles.tableContainer,
               { width: TABLE_SIZE, height: TABLE_SIZE },
             ]}
           >
-            {showBackground && !arEnabled ? (
+            {showBackground ? (
               <ImageBackground
                 source={customTheme?.boardImage ? { uri: customTheme.boardImage } : require('../../../../assets/blot/card-table.png')}
                 style={styles.cardTable}
@@ -938,7 +953,7 @@ const BaazarBlotScreen = ({ navigation }: any) => {
                 })()}
               </View>
             )}
-          </View>
+          </View>}
         </View>
 
         <View style={styles.handContainer}>
@@ -964,7 +979,13 @@ const BaazarBlotScreen = ({ navigation }: any) => {
                   ]}
                   disabled={!canPlay}
                 >
-                  <Card3D suit={(card as any).suit} rank={(card as any).rank} faceDown={false} size={60} />
+                  <DynamicCard
+                    card={card as any}
+                    faceDown={false}
+                    size="large"
+                    theme={customTheme as any}
+                    isPlayable={canPlay}
+                  />
                 </TouchableOpacity>
               );
             }}
@@ -1098,6 +1119,31 @@ const BaazarBlotScreen = ({ navigation }: any) => {
           </View>
         </View>
 
+        {/* Info strip — above scoreboard, only during playing phase */}
+        {gameState?.phase === 'playing' && (
+          <View style={styles.arInfoStrip}>
+            {gameState.currentTrick.cards.length > 0 ? (
+              <Text style={styles.arInfoText}>
+                Led: <Text style={{ color: SUIT_COLOR[gameState.currentTrick.cards[0].card.suit] }}>
+                  {SUIT_ICON[gameState.currentTrick.cards[0].card.suit]} {SUIT_NAME[gameState.currentTrick.cards[0].card.suit]}
+                </Text>
+              </Text>
+            ) : (
+              <Text style={styles.arInfoText}>New trick</Text>
+            )}
+            {gameState.trump && (
+              <Text style={styles.arInfoText}>
+                Trump: <Text style={{ color: SUIT_COLOR[gameState.trump] }}>
+                  {SUIT_ICON[gameState.trump]} {SUIT_NAME[gameState.trump]}
+                </Text>
+              </Text>
+            )}
+            <Text style={styles.arInfoText}>
+              T1 {gameState.scores?.team1 ?? 0} – T2 {gameState.scores?.team2 ?? 0}
+            </Text>
+          </View>
+        )}
+
         {gameState && (
           <View style={styles.scoreBoard}>
             <View style={styles.teamScore}>
@@ -1112,7 +1158,11 @@ const BaazarBlotScreen = ({ navigation }: any) => {
             {gameState.trump && (
               <View style={styles.trumpDisplay}>
                 <Text style={styles.trumpLabel}>Trump</Text>
-                <Text style={styles.trumpSuit}>{SUIT_ICON[gameState.trump]}</Text>
+                <View style={styles.trumpCardFace}>
+                  <Text style={[styles.trumpSuit, { color: SUIT_COLOR[gameState.trump] }]}>
+                    {SUIT_ICON[gameState.trump]}
+                  </Text>
+                </View>
               </View>
             )}
             <View style={styles.teamScore}>
@@ -1126,7 +1176,18 @@ const BaazarBlotScreen = ({ navigation }: any) => {
             </View>
           </View>
         )}
-        
+
+        {/* Turn indicator — shown during playing phase, below scoreboard */}
+        {gameState?.phase === 'playing' && (
+          <Text style={styles.turnIndicatorText}>
+            {gameState.currentPlayer === 0
+              ? '★ Your Turn (Team 1)'
+              : `${playerName(gameState.currentPlayer)}'s Turn (Team ${
+                  gameState.players[gameState.currentPlayer].team
+                })`}
+          </Text>
+        )}
+
         <View style={styles.body}>{renderContent()}</View>
       </SafeAreaView>
       </View>
@@ -1137,7 +1198,7 @@ const BaazarBlotScreen = ({ navigation }: any) => {
         dealerPosition={{ x: dealerCenterX, y: dealerCenterY }}
         cardsPerPlayer={8}
         theme={customTheme as any}
-        onComplete={() => setShowDealAnimation(false)}
+        onComplete={() => { setShowDealAnimation(false); setDealRevealReady(true); }}
       />
 
       <CardCustomizationModal
@@ -1390,26 +1451,49 @@ const styles = StyleSheet.create({
   },
   trumpDisplay: {
     flex: 1,
-    maxWidth: 70,
-    maxHeight: 98,
+    maxWidth: 80,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(26, 92, 63, 0.9)',
-    padding: 12,
+    backgroundColor: 'transparent',
+    paddingVertical: 4,
+  },
+  trumpCardFace: {
+    backgroundColor: '#ffffff',
     borderRadius: 8,
+    borderWidth: 1.5,
+    borderColor: '#ddd',
+    width: 52,
+    height: 70,
+    alignItems: 'center',
+    justifyContent: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.25,
     shadowRadius: 4,
     elevation: 4,
   },
   trumpLabel: {
-    fontSize: 12,
+    fontSize: 11,
+    fontWeight: '600',
     color: '#fff',
-    marginBottom: 4,
+    marginBottom: 5,
+    textShadowColor: 'rgba(0,0,0,0.6)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   trumpSuit: {
-    fontSize: 32,
+    fontSize: 34,
+    lineHeight: 38,
+  },
+  turnIndicatorText: {
+    color: '#FFD700',
+    fontSize: 15,
+    fontWeight: '700',
+    textAlign: 'center',
+    paddingVertical: 6,
+    textShadowColor: 'rgba(0,0,0,0.7)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
   bidInfo: {
     fontSize: 10,
@@ -1527,9 +1611,10 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'transparent',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 16,
-    paddingBottom: 16,
+    justifyContent: 'flex-end',
+    paddingHorizontal: 8,
+    paddingBottom: 20,
+    paddingTop: 8,
   },
   handLabel: {
     fontSize: 16,
@@ -1538,9 +1623,9 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     textAlign: 'center',
   },
-  cardWrapper: { borderRadius: 6 },
-  cardLegal: { opacity: 1, transform: [{ translateY: -4 }] },
-  cardDimmed: { opacity: 0.45 },
+  cardWrapper: { borderRadius: 12, overflow: 'hidden' },
+  cardLegal: { opacity: 1, transform: [{ translateY: -6 }] },
+  cardDimmed: { opacity: 0.4 },
   roundMsg: {
     color: '#fff',
     fontSize: 15,
@@ -1622,7 +1707,9 @@ const styles = StyleSheet.create({
   panelPlayerName: { fontSize: 14, fontWeight: '600', color: '#fff' },
   panelTeamBadge: { alignSelf: 'flex-start', borderRadius: 6, borderWidth: 1, paddingHorizontal: 8, paddingVertical: 2 },
   panelTeamText: { fontSize: 11, fontWeight: '700' },
-  recenterBtn: { position:'absolute', bottom:90, alignSelf:'center', left:'50%', transform:[{translateX:-54}], flexDirection:'row', alignItems:'center', gap:6, backgroundColor:'rgba(0,0,0,0.35)', borderWidth:1, borderColor:'rgba(255,255,255,0.25)', borderRadius:24, paddingHorizontal:18, paddingVertical:10 },
+  arInfoStrip: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 18, paddingVertical: 10, paddingHorizontal: 20, backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 14, marginHorizontal: 16, marginBottom: 8, marginTop: 4 },
+  arInfoText: { color: '#fff', fontSize: 14, fontWeight: '600' },
+  recenterBtn: { position:'absolute', top:100, left:12, flexDirection:'row', alignItems:'center', gap:6, backgroundColor:'rgba(0,0,0,0.45)', borderWidth:1, borderColor:'rgba(255,255,255,0.25)', borderRadius:24, paddingHorizontal:16, paddingVertical:9 },
   recenterIcon: { fontSize:20, color:'#fff' },
   recenterLabel: { fontSize:13, color:'#fff', fontWeight:'600', letterSpacing:0.3 },
 });

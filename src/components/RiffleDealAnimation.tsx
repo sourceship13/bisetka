@@ -334,7 +334,7 @@ export const RiffleDealAnimation: React.FC<RiffleDealAnimationProps> = ({
                   opacity: anim.opacity,
                 },
               ]}>
-                <Card3D suit="spades" rank="A" faceDown={true} size={44} />
+                <Card3D suit="spades" rank="A" faceDown={true} size={100} />
             </Animated.View>
           ))}
         </View>
@@ -360,7 +360,7 @@ export const RiffleDealAnimation: React.FC<RiffleDealAnimationProps> = ({
                   opacity: anim.opacity,
                 },
               ]}>
-              <Card3D suit="spades" rank="A" faceDown={true} size={44} />
+              <Card3D suit="spades" rank="A" faceDown={true} size={100} />
             </Animated.View>
           ))}
         </View>
@@ -388,7 +388,7 @@ export const RiffleDealAnimation: React.FC<RiffleDealAnimationProps> = ({
               opacity: anim.opacity,
             },
           ]}>
-          <Card3D suit="spades" rank="A" faceDown={true} size={44} />
+          <Card3D suit="spades" rank="A" faceDown={true} size={100} />
         </Animated.View>
       ))}
     </View>
@@ -418,27 +418,27 @@ const styles = StyleSheet.create({
   },
   dealerArea: {
     position: 'absolute',
-    width: 80,
-    height: 100,
+    width: 110,
+    height: 145,
     justifyContent: 'center',
     alignItems: 'center',
   },
   deckStack: {
     position: 'absolute',
-    width: 60,
-    height: 80,
+    width: 100,
+    height: 135,
     justifyContent: 'center',
     alignItems: 'center',
   },
   cardWrapper: {
     position: 'absolute',
-    width: 60,
-    height: 80,
+    width: 100,
+    height: 135,
   },
   dealingCard: {
     position: 'absolute',
-    width: 60,
-    height: 80,
+    width: 100,
+    height: 135,
   },
 });
 
