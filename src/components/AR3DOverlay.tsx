@@ -153,6 +153,7 @@ const GLB_ASSET_MAP: Record<string, any> = {
   'glb/game_boards/rounded_table_panel_v4.glb': require('../../assets/glb/game_boards/rounded_table_panel_v4.glb'),
   'glb/game_boards/rounded_table_panel.glb':    require('../../assets/glb/game_boards/rounded_table_panel.glb'),
   'glb/chess/chess-board/source/ui.glb':        require('../../assets/glb/chess/chess-board/source/ui.glb'),
+  'glb/chess/chess-board/source/armenian_board.glb': require('../../assets/glb/chess/chess-board/source/armenian_board.glb'),
   'glb/chess/pieces/white_pawn.glb':            require('../../assets/glb/chess/pieces/white_pawn.glb'),
   'glb/chess/pieces/white_knight.glb':          require('../../assets/glb/chess/pieces/white_knight.glb'),
   'glb/chess/pieces/white_bishop.glb':          require('../../assets/glb/chess/pieces/white_bishop.glb'),
@@ -271,6 +272,8 @@ function buildSceneHTML(
   pieceColorBlack: number,
   cardUri:    string | null,
   cardBackUri: string | null,
+  localThreePath: string | null = null,
+  localGltfPath:  string | null = null,
 ): string {
   const BOARD_URI_JS  = boardUri  ? JSON.stringify(boardUri)  : 'null';
   const PIECES_URI_JS = piecesUri ? JSON.stringify(piecesUri) : 'null';
@@ -313,10 +316,21 @@ window.addEventListener('unhandledrejection', function(e) {
   if (window.ReactNativeWebView) window.ReactNativeWebView.postMessage(JSON.stringify({type:'log',msg:info}));
 });
 </script>
+${localThreePath && localGltfPath ? `
+<script type="importmap">
+{"imports":{"three":"${localThreePath}","three/examples/jsm/loaders/GLTFLoader.js":"${localGltfPath}","three/addons/loaders/GLTFLoader.js":"${localGltfPath}"}}
+</script>
+` : ''}
 <script type="module">
+${localThreePath && localGltfPath ? `
+import * as THREE from '${localThreePath}';
+import { GLTFLoader } from '${localGltfPath}';
+const DRACOLoader = class { setDecoderPath(){return this;} preload(){return this;} dispose(){} };
+` : `
 import * as THREE from 'https://esm.sh/three@0.166.1';
 import { GLTFLoader } from 'https://esm.sh/three@0.166.1/examples/jsm/loaders/GLTFLoader';
 import { DRACOLoader } from 'https://esm.sh/three@0.166.1/examples/jsm/loaders/DRACOLoader';
+`}
 
 // ── Shared mutable state (updated by injectJavaScript) ───────────────────────
 // Use || so that if injectJavaScript already set window._att with the live gyro
@@ -356,14 +370,24 @@ const camRim = new THREE.DirectionalLight(0xffe0a0, 0.28);
 camRim.position.set(0, -1, -3); camera.add(camRim);
 
 // ── World-space constants (1 unit ≈ 1 metre) ─────────────────────────────────
-const BOARD_THICKNESS = 0.045; // slab depth — pieces must sit above BOARD_THICKNESS/2
-const BOARD_HALF   = 0.35;  // 70 cm half-width (fits on 1.8m table)
+const BOARD_THICKNESS = 0.045;
+const BOARD_HALF   = 0.35;
 const BOARD_HALF_W = BOARD_HALF;
 const BOARD_HALF_H = BOARD_HALF;
-const SQUARE_W     = (BOARD_HALF_W * 2) / 8;
+// armenian_board.glb geometry (measured from GLB accessors + 2048px texture scan):
+// GLB local: top quad -0.5..0.5, bevel extends to -0.53..0.53 => max dim = 1.06
+// scale = BOARD_HALF_W*2 / 1.06 = 0.70/1.06 = 0.6604
+// top face world half = 0.5 * 0.6604 = 0.3302m
+// Texture field: px 236..1814 of 2048 => UV 0.1152..0.8857
+// Field world half = (0.8857-0.5) * 0.6604 = 0.2544m  (col axis)
+// Per square = 0.2544*2/8 = 0.0636m
+const FIELD_HALF_W = 0.2544;
+const FIELD_HALF_H = FIELD_HALF_W;
+const SQUARE_W     = (FIELD_HALF_W * 2) / 8;  // 0.0636m per square
 const SQUARE_H     = SQUARE_W;
-const PIECE_SCALE  = SQUARE_W * 0.80;
-const BOARD_Y    = -0.65;  // chest level (approx 65cm below eye level)
+const PIECE_SCALE  = SQUARE_W * 0.60;          // 60% of square — clear gap on all 4 sides
+const FIELD_RAISE  = 0.01270;                   // 1/2 inch raise — visible sides from camera angle
+const BOARD_Y    = -1.10;  // table height — lower so sides visible when tilting phone
 
 // ── Dynamic TABLE_DIST: closest distance where board corners fit in view ──────
 // hFov derived from vFov + aspect ratio so it adapts to every screen/orientation.
@@ -410,8 +434,8 @@ function handleTap(clientX, clientY) {
   // Convert world hit point → boardGroup local space
   boardGroup.updateWorldMatrix(true, false);
   const lp = boardGroup.worldToLocal(hits[0].point.clone());
-  const col = Math.floor((lp.x + BOARD_HALF_W) / SQUARE_W);
-  const row = Math.floor((BOARD_HALF_H - lp.y) / SQUARE_H);
+  const col = Math.floor((lp.x + FIELD_HALF_W) / SQUARE_W);
+  const row = Math.floor((FIELD_HALF_H - lp.y) / SQUARE_H);
   if (row >= 0 && row < 8 && col >= 0 && col < 8) {
     if (window.ReactNativeWebView) {
       window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'tap', row, col }));
@@ -437,7 +461,7 @@ function buildProceduralBoard() {
   const sqGeo = new THREE.PlaneGeometry(SQUARE_W*0.97, SQUARE_H*0.97);
   for (let r=0;r<8;r++) for (let c=0;c<8;c++) {
     const sq = new THREE.Mesh(sqGeo, (r+c)%2===0 ? lMat : dMat);
-    sq.position.set(-BOARD_HALF_W+(c+0.5)*SQUARE_W, BOARD_HALF_H-(r+0.5)*SQUARE_H, THICKNESS/2+0.001);
+    sq.position.set(-FIELD_HALF_W+(c+0.5)*SQUARE_W, FIELD_HALF_H-(r+0.5)*SQUARE_H, THICKNESS/2+0.001);
     boardGroup.add(sq);
   }
   const rimLine = new THREE.LineSegments(
@@ -494,12 +518,23 @@ if (BOARD_URI) {
     const box    = new THREE.Box3().setFromObject(model);
     const size   = box.getSize(new THREE.Vector3());
     const center = box.getCenter(new THREE.Vector3());
-    const scale  = (BOARD_HALF_W * 2) / Math.max(size.x, size.y, 0.001);
+    // Use the largest horizontal dimension (X or Z after rotation) for scale.
+    // For XY-flat boards (isXYFlat=true, no extra rotation) size.x/size.y are the board dims.
+    // For Y-up boards (isXYFlat=false, +π/2 applied) size.x/size.z are board dims.
+    // Always exclude the thin dimension by using max of all three — the thin one is ~10x smaller.
+    const scale  = (BOARD_HALF_W * 2) / Math.max(size.x, size.y, size.z, 0.001);
     model.scale.setScalar(scale);
     model.updateMatrixWorld(true);
     const box2   = new THREE.Box3().setFromObject(model);
     const ctr2   = box2.getCenter(new THREE.Vector3());
-    model.position.set(-ctr2.x, -ctr2.y, -(box2.min.z) + 0.001);
+    // For XY-flat boards: top face is at Z=+T (local), bottom at Z=-T.
+    // Center the board in XY and position top face flush with Z=0 of boardGroup.
+    if (isXYFlat) {
+      // XY centered, top face (Z=max) sits at Z=0+epsilon so it faces up
+      model.position.set(-ctr2.x, -ctr2.y, -box2.max.z + 0.001);
+    } else {
+      model.position.set(-ctr2.x, -ctr2.y, -(box2.min.z) + 0.001);
+    }
     model.traverse(ch => {
       if (ch.isMesh) {
         ch.receiveShadow = true;
@@ -508,13 +543,68 @@ if (BOARD_URI) {
           if (m) {
             m.roughness = Math.max((m.roughness||0.5)*0.8, 0.35);
             m.side = THREE.DoubleSide; // visible regardless of face orientation
+            // Enable anisotropic filtering on all textures — prevents blur at oblique angles
+            const texSlots = ['map','normalMap','roughnessMap','metalnessMap','aoMap'];
+            texSlots.forEach(slot => {
+              const tex = m[slot];
+              if (tex) {
+                tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+                tex.needsUpdate = true;
+              }
+            });
           }
         });
       }
     });
     boardGroup.add(model);
+
+    // ── Raised checkerboard platform ─────────────────────────────────────
+    // Black marble plinth that runs full height of the board + the raise,
+    // so the checkerboard surface looks inset/elevated above the border frame.
+    // boardGroup is XZ-horizontal (rotation.x=-PI/2), so local Z = world up.
+    //
+    // Board Z extents in boardGroup local space:
+    //   bottom = -BOARD_THICKNESS/2
+    //   top    = +BOARD_THICKNESS/2   (the GLB surface)
+    //   raised = +BOARD_THICKNESS/2 + FIELD_RAISE  (checkerboard face)
+    //
+    // Plinth spans from bottom of board all the way up to checkerboard face.
+    const _boardBottom = -BOARD_THICKNESS / 2;
+    const _raisedTop   = BOARD_THICKNESS / 2 + FIELD_RAISE;
+    const _plinthH     = _raisedTop - _boardBottom;  // full height
+    const _plinthZ     = _boardBottom + _plinthH / 2; // centre Z
+
+    // 1) Black marble plinth — full-height slab, sides all visible
+    const _woodMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.25, metalness: 0.45 });
+    const _slabGeo = new THREE.BoxGeometry(FIELD_HALF_W * 2, FIELD_HALF_H * 2, _plinthH);
+    const _slabMesh = new THREE.Mesh(_slabGeo, _woodMat);
+    _slabMesh.position.set(0, 0, _plinthZ);
+    _slabMesh.receiveShadow = true;
+    boardGroup.add(_slabMesh);
+
+    // 2) Checkerboard plane — sits exactly on top of the slab, no sides
+    const _cvs = document.createElement('canvas');
+    _cvs.width = 512; _cvs.height = 512;
+    const _ctx = _cvs.getContext('2d');
+    const _sqPx = 512 / 8;
+    for (let _r = 0; _r < 8; _r++) {
+      for (let _c = 0; _c < 8; _c++) {
+        _ctx.fillStyle = (_r + _c) % 2 === 0 ? '#c8b484' : '#5a3010';
+        _ctx.fillRect(_c * _sqPx, _r * _sqPx, _sqPx, _sqPx);
+      }
+    }
+    const _tex = new THREE.CanvasTexture(_cvs);
+    _tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    const _topMat = new THREE.MeshStandardMaterial({ map: _tex, roughness: 0.55, metalness: 0.04 });
+    const _topGeo = new THREE.PlaneGeometry(FIELD_HALF_W * 2, FIELD_HALF_H * 2);
+    const _topMesh = new THREE.Mesh(_topGeo, _topMat);
+    _topMesh.position.set(0, 0, _raisedTop + 0.0001); // just above plinth top
+    _topMesh.receiveShadow = true;
+    boardGroup.add(_topMesh);
+
+    // GLB loaded successfully — cancel the procedural fallback timer
     clearTimeout(_boardTimer); _boardDone = true;
-    _rnLog('[AR3D-HTML] Board GLB loaded OK');
+    _rnLog('[AR3D-HTML] Board GLB loaded OK.');
   }, undefined, (err) => {
     clearTimeout(_boardTimer); _boardDone = true;
     _rnLog('[AR3D-HTML] Board GLB FAILED: ' + (err && err.message ? err.message : String(err)));
@@ -1085,9 +1175,9 @@ const pieceState  = {};
 
 function boardToLocal(row, col) {
   return [
-    -BOARD_HALF_W + (col + 0.5) * SQUARE_W,
-     BOARD_HALF_H - (row + 0.5) * SQUARE_H,
-     BOARD_THICKNESS / 2 + 0.010,  // above the top face of the slab
+    -FIELD_HALF_W + (col + 0.5) * SQUARE_W,
+     FIELD_HALF_H - (row + 0.5) * SQUARE_H,
+     BOARD_THICKNESS / 2 + 0.010 + FIELD_RAISE,  // above board + 1/4" raised field
   ];
 }
 
@@ -1155,7 +1245,7 @@ function updateDots(moves) {
   for (const m of (moves||[])) {
     const d = new THREE.Mesh(dotGeo, dotMat);
     const loc = boardToLocal(m.row, m.col);
-    d.position.set(loc[0], loc[1], 0.018);
+    d.position.set(loc[0], loc[1], BOARD_THICKNESS / 2 + FIELD_RAISE + 0.002);
     dotMeshes.push(d);
     boardGroup.add(d);
   }
@@ -1317,6 +1407,11 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
     prevVisibleRef.current = visible;
   }, [visible]);
 
+  // ── Copy bundled Three.js files to temp dir once on mount ─────────────────
+  // Use CDN for Three.js — null means "use CDN" in buildSceneHTML
+  const localThreePath: string | null = null;
+  const localGltfPath:  string | null = null;
+
   const [boardUri,  setBoardUri]  = useState<string | null | undefined>(boardGlbPath  ? undefined : null);
   const [piecesUri, setPiecesUri] = useState<string | null | undefined>(piecesGlbPath ? undefined : null);
   const [chessPieceUris, setChessPieceUris] = useState<Record<string, string | null> | undefined>(
@@ -1388,16 +1483,19 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
   useEffect(() => {
   }, [boardUri, piecesUri, chessPieceUris, cardUri, cardBackUri, spawnYaw]);
 
-  // Build HTML once board + pieces URIs are resolved AND spawn yaw is captured.
-  // Table is always embedded so we don't block on tableUri.
+  // Build HTML once board + pieces URIs are resolved and spawn yaw is captured.
   const htmlString = useMemo(() => {
     if (boardUri === undefined || piecesUri === undefined) return null;
     if (chessPieceUris === undefined) return null;
     if (cardUri === undefined || cardBackUri === undefined) return null;
     if (spawnYaw === null) return null;
-    const redInt   = parseInt(pieceColorRed.replace(/^#/, ''), 16);
-    const blackInt  = parseInt(pieceColorBlack.replace(/^#/, ''), 16);
-    const result = buildSceneHTML(fov, boardUri, piecesUri, chessPieceUris, tableUri ?? null, spawnYaw, redInt, blackInt, cardUri ?? null, cardBackUri ?? null);
+    const redInt  = parseInt(pieceColorRed.replace(/^#/, ''), 16);
+    const blackInt = parseInt(pieceColorBlack.replace(/^#/, ''), 16);
+    const result = buildSceneHTML(
+      fov, boardUri, piecesUri, chessPieceUris, tableUri ?? null, spawnYaw,
+      redInt, blackInt, cardUri ?? null, cardBackUri ?? null,
+      localThreePath, localGltfPath,
+    );
     return result;
   }, [fov, boardUri, piecesUri, chessPieceUris, tableUri, spawnYaw, cardUri, cardBackUri]);
 
@@ -1412,7 +1510,7 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
     // Same URL = cached HTML = stale spawnYaw baked in = locked rotation on game 2+.
     const sessionId = htmlFileUriKeyRef.current;
     htmlFileUriKeyRef.current += 1;
-    const filePath = `${RNFS.TemporaryDirectoryPath}ar_scene_${sessionId}.html`;
+    const filePath = `${RNFS.TemporaryDirectoryPath}ar_scene_${sessionId}_${Date.now()}.html`;
     RNFS.writeFile(filePath, htmlString, 'utf8')
       .then(() => {
         setHtmlFileUri(`file://${filePath}`);

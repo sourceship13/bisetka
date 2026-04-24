@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
-import AchievementUnlockModal from '../components/AchievementUnlockModal';
+import AchievementUnlockModal from '../components/Games/AchievementUnlockModal';
 
 interface Achievement {
   achievement_id: string;

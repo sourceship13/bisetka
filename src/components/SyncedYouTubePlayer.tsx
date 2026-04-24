@@ -143,7 +143,7 @@ export default function SyncedYouTubePlayer({
   const webViewRef = useRef<WebView>(null);
 
   const [expanded, setExpanded]       = useState(true);
-  const [activeTab, setActiveTab]     = useState<Tab>('player');
+  const [activeTab, setActiveTab]     = useState<Tab>('search');
   const [playerReady, setPlayerReady] = useState(false);
   const [currentItem, setCurrentItem] = useState<QueueItem | null>(null);
   const [embedStartTime, setEmbedStartTime] = useState(0);
