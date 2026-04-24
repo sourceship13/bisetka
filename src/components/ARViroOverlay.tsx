@@ -1,11 +1,9 @@
 /**
  * ARViroOverlay.tsx
  *
- * VR-mode overlay: renders pano2.jpg photosphere as background + Armenian
- * checkers board (GLB) floating at table distance in front of the player.
- * Gyro head-tracking lets the user look around the 360 room.
- *
- * Drop-in replacement: same props + ref API as AR3DOverlay.
+ * Uses ViroARSceneNavigator + ViroARScene (the only stable navigator on this build).
+ * Viro360Image sets the background sphere — overlays on the AR camera feed.
+ * GLB board floats at BOARD_POS in front of the user.
  */
 
 import React, {
@@ -23,17 +21,16 @@ import {
   Viro360Image,
   Viro3DObject,
   ViroAmbientLight,
+  ViroARScene,
+  ViroARSceneNavigator,
   ViroBox,
   ViroMaterials,
   ViroNode,
   ViroQuad,
-  ViroScene,
-  ViroCamera,
-  ViroSceneNavigator,
   ViroSpotLight,
 } from '@viro-community/react-viro';
 
-// ── Types (mirrored from AR3DOverlay) ─────────────────────────────────────────
+// ── Types ─────────────────────────────────────────────────────────────────────
 export interface ARPiece {
   key: string;
   row: number;
@@ -63,15 +60,14 @@ interface Props {
 }
 
 // ── Board geometry constants ───────────────────────────────────────────────────
-// armenian_board.glb: bevel extends to +-0.53, scale to 0.70m world
 const BOARD_SIZE  = 0.70;
 const FIELD_HALF  = 0.2544;
 const SQUARE      = (FIELD_HALF * 2) / 8;   // 0.0636m per square
 const BOARD_THICK = 0.045 * (0.70 / 1.06);  // ~0.0297m after scale
-const PIECE_Y     = BOARD_THICK + 0.018;     // piece sits above board surface
+const PIECE_Y     = BOARD_THICK + 0.018;
 
-// Board position in VR space: straight ahead at table height
-const BOARD_POS: [number, number, number] = [0, -0.5, -1.5];
+// Board position: straight ahead at comfortable viewing distance
+const BOARD_POS: [number, number, number] = [0, -0.85, -1.6];
 
 // ── Materials ─────────────────────────────────────────────────────────────────
 let _materialsRegistered = false;
@@ -80,13 +76,13 @@ function registerMaterials() {
   _materialsRegistered = true;
   try {
     ViroMaterials.createMaterials({
-      redPiece:          { diffuseColor: '#cc2222', roughness: 0.4, metalness: 0.2 },
-      blackPiece:        { diffuseColor: '#111111', roughness: 0.4, metalness: 0.25 },
-      redPieceSelected:  { diffuseColor: '#ff6644', roughness: 0.3, metalness: 0.3 },
-      blackPieceSelected:{ diffuseColor: '#4444cc', roughness: 0.3, metalness: 0.3 },
-      moveDot:           { diffuseColor: 'rgba(255,255,255,0.7)', roughness: 1.0, blendMode: 'Alpha' },
-      lightSquare:       { diffuseColor: '#c8b484', roughness: 0.55 },
-      darkSquare:        { diffuseColor: '#5a3010', roughness: 0.55 },
+      redPiece:           { diffuseColor: '#cc2222', roughness: 0.4, metalness: 0.2 },
+      blackPiece:         { diffuseColor: '#111111', roughness: 0.4, metalness: 0.25 },
+      redPieceSelected:   { diffuseColor: '#ff6644', roughness: 0.3, metalness: 0.3 },
+      blackPieceSelected: { diffuseColor: '#4444cc', roughness: 0.3, metalness: 0.3 },
+      moveDot:            { diffuseColor: 'rgba(255,255,255,0.7)', roughness: 1.0, blendMode: 'Alpha' },
+      lightSquare:        { diffuseColor: '#c8b484', roughness: 0.55 },
+      darkSquare:         { diffuseColor: '#5a3010', roughness: 0.55 },
     });
   } catch (e) {
     console.warn('[ARViroOverlay] createMaterials failed:', e);
@@ -114,7 +110,6 @@ function CheckerPiece({ piece }: { piece: ARPiece }) {
   const mat = piece.color === 'red'
     ? (isSelected ? 'redPieceSelected' : 'redPiece')
     : (isSelected ? 'blackPieceSelected' : 'blackPiece');
-
   const scale: [number, number, number] = [SQUARE * 0.55, SQUARE * 0.18, SQUARE * 0.55];
   const yPos = isSelected ? y + 0.02 : y;
 
@@ -125,7 +120,7 @@ function CheckerPiece({ piece }: { piece: ARPiece }) {
         <ViroBox
           position={[0, SQUARE * 0.20, 0]}
           scale={[SQUARE * 0.30, SQUARE * 0.09, SQUARE * 0.30]}
-          materials={['lightSquare', 'lightSquare', 'lightSquare', 'lightSquare', 'lightSquare', 'lightSquare']}
+          materials={['lightSquare','lightSquare','lightSquare','lightSquare','lightSquare','lightSquare']}
         />
       )}
     </ViroNode>
@@ -146,35 +141,31 @@ function MoveDot({ row, col }: { row: number; col: number }) {
   );
 }
 
-// ── VR Scene ──────────────────────────────────────────────────────────────────
+// ── AR Scene ──────────────────────────────────────────────────────────────────
 interface SceneProps {
   sceneNavigator: {
     viroAppProps: {
       pieces: ARPiece[];
       moves: ARMove[];
       onSquareTap?: (row: number, col: number) => void;
-      boardUri: string | null;
+      boardUri: string | null | undefined;
       panoramaSource?: number;
     };
   };
 }
 
-function CheckersVRScene({ sceneNavigator }: SceneProps) {
+function CheckersARScene({ sceneNavigator }: SceneProps) {
   registerMaterials();
 
   const { pieces, moves, onSquareTap, boardUri, panoramaSource } =
     sceneNavigator.viroAppProps;
 
-  console.log('[ARViroOverlay] scene mounted, panoramaSource:', panoramaSource, 'boardUri:', boardUri);
+  console.log('[ARViroOverlay] scene boardUri:', boardUri, 'pano:', !!panoramaSource);
 
   const handleBoardTap = useCallback(
     (position: [number, number, number], _source: any) => {
       if (!onSquareTap) return;
-      // position is in VR world space; board sits at BOARD_POS with -90 X rotation
-      // In the rotated frame: world X -> local X, world Y -> local -Z
       const localX = position[0] - BOARD_POS[0];
-      // After -90 X rotation, the board's local Z maps to world -Y
-      // Tap position[1] relative to board = local Z (inverted)
       const localZ = -(position[1] - BOARD_POS[1]);
       const sq = worldToSquare(localX, localZ);
       if (sq) onSquareTap(sq.row, sq.col);
@@ -183,16 +174,13 @@ function CheckersVRScene({ sceneNavigator }: SceneProps) {
   );
 
   return (
-    <ViroScene>
-      {/* Camera with gyro head-tracking so tilting phone pans the 360 room */}
-      <ViroCamera position={[0, 0, 0]} active />
-
-      {/* 360 photosphere environment */}
+    <ViroARScene>
+      {/* 360 photosphere — sets background sphere on the AR portal */}
       <Viro360Image
         source={panoramaSource ?? require('../../assets/backgrounds/capture360/pano2.jpg')}
-        onLoadStart={() => console.log('[ARViroOverlay] Viro360Image load start')}
-        onLoadEnd={() => console.log('[ARViroOverlay] Viro360Image load end')}
-        onError={(e: any) => console.error('[ARViroOverlay] Viro360Image error:', e)}
+        onLoadStart={() => console.log('[ARViroOverlay] 360 load start')}
+        onLoadEnd={()   => console.log('[ARViroOverlay] 360 load end')}
+        onError={(e: any) => console.error('[ARViroOverlay] 360 error:', e)}
       />
 
       <ViroAmbientLight color="#ffffff" intensity={400} />
@@ -207,36 +195,34 @@ function CheckersVRScene({ sceneNavigator }: SceneProps) {
         castsShadow
       />
 
-      {/* Board group — lay flat with -90 X rotation */}
-      <ViroNode position={BOARD_POS} rotation={[-90, 0, 0]}>
-        {/* GLB board — only renders when URI is resolved */}
-        {boardUri ? (
+      {/* Board node */}
+      <ViroNode position={BOARD_POS}>
+        {/* GLB — only mount once URI is resolved (undefined = still loading) */}
+        {boardUri !== undefined && boardUri !== null && (
           <Viro3DObject
             source={{ uri: boardUri }}
             type="GLB"
             scale={[BOARD_SIZE, BOARD_SIZE, BOARD_SIZE]}
+            rotation={[-90, 0, 0]}
             onClick={handleBoardTap}
+            onLoadStart={() => console.log('[ARViroOverlay] GLB load start')}
+            onLoadEnd={()   => console.log('[ARViroOverlay] GLB load end')}
+            onError={(e: any) => console.error('[ARViroOverlay] GLB error:', e)}
           />
-        ) : (
-          // Thin fallback box while GLB loads
+        )}
+        {/* Fallback box shown while GLB resolves or if no path given */}
+        {(boardUri === undefined || boardUri === null) && (
           <ViroBox
             scale={[BOARD_SIZE, BOARD_THICK, BOARD_SIZE]}
-            materials={['darkSquare', 'darkSquare', 'darkSquare', 'darkSquare', 'darkSquare', 'darkSquare']}
+            materials={['darkSquare','darkSquare','darkSquare','darkSquare','darkSquare','darkSquare']}
             onClick={handleBoardTap}
           />
         )}
 
-        {/* Pieces */}
-        {(pieces ?? []).map(p => (
-          <CheckerPiece key={p.key} piece={p} />
-        ))}
-
-        {/* Move dots */}
-        {(moves ?? []).map(m => (
-          <MoveDot key={`dot_${m.row}_${m.col}`} row={m.row} col={m.col} />
-        ))}
+        {(pieces ?? []).map(p => <CheckerPiece key={p.key} piece={p} />)}
+        {(moves  ?? []).map(m => <MoveDot key={`dot_${m.row}_${m.col}`} row={m.row} col={m.col} />)}
       </ViroNode>
-    </ViroScene>
+    </ViroARScene>
   );
 }
 
@@ -254,6 +240,7 @@ const ARViroOverlay = forwardRef<AR3DOverlayHandle, Props>(function ARViroOverla
     [],
   );
 
+  // undefined = still resolving, null = no path/failed, string = ready
   const [boardUri, setBoardUri] = useState<string | null | undefined>(
     boardGlbPath ? undefined : null,
   );
@@ -270,12 +257,11 @@ const ARViroOverlay = forwardRef<AR3DOverlayHandle, Props>(function ARViroOverla
 
   useImperativeHandle(ref, () => ({ recenter() {} }));
 
-  // All hooks must be before early returns
   const viroAppProps = useMemo(() => ({
     pieces,
     moves,
     onSquareTap: stableOnSquareTap,
-    boardUri: boardUri ?? null,
+    boardUri,
     panoramaSource,
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [pieces, moves, boardUri, panoramaSource]);
@@ -284,11 +270,10 @@ const ARViroOverlay = forwardRef<AR3DOverlayHandle, Props>(function ARViroOverla
 
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
-      {/* Mount immediately — scene shows pano right away; board updates when GLB resolves */}
-      <ViroSceneNavigator
+      <ViroARSceneNavigator
         ref={navigatorRef}
-        vrModeEnabled={false}
-        initialScene={{ scene: CheckersVRScene as unknown as any }}
+        autofocus
+        initialScene={{ scene: CheckersARScene as unknown as any }}
         viroAppProps={viroAppProps}
         style={StyleSheet.absoluteFill}
       />
