@@ -9,21 +9,18 @@
 import React, {
   forwardRef,
   useCallback,
-  useEffect,
   useImperativeHandle,
   useMemo,
   useRef,
-  useState,
 } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { resolveAssetUri } from '../utils/resolveAssetUri';
 import {
   Viro360Image,
   Viro3DObject,
   ViroAmbientLight,
+  ViroBox,
   ViroARScene,
   ViroARSceneNavigator,
-  ViroBox,
   ViroMaterials,
   ViroNode,
   ViroQuad,
@@ -148,7 +145,6 @@ interface SceneProps {
       pieces: ARPiece[];
       moves: ARMove[];
       onSquareTap?: (row: number, col: number) => void;
-      boardUri: string | null | undefined;
       panoramaSource?: number;
     };
   };
@@ -157,10 +153,10 @@ interface SceneProps {
 function CheckersARScene({ sceneNavigator }: SceneProps) {
   registerMaterials();
 
-  const { pieces, moves, onSquareTap, boardUri, panoramaSource } =
+  const { pieces, moves, onSquareTap, panoramaSource } =
     sceneNavigator.viroAppProps;
 
-  console.log('[ARViroOverlay] scene boardUri:', boardUri, 'pano:', !!panoramaSource);
+  console.log('[ARViroOverlay] scene mounted, pano:', !!panoramaSource);
 
   const handleBoardTap = useCallback(
     (position: [number, number, number], _source: any) => {
@@ -197,27 +193,17 @@ function CheckersARScene({ sceneNavigator }: SceneProps) {
 
       {/* Board node */}
       <ViroNode position={BOARD_POS}>
-        {/* GLB — only mount once URI is resolved (undefined = still loading) */}
-        {boardUri !== undefined && boardUri !== null && (
-          <Viro3DObject
-            source={{ uri: boardUri }}
-            type="GLB"
-            scale={[BOARD_SIZE, BOARD_SIZE, BOARD_SIZE]}
-            rotation={[-90, 0, 0]}
-            onClick={handleBoardTap}
-            onLoadStart={() => console.log('[ARViroOverlay] GLB load start')}
-            onLoadEnd={()   => console.log('[ARViroOverlay] GLB load end')}
-            onError={(e: any) => console.error('[ARViroOverlay] GLB error:', e)}
-          />
-        )}
-        {/* Fallback box shown while GLB resolves or if no path given */}
-        {(boardUri === undefined || boardUri === null) && (
-          <ViroBox
-            scale={[BOARD_SIZE, BOARD_THICK, BOARD_SIZE]}
-            materials={['darkSquare','darkSquare','darkSquare','darkSquare','darkSquare','darkSquare']}
-            onClick={handleBoardTap}
-          />
-        )}
+        {/* GLB board — loaded via require() same as any RN asset, no async download */}
+        <Viro3DObject
+          source={require('../../assets/glb/chess/chess-board/source/armenian_board.glb')}
+          type="GLB"
+          scale={[BOARD_SIZE, BOARD_SIZE, BOARD_SIZE]}
+          rotation={[-90, 0, 0]}
+          onClick={handleBoardTap}
+          onLoadStart={() => console.log('[ARViroOverlay] GLB load start')}
+          onLoadEnd={()   => console.log('[ARViroOverlay] GLB load end')}
+          onError={(e: any) => console.error('[ARViroOverlay] GLB error:', e)}
+        />
 
         {(pieces ?? []).map(p => <CheckerPiece key={p.key} piece={p} />)}
         {(moves  ?? []).map(m => <MoveDot key={`dot_${m.row}_${m.col}`} row={m.row} col={m.col} />)}
@@ -240,31 +226,15 @@ const ARViroOverlay = forwardRef<AR3DOverlayHandle, Props>(function ARViroOverla
     [],
   );
 
-  // undefined = still resolving, null = no path/failed, string = ready
-  const [boardUri, setBoardUri] = useState<string | null | undefined>(
-    boardGlbPath ? undefined : null,
-  );
-
-  useEffect(() => {
-    let cancelled = false;
-    if (!boardGlbPath) { setBoardUri(null); return; }
-    resolveAssetUri(boardGlbPath).then(u => {
-      console.log('[ARViroOverlay] boardUri resolved:', u);
-      if (!cancelled) setBoardUri(u ?? null);
-    });
-    return () => { cancelled = true; };
-  }, [boardGlbPath]);
-
   useImperativeHandle(ref, () => ({ recenter() {} }));
 
   const viroAppProps = useMemo(() => ({
     pieces,
     moves,
     onSquareTap: stableOnSquareTap,
-    boardUri,
     panoramaSource,
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }), [pieces, moves, boardUri, panoramaSource]);
+  }), [pieces, moves, panoramaSource]);
 
   if (!visible) return null;
 
