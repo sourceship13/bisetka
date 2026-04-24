@@ -8,6 +8,34 @@ const backgroundCache = new Map<string, string>();
 const BACKGROUND_STORAGE_KEY = '@bisetka:background-cache:v1';
 const BACKGROUND_CACHE_DIR = `${RNFS.CachesDirectoryPath}/bisetka-backgrounds`;
 
+// ── Startup preload ────────────────────────────────────────────────────────────
+// Warm the in-memory cache from AsyncStorage + validate each file still exists.
+// Stale file:// URIs (after reinstall) are evicted so ImageBackground never
+// gets a dead URI and shows white.
+AsyncStorage.getItem(BACKGROUND_STORAGE_KEY)
+  .then(async stored => {
+    if (!stored) return;
+    const parsed = JSON.parse(stored) as Record<string, PersistedBackgroundCacheEntry>;
+    if (!parsed || typeof parsed !== 'object') return;
+    const validEntries: Record<string, PersistedBackgroundCacheEntry> = {};
+    for (const [key, entry] of Object.entries(parsed)) {
+      if (!entry?.localUri) continue;
+      try {
+        const filePath = entry.localUri.replace('file://', '');
+        const exists = await RNFS.exists(filePath);
+        if (exists) {
+          backgroundCache.set(key, entry.localUri);
+          validEntries[key] = entry;
+        } else {
+          console.log('[useBisetkaBackground] evicting stale cache entry:', key);
+        }
+      } catch { /* skip */ }
+    }
+    // Rewrite storage with only valid entries
+    await AsyncStorage.setItem(BACKGROUND_STORAGE_KEY, JSON.stringify(validEntries));
+  })
+  .catch(() => { /* silent — fallback to default bg */ });
+
 export const DEFAULT_BISETKA_BACKGROUND_PROMPT =
   'a hyperrealistic photo of a bisetka in {locale} and looks really pretty with iconography of {city}';
 
@@ -131,7 +159,13 @@ const useBisetkaBackground = ({
   enabled = true,
   forceReload = false,
 }: UseBisetkaBackgroundOptions) => {
-  const [backgroundUrl, setBackgroundUrl] = useState<string | null>(null);
+  // Lazy initializer: if the startup preloader already warmed backgroundCache
+  // with this cacheKey, use it immediately — first render shows the image.
+  const [backgroundUrl, setBackgroundUrl] = useState<string | null>(() => {
+    if (!cacheKey) return null;
+    const effectiveKey = `${cacheKey}::${promptTemplate}`;
+    return backgroundCache.get(effectiveKey) ?? backgroundCache.get(cacheKey) ?? null;
+  });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -211,12 +245,13 @@ const useBisetkaBackground = ({
         }
       }
 
-      // Show loading state immediately, but don't block UI
+      // Show loading state but DON'T clear the existing background —
+      // keep showing the previous image while the new one loads.
       setIsLoading(true);
       setError(null);
-      setBackgroundUrl(null); // Clear old background while loading
+      // setBackgroundUrl(null) intentionally removed — stale image > blank screen
 
-      console.log('🖼️  [useBisetkaBackground] 🌐 No cache found, calling API...');
+      console.log('\uD83D\uDDBC\uFE0F  [useBisetkaBackground] \uD83C\uDF10 No cache found, calling API...');
       
       // Generate in background (non-blocking)
       (async () => {

@@ -3430,6 +3430,13 @@ PODS:
   - Sentry/Core (9.5.1)
   - SocketRocket (0.7.1)
   - Turf (4.0.0)
+  - ViroKit (1.0):
+    - React
+  - ViroReact (2.54.0):
+    - React-Core
+    - React-Fabric
+    - React-FabricComponents
+    - React-RCTFabric
   - Yoga (0.0.0)
 
 DEPENDENCIES:
@@ -3539,6 +3546,8 @@ DEPENDENCIES:
   - RNVectorIcons (from `../node_modules/react-native-vector-icons`)
   - RNWorklets (from `../node_modules/react-native-worklets`)
   - SocketRocket (~> 0.7.1)
+  - "ViroKit (from `../node_modules/@viro-community/react-viro/ios/dist/ViroRenderer`)"
+  - "ViroReact (from `../node_modules/@viro-community/react-viro/ios`)"
   - Yoga (from `../node_modules/react-native/ReactCommon/yoga`)
 
 SPEC REPOS:
@@ -3771,6 +3780,10 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-vector-icons"
   RNWorklets:
     :path: "../node_modules/react-native-worklets"
+  ViroKit:
+    :path: "../node_modules/@viro-community/react-viro/ios/dist/ViroRenderer"
+  ViroReact:
+    :path: "../node_modules/@viro-community/react-viro/ios"
   Yoga:
     :path: "../node_modules/react-native/ReactCommon/yoga"
 
@@ -3897,8 +3910,10 @@ SPEC CHECKSUMS:
   Sentry: 7475eb7bf6a41d7505f46341706015ad2d1766b9
   SocketRocket: d4aabe649be1e368d1318fdf28a022d714d65748
   Turf: c9eb11a65d96af58cac523460fd40fec5061b081
+  ViroKit: c9c10b089da06a10bb357079729cd7181161b3f8
+  ViroReact: 5cc9dd9536e38f30ec2f5da1a144ebe6ca31c681
   Yoga: 5456bb010373068fc92221140921b09d126b116e
 
-PODFILE CHECKSUM: 0ecf4e1106fb17639de6d2ad64bd480c0ee3bdd1
+PODFILE CHECKSUM: c7425bf2c2493e353f93539bf002b85f9ff11b09
 
 COCOAPODS: 1.16.2

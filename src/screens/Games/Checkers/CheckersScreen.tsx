@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, ImageBackground, Alert, Animated, ScrollView, Image } from 'react-native';
 import Photosphere360Background from '../../../components/Photosphere360Background';
-import AR3DOverlay, { type ARPiece, type AR3DOverlayHandle } from '../../../components/AR3DOverlay';
+import AR3DOverlay, { type ARPiece, type AR3DOverlayHandle } from '../../../components/ARViroOverlay';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import ReAnimated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
@@ -22,6 +22,8 @@ import { useAchievements } from '../../../contexts/AchievementContext';
 import { resolveAvatar } from '../../../utils/avatars';
 import useDeviceType from '../../../hooks/useDeviceType';
 import { getGameBoardSize } from '../../../utils/gameBoardSize';
+
+const PANO_SOURCE = require('../../../../assets/backgrounds/capture360/pano2.jpg');
 
 type PieceType = 'regular' | 'king';
 type PieceColor = 'red' | 'black';
@@ -133,7 +135,7 @@ const CheckersScreen = ({ navigation, route }: any) => {
   const [showMusicPlayer, setShowMusicPlayer] = useState(false);
   const [showBlur, setShowBlur] = useState(true);
   const [showBackground, setShowBackground] = useState(true);
-  const [arEnabled, setArEnabled] = useState(true);
+  const [arEnabled, setArEnabled] = useState(false); // start 2D; tap 🥽 to enter VR mode
   const arOverlayRef = useRef<AR3DOverlayHandle>(null);
   const toolbarExpanded = useSharedValue(false);
   const chevronStyle = useAnimatedStyle(() => ({
@@ -581,16 +583,18 @@ const CheckersScreen = ({ navigation, route }: any) => {
   // ── board render ──────────────────────────────────────────────────────────
   return (
     <View style={styles.container}>
-      <Photosphere360Background overlayOpacity={showBlur ? 0.5 : 0.3}>
-        <AR3DOverlay
-          ref={arOverlayRef}
-          visible={arEnabled}
-          pieces={arPieces}
-          moves={gameState.possibleMoves}
-          onSquareTap={handleArSquareTap}
-          boardGlbPath="glb/chess/chess-board/source/armenian_board.glb"
-        />
-      </Photosphere360Background>
+      {/* Non-AR fallback background */}
+      {!arEnabled && <Photosphere360Background overlayOpacity={showBlur ? 0.5 : 0.3} />}
+      {/* ViroReact VR overlay — photosphere env + GLB board */}
+      <AR3DOverlay
+        ref={arOverlayRef}
+        visible={arEnabled}
+        pieces={arPieces}
+        moves={gameState.possibleMoves}
+        onSquareTap={handleArSquareTap}
+        boardGlbPath="glb/chess/chess-board/source/armenian_board.glb"
+        panoramaSource={PANO_SOURCE}
+      />
       <View style={styles.overlay} pointerEvents="box-none">
         <SafeAreaView style={styles.safeArea} pointerEvents="box-none">
           <View>

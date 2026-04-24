@@ -26,6 +26,11 @@ def shared_pods
   # Explicitly enable modular headers for GoogleUtilities to fix Firebase
   pod 'GoogleUtilities', :modular_headers => true
 
+
+  # ViroReact -- AR/VR scene rendering
+  pod 'ViroReact', :path => '../node_modules/@viro-community/react-viro/ios'
+  pod 'ViroKit', :path => '../node_modules/@viro-community/react-viro/ios/dist/ViroRenderer'
+
   use_react_native!(
     :path => config[:reactNativePath],
     # An absolute path to your application root.
@@ -65,9 +70,9 @@ post_install do |installer|
     # :ccache_enabled => true
   )
 
-  # ── fmt 11.0.2 / Apple Clang (Xcode 26+) fix ──────────────────────────────
+  # -- fmt 11.0.2 / Apple Clang (Xcode 26+) fix ------------------------------
   # Apple Clang in Xcode 26 has broken consteval support that causes
-  # "Call to consteval function … is not a constant expression" errors in
+  # "Call to consteval function ... is not a constant expression" errors in
   # fmt's format-inl.h.  The compiler flag -DFMT_USE_CONSTEVAL=0 alone is
   # not sufficient because base.h's detection logic can still enable it.
   #
@@ -94,7 +99,7 @@ post_install do |installer|
     end
   end
 
-  # ── Build settings for all pod targets ─────────────────────────────────────
+  # -- Build settings for all pod targets -------------------------------------
   installer.pods_project.targets.each do |target|
     target.build_configurations.each do |config|
       # Enforce minimum deployment target for MapboxMaps compatibility
@@ -113,7 +118,7 @@ post_install do |installer|
       end
 
       # Apply fmt consteval fix to every pod target (fmt headers are included
-      # by React-RuntimeHermes, React-jserrorhandler, React-utils, RCT-Folly …)
+      # by React-RuntimeHermes, React-jserrorhandler, React-utils, RCT-Folly ...)
       flags = config.build_settings['OTHER_CPLUSPLUSFLAGS'] || '$(inherited)'
       unless flags.include?('FMT_USE_CONSTEVAL')
         config.build_settings['OTHER_CPLUSPLUSFLAGS'] = "#{flags} -DFMT_USE_CONSTEVAL=0 -DFMT_USE_NONTYPE_TEMPLATE_ARGS=0"
@@ -121,7 +126,36 @@ post_install do |installer|
     end
   end
 
-  # ── JitsiWebRTC / CocoaPods script sandboxing fix (Xcode 15+) ──────────────
+
+  # -- ViroKit framework search path fix --------------------------------------
+  # ViroReact source files use #import <ViroKit/ViroKit.h> (framework-style).
+  # The xcconfig for ViroReact won't have FRAMEWORK_SEARCH_PATHS pointing at
+  # ViroKit.framework, so we patch it in directly after pod install.
+  virokit_fsp = '"${PODS_ROOT}/../../node_modules/@viro-community/react-viro/ios/dist/ViroRenderer"'
+  ['debug', 'release'].each do |cfg|
+    xcconfig_path = "#{installer.sandbox.root}/Target Support Files/ViroReact/ViroReact.#{cfg}.xcconfig"
+    next unless File.exist?(xcconfig_path)
+    lines = File.readlines(xcconfig_path)
+    # Remove any stray bare-path line from a prior botched run
+    lines.reject! { |l| l.strip == virokit_fsp.delete('"') }
+    if lines.any? { |l| l.start_with?('FRAMEWORK_SEARCH_PATHS') }
+      # Append to existing key
+      lines.map! do |l|
+        if l.start_with?('FRAMEWORK_SEARCH_PATHS') && !l.include?('ViroRenderer')
+          l.chomp + " #{virokit_fsp}\n"
+        else
+          l
+        end
+      end
+    else
+      # Add new key
+      lines << "FRAMEWORK_SEARCH_PATHS = $(inherited) #{virokit_fsp}\n"
+    end
+    File.write(xcconfig_path, lines.join)
+    Pod::UI.puts "  [ViroKit fix] Patched FRAMEWORK_SEARCH_PATHS in ViroReact.#{cfg}.xcconfig".green
+  end
+
+  # -- JitsiWebRTC / CocoaPods script sandboxing fix (Xcode 15+) --------------
   # Xcode 15+ introduced "User Script Sandboxing" which restricts what build
   # phase scripts can access.  CocoaPods-generated embedding scripts (e.g.
   # JitsiWebRTC-xcframeworks.sh) write to $PODS_XCFRAMEWORKS_BUILD_DIR, which

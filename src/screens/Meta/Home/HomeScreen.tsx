@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useCallback, useEffect, useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -179,6 +179,16 @@ const HomeScreen = ({ navigation, route }: any) => {
     enabled: Boolean(currentCity),
     forceReload: Boolean(forceBackgroundReload), // Force reload when traveling
   });
+
+  const defaultBackground = require('../../../../assets/backgrounds/bisetka.png');
+  const [bgFallback, setBgFallback] = useState(false);
+  // Reset fallback whenever a new background resolves
+  useEffect(() => { setBgFallback(false); }, [bisetkaBackgroundSource]);
+  const bgSource = bgFallback ? defaultBackground : bisetkaBackgroundSource;
+  const handleBgError = useCallback(() => {
+    console.warn('[HomeScreen] ImageBackground load error, falling back to default');
+    setBgFallback(true);
+  }, []);
 
   // Dynamically determine status bar style based on background
   const statusBarStyle = useStatusBarStyle(bisetkaBackgroundSource, hasGeneratedBackground);
@@ -479,9 +489,10 @@ const HomeScreen = ({ navigation, route }: any) => {
   return (
     <View style={styles.container}>
       <ImageBackground
-        source={bisetkaBackgroundSource}
+        source={bgSource}
         style={styles.backgroundImage}
         resizeMode="cover"
+        onError={handleBgError}
       >
         {isBackgroundLoading && (
           <View style={styles.backgroundLoadingOverlay}>
