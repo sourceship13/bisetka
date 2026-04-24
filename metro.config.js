@@ -28,7 +28,7 @@ const config = {
     ...(hasLocalPhotosphere ? [photospherePath] : []),
   ],
   resolver: {
-    assetExts: [...defaultConfig.resolver.assetExts, 'vrm', 'glb', 'gltf'],
+    assetExts: [...defaultConfig.resolver.assetExts, 'vrm', 'glb', 'gltf', 'jsraw'],
     nodeModulesPaths: [path.resolve(__dirname, 'node_modules')],
     // IMPORTANT: Never use [] for blockList. metro's getIgnorePattern() calls
     // combine([]) which produces new RegExp("") — matching every path — causing

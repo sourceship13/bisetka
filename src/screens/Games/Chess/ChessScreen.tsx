@@ -500,7 +500,7 @@ const ChessScreen = ({navigation}: any) => {
           visible={arEnabled}
           pieces={arPieces}
           moves={gameState?.possibleMoves}
-          boardGlbPath="glb/chess/chess-board/source/ui.glb"
+          boardGlbPath="glb/chess/chess-board/source/armenian_board.glb"
           chessPieceGlbPaths={{
             white_pawn: 'glb/chess/pieces/white_pawn.glb',
             white_knight: 'glb/chess/pieces/white_knight.glb',

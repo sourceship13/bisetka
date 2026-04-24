@@ -588,6 +588,7 @@ const CheckersScreen = ({ navigation, route }: any) => {
           pieces={arPieces}
           moves={gameState.possibleMoves}
           onSquareTap={handleArSquareTap}
+          boardGlbPath="glb/chess/chess-board/source/armenian_board.glb"
         />
       </Photosphere360Background>
       <View style={styles.overlay} pointerEvents="box-none">

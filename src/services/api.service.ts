@@ -119,10 +119,23 @@ class ApiService {
       }
 
       console.log('📤 Request headers:', headers);
-      const response = await fetch(url, {
-        ...options,
-        headers,
-      });
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
+      let response: Response;
+      try {
+        response = await fetch(url, {
+          ...options,
+          headers,
+          signal: controller.signal,
+        });
+      } catch (fetchErr: any) {
+        clearTimeout(timeoutId);
+        if (fetchErr?.name === 'AbortError') {
+          throw new Error('Request timed out. Please check your connection.');
+        }
+        throw fetchErr;
+      }
+      clearTimeout(timeoutId);
       console.log('📥 Response status:', response.status);
 
       if (response.status === 401 && requireAuth && retry) {
