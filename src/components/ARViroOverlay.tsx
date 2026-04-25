@@ -72,14 +72,14 @@ const NATIVE_FACE_Z = 1.3809; // top face Y in native coords
 // Calibrated: board visual square width ~0.075m, 8 squares -> field half = 0.30m
 const FIELD_HALF    = 0.40;
 // GLB baked translation offset (corrects piece positions to true board center)
-const BOARD_OX      = 0.0;
+const BOARD_OX      = 0.04;
 const BOARD_OY      = 0.04;
 const SQUARE        = (FIELD_HALF * 2) / 8;        // 0.075m per square
 const FACE_Z        = NATIVE_FACE_Z * BOARD_SCALE; // board surface in board-local Z
 // checker_pieces.glb: native +-16 XY, center at Z=2.2
 // Piece fits in 80% of square: world_r = SQUARE*0.40 = 0.030m; scale = 0.030/16
-const PIECE_SCALE   = (SQUARE * 0.40) / 16;
-const PIECE_FACE_Z  = FACE_Z + 0.03;  // raised to sit on board surface
+const PIECE_SCALE   = (SQUARE * 0.40) / 10.8; // nyu GLBs: half-extent ~10.8
+const PIECE_FACE_Z  = FACE_Z + 0.06;  // sits on top of board
 
 const BOARD_POS: [number, number, number] = [0, -0.85, -1.6];
 
@@ -113,7 +113,8 @@ function registerMaterials() {
 // Board node has rotation [-90,0,0]: XY->XZ, so col->X, row->Z, up->Y
 // Board flat in XZ plane (no rotation). X=col, Z=row, Y=up (piece height)
 function boardToWorld(row: number, col: number): [number, number, number] {
-  const x = BOARD_OX + (col - 3.5) * SQUARE;
+  const colNudge = col <= 1 ? SQUARE * 0.25 : 0;
+  const x = BOARD_OX + (col - 3.5) * SQUARE + colNudge;
   const z = BOARD_OY + (row - 3.5) * SQUARE;
   return [x, PIECE_FACE_Z, z];
 }
@@ -129,34 +130,24 @@ function worldToSquare(localX: number, localZ: number): { row: number; col: numb
 
 // ── Piece ─────────────────────────────────────────────────────────────────────
 // checker_pieces.glb: single disc, ±1.0 XY native — instanced 24x across the board
-const PIECE_SC: [number,number,number] = [PIECE_SCALE, PIECE_SCALE, PIECE_SCALE];
+const PIECE_SC_Z: number = 0.01 / 5.537; // 10mm thick
+const PIECE_SC: [number,number,number] = [PIECE_SCALE, PIECE_SCALE, PIECE_SC_Z];
 
-const CHECKER_PIECE_SRC = require('../../assets/glb/checkers/checker_pieces.glb');
+const BLACK_PIECE_SRC = require('../../assets/glb/checkers/nyu_black_checker.glb');
+const RED_PIECE_SRC   = require('../../assets/glb/checkers/nyu_red_checker.glb');
 
-function CheckerPiece({ piece }: { piece: ARPiece }) {
+function CheckerPiece({ piece, onTap }: { piece: ARPiece; onTap?: (r: number, c: number) => void }) {
   const [x, y, z] = boardToWorld(piece.row, piece.col);
   const yPos = piece.isSelected ? y + 0.02 : y;
-  const discH = SQUARE * 0.18;
-  const discW = SQUARE * 0.78;
-  if (piece.color === 'black') {
-    const d = SQUARE * 0.82;
-    const h = SQUARE * 0.18;
-    return (
-      <ViroNode position={[x, yPos, z]}>
-        <ViroBox
-          scale={[d, h, d]}
-          materials={[piece.isSelected ? 'blackSel' : 'blackPiece']}
-        />
-      </ViroNode>
-    );
-  }
-  const d = SQUARE * 0.82;
-  const h = SQUARE * 0.18;
+  const handleTap = useCallback(() => onTap?.(piece.row, piece.col), [onTap, piece.row, piece.col]);
+  const src = piece.color === 'black' ? BLACK_PIECE_SRC : RED_PIECE_SRC;
   return (
-    <ViroNode position={[x, yPos, z]}>
-      <ViroBox
-        scale={[d, h, d]}
-        materials={[piece.isSelected ? 'redSel' : 'redPiece']}
+    <ViroNode position={[x, yPos, z]} rotation={[-90, 0, 0]} onClick={handleTap}>
+      <Viro3DObject
+        source={src}
+        type="GLB"
+        scale={PIECE_SC}
+        onError={(e: any) => console.error('[piece]', piece.key, e)}
       />
     </ViroNode>
   );
@@ -196,11 +187,12 @@ function CheckersARScene({ sceneNavigator }: SceneProps) {
   const handleBoardTap = useCallback(
     (position: [number, number, number], _source: any) => {
       if (!onSquareTap) return;
-      // position is in board-node local space (after [-90,0,0] rotation)
-      // col from X, row from Z
+      // Board node is flat (rotation [0,0,0]) at BOARD_POS
+      // X = col axis, Z = row axis
       const localX = position[0] - BOARD_POS[0];
       const localZ = position[2] - BOARD_POS[2];
       const sq = worldToSquare(localX, localZ);
+      console.log('[tap] world', position, 'local', localX.toFixed(3), localZ.toFixed(3), 'sq', sq);
       if (sq) onSquareTap(sq.row, sq.col);
     },
     [onSquareTap],
@@ -213,7 +205,18 @@ function CheckersARScene({ sceneNavigator }: SceneProps) {
         onError={(e: any) => console.error('[ARViroOverlay] 360 error:', e)}
       />
 
-      <ViroAmbientLight color="#ffffff" intensity={200} />
+      <ViroAmbientLight color="#ffffff" intensity={20} />
+      <ViroSpotLight
+        position={[0, 0.5, -1.6]}
+        direction={[0, -1, 0]}
+        color="#ffffff"
+        intensity={20}
+        attenuationStartDistance={0.5}
+        attenuationEndDistance={2.5}
+        innerAngle={45}
+        outerAngle={75}
+        castsShadow={false}
+      />
 
 
       {/* Board node: [-90,0,0] lays the XY-face board flat like a table */}
@@ -228,7 +231,7 @@ function CheckersARScene({ sceneNavigator }: SceneProps) {
           onError={(e: any) => console.error('[ARViroOverlay] board GLB error:', e)}
         />
 
-        {(pieces ?? []).map(p => <CheckerPiece key={p.key} piece={p} />)}
+        {(pieces ?? []).map(p => <CheckerPiece key={p.key} piece={p} onTap={onSquareTap} />)}
         {(moves  ?? []).map(m => <MoveDot key={`dot_${m.row}_${m.col}`} row={m.row} col={m.col} />)}
       </ViroNode>
     </ViroARScene>
