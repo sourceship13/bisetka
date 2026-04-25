@@ -2,8 +2,8 @@
  * ARViroOverlay.tsx
  *
  * Uses ViroARSceneNavigator + ViroARScene (only stable navigator on this build).
- * board.glb  — Chess/Draughts board, XY plane, face at Z=+0.0238, frame ±0.2843 native
- * piece_dark.glb / piece_light.glb — disc pieces, ±1.0 XY, ±0.23 Z native
+ * board.glb  -- Chess/Draughts board, XY plane, face at Z=+0.0238, frame +-0.2843 native
+ * piece_dark.glb / piece_light.glb -- disc pieces, +-1.0 XY, +-0.23 Z native
  */
 
 import React, {
@@ -14,7 +14,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import {
   Viro360Image,
   Viro3DObject,
@@ -25,10 +25,9 @@ import {
   ViroNode,
   ViroMaterials,
   ViroSpotLight,
-  ViroText,
 } from '@viro-community/react-viro';
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+// -- Types -----------------------------------------------------------------------
 export interface ARPiece {
   key: string;
   row: number;
@@ -57,17 +56,21 @@ interface Props {
   panoramaSource?: number;
 }
 
-// ── Board configs ──────────────────────────────────────────────────────────────
+// -- Board configs ---------------------------------------------------------------
 interface BoardConfig {
   id: string;
   label: string;
   src: ReturnType<typeof require>;
   boardScale: number;
-  nativeFaceY: number; // top face Y in native GLB coords
-  fieldHalf: number;   // half-extent of 8x8 play field in world metres
-  boardOX: number;     // horizontal center offset correction
-  boardOY: number;     // depth center offset correction
-  faceExtraY: number;  // extra lift above board surface for pieces
+  nativeFaceY: number;
+  fieldHalf: number;
+  boardOX: number;
+  boardOY: number;
+  faceExtraY: number;
+  boardFaceOffset: number; // baked-in GLB translation offset
+  boardYOffset: number;    // per-board Y nudge in world space
+  ambientIntensity: number;
+  spotIntensity: number;
 }
 
 const BOARD_CONFIGS: BoardConfig[] = [
@@ -81,6 +84,25 @@ const BOARD_CONFIGS: BoardConfig[] = [
     boardOX: 0.04,
     boardOY: 0.04,
     faceExtraY: 0.06,
+    boardFaceOffset: 0,
+    boardYOffset: -0.3,
+    ambientIntensity: 600,
+    spotIntensity: 20,
+  },
+  {
+    id: 'armenian',
+    label: 'Armenian',
+    src: require('../../assets/glb/game_boards/armenian_marble_gold_merged.glb'),
+    boardScale: 0.177,
+    nativeFaceY: 0.568,
+    fieldHalf: 0.345,
+    boardOX: 0.045,
+    boardOY: 0.0,
+    faceExtraY: -0.08,
+    boardFaceOffset: -0.165,
+    boardYOffset: 0.3,
+    ambientIntensity: 600,
+    spotIntensity: 50,
   },
   {
     id: 'board',
@@ -92,24 +114,36 @@ const BOARD_CONFIGS: BoardConfig[] = [
     boardOX: 0.0,
     boardOY: 0.0,
     faceExtraY: 0.04,
+    boardFaceOffset: 0,
+    boardYOffset: 0,
+    ambientIntensity: 600,
+    spotIntensity: 20,
   },
 ];
 
 const BOARD_POS: [number, number, number] = [0, -0.85, -1.6];
 
-// Derive per-board computed values
+// Module-level store: updated every render of ARViroOverlay (outer RN component).
+// CheckersARScene reads this + uses a polling tick to re-render when boardIdx changes.
+const _live = {
+  boardIdx: 0,
+  pieces: [] as ARPiece[],
+  moves: [] as ARMove[],
+  onSquareTap: undefined as ((r: number, c: number) => void) | undefined,
+  panoramaSource: undefined as number | undefined,
+};
+
 function getBoardDerived(cfg: BoardConfig) {
-  const SQUARE      = (cfg.fieldHalf * 2) / 8;
-  const FACE_Z      = cfg.nativeFaceY * cfg.boardScale;
+  const SQUARE       = (cfg.fieldHalf * 2) / 8;
+  const FACE_Z       = cfg.boardFaceOffset + cfg.nativeFaceY * cfg.boardScale;
   const PIECE_FACE_Z = FACE_Z + cfg.faceExtraY;
-  const PIECE_SCALE = (SQUARE * 0.40) / 10.8;
-  const PIECE_SC_Z  = 0.01 / 5.537;
+  const PIECE_SCALE  = (SQUARE * 0.40) / 10.8;
+  const PIECE_SC_Z   = 0.01 / 5.537;
   const PIECE_SC: [number, number, number] = [PIECE_SCALE, PIECE_SCALE, PIECE_SC_Z];
   return { SQUARE, FACE_Z, PIECE_FACE_Z, PIECE_SCALE, PIECE_SC };
 }
 
-
-// ── Materials ─────────────────────────────────────────────────────────────────
+// -- Materials -------------------------------------------------------------------
 let _materialsRegistered = false;
 function registerMaterials() {
   if (_materialsRegistered) return;
@@ -117,7 +151,7 @@ function registerMaterials() {
   try {
     ViroMaterials.createMaterials({
       moveDot:      { diffuseColor: 'rgba(255,255,255,0.75)', roughness: 1.0, blendMode: 'Alpha' },
-      selectedRing: { diffuseColor: 'rgba(255,220,0,0.85)', roughness: 1.0, blendMode: 'Alpha' },
+      selectedRing: { diffuseColor: 'rgba(255,220,0,0.85)',   roughness: 1.0, blendMode: 'Alpha' },
       redPiece:     { diffuseColor: '#ff1111', roughness: 0.2, metalness: 0.1, lightingModel: 'Phong' },
       blackPiece:   { diffuseColor: '#111111', roughness: 0.3, metalness: 0.4, lightingModel: 'Phong' },
       redSel:       { diffuseColor: '#ff4400', roughness: 0.2, metalness: 0.4, lightingModel: 'Phong' },
@@ -135,7 +169,7 @@ function registerMaterials() {
   }
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// -- Helpers ---------------------------------------------------------------------
 function boardToWorld(row: number, col: number, cfg: BoardConfig, derived: ReturnType<typeof getBoardDerived>): [number, number, number] {
   const { SQUARE, PIECE_FACE_Z } = derived;
   const x = cfg.boardOX + (col - 3.5) * SQUARE;
@@ -151,9 +185,7 @@ function worldToSquare(localX: number, localZ: number, cfg: BoardConfig, derived
   return { row, col };
 }
 
-
-
-// ── Piece ─────────────────────────────────────────────────────────────────────
+// -- Piece -----------------------------------------------------------------------
 const BLACK_PIECE_SRC = require('../../assets/glb/checkers/nyu_black_checker.glb');
 const RED_PIECE_SRC   = require('../../assets/glb/checkers/nyu_red_checker.glb');
 
@@ -179,7 +211,7 @@ function CheckerPiece({ piece, onTap, cfg, derived }: {
   );
 }
 
-// ── Move dot ──────────────────────────────────────────────────────────────────
+// -- Move dot --------------------------------------------------------------------
 function MoveDot({ row, col, onTap, cfg, derived }: {
   row: number;
   col: number;
@@ -189,7 +221,6 @@ function MoveDot({ row, col, onTap, cfg, derived }: {
 }) {
   const [x, , z] = boardToWorld(row, col, cfg, derived);
   const handleTap = useCallback(() => onTap?.(row, col), [onTap, row, col]);
-
   return (
     <ViroBox
       position={[x, derived.FACE_Z + 0.025, z]}
@@ -200,9 +231,9 @@ function MoveDot({ row, col, onTap, cfg, derived }: {
   );
 }
 
-
-
-// ── AR Scene ──────────────────────────────────────────────────────────────────
+// -- AR Scene (Viro calls this as a constructor, not a React component) -----------
+// viroAppProps is set at mount time and DOES update when viroAppProps changes on
+// the navigator. The scene re-renders normally as a React function component.
 interface SceneProps {
   sceneNavigator: {
     viroAppProps: {
@@ -210,6 +241,7 @@ interface SceneProps {
       moves: ARMove[];
       onSquareTap?: (row: number, col: number) => void;
       panoramaSource?: number;
+      boardIdx: number;
     };
   };
 }
@@ -217,10 +249,23 @@ interface SceneProps {
 function CheckersARScene({ sceneNavigator }: SceneProps) {
   registerMaterials();
 
-  const { pieces, moves, onSquareTap, panoramaSource } = sceneNavigator.viroAppProps;
+  // Polling tick — forces re-render every 150ms so boardIdx changes are picked up
+  const [tick, setTick] = React.useState(0);
+  React.useEffect(() => {
+    const id = setInterval(() => setTick(t => t + 1), 150);
+    return () => clearInterval(id);
+  }, []);
 
-  const [boardIdx, setBoardIdx] = useState(0);
-  const cfg     = BOARD_CONFIGS[boardIdx];
+  // Read from mutable live store (always fresh) — viroAppProps doesn't re-render us
+  const boardIdx    = _live.boardIdx;
+  const pieces      = _live.pieces;
+  const moves       = _live.moves;
+  const onSquareTap = _live.onSquareTap;
+  const panoramaSource = _live.panoramaSource;
+
+  console.log('[CheckersARScene] render boardIdx=', boardIdx, 'cfg=', BOARD_CONFIGS[boardIdx]?.id, 'tick=', tick);
+
+  const cfg     = BOARD_CONFIGS[boardIdx] ?? BOARD_CONFIGS[0];
   const derived = useMemo(() => getBoardDerived(cfg), [cfg]);
 
   const handleBoardTap = useCallback(
@@ -229,15 +274,10 @@ function CheckersARScene({ sceneNavigator }: SceneProps) {
       const localX = position[0] - BOARD_POS[0];
       const localZ = position[2] - BOARD_POS[2];
       const sq = worldToSquare(localX, localZ, cfg, derived);
-      console.log('[tap] world', position, 'local', localX.toFixed(3), localZ.toFixed(3), 'sq', sq);
       if (sq) onSquareTap(sq.row, sq.col);
     },
     [onSquareTap, cfg, derived],
   );
-
-  const handleCycleBoard = useCallback(() => {
-    setBoardIdx((i: number) => (i + 1) % BOARD_CONFIGS.length);
-  }, []);
 
   return (
     <ViroARScene>
@@ -246,12 +286,12 @@ function CheckersARScene({ sceneNavigator }: SceneProps) {
         onError={(e: any) => console.error('[ARViroOverlay] 360 error:', e)}
       />
 
-      <ViroAmbientLight color="#ffffff" intensity={20} />
+      <ViroAmbientLight color="#ffffff" intensity={cfg.ambientIntensity} />
       <ViroSpotLight
         position={[0, 0.5, -1.6]}
         direction={[0, -1, 0]}
         color="#ffffff"
-        intensity={20}
+        intensity={cfg.spotIntensity}
         attenuationStartDistance={0.5}
         attenuationEndDistance={2.5}
         innerAngle={45}
@@ -259,31 +299,25 @@ function CheckersARScene({ sceneNavigator }: SceneProps) {
         castsShadow={false}
       />
 
-      {/* Board cycle button — floats above board */}
-      <ViroText
-        text={`🔄 ${cfg.label}`}
-        position={[BOARD_POS[0] - 0.55, BOARD_POS[1] + 0.18, BOARD_POS[2]]}
-        scale={[0.12, 0.12, 0.12]}
-        style={{ fontFamily: 'Arial', fontSize: 18, color: '#ffffff', textAlignVertical: 'center', textAlign: 'center' }}
-        onClick={handleCycleBoard}
-      />
+      <ViroNode position={[BOARD_POS[0], BOARD_POS[1] + cfg.boardYOffset, BOARD_POS[2]]} rotation={[0, 0, 0]}>
+        {BOARD_CONFIGS.map((bc) => (
+          <Viro3DObject
+            key={bc.id}
+            source={bc.src}
+            type="GLB"
+            visible={bc.id === cfg.id}
+            scale={[bc.boardScale, bc.boardScale, bc.boardScale]}
+            onClick={bc.id === cfg.id ? handleBoardTap : undefined}
+            onLoadStart={() => console.log('[ARViroOverlay] board GLB load start', bc.id)}
+            onLoadEnd={()   => console.log('[ARViroOverlay] board GLB load end',   bc.id)}
+            onError={(e: any) => console.error('[ARViroOverlay] board GLB error:', bc.id, e?.message ?? String(e))}
+          />
+        ))}
 
-      {/* Board node */}
-      <ViroNode position={BOARD_POS} rotation={[0, 0, 0]}>
-        <Viro3DObject
-          key={cfg.id}
-          source={cfg.src}
-          type="GLB"
-          scale={[cfg.boardScale, cfg.boardScale, cfg.boardScale]}
-          onClick={handleBoardTap}
-          onLoadStart={() => console.log('[ARViroOverlay] board GLB load start', cfg.id)}
-          onLoadEnd={()   => console.log('[ARViroOverlay] board GLB load end', cfg.id)}
-          onError={(e: any) => console.error('[ARViroOverlay] board GLB error:', e)}
-        />
-
-
-        {(pieces ?? []).map(p => <CheckerPiece key={p.key} piece={p} onTap={onSquareTap} cfg={cfg} derived={derived} />)}
-        {(moves  ?? []).map(m => (
+        {(pieces ?? []).map(p => (
+          <CheckerPiece key={p.key} piece={p} onTap={onSquareTap} cfg={cfg} derived={derived} />
+        ))}
+        {(moves ?? []).map(m => (
           <MoveDot
             key={`dot_${m.row}_${m.col}`}
             row={m.row}
@@ -298,12 +332,11 @@ function CheckersARScene({ sceneNavigator }: SceneProps) {
   );
 }
 
-// ── Public component ───────────────────────────────────────────────────────────
+// -- Public component ------------------------------------------------------------
 const ARViroOverlay = forwardRef<AR3DOverlayHandle, Props>(function ARViroOverlay(
   { visible = true, pieces = [], moves = [], onSquareTap, boardGlbPath: _boardGlbPath, panoramaSource },
   ref,
 ) {
-  const navigatorRef = useRef<any>(null);
   const onSquareTapRef = useRef(onSquareTap);
   onSquareTapRef.current = onSquareTap;
   const stableOnSquareTap = useCallback(
@@ -311,29 +344,72 @@ const ARViroOverlay = forwardRef<AR3DOverlayHandle, Props>(function ARViroOverla
     [],
   );
 
+  const [boardIdx, setBoardIdx] = useState(0);
+
+  // Sync module-level live store every render so polling scene picks up changes
+  _live.boardIdx      = boardIdx;
+  _live.pieces        = pieces;
+  _live.moves         = moves;
+  _live.onSquareTap   = stableOnSquareTap;
+  _live.panoramaSource = panoramaSource;
+
+  const handleCycleBoard = useCallback(() => {
+    setBoardIdx((i: number) => (i + 1) % BOARD_CONFIGS.length);
+  }, []);
+  const currentBoardLabel = BOARD_CONFIGS[boardIdx].label;
+
   useImperativeHandle(ref, () => ({ recenter() {} }));
 
+  // viroAppProps: Viro DOES pass updates through to the scene on re-render
   const viroAppProps = useMemo(() => ({
     pieces,
     moves,
     onSquareTap: stableOnSquareTap,
     panoramaSource,
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }), [pieces, moves, panoramaSource]);
+    boardIdx,
+  }), [pieces, moves, panoramaSource, boardIdx, stableOnSquareTap]);
 
   if (!visible) return null;
 
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
       <ViroARSceneNavigator
-        ref={navigatorRef}
         autofocus
         initialScene={{ scene: CheckersARScene as unknown as any }}
         viroAppProps={viroAppProps}
         style={StyleSheet.absoluteFill}
       />
+      <View style={overlayStyles.boardSwitchWrap} pointerEvents="box-none">
+        <TouchableOpacity
+          style={overlayStyles.boardSwitchBtn}
+          onPress={handleCycleBoard}
+          activeOpacity={0.75}>
+          <Text style={overlayStyles.boardSwitchIcon}>🔄</Text>
+          <Text style={overlayStyles.boardSwitchLabel}>{currentBoardLabel}</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
+});
+
+const overlayStyles = StyleSheet.create({
+  boardSwitchWrap: {
+    position: 'absolute',
+    top: 60,
+    right: 14,
+    alignItems: 'flex-end',
+  },
+  boardSwitchBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    gap: 6,
+  },
+  boardSwitchIcon: { fontSize: 16 },
+  boardSwitchLabel: { color: '#fff', fontSize: 13, fontWeight: '600' },
 });
 
 export default ARViroOverlay;
