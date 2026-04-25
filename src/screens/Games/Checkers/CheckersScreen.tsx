@@ -132,7 +132,7 @@ const CheckersScreen = ({ navigation, route }: any) => {
   const [serverTurn,    setServerTurn]    = useState<'white'|'black'>('white');
   const [statusMsg,     setStatusMsg]     = useState('');
   const [showCustomization, setShowCustomization] = useState(false);
-  const [showMusicPlayer, setShowMusicPlayer] = useState(false);
+  const [showMusicPlayer, setShowMusicPlayer] = useState(true);
   const [showBlur, setShowBlur] = useState(true);
   const [showBackground, setShowBackground] = useState(true);
   const [arEnabled, setArEnabled] = useState(true); // default to VR/photosphere mode
