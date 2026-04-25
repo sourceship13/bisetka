@@ -1,9 +1,9 @@
 /**
  * ARViroOverlay.tsx
  *
- * Uses ViroARSceneNavigator + ViroARScene (the only stable navigator on this build).
- * Viro360Image sets the background sphere — overlays on the AR camera feed.
- * GLB board floats at BOARD_POS in front of the user.
+ * Uses ViroARSceneNavigator + ViroARScene (only stable navigator on this build).
+ * board.glb  — Chess/Draughts board, XY plane, face at Z=+0.0238, frame ±0.2843 native
+ * piece_dark.glb / piece_light.glb — disc pieces, ±1.0 XY, ±0.23 Z native
  */
 
 import React, {
@@ -21,9 +21,9 @@ import {
   ViroBox,
   ViroARScene,
   ViroARSceneNavigator,
-  ViroMaterials,
   ViroNode,
   ViroQuad,
+  ViroMaterials,
   ViroSpotLight,
 } from '@viro-community/react-viro';
 
@@ -56,14 +56,26 @@ interface Props {
   panoramaSource?: number;
 }
 
-// ── Board geometry constants ───────────────────────────────────────────────────
-const BOARD_SIZE  = 0.70;
-const FIELD_HALF  = 0.2544;
-const SQUARE      = (FIELD_HALF * 2) / 8;   // 0.0636m per square
-const BOARD_THICK = 0.045 * (0.70 / 1.06);  // ~0.0297m after scale
-const PIECE_Y     = BOARD_THICK + 0.018;
+// ── Board geometry ─────────────────────────────────────────────────────────────
+// board.glb native: frame ±0.2843 XY, squares span ±0.2707 XY, face at Z=+0.0238
+// We scale the board node by BOARD_SCALE to reach a comfortable table size.
+// After rotation [-90,0,0] the XY plane becomes the world XZ plane (flat table).
+//
+// piece GLBs native: ±1.0 XY (diameter 2.0), thickness 0.465 in Z
+// We scale pieces so diameter = ~80% of one square.
 
-// Board position: straight ahead at comfortable viewing distance
+// board.glb native: 2.0×2.0 units total, inner field ±0.2707, face at Z=+0.0238
+// Scale 0.5 → board is 1.0m total, inner field 0.2707m half = 54cm playfield
+const BOARD_SCALE  = 3.0;
+const NATIVE_FIELD = 0.1273;
+const NATIVE_FACE_Z = 0.1408;
+const FIELD_HALF   = NATIVE_FIELD * BOARD_SCALE;   // 0.135m half-width of playfield
+const SQUARE       = (FIELD_HALF * 2) / 8;         // 0.034m per square
+const FACE_Y       = NATIVE_FACE_Z * BOARD_SCALE;  // 0.012m — board surface height
+const PIECE_SCALE  = SQUARE * 0.80 / 1.0;          // native piece radius=1.0, world=SQUARE*0.8
+const PIECE_THICK  = 0.465 * PIECE_SCALE;
+const PIECE_Y      = FACE_Y + PIECE_THICK / 2;
+
 const BOARD_POS: [number, number, number] = [0, -0.85, -1.6];
 
 // ── Materials ─────────────────────────────────────────────────────────────────
@@ -73,13 +85,12 @@ function registerMaterials() {
   _materialsRegistered = true;
   try {
     ViroMaterials.createMaterials({
-      redPiece:           { diffuseColor: '#cc2222', roughness: 0.4, metalness: 0.2 },
-      blackPiece:         { diffuseColor: '#111111', roughness: 0.4, metalness: 0.25 },
-      redPieceSelected:   { diffuseColor: '#ff6644', roughness: 0.3, metalness: 0.3 },
-      blackPieceSelected: { diffuseColor: '#4444cc', roughness: 0.3, metalness: 0.3 },
-      moveDot:            { diffuseColor: 'rgba(255,255,255,0.7)', roughness: 1.0, blendMode: 'Alpha' },
-      lightSquare:        { diffuseColor: '#c8b484', roughness: 0.55 },
-      darkSquare:         { diffuseColor: '#5a3010', roughness: 0.55 },
+      moveDot:      { diffuseColor: 'rgba(255,255,255,0.75)', roughness: 1.0, blendMode: 'Alpha' },
+      selectedRing: { diffuseColor: 'rgba(255,220,0,0.85)', roughness: 1.0, blendMode: 'Alpha' },
+      redPiece:     { diffuseColor: '#cc2222', roughness: 0.4, metalness: 0.2 },
+      blackPiece:   { diffuseColor: '#222222', roughness: 0.4, metalness: 0.3 },
+      redSel:       { diffuseColor: '#ff6644', roughness: 0.3, metalness: 0.3 },
+      blackSel:     { diffuseColor: '#4444cc', roughness: 0.3, metalness: 0.3 },
     });
   } catch (e) {
     console.warn('[ARViroOverlay] createMaterials failed:', e);
@@ -87,10 +98,18 @@ function registerMaterials() {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-function boardToLocal(row: number, col: number): [number, number, number] {
+// Board node has rotation [-90,0,0]: XY->XZ, so col->X, row->Z, up->Y
+// After ViroNode rotation [-90,0,0]:
+//   board-local X -> world X
+//   board-local Y -> world Z (row axis)
+//   board-local Z -> world Y (up)
+// Board face is at board-local Z = NATIVE_FACE_Z * BOARD_SCALE
+// Pieces sit at board-local Z = FACE_Z + half_piece_thickness
+function boardToWorld(row: number, col: number): [number, number, number] {
   const x = -FIELD_HALF + (col + 0.5) * SQUARE;
-  const z = -FIELD_HALF + (row + 0.5) * SQUARE;
-  return [x, PIECE_Y, z];
+  const y = -FIELD_HALF + (row + 0.5) * SQUARE;
+  const z = NATIVE_FACE_Z * BOARD_SCALE + PIECE_THICK / 2; // Z = up in board-local
+  return [x, y, z];
 }
 
 function worldToSquare(localX: number, localZ: number): { row: number; col: number } | null {
@@ -102,22 +121,35 @@ function worldToSquare(localX: number, localZ: number): { row: number; col: numb
 
 // ── Piece ─────────────────────────────────────────────────────────────────────
 function CheckerPiece({ piece }: { piece: ARPiece }) {
-  const [x, y, z] = boardToLocal(piece.row, piece.col);
-  const isSelected = piece.isSelected;
-  const mat = piece.color === 'red'
-    ? (isSelected ? 'redPieceSelected' : 'redPiece')
-    : (isSelected ? 'blackPieceSelected' : 'blackPiece');
-  const scale: [number, number, number] = [SQUARE * 0.55, SQUARE * 0.18, SQUARE * 0.55];
-  const yPos = isSelected ? y + 0.02 : y;
+  const [x, y, z] = boardToWorld(piece.row, piece.col);
+  const zPos = piece.isSelected ? z + 0.02 : z;
+  const mat = piece.color === 'black'
+    ? (piece.isSelected ? 'blackSel' : 'blackPiece')
+    : (piece.isSelected ? 'redSel' : 'redPiece');
+  const discScale: [number,number,number] = [SQUARE * 0.78, PIECE_THICK, SQUARE * 0.78];
 
   return (
-    <ViroNode position={[x, yPos, z]}>
-      <ViroBox scale={scale} materials={[mat, mat, mat, mat, mat, mat]} />
+    <ViroNode position={[x, y, zPos]}>
+      <ViroBox
+        scale={discScale}
+        materials={[mat]}
+      />
+      {piece.isSelected && (
+        <ViroQuad
+          position={[0, 0, PIECE_THICK / 2 + 0.001]}
+          rotation={[0, 0, 0]}
+          width={SQUARE * 0.95}
+          height={SQUARE * 0.95}
+          materials={['selectedRing']}
+        />
+      )}
       {piece.isKing && (
-        <ViroBox
-          position={[0, SQUARE * 0.20, 0]}
-          scale={[SQUARE * 0.30, SQUARE * 0.09, SQUARE * 0.30]}
-          materials={['lightSquare','lightSquare','lightSquare','lightSquare','lightSquare','lightSquare']}
+        <ViroQuad
+          position={[0, 0, PIECE_THICK / 2 + 0.002]}
+          rotation={[0, 0, 0]}
+          width={SQUARE * 0.40}
+          height={SQUARE * 0.40}
+          materials={['selectedRing']}
         />
       )}
     </ViroNode>
@@ -126,13 +158,13 @@ function CheckerPiece({ piece }: { piece: ARPiece }) {
 
 // ── Move dot ──────────────────────────────────────────────────────────────────
 function MoveDot({ row, col }: { row: number; col: number }) {
-  const [x, , z] = boardToLocal(row, col);
+  const [x, y] = boardToWorld(row, col);
   return (
     <ViroQuad
-      position={[x, BOARD_THICK + 0.001, z]}
+      position={[x, y, NATIVE_FACE_Z * BOARD_SCALE + 0.002]}
       rotation={[-90, 0, 0]}
-      width={SQUARE * 0.42}
-      height={SQUARE * 0.42}
+      width={SQUARE * 0.50}
+      height={SQUARE * 0.50}
       materials={['moveDot']}
     />
   );
@@ -153,16 +185,15 @@ interface SceneProps {
 function CheckersARScene({ sceneNavigator }: SceneProps) {
   registerMaterials();
 
-  const { pieces, moves, onSquareTap, panoramaSource } =
-    sceneNavigator.viroAppProps;
-
-  console.log('[ARViroOverlay] scene mounted, pano:', !!panoramaSource);
+  const { pieces, moves, onSquareTap, panoramaSource } = sceneNavigator.viroAppProps;
 
   const handleBoardTap = useCallback(
     (position: [number, number, number], _source: any) => {
       if (!onSquareTap) return;
+      // position is in board-node local space (after [-90,0,0] rotation)
+      // col from X, row from Z
       const localX = position[0] - BOARD_POS[0];
-      const localZ = -(position[1] - BOARD_POS[1]);
+      const localZ = position[2] - BOARD_POS[2];
       const sq = worldToSquare(localX, localZ);
       if (sq) onSquareTap(sq.row, sq.col);
     },
@@ -171,38 +202,24 @@ function CheckersARScene({ sceneNavigator }: SceneProps) {
 
   return (
     <ViroARScene>
-      {/* 360 photosphere — sets background sphere on the AR portal */}
       <Viro360Image
         source={panoramaSource ?? require('../../assets/backgrounds/capture360/pano2.jpg')}
-        onLoadStart={() => console.log('[ARViroOverlay] 360 load start')}
-        onLoadEnd={()   => console.log('[ARViroOverlay] 360 load end')}
         onError={(e: any) => console.error('[ARViroOverlay] 360 error:', e)}
       />
 
-      <ViroAmbientLight color="#ffffff" intensity={400} />
-      <ViroSpotLight
-        position={[BOARD_POS[0], BOARD_POS[1] + 2.5, BOARD_POS[2]]}
-        color="#ffffff"
-        direction={[0, -1, 0]}
-        attenuationStartDistance={2}
-        attenuationEndDistance={6}
-        innerAngle={30}
-        outerAngle={60}
-        castsShadow
-      />
+      <ViroAmbientLight color="#ffffff" intensity={200} />
 
-      {/* Board node */}
-      <ViroNode position={BOARD_POS}>
-        {/* GLB board — loaded via require() same as any RN asset, no async download */}
+
+      {/* Board node: [-90,0,0] lays the XY-face board flat like a table */}
+      <ViroNode position={BOARD_POS} rotation={[-90, 0, 0]}>
         <Viro3DObject
-          source={require('../../assets/glb/chess/chess-board/source/armenian_board.glb')}
+          source={require('../../assets/glb/checkers/chess-board/source/ui.glb')}
           type="GLB"
-          scale={[BOARD_SIZE, BOARD_SIZE, BOARD_SIZE]}
-          rotation={[-90, 0, 0]}
+          scale={[BOARD_SCALE, BOARD_SCALE, BOARD_SCALE]}
           onClick={handleBoardTap}
-          onLoadStart={() => console.log('[ARViroOverlay] GLB load start')}
-          onLoadEnd={()   => console.log('[ARViroOverlay] GLB load end')}
-          onError={(e: any) => console.error('[ARViroOverlay] GLB error:', e)}
+          onLoadStart={() => console.log('[ARViroOverlay] board GLB load start')}
+          onLoadEnd={()   => console.log('[ARViroOverlay] board GLB load end')}
+          onError={(e: any) => console.error('[ARViroOverlay] board GLB error:', e)}
         />
 
         {(pieces ?? []).map(p => <CheckerPiece key={p.key} piece={p} />)}
@@ -218,7 +235,6 @@ const ARViroOverlay = forwardRef<AR3DOverlayHandle, Props>(function ARViroOverla
   ref,
 ) {
   const navigatorRef = useRef<any>(null);
-
   const onSquareTapRef = useRef(onSquareTap);
   onSquareTapRef.current = onSquareTap;
   const stableOnSquareTap = useCallback(
