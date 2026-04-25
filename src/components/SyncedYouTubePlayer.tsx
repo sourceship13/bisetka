@@ -146,7 +146,7 @@ export default function SyncedYouTubePlayer({
 }: SyncedYouTubePlayerProps) {
   const webViewRef = useRef<WebView>(null);
 
-  const [expanded, setExpanded]       = useState(true);
+  const [expanded, setExpanded]       = useState(false);
   const [activeTab, setActiveTab]     = useState<Tab>('search');
   const [playerReady, setPlayerReady] = useState(false);
   const [currentItem, setCurrentItem] = useState<QueueItem | null>(null);
@@ -306,17 +306,20 @@ export default function SyncedYouTubePlayer({
 
   
   // ── Parse YouTube URL -> { videoId, playlistId } ─────────────────────────
+  // Uses regex instead of URL API (not available in RN's Hermes JS engine)
   const parseYouTubeUrl = useCallback((input: string): { videoId: string; playlistId?: string } | null => {
-    try {
-      const url = new URL(input.trim());
-      const videoId = url.searchParams.get('v');
-      const playlistId = url.searchParams.get('list') ?? undefined;
-      if (videoId) return { videoId, playlistId };
-      // youtu.be/VIDEO_ID
-      const shortMatch = url.pathname.match(/^\/([A-Za-z0-9_-]{11})$/);
-      if (shortMatch) return { videoId: shortMatch[1], playlistId };
-    } catch { /* not a url */ }
-    return null;
+    const s = input.trim();
+    if (!s.includes('youtu')) return null;
+    // Extract v= param
+    const vMatch = s.match(/[?&]v=([A-Za-z0-9_-]{11})/);
+    // youtu.be/VIDEO_ID
+    const shortMatch = s.match(/youtu\.be\/([A-Za-z0-9_-]{11})/);
+    const videoId = vMatch?.[1] ?? shortMatch?.[1];
+    if (!videoId) return null;
+    // Extract list= param
+    const listMatch = s.match(/[?&]list=([A-Za-z0-9_-]+)/);
+    const playlistId = listMatch?.[1];
+    return { videoId, playlistId };
   }, []);
 
 // ── Search YouTube ────────────────────────────────────────────────────────
@@ -351,7 +354,7 @@ export default function SyncedYouTubePlayer({
     } finally {
       setSearching(false);
     }
-  }, [searchQuery]);
+  }, [searchQuery, parseYouTubeUrl, loadVideo, syncToRoom]);
 
   // ── Play a search result immediately ─────────────────────────────────────
   const handlePlayNow = useCallback(
@@ -395,21 +398,21 @@ export default function SyncedYouTubePlayer({
 
   const hasVideo = !!videoId;
 
-  // When not visible: keep WebView alive (audio continues) but hide everything
+  // When not visible and nothing playing: return null (no overhead)
+  // When not visible but audio is playing: keep WebView alive hidden
   if (!visible) {
+    if (!hasVideo) return null;
     return (
       <View style={{position:'absolute',opacity:0,width:1,height:1,overflow:'hidden'}} pointerEvents="none">
-        {hasVideo && (
-          <WebView
-            key={videoId ?? 'empty'}
-            ref={webViewRef}
-            source={{html: buildPlayerHtml(videoId!, embedStartTime, currentItem?.playlistId), baseUrl: 'https://bisetka.io'}}
-            javaScriptEnabled
-            mediaPlaybackRequiresUserAction={false}
-            allowsInlineMediaPlayback
-            onMessage={handleMessage}
-          />
-        )}
+        <WebView
+          key={videoId ?? 'empty'}
+          ref={webViewRef}
+          source={{html: buildPlayerHtml(videoId!, embedStartTime, currentItem?.playlistId), baseUrl: 'https://bisetka.io'}}
+          javaScriptEnabled
+          mediaPlaybackRequiresUserAction={false}
+          allowsInlineMediaPlayback
+          onMessage={handleMessage}
+        />
       </View>
     );
   }

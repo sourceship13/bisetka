@@ -12,20 +12,20 @@ import React, {
   useImperativeHandle,
   useMemo,
   useRef,
+  useState,
 } from 'react';
 import { StyleSheet, View } from 'react-native';
 import {
   Viro360Image,
   Viro3DObject,
   ViroAmbientLight,
-  ViroBox,
-  ViroSphere,
   ViroARScene,
   ViroARSceneNavigator,
+  ViroBox,
   ViroNode,
-  ViroQuad,
   ViroMaterials,
   ViroSpotLight,
+  ViroText,
 } from '@viro-community/react-viro';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -57,31 +57,56 @@ interface Props {
   panoramaSource?: number;
 }
 
-// ── Board geometry ─────────────────────────────────────────────────────────────
-// board.glb native: frame ±0.2843 XY, squares span ±0.2707 XY, face at Z=+0.0238
-// We scale the board node by BOARD_SCALE to reach a comfortable table size.
-// After rotation [-90,0,0] the XY plane becomes the world XZ plane (flat table).
-//
-// piece GLBs native: ±1.0 XY (diameter 2.0), thickness 0.465 in Z
-// We scale pieces so diameter = ~80% of one square.
+// ── Board configs ──────────────────────────────────────────────────────────────
+interface BoardConfig {
+  id: string;
+  label: string;
+  src: ReturnType<typeof require>;
+  boardScale: number;
+  nativeFaceY: number; // top face Y in native GLB coords
+  fieldHalf: number;   // half-extent of 8x8 play field in world metres
+  boardOX: number;     // horizontal center offset correction
+  boardOY: number;     // depth center offset correction
+  faceExtraY: number;  // extra lift above board surface for pieces
+}
 
-// board.glb native: 2.0×2.0 units total, inner field ±0.2707, face at Z=+0.0238
-// Scale 0.5 → board is 1.0m total, inner field 0.2707m half = 54cm playfield
-const BOARD_SCALE   = 0.04;
-const NATIVE_FACE_Z = 1.3809; // top face Y in native coords
-// Calibrated: board visual square width ~0.075m, 8 squares -> field half = 0.30m
-const FIELD_HALF    = 0.40;
-// GLB baked translation offset (corrects piece positions to true board center)
-const BOARD_OX      = 0.04;
-const BOARD_OY      = 0.04;
-const SQUARE        = (FIELD_HALF * 2) / 8;        // 0.075m per square
-const FACE_Z        = NATIVE_FACE_Z * BOARD_SCALE; // board surface in board-local Z
-// checker_pieces.glb: native +-16 XY, center at Z=2.2
-// Piece fits in 80% of square: world_r = SQUARE*0.40 = 0.030m; scale = 0.030/16
-const PIECE_SCALE   = (SQUARE * 0.40) / 10.8; // nyu GLBs: half-extent ~10.8
-const PIECE_FACE_Z  = FACE_Z + 0.06;  // sits on top of board
+const BOARD_CONFIGS: BoardConfig[] = [
+  {
+    id: 'v2',
+    label: 'Classic',
+    src: require('../../assets/glb/checkers/chess_board_v2.glb'),
+    boardScale: 0.04,
+    nativeFaceY: 1.3809,
+    fieldHalf: 0.40,
+    boardOX: 0.04,
+    boardOY: 0.04,
+    faceExtraY: 0.06,
+  },
+  {
+    id: 'board',
+    label: 'Minimal',
+    src: require('../../assets/glb/checkers/board.glb'),
+    boardScale: 0.50,
+    nativeFaceY: 1.0,
+    fieldHalf: 0.40,
+    boardOX: 0.0,
+    boardOY: 0.0,
+    faceExtraY: 0.04,
+  },
+];
 
 const BOARD_POS: [number, number, number] = [0, -0.85, -1.6];
+
+// Derive per-board computed values
+function getBoardDerived(cfg: BoardConfig) {
+  const SQUARE      = (cfg.fieldHalf * 2) / 8;
+  const FACE_Z      = cfg.nativeFaceY * cfg.boardScale;
+  const PIECE_FACE_Z = FACE_Z + cfg.faceExtraY;
+  const PIECE_SCALE = (SQUARE * 0.40) / 10.8;
+  const PIECE_SC_Z  = 0.01 / 5.537;
+  const PIECE_SC: [number, number, number] = [PIECE_SCALE, PIECE_SCALE, PIECE_SC_Z];
+  return { SQUARE, FACE_Z, PIECE_FACE_Z, PIECE_SCALE, PIECE_SC };
+}
 
 
 // ── Materials ─────────────────────────────────────────────────────────────────
@@ -98,6 +123,7 @@ function registerMaterials() {
       redSel:       { diffuseColor: '#ff4400', roughness: 0.2, metalness: 0.4, lightingModel: 'Phong' },
       blackSel:     { diffuseColor: '#3344ff', roughness: 0.2, metalness: 0.4, lightingModel: 'Phong' },
       debugDark:    { diffuseColor: 'rgba(255,255,255,0.7)', blendMode: 'Alpha' },
+      squareHit:    { diffuseColor: 'rgba(255,255,255,0.01)', blendMode: 'Alpha' },
       debugLight:   { diffuseColor: 'rgba(0,0,0,0.0)', blendMode: 'Alpha' },
       debugRed:     { diffuseColor: '#ff0000' },
       debugGreen:   { diffuseColor: '#00ff00' },
@@ -110,18 +136,17 @@ function registerMaterials() {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-// Board node has rotation [-90,0,0]: XY->XZ, so col->X, row->Z, up->Y
-// Board flat in XZ plane (no rotation). X=col, Z=row, Y=up (piece height)
-function boardToWorld(row: number, col: number): [number, number, number] {
-  const colNudge = col <= 1 ? SQUARE * 0.25 : 0;
-  const x = BOARD_OX + (col - 3.5) * SQUARE + colNudge;
-  const z = BOARD_OY + (row - 3.5) * SQUARE;
+function boardToWorld(row: number, col: number, cfg: BoardConfig, derived: ReturnType<typeof getBoardDerived>): [number, number, number] {
+  const { SQUARE, PIECE_FACE_Z } = derived;
+  const x = cfg.boardOX + (col - 3.5) * SQUARE;
+  const z = cfg.boardOY + (row - 3.5) * SQUARE;
   return [x, PIECE_FACE_Z, z];
 }
 
-function worldToSquare(localX: number, localZ: number): { row: number; col: number } | null {
-  const col = Math.floor((localX - BOARD_OX) / SQUARE + 3.5);
-  const row = Math.floor((localZ - BOARD_OY) / SQUARE + 3.5);
+function worldToSquare(localX: number, localZ: number, cfg: BoardConfig, derived: ReturnType<typeof getBoardDerived>): { row: number; col: number } | null {
+  const { SQUARE } = derived;
+  const col = Math.floor((localX - cfg.boardOX) / SQUARE + 4);
+  const row = Math.floor((localZ - cfg.boardOY) / SQUARE + 4);
   if (col < 0 || col > 7 || row < 0 || row > 7) return null;
   return { row, col };
 }
@@ -129,15 +154,16 @@ function worldToSquare(localX: number, localZ: number): { row: number; col: numb
 
 
 // ── Piece ─────────────────────────────────────────────────────────────────────
-// checker_pieces.glb: single disc, ±1.0 XY native — instanced 24x across the board
-const PIECE_SC_Z: number = 0.01 / 5.537; // 10mm thick
-const PIECE_SC: [number,number,number] = [PIECE_SCALE, PIECE_SCALE, PIECE_SC_Z];
-
 const BLACK_PIECE_SRC = require('../../assets/glb/checkers/nyu_black_checker.glb');
 const RED_PIECE_SRC   = require('../../assets/glb/checkers/nyu_red_checker.glb');
 
-function CheckerPiece({ piece, onTap }: { piece: ARPiece; onTap?: (r: number, c: number) => void }) {
-  const [x, y, z] = boardToWorld(piece.row, piece.col);
+function CheckerPiece({ piece, onTap, cfg, derived }: {
+  piece: ARPiece;
+  onTap?: (r: number, c: number) => void;
+  cfg: BoardConfig;
+  derived: ReturnType<typeof getBoardDerived>;
+}) {
+  const [x, y, z] = boardToWorld(piece.row, piece.col, cfg, derived);
   const yPos = piece.isSelected ? y + 0.02 : y;
   const handleTap = useCallback(() => onTap?.(piece.row, piece.col), [onTap, piece.row, piece.col]);
   const src = piece.color === 'black' ? BLACK_PIECE_SRC : RED_PIECE_SRC;
@@ -146,7 +172,7 @@ function CheckerPiece({ piece, onTap }: { piece: ARPiece; onTap?: (r: number, c:
       <Viro3DObject
         source={src}
         type="GLB"
-        scale={PIECE_SC}
+        scale={derived.PIECE_SC}
         onError={(e: any) => console.error('[piece]', piece.key, e)}
       />
     </ViroNode>
@@ -154,18 +180,27 @@ function CheckerPiece({ piece, onTap }: { piece: ARPiece; onTap?: (r: number, c:
 }
 
 // ── Move dot ──────────────────────────────────────────────────────────────────
-function MoveDot({ row, col }: { row: number; col: number }) {
-  const [x, , z] = boardToWorld(row, col);
+function MoveDot({ row, col, onTap, cfg, derived }: {
+  row: number;
+  col: number;
+  onTap?: (r: number, c: number) => void;
+  cfg: BoardConfig;
+  derived: ReturnType<typeof getBoardDerived>;
+}) {
+  const [x, , z] = boardToWorld(row, col, cfg, derived);
+  const handleTap = useCallback(() => onTap?.(row, col), [onTap, row, col]);
+
   return (
-    <ViroQuad
-      position={[x, FACE_Z + 0.01, z]}
-      rotation={[-90, 0, 0]}
-      width={SQUARE * 0.50}
-      height={SQUARE * 0.50}
+    <ViroBox
+      position={[x, derived.FACE_Z + 0.025, z]}
+      scale={[derived.SQUARE * 0.75, 0.004, derived.SQUARE * 0.75]}
       materials={['moveDot']}
+      onClick={handleTap}
     />
   );
 }
+
+
 
 // ── AR Scene ──────────────────────────────────────────────────────────────────
 interface SceneProps {
@@ -184,19 +219,25 @@ function CheckersARScene({ sceneNavigator }: SceneProps) {
 
   const { pieces, moves, onSquareTap, panoramaSource } = sceneNavigator.viroAppProps;
 
+  const [boardIdx, setBoardIdx] = useState(0);
+  const cfg     = BOARD_CONFIGS[boardIdx];
+  const derived = useMemo(() => getBoardDerived(cfg), [cfg]);
+
   const handleBoardTap = useCallback(
     (position: [number, number, number], _source: any) => {
       if (!onSquareTap) return;
-      // Board node is flat (rotation [0,0,0]) at BOARD_POS
-      // X = col axis, Z = row axis
       const localX = position[0] - BOARD_POS[0];
       const localZ = position[2] - BOARD_POS[2];
-      const sq = worldToSquare(localX, localZ);
+      const sq = worldToSquare(localX, localZ, cfg, derived);
       console.log('[tap] world', position, 'local', localX.toFixed(3), localZ.toFixed(3), 'sq', sq);
       if (sq) onSquareTap(sq.row, sq.col);
     },
-    [onSquareTap],
+    [onSquareTap, cfg, derived],
   );
+
+  const handleCycleBoard = useCallback(() => {
+    setBoardIdx((i: number) => (i + 1) % BOARD_CONFIGS.length);
+  }, []);
 
   return (
     <ViroARScene>
@@ -218,21 +259,40 @@ function CheckersARScene({ sceneNavigator }: SceneProps) {
         castsShadow={false}
       />
 
+      {/* Board cycle button — floats above board */}
+      <ViroText
+        text={`🔄 ${cfg.label}`}
+        position={[BOARD_POS[0] - 0.55, BOARD_POS[1] + 0.18, BOARD_POS[2]]}
+        scale={[0.12, 0.12, 0.12]}
+        style={{ fontFamily: 'Arial', fontSize: 18, color: '#ffffff', textAlignVertical: 'center', textAlign: 'center' }}
+        onClick={handleCycleBoard}
+      />
 
-      {/* Board node: [-90,0,0] lays the XY-face board flat like a table */}
+      {/* Board node */}
       <ViroNode position={BOARD_POS} rotation={[0, 0, 0]}>
         <Viro3DObject
-          source={require('../../assets/glb/checkers/chess_board_v2.glb')}
+          key={cfg.id}
+          source={cfg.src}
           type="GLB"
-          scale={[BOARD_SCALE, BOARD_SCALE, BOARD_SCALE]}
+          scale={[cfg.boardScale, cfg.boardScale, cfg.boardScale]}
           onClick={handleBoardTap}
-          onLoadStart={() => console.log('[ARViroOverlay] board GLB load start')}
-          onLoadEnd={()   => console.log('[ARViroOverlay] board GLB load end')}
+          onLoadStart={() => console.log('[ARViroOverlay] board GLB load start', cfg.id)}
+          onLoadEnd={()   => console.log('[ARViroOverlay] board GLB load end', cfg.id)}
           onError={(e: any) => console.error('[ARViroOverlay] board GLB error:', e)}
         />
 
-        {(pieces ?? []).map(p => <CheckerPiece key={p.key} piece={p} onTap={onSquareTap} />)}
-        {(moves  ?? []).map(m => <MoveDot key={`dot_${m.row}_${m.col}`} row={m.row} col={m.col} />)}
+
+        {(pieces ?? []).map(p => <CheckerPiece key={p.key} piece={p} onTap={onSquareTap} cfg={cfg} derived={derived} />)}
+        {(moves  ?? []).map(m => (
+          <MoveDot
+            key={`dot_${m.row}_${m.col}`}
+            row={m.row}
+            col={m.col}
+            onTap={onSquareTap}
+            cfg={cfg}
+            derived={derived}
+          />
+        ))}
       </ViroNode>
     </ViroARScene>
   );
@@ -240,7 +300,7 @@ function CheckersARScene({ sceneNavigator }: SceneProps) {
 
 // ── Public component ───────────────────────────────────────────────────────────
 const ARViroOverlay = forwardRef<AR3DOverlayHandle, Props>(function ARViroOverlay(
-  { visible = true, pieces = [], moves = [], onSquareTap, boardGlbPath, panoramaSource },
+  { visible = true, pieces = [], moves = [], onSquareTap, boardGlbPath: _boardGlbPath, panoramaSource },
   ref,
 ) {
   const navigatorRef = useRef<any>(null);

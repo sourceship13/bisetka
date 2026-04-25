@@ -16,6 +16,7 @@ import BaazarBlotScreen from '../screens/Games/Baazar Blot/BaazarBlotScreen';
 import MultiplayerBaazarBlotScreen from '../screens/MultiplayerBaazarBlotScreen';
 import NardiScreen from '../screens/Games/Nardi/NardiScreen';
 import ChessScreen from '../screens/Games/Chess/ChessScreen';
+
 import MultiplayerChessScreen from '../screens/Games/Chess/MultiplayerChessScreen';
 import MrotsiScreen from '../screens/Games/Mrotsi/MrotsiScreen';
 import MultiplayerMrotsiScreen from '../screens/Games/Mrotsi/MultiplayerMrotsiScreen';
