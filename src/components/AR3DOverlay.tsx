@@ -166,7 +166,6 @@ const GLB_ASSET_MAP: Record<string, any> = {
   'glb/chess/pieces/black_rook.glb':            require('../../assets/glb/chess/pieces/black_rook.glb'),
   'glb/chess/pieces/black_queen.glb':           require('../../assets/glb/chess/pieces/black_queen.glb'),
   'glb/chess/pieces/black_king.glb':            require('../../assets/glb/chess/pieces/black_king.glb'),
-  'glb/checkers/checker_pieces.glb':            require('../../assets/glb/checkers/checker_pieces.glb'),
   'glb/cards/card-template.glb':                require('../../assets/glb/cards/card-template.glb'),
 };
 
