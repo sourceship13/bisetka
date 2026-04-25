@@ -38,6 +38,7 @@ interface QueueItem {
   title: string;
   channel?: string;
   thumbnail?: string;
+  playlistId?: string; // YouTube list= param for radio/mix continuation
 }
 
 interface MusicPayload {
@@ -64,7 +65,7 @@ type Tab = 'player' | 'search' | 'queue';
 // The videoId is baked into the YT.Player constructor HTML — this avoids
 // calling loadVideoById() as a post-load command, which triggers error 153.
 // key={videoId} on the WebView forces a clean remount for each new video.
-const buildPlayerHtml = (videoId: string, startTime = 0) => `<!DOCTYPE html>
+const buildPlayerHtml = (videoId: string, startTime = 0, playlistId?: string) => `<!DOCTYPE html>
 <html>
 <head>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
@@ -92,8 +93,9 @@ const buildPlayerHtml = (videoId: string, startTime = 0) => `<!DOCTYPE html>
         playsinline: 1,
         enablejsapi: 1,
         origin: 'https://bisetka.io',
-        rel: 0,
+        rel: 1,
         ${startTime > 0 ? 'start: ' + Math.floor(startTime) + ',' : ''}
+        ${playlistId ? "listType: 'playlist', list: '" + playlistId + "'," : ''}
       },
       events: {
         onReady: function(e) {
@@ -102,6 +104,8 @@ const buildPlayerHtml = (videoId: string, startTime = 0) => `<!DOCTYPE html>
         },
         onStateChange: function(e) {
           notify({ type: 'state', state: e.data });
+          // state 0 = ended — auto-advance to next video
+          if (e.data === 0) { notify({ type: 'ended' }); }
         },
         onError: function(e) {
           notify({ type: 'error', code: e.data });
@@ -179,21 +183,18 @@ export default function SyncedYouTubePlayer({
     return () => { sub1.remove(); sub2.remove(); };
   }, []);
 
-  // ── Auto-load default track the first time the player becomes visible ──────
+  // ── Auto-load default track on mount (regardless of visible state) ──────
   useEffect(() => {
-    if (!visible || autoLoadedRef.current) return;
+    if (autoLoadedRef.current) return;
     if (!defaultTrack) return;
     autoLoadedRef.current = true;
-    // Pre-fill queue with any additional default tracks
-    if (defaultQueue.length > 0) {
-      setQueue(defaultQueue);
-    }
-    // Load and play the default track
+    if (defaultQueue.length > 0) setQueue(defaultQueue);
     setPlayerReady(false);
     setPlaying(true);
     setEmbedStartTime(0);
     setCurrentItem(defaultTrack);
-  }, [visible, defaultTrack, defaultQueue]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ── Send play/pause to the YT.Player inside the WebView ───────────────────
   const control = useCallback((action: 'play' | 'pause') => {
@@ -303,8 +304,33 @@ export default function SyncedYouTubePlayer({
     }
   }, [videoId, playerReady, playing, control]);
 
-  // ── Search YouTube ────────────────────────────────────────────────────────
+  
+  // ── Parse YouTube URL -> { videoId, playlistId } ─────────────────────────
+  const parseYouTubeUrl = useCallback((input: string): { videoId: string; playlistId?: string } | null => {
+    try {
+      const url = new URL(input.trim());
+      const videoId = url.searchParams.get('v');
+      const playlistId = url.searchParams.get('list') ?? undefined;
+      if (videoId) return { videoId, playlistId };
+      // youtu.be/VIDEO_ID
+      const shortMatch = url.pathname.match(/^\/([A-Za-z0-9_-]{11})$/);
+      if (shortMatch) return { videoId: shortMatch[1], playlistId };
+    } catch { /* not a url */ }
+    return null;
+  }, []);
+
+// ── Search YouTube ────────────────────────────────────────────────────────
   const handleSearch = useCallback(async () => {
+    // If input is a YouTube URL, load directly
+    const parsed = parseYouTubeUrl(searchQuery.trim());
+    if (parsed) {
+      const item: QueueItem = { videoId: parsed.videoId, title: parsed.videoId, playlistId: parsed.playlistId };
+      loadVideo(item);
+      syncToRoom({action: 'load', videoId: parsed.videoId, currentTime: 0});
+      setActiveTab('player');
+      setSearchQuery('');
+      return;
+    }
     if (!searchQuery.trim()) return;
     Keyboard.dismiss();
     setSearching(true);
@@ -367,9 +393,26 @@ export default function SyncedYouTubePlayer({
 
   // ─────────────────────────────────────────────────────────────────────────
 
-  if (!visible) return null;
-
   const hasVideo = !!videoId;
+
+  // When not visible: keep WebView alive (audio continues) but hide everything
+  if (!visible) {
+    return (
+      <View style={{position:'absolute',opacity:0,width:1,height:1,overflow:'hidden'}} pointerEvents="none">
+        {hasVideo && (
+          <WebView
+            key={videoId ?? 'empty'}
+            ref={webViewRef}
+            source={{html: buildPlayerHtml(videoId!, embedStartTime, currentItem?.playlistId), baseUrl: 'https://bisetka.io'}}
+            javaScriptEnabled
+            mediaPlaybackRequiresUserAction={false}
+            allowsInlineMediaPlayback
+            onMessage={handleMessage}
+          />
+        )}
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, {bottom: keyboardHeight}]}>
@@ -391,7 +434,7 @@ export default function SyncedYouTubePlayer({
               key={videoId ?? 'empty'}
               ref={webViewRef}
               source={videoId
-                ? {html: buildPlayerHtml(videoId, embedStartTime), baseUrl: 'https://bisetka.io'}
+                ? {html: buildPlayerHtml(videoId, embedStartTime, currentItem?.playlistId), baseUrl: 'https://bisetka.io'}
                 : {html: '<html><body style="background:#000"></body></html>'}
               }
               style={styles.webview}

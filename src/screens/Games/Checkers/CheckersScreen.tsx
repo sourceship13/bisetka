@@ -753,6 +753,7 @@ const CheckersScreen = ({ navigation, route }: any) => {
       <SyncedYouTubePlayer
         roomId={isMultiplayer && roomId ? roomId : null}
         visible={showMusicPlayer}
+        defaultTrack={{ videoId: '_2kPf5NgVsY', title: 'Chill Mix', playlistId: 'RD_2kPf5NgVsY' }}
       />
       {arEnabled && (
         <TouchableOpacity
