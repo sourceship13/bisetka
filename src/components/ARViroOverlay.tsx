@@ -102,23 +102,8 @@ const BOARD_CONFIGS: BoardConfig[] = [
     boardFaceOffset: -0.165,
     boardYOffset: 0.3,
     ambientIntensity: 600,
-    spotIntensity: 50,
-  },
-  {
-    id: 'board',
-    label: 'Minimal',
-    src: require('../../assets/glb/checkers/board.glb'),
-    boardScale: 0.50,
-    nativeFaceY: 1.0,
-    fieldHalf: 0.40,
-    boardOX: 0.0,
-    boardOY: 0.0,
-    faceExtraY: 0.04,
-    boardFaceOffset: 0,
-    boardYOffset: 0,
-    ambientIntensity: 600,
-    spotIntensity: 20,
-  },
+    spotIntensity: 2000,
+  }
 ];
 
 const BOARD_POS: [number, number, number] = [0, -0.85, -1.6];
@@ -288,14 +273,14 @@ function CheckersARScene({ sceneNavigator }: SceneProps) {
 
       <ViroAmbientLight color="#ffffff" intensity={cfg.ambientIntensity} />
       <ViroSpotLight
-        position={[0, 0.5, -1.6]}
+        position={[0, BOARD_POS[1] + cfg.boardYOffset + 1.0, -1.6]}
         direction={[0, -1, 0]}
         color="#ffffff"
         intensity={cfg.spotIntensity}
-        attenuationStartDistance={0.5}
-        attenuationEndDistance={2.5}
-        innerAngle={45}
-        outerAngle={75}
+        attenuationStartDistance={0.3}
+        attenuationEndDistance={2.0}
+        innerAngle={30}
+        outerAngle={60}
         castsShadow={false}
       />
 
@@ -310,7 +295,7 @@ function CheckersARScene({ sceneNavigator }: SceneProps) {
             onClick={bc.id === cfg.id ? handleBoardTap : undefined}
             onLoadStart={() => console.log('[ARViroOverlay] board GLB load start', bc.id)}
             onLoadEnd={()   => console.log('[ARViroOverlay] board GLB load end',   bc.id)}
-            onError={(e: any) => console.error('[ARViroOverlay] board GLB error:', bc.id, e?.message ?? String(e))}
+            onError={(e: any) => console.warn('[ARViroOverlay] board GLB error:', bc.id, e?.message ?? String(e))}
           />
         ))}
 
