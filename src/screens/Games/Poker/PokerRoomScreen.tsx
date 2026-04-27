@@ -259,14 +259,14 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
   const playerPositions = [
     // Position 0: bottom 8%, center (You)
     { x: 0, y: height * 0.42 },
-    // Position 1: bottom 20%, right 2% (Player 2)
-    { x: width * 0.40, y: height * 0.30 },
-    // Position 2: top 20%, right 2% (Player 3)
+    // Position 1: top 20%, right 2% (Player 2)
     { x: width * 0.40, y: -height * 0.05 },
-    // Position 3: top 0%, center (Player 4)
+    // Position 2: top 0%, center (Player 3)
     { x: 0, y: -height * 0.25 },
-    // Position 4: top 20%, left 2% (Player 5)
+    // Position 3: top 20%, left 2% (Player 4)
     { x: -width * 0.40, y: -height * 0.05 },
+    // Position 4: middle left 44% (Player 5)
+    { x: -width * 0.40, y: height * 0.12 },
     // Position 5: bottom 20%, left 2% (Player 6)
     { x: -width * 0.40, y: height * 0.30 },
   ];
@@ -1787,23 +1787,23 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
   position1: {
-    bottom: '20%',
+    top: '8%',
     right: '2%',
   },
   position2: {
-    top: '20%',
-    right: '2%',
-  },
-  position3: {
     top: '0%',
     alignSelf: 'center',
+  },
+  position3: {
+    top: '8%',
+    left: '2%',
   },
   position4: {
     top: '20%',
     left: '2%',
   },
   position5: {
-    bottom: '20%',
+    top: '38%',
     left: '2%',
   },
   playerInfo: {
