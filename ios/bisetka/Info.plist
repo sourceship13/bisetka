@@ -90,6 +90,8 @@
 	</array>
 	<key>NSCameraUsageDescription</key>
 	<string>Bisetka may need access to your camera for profile photos and in-game features.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Bisetka uses your photo library so you can set a profile picture.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Bisetka uses your microphone for voice chat with your opponent during games.</string>
 	<key>UIAppFonts</key>

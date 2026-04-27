@@ -140,6 +140,10 @@ export interface AR3DOverlayProps {
   pieceColorRed?: string;
   /** CSS hex color for the 'black' player pieces. Default: '#1e2d3d' */
   pieceColorBlack?: string;
+  /** When true, suppresses the procedural chess/checkerboard overlay on top of the board GLB. */
+  hideCheckerboard?: boolean;
+  /** Scale multiplier for the board/table size (default 1.0). Use >1 for card-game tables. */
+  boardScale?: number;
 }
 
 // ─── GLB URI resolver ─────────────────────────────────────────────────────────
@@ -152,6 +156,8 @@ export interface AR3DOverlayProps {
 const GLB_ASSET_MAP: Record<string, any> = {
   'glb/game_boards/rounded_table_panel_v4.glb': require('../../assets/glb/game_boards/rounded_table_panel_v4.glb'),
   'glb/game_boards/rounded_table_panel.glb':    require('../../assets/glb/game_boards/rounded_table_panel.glb'),
+  'glb/game assets/round_table.glb':            require('../../assets/glb/game assets/round_table.glb'),
+  'glb/game assets/octagon_table.glb':          require('../../assets/glb/game assets/octagon_table.glb'),
   'glb/chess/chess-board/source/ui.glb':        require('../../assets/glb/chess/chess-board/source/ui.glb'),
   'glb/chess/chess-board/source/armenian_board.glb': require('../../assets/glb/chess/chess-board/source/armenian_board.glb'),
   'glb/chess/pieces/white_pawn.glb':            require('../../assets/glb/chess/pieces/white_pawn.glb'),
@@ -273,6 +279,8 @@ function buildSceneHTML(
   cardBackUri: string | null,
   localThreePath: string | null = null,
   localGltfPath:  string | null = null,
+  hideCheckerboard: boolean = false,
+  boardScale: number = 1.0,
 ): string {
   const BOARD_URI_JS  = boardUri  ? JSON.stringify(boardUri)  : 'null';
   const PIECES_URI_JS = piecesUri ? JSON.stringify(piecesUri) : 'null';
@@ -285,6 +293,8 @@ function buildSceneHTML(
   const TABLE_URI_JS  = tableUri ? JSON.stringify(tableUri) : 'null';
   const RED_HEX   = `0x${pieceColorRed.toString(16).padStart(6, '0')}`;
   const BLACK_HEX = `0x${pieceColorBlack.toString(16).padStart(6, '0')}`;
+  const HIDE_CHECKERBOARD_JS = hideCheckerboard ? 'true' : 'false';
+  const BOARD_SCALE_JS = boardScale.toFixed(4);
 
   return `<!DOCTYPE html>
 <html>
@@ -370,7 +380,8 @@ camRim.position.set(0, -1, -3); camera.add(camRim);
 
 // ── World-space constants (1 unit ≈ 1 metre) ─────────────────────────────────
 const BOARD_THICKNESS = 0.045;
-const BOARD_HALF   = 0.35;
+const HIDE_CHECKERBOARD = ${HIDE_CHECKERBOARD_JS};
+const BOARD_HALF   = 0.35 * ${BOARD_SCALE_JS};
 const BOARD_HALF_W = BOARD_HALF;
 const BOARD_HALF_H = BOARD_HALF;
 // armenian_board.glb geometry (measured from GLB accessors + 2048px texture scan):
@@ -475,6 +486,8 @@ function buildProceduralBoard() {
 const BOARD_URI  = ${BOARD_URI_JS};
 const PIECES_URI = ${PIECES_URI_JS};
 const CHESS_PIECE_URIS = ${CHESS_PIECE_URIS_JS};
+const CARD_URI = ${CARD_URI_JS};
+const CARD_BACK_URI = ${CARD_BACK_URI_JS};
 // Use Google's Draco CDN with JS-only decoder to avoid WASM/Worker issues in WKWebView
 const dracoLoader = new DRACOLoader();
 dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
@@ -488,7 +501,7 @@ function _rnLog(msg) {
   }
 }
 
-_rnLog('[AR3D-HTML] module running. BOARD_URI type=' + (BOARD_URI ? 'data(' + BOARD_URI.length + ')' : 'null') + ' PIECES_URI=' + (PIECES_URI ? 'set' : 'null'));
+_rnLog('[AR3D-HTML] module running. BOARD_URI type=' + (BOARD_URI ? 'data(' + BOARD_URI.length + ')' : 'null') + ' PIECES_URI=' + (PIECES_URI ? 'set' : 'null') + ' CARD_URI=' + (CARD_URI ? 'set' : 'null'));
 
 // ── Load BOARD
 if (BOARD_URI) {
@@ -558,6 +571,7 @@ if (BOARD_URI) {
     boardGroup.add(model);
 
     // ── Raised checkerboard platform ─────────────────────────────────────
+    if (!HIDE_CHECKERBOARD) {
     // Black marble plinth that runs full height of the board + the raise,
     // so the checkerboard surface looks inset/elevated above the border frame.
     // boardGroup is XZ-horizontal (rotation.x=-PI/2), so local Z = world up.
@@ -600,6 +614,7 @@ if (BOARD_URI) {
     _topMesh.position.set(0, 0, _raisedTop + 0.0001); // just above plinth top
     _topMesh.receiveShadow = true;
     boardGroup.add(_topMesh);
+    } // end !HIDE_CHECKERBOARD
 
     // GLB loaded successfully — cancel the procedural fallback timer
     clearTimeout(_boardTimer); _boardDone = true;
@@ -858,6 +873,50 @@ function clonePiece(piece) {
   return clone;
 }
 
+// ── Load GLB card template (optional) ─────────────────────────────────────────
+let baseCardScene = null;
+
+function normalizeCardModel(model) {
+  const normalized = model.clone(true);
+
+  // Ensure thin axis is Z so card lays flat in boardGroup local XY plane.
+  const preBox = new THREE.Box3().setFromObject(normalized);
+  const preSize = preBox.getSize(new THREE.Vector3());
+  const thinAxis = (preSize.x <= preSize.y && preSize.x <= preSize.z)
+    ? 'x'
+    : (preSize.y <= preSize.x && preSize.y <= preSize.z ? 'y' : 'z');
+  if (thinAxis === 'x') normalized.rotation.y = Math.PI / 2;
+  else if (thinAxis === 'y') normalized.rotation.x = -Math.PI / 2;
+  normalized.updateMatrixWorld(true);
+
+  const box = new THREE.Box3().setFromObject(normalized);
+  const size = box.getSize(new THREE.Vector3());
+  const center = box.getCenter(new THREE.Vector3());
+
+  const sx = CARD_W / Math.max(size.x, 0.001);
+  const sy = CARD_H / Math.max(size.y, 0.001);
+  const s = Math.min(sx, sy);
+  normalized.scale.setScalar(s);
+  normalized.updateMatrixWorld(true);
+
+  const box2 = new THREE.Box3().setFromObject(normalized);
+  const ctr2 = box2.getCenter(new THREE.Vector3());
+  normalized.position.set(-ctr2.x, -ctr2.y, -ctr2.z);
+  normalized.updateMatrixWorld(true);
+
+  return normalized;
+}
+
+if (CARD_URI) {
+  loader.load(CARD_URI, (gltf) => {
+    baseCardScene = normalizeCardModel(gltf.scene);
+    updateCards(window._cards || []);
+  }, undefined, (err) => {
+    baseCardScene = null;
+    console.warn('[AR3DOverlay] card GLB load failed, using procedural cards:', err && err.message ? err.message : String(err));
+  });
+}
+
 // ── CARD RENDERING (procedural — no GLB needed) ───────────────────────────────
 // Cards are flat PlaneGeometry quads with a CanvasTexture showing suit + rank.
 // This avoids GLB loading failures and gives sharp, readable cards in AR.
@@ -1074,7 +1133,7 @@ function _paintCardBack(ctx, W, H) {
 
 // ── Texture builder ───────────────────────────────────────────────────────────
 function makeCardTexture(suit, rank, faceDown, opts) {
-  var imageUri = faceDown ? ((opts||{}).cardBackImageUri||'') : ((opts||{}).backgroundImageUri||'');
+  var imageUri = faceDown ? ((opts||{}).cardBackImageUri || CARD_BACK_URI || '') : ((opts||{}).backgroundImageUri||'');
   var cacheKey = ['v3', faceDown ? '__back__' : suit+'-'+rank, (opts||{}).font||'', imageUri].join('|');
   if (_cardTextureCache.has(cacheKey)) return _cardTextureCache.get(cacheKey);
 
@@ -1106,30 +1165,51 @@ function makeCardTexture(suit, rank, faceDown, opts) {
 }
 
 // ── Mesh builder ──────────────────────────────────────────────────────────────
+// Card = two PlaneGeometry quads (face + back) with depthTest:false so they
+// always render on top of the table regardless of depth buffer state.
 function makeCardMesh(suit, rank, faceDown, opts) {
-  var geo = new THREE.PlaneGeometry(CARD_W, CARD_H);
   var frontTex = makeCardTexture(suit, rank, false, opts);
   var backTex  = makeCardTexture(suit, rank, true,  opts);
+  var aniso = renderer.capabilities.getMaxAnisotropy();
+  frontTex.anisotropy = aniso; frontTex.needsUpdate = true;
+  backTex.anisotropy  = aniso; backTex.needsUpdate  = true;
 
   var group = new THREE.Group();
+  var geo   = new THREE.PlaneGeometry(CARD_W, CARD_H);
 
+  // White card body slab (slightly larger, renders under the face quads)
+  var slab = new THREE.Mesh(
+    new THREE.BoxGeometry(CARD_W + 0.004, CARD_H + 0.004, 0.008),
+    new THREE.MeshBasicMaterial({ color: 0xf8f4ec, depthTest: false })
+  );
+  slab.renderOrder = 996;
+  group.add(slab);
+
+  // Front face
   var front = new THREE.Mesh(geo,
-    new THREE.MeshBasicMaterial({ map: frontTex, side: THREE.FrontSide, depthTest: false }));
+    new THREE.MeshBasicMaterial({ map: frontTex, transparent: false, depthTest: false }));
+  front.position.z = 0.005;
   front.renderOrder = 999;
-  front.position.z = 0.0003;
   group.add(front);
 
+  // Back face (flipped)
   var back = new THREE.Mesh(geo,
-    new THREE.MeshBasicMaterial({ map: backTex, side: THREE.BackSide, depthTest: false }));
+    new THREE.MeshBasicMaterial({ map: backTex, transparent: false, depthTest: false }));
+  back.rotation.y = Math.PI;
+  back.position.z = -0.005;
   back.renderOrder = 998;
   group.add(back);
 
-  group.add(new THREE.Mesh(
-    new THREE.BoxGeometry(CARD_W, CARD_H, 0.002),
-    new THREE.MeshBasicMaterial({ color: 0xfafafa, depthTest: false })
-  ));
+  // Gold border ring — makes the card unmissable
+  var border = new THREE.Mesh(
+    new THREE.PlaneGeometry(CARD_W + 0.012, CARD_H + 0.012),
+    new THREE.MeshBasicMaterial({ color: 0xd4af37, depthTest: false })
+  );
+  border.position.z = 0.003;
+  border.renderOrder = 997;
+  group.add(border);
 
-  group.renderOrder = 997;
+  group.renderOrder = 995;
   return group;
 }
 
@@ -1137,7 +1217,7 @@ function makeCardMesh(suit, rank, faceDown, opts) {
 const _cardMeshMap = new Map();
 
 function updateCards(cards) {
-  console.log('[AR] updateCards called, count:', cards ? cards.length : 0);
+  _rnLog('[AR3D] updateCards count=' + (cards ? cards.length : 0) + (cards && cards[0] ? ' pos0='+JSON.stringify(cards[0].position) : ''));
   if (!cards || cards.length === 0) {
     _cardMeshMap.forEach(grp => cardGroup.remove(grp));
     _cardMeshMap.clear();
@@ -1265,9 +1345,10 @@ window.handleRNMessage = function(data) {
   }
   if (data.type === 'scene') {
     window._pieces = data.pieces || [];
+    window._cards = data.cards || [];
     updatePieces(window._pieces);
     updateDots(data.moves || []);
-    updateCards(data.cards || []);
+    updateCards(window._cards);
   }
   if (data.type === 'recenter') {
     // Re-attach sceneGroup to camera so it tracks the player again,
@@ -1369,6 +1450,8 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
   onSquareTap,
   pieceColorRed   = '#c0392b',
   pieceColorBlack = '#1e2d3d',
+  hideCheckerboard = false,
+  boardScale = 1.0,
 }: AR3DOverlayProps, ref: React.Ref<AR3DOverlayHandle>) {
   const attitude = useSharedAttitude();
   const webViewRef = useRef<WebView>(null);
@@ -1493,10 +1576,10 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
     const result = buildSceneHTML(
       fov, boardUri, piecesUri, chessPieceUris, tableUri ?? null, spawnYaw,
       redInt, blackInt, cardUri ?? null, cardBackUri ?? null,
-      localThreePath, localGltfPath,
+      localThreePath, localGltfPath, hideCheckerboard, boardScale,
     );
     return result;
-  }, [fov, boardUri, piecesUri, chessPieceUris, tableUri, spawnYaw, cardUri, cardBackUri]);
+  }, [fov, boardUri, piecesUri, chessPieceUris, tableUri, spawnYaw, cardUri, cardBackUri, hideCheckerboard, boardScale]);
 
   // Write the HTML to a temp file and give WebView a file:// URI.
   // WKWebView.loadHTMLString silently fails on iOS with large strings (>5 MB).
@@ -1568,6 +1651,7 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
       if (data.type === 'tap' && onSquareTap) {
         onSquareTap(data.row, data.col);
       } else if (data.type === 'log') {
+        console.warn('[AR3D WebView]', data.msg);
       }
     } catch (_) {}
   }, [onSquareTap]);
