@@ -415,7 +415,7 @@ const SQUARE_W     = (FIELD_HALF_W * 2) / 8;  // 0.0636m per square
 const SQUARE_H     = SQUARE_W;
 const PIECE_SCALE  = SQUARE_W * 0.60;          // 60% of square — clear gap on all 4 sides
 const FIELD_RAISE  = 0.01270;                   // 1/2 inch raise — visible sides from camera angle
-const BOARD_Y    = -0.75;  // table surface at eye level
+const BOARD_Y    = -1.10;  // table surface lowered
 
 // ── Dynamic TABLE_DIST: closest distance where board corners fit in view ──────
 // hFov derived from vFov + aspect ratio so it adapts to every screen/orientation.
