@@ -269,7 +269,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
             key: `trick-local-${idx}-${card.suit}-${card.rank}`,
             position: arPositions[slot],
             rotation: arRotations[slot],
-            scale: 1,
+            scale: 2,
             cardData: {
               suit: card.suit as ARCard['cardData']['suit'],
               rank: card.rank as ARCard['cardData']['rank'],
@@ -295,7 +295,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
             key: `trick-${cp.position}-${cp.card.suit}-${cp.card.rank}`,
             position: arPositions[rel] ?? { x: 0, y: 0, z: 0.025 },
             rotation: arRotations[rel] ?? { x: 0, y: 0, z: 0 },
-            scale: 1,
+            scale: 2,
             cardData: {
               suit: cp.card.suit as ARCard['cardData']['suit'],
               rank: cp.card.rank as ARCard['cardData']['rank'],
@@ -321,7 +321,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
             key: `trick-2p-${slot}-${cp.card.suit}-${cp.card.rank}`,
             position: arPositions[slot],
             rotation: arRotations[slot],
-            scale: 1,
+            scale: 2,
             cardData: {
               suit: cp.card.suit as ARCard['cardData']['suit'],
               rank: cp.card.rank as ARCard['cardData']['rank'],

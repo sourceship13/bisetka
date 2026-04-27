@@ -326,9 +326,9 @@ const BlotScreen = ({ navigation }: any) => {
     const TILT = Math.PI / 8; // 22.5° toward viewer for readability
     const positions: Record<number, { x: number; y: number; z: number }> = {
       0: { x:  0.00, y:  1.15, z: 0.13 },  // near player (bottom)
-      1: { x:  0.22, y:  1.50, z: 0.13 },  // right player
-      2: { x:  0.00, y:  1.62, z: 0.13 },  // far player (top)
-      3: { x: -0.22, y:  1.50, z: 0.13 },  // left player
+      1: { x:  0.50, y:  1.50, z: 0.13 },  // right player
+      2: { x:  0.00, y:  2.15, z: 0.13 },  // far player (top)
+      3: { x: -0.50, y:  1.50, z: 0.13 },  // left player
     };
     const rotations: Record<number, { x: number; y: number; z: number }> = {
       0: { x: TILT, y: 0, z: 0 },
@@ -342,7 +342,7 @@ const BlotScreen = ({ navigation }: any) => {
         key: `trick-${cp.playerId}-${cp.card.suit}-${cp.card.rank}`,
         position: positions[cp.playerId] ?? { x: 0, y: 0, z: 0.025 },
         rotation: rotations[cp.playerId] ?? { x: 0, y: 0, z: 0 },
-        scale: 1,
+        scale: 2,
         cardData: {
           suit: cp.card.suit as ARCard['cardData']['suit'],
           rank: cp.card.rank as ARCard['cardData']['rank'],
@@ -703,6 +703,25 @@ const BlotScreen = ({ navigation }: any) => {
             </View>
           </View>
 
+          {gameState.phase === 'playing' && (
+            <View style={{ alignItems: 'center', marginTop: 4 }}>
+              <Text style={styles.currentPlayerText}>
+                {gameState.currentPlayer === 0
+                  ? '★ Your Turn (Team 1)'
+                  : `${
+                      gameState.players[gameState.currentPlayer].name
+                    }'s Turn (Team ${
+                      gameState.players[gameState.currentPlayer].team
+                    })`}
+              </Text>
+              {arEnabled && (
+                <Text style={{color:'#00ff88',fontSize:11,textAlign:'center',opacity:0.8,marginTop:-12}}>
+                  3D cards: {arCards.length}
+                </Text>
+              )}
+            </View>
+          )}
+
           <View style={styles.scoreBoard}>
             <View style={styles.teamScore}>
               <Text style={styles.teamLabel}>Team 1</Text>
@@ -738,6 +757,8 @@ const BlotScreen = ({ navigation }: any) => {
             </View>
           </View>
 
+
+
           {/* Bidding Modal - transparent overlay */}
           {gameState.phase === 'bidding' && showBiddingModal && (
             <View style={styles.biddingModalOverlay}>
@@ -759,20 +780,6 @@ const BlotScreen = ({ navigation }: any) => {
           {gameState.phase === 'playing' && (
             <>
               <View style={styles.playArea}>
-                <Text style={styles.currentPlayerText}>
-                  {gameState.currentPlayer === 0
-                    ? '★ Your Turn (Team 1)'
-                    : `${
-                        gameState.players[gameState.currentPlayer].name
-                      }'s Turn (Team ${
-                        gameState.players[gameState.currentPlayer].team
-                      })`}
-                </Text>
-                {arEnabled && (
-                  <Text style={{color:'#00ff88',fontSize:11,textAlign:'center',opacity:0.8}}>
-                    3D cards: {arCards.length}
-                  </Text>
-                )}
 
                 {!arEnabled && (
                 <View
@@ -1155,7 +1162,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#FFD700',
     textAlign: 'center',
-    marginBottom: 16,
+    marginBottom: 2,
     textShadowColor: 'rgba(0,0,0,0.8)',
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 4,
