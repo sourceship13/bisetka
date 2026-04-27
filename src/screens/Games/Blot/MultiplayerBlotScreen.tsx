@@ -16,7 +16,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import Photosphere360Background from '../../../components/Photosphere360Background';
-import AR3DOverlay, {type AR3DOverlayHandle} from '../../../components/AR3DOverlay';
+import AR3DOverlay, {type AR3DOverlayHandle, type ARCard} from '../../../components/AR3DOverlay';
 import SyncedYouTubePlayer from '../../../components/SyncedYouTubePlayer';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { socketService } from '../../../services/SocketService';
@@ -116,6 +116,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
   const [isMyTurn, setIsMyTurn] = useState(false);
   const [selectedCard, setSelectedCard] = useState<Card | null>(null);
   const [opponent, setOpponent] = useState<any>(null);
+  const [gameStatus, setGameStatus] = useState('');
   const [isConnecting, setIsConnecting] = useState(false);
   const [isGameStarted, setIsGameStarted] = useState(false);
   const isGameStartedRef = useRef(false);
@@ -206,6 +207,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
   const [showCustomization, setShowCustomization] = useState(false);
   const [customTheme, setCustomTheme] = useState<CardTheme | undefined>(undefined);
   const [showBackground, setShowBackground] = useState(true);
+  const [arCards, setArCards] = useState<ARCard[]>([]);
   const [showBlur, setShowBlur] = useState(true);
   const [arEnabled, setArEnabled] = useState(true);
   const [showMusicPlayer, setShowMusicPlayer] = useState(false);
@@ -237,6 +239,106 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
       handleGameStart();
     }
   }, [isLocalGame, localGameState, isGameStarted, gameState, entryDeducted]);
+
+  // Sync trick cards to AR 3D overlay
+  useEffect(() => {
+    if (!arEnabled) { setArCards([]); return; }
+
+    const TILT = Math.PI / 8; // 22.5° toward viewer for readability
+    const arPositions: Record<number, { x: number; y: number; z: number }> = {
+      0: { x:  0.00, y:  0.35, z: 0.13 },  // near player (bottom)
+      1: { x:  0.22, y:  0.50, z: 0.13 },  // right player
+      2: { x:  0.00, y:  0.62, z: 0.13 },  // far player (top)
+      3: { x: -0.22, y:  0.50, z: 0.13 },  // left player
+    };
+    const arRotations: Record<number, { x: number; y: number; z: number }> = {
+      0: { x: TILT, y: 0, z: 0 },
+      1: { x: TILT, y: 0, z: -Math.PI / 2 },
+      2: { x: TILT, y: 0, z: Math.PI },
+      3: { x: TILT, y: 0, z:  Math.PI / 2 },
+    };
+
+    // Case 1: Local AI game — localGameState.currentTrick is Card[]
+    if (isLocalGame && localGameState?.currentTrick) {
+      const trick: Card[] = localGameState.currentTrick;
+      const mapped: ARCard[] = trick
+        .filter((c): c is Card => !!(c?.suit && c?.rank))
+        .map((card, idx) => {
+          const slot = idx === trick.length - 1 ? 0 : 2; // last card = player (bottom), earlier = AI (top)
+          return {
+            key: `trick-local-${idx}-${card.suit}-${card.rank}`,
+            position: arPositions[slot],
+            rotation: arRotations[slot],
+            scale: 1,
+            cardData: {
+              suit: card.suit as ARCard['cardData']['suit'],
+              rank: card.rank as ARCard['cardData']['rank'],
+              value: 0,
+              faceDown: false,
+              backgroundImageUri: customTheme?.backgroundImage ?? undefined,
+              cardBackImageUri:   customTheme?.cardBackImage   ?? undefined,
+              font:               customTheme?.font             ?? undefined,
+            },
+          };
+        });
+      setArCards(mapped);
+      return;
+    }
+
+    // Case 2: Multiplayer 4P — cards have a .position property
+    if (playerPosition !== null && gameState?.currentTrick?.cards) {
+      const mapped: ARCard[] = gameState.currentTrick.cards
+        .filter((cp: any) => cp?.card?.suit && cp?.card?.rank)
+        .map((cp: any) => {
+          const rel = ((cp.position - playerPosition + 4) % 4) as 0 | 1 | 2 | 3;
+          return {
+            key: `trick-${cp.position}-${cp.card.suit}-${cp.card.rank}`,
+            position: arPositions[rel] ?? { x: 0, y: 0, z: 0.025 },
+            rotation: arRotations[rel] ?? { x: 0, y: 0, z: 0 },
+            scale: 1,
+            cardData: {
+              suit: cp.card.suit as ARCard['cardData']['suit'],
+              rank: cp.card.rank as ARCard['cardData']['rank'],
+              value: 0,
+              faceDown: false,
+              backgroundImageUri: customTheme?.backgroundImage ?? undefined,
+              cardBackImageUri:   customTheme?.cardBackImage   ?? undefined,
+              font:               customTheme?.font             ?? undefined,
+            },
+          };
+        });
+      setArCards(mapped);
+      return;
+    }
+
+    // Case 3: Multiplayer 2P — use isHuman/color to determine bottom vs top
+    if (gameState?.currentTrick?.cards) {
+      const mapped: ARCard[] = gameState.currentTrick.cards
+        .filter((cp: any) => cp?.card?.suit && cp?.card?.rank)
+        .map((cp: any) => {
+          const slot = (cp.isHuman || cp.color === playerColor) ? 0 : 2;
+          return {
+            key: `trick-2p-${slot}-${cp.card.suit}-${cp.card.rank}`,
+            position: arPositions[slot],
+            rotation: arRotations[slot],
+            scale: 1,
+            cardData: {
+              suit: cp.card.suit as ARCard['cardData']['suit'],
+              rank: cp.card.rank as ARCard['cardData']['rank'],
+              value: 0,
+              faceDown: false,
+              backgroundImageUri: customTheme?.backgroundImage ?? undefined,
+              cardBackImageUri:   customTheme?.cardBackImage   ?? undefined,
+              font:               customTheme?.font             ?? undefined,
+            },
+          };
+        });
+      setArCards(mapped);
+      return;
+    }
+
+    setArCards([]);
+  }, [arEnabled, isLocalGame, localGameState?.currentTrick, gameState?.currentTrick, playerPosition, playerColor, customTheme]);
 
   const roomNameRef = useRef(roomName);
   useEffect(() => { roomNameRef.current = roomName; }, [roomName]);
@@ -373,15 +475,17 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
 
         // Join a waiting room directly from the Active Rooms lobby
         if (initialMode === 'join-from-lobby' && dbSessionId) {
+          setGameMode('matchmaking');
+          setGameStatus('Joining game...');
           const socket = socketService.getSocket();
           if (socket) {
             socket.once('room_joined', (data: any) => {
               socket.off('spectate_started');
               setCurrentRoom({ roomId: data.roomId });
-              setPlayerColor(data.color ?? 'black');
+              updatePlayerColor(data.color ?? 'black');
               setOpponent(data.opponent);
-              setIsMyTurn((data.color ?? 'black') === 'white');
-              setGameMode('game');
+              setGameStatus('Joined! Waiting for game to start...');
+              socketService.playerReady(data.roomId, userId);
             });
             // Fallback: server may send spectate_started if game already in progress
             socket.once('spectate_started', (data: any) => {
@@ -507,7 +611,12 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
     socketService.onOpponentJoined((data: any) => {
       console.log('Opponent joined:', data);
       setOpponent(data.opponent);
-      setGameMode('game'); // Transition to game mode
+      setGameMode('private');
+      setGameStatus('Opponent joined! Waiting for game to start...');
+      const liveRoomId = roomIdRef.current;
+      if (liveRoomId) {
+        socketService.playerReady(liveRoomId, userId);
+      }
     });
 
     // Game started
@@ -541,6 +650,12 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
       console.log('✅ My color (from server):', myColor, '| gameState.currentTurn:', data.gameState?.currentTurn);
 
       updatePlayerColor(myColor);
+      if (data.roomId) {
+        setCurrentRoom((prev: any) => ({
+          ...(prev || {}),
+          roomId: data.roomId,
+        }));
+      }
 
       // If this player replaced a CPU, store the cpuRole for turn detection
       if (data.cpuRole) {
@@ -620,6 +735,9 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
 
     // Matchmaking status
     socketService.onMatchmakingStatus((data: any) => {
+      if (data.status === 'searching') {
+        setGameStatus('Searching for opponent...');
+      }
       if (data.status === 'cancelled') {
         navigation.replace('GameMode', {gameType: 'blot'});
       }
@@ -655,6 +773,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
 
   const handleFindMatch = async () => {
     setGameMode('matchmaking');
+    setGameStatus('Finding opponent...');
     
     // Reset all game state before starting new match
     setGameState(null);
@@ -677,13 +796,12 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
         updatePlayerColor(matchData.team ?? 'white');
         setIsMyTurn((matchData.position ?? 0) === 0);
       } else {
-        setPlayerColor(matchData.color);
+        updatePlayerColor(matchData.color);
         setOpponent(matchData.opponent);
         setIsMyTurn(matchData.color === 'white');
       }
-      
-      // Don't auto-ready, let user click the button
-      setGameMode('game');
+      setGameStatus('Match found! Waiting for game to start...');
+      socketService.playerReady(matchData.roomId, userId);
     } catch (error: any) {
       BisetkaAlert.error('Matchmaking Error', error.message || 'Failed to find match');
       setGameMode('menu');
@@ -711,7 +829,8 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
       const roomData = await socketService.createPrivateRoom('blot', userId, initialJoinCode);
       setCurrentRoom({ roomId: roomData.roomId, roomCode: roomData.roomCode });
       setRoomCode(roomData.roomCode);
-      setPlayerColor('white');
+      updatePlayerColor('white');
+      setGameMode('private');
     } catch (error: any) {
       BisetkaAlert.error('Error', 'Failed to create room');
       setGameMode('menu');
@@ -734,10 +853,11 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
       await ensureSocketConnected();
       const roomData = await socketService.joinPrivateRoom(initialJoinCode!, userId);
       setCurrentRoom({ roomId: roomData.roomId });
-      setPlayerColor(roomData.color || 'black');
+      updatePlayerColor(roomData.color || 'black');
       setOpponent(roomData.opponent);
       setIsMyTurn((roomData.color || 'black') === 'white');
-      setGameMode('game'); // Exit matchmaking — show game screen with "Ready to Play"
+      setGameMode('private');
+      socketService.playerReady(roomData.roomId, userId);
     } catch (error: any) {
       BisetkaAlert.error('Error', 'Failed to join room. Check the code and try again.');
       setGameMode('menu');
@@ -766,12 +886,13 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
         setIsMyTurn((matchData.position ?? 0) === 0);
       } else {
         setCurrentRoom({ roomId: matchData.roomId });
-        setPlayerColor(matchData.color);
+        updatePlayerColor(matchData.color);
         setOpponent(matchData.opponent);
         setIsMyTurn(matchData.color === 'white');
       }
       setCurrentRoom({ roomId: matchData.roomId });
-      setGameMode('game');
+      setGameStatus('Match found! Waiting for game to start...');
+      socketService.playerReady(matchData.roomId, userId);
     } catch (error: any) {
       BisetkaAlert.error('Matchmaking Error', error.message || 'Failed to find match');
       setGameMode('menu');
@@ -795,7 +916,8 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
       const roomData = await socketService.createPrivateRoom('blot', userId);
       setCurrentRoom({ roomId: roomData.roomId, roomCode: roomData.roomCode });
       setRoomCode(roomData.roomCode);
-      setPlayerColor('white');
+      updatePlayerColor('white');
+      setGameMode('private');
     } catch (error: any) {
       BisetkaAlert.error('Error', 'Failed to create room');
       setGameMode('menu');
@@ -821,13 +943,12 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
       await ensureSocketConnected();
       const roomData = await socketService.joinPrivateRoom(joinRoomCode.toUpperCase(), userId);
       setCurrentRoom({ roomId: roomData.roomId });
-      setPlayerColor(roomData.color);
+      updatePlayerColor(roomData.color);
       setOpponent(roomData.opponent);
       setIsMyTurn(roomData.color === 'white');
-      
-      // Don't auto-ready, let user click the button
-      setGameMode('game');
+      setGameMode('private');
       setShowJoinModal(false);
+      socketService.playerReady(roomData.roomId, userId);
     } catch (error: any) {
       BisetkaAlert.error('Error', error.message || 'Failed to join room');
     }
@@ -1181,6 +1302,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
     <View style={styles.menuContainer}>
       <Text style={styles.title}>Finding Match...</Text>
       <ActivityIndicator size="large" color="#007AFF" style={styles.loader} />
+      <Text style={styles.waitingText}>{gameStatus || 'Connecting to room...'}</Text>
       <TouchableOpacity style={styles.cancelButton} onPress={handleCancelMatchmaking}>
         <Text style={styles.buttonText}>Cancel</Text>
       </TouchableOpacity>
@@ -1190,11 +1312,21 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
   const renderPrivateRoom = () => (
     <View style={styles.menuContainer}>
       <Text style={styles.title}>Private Room</Text>
-      {roomCode && (
+      {!opponent ? (
         <>
-          <Text style={styles.roomCodeLabel}>Room Code:</Text>
-          <Text style={styles.roomCodeText}>{roomCode}</Text>
+          {roomCode ? (
+            <>
+              <Text style={styles.roomCodeLabel}>Room Code:</Text>
+              <Text style={styles.roomCodeText}>{roomCode}</Text>
+              <Text style={styles.waitingText}>Share this code with your friend</Text>
+            </>
+          ) : null}
           <Text style={styles.waitingText}>Waiting for opponent to join...</Text>
+        </>
+      ) : (
+        <>
+          <Text style={styles.waitingText}>Opponent joined!</Text>
+          <Text style={styles.waitingText}>Get ready to play...</Text>
         </>
       )}
       <ActivityIndicator size="large" color="#007AFF" style={styles.loader} />
@@ -1238,6 +1370,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
             {localGameState.currentTurn === 'player' ? "★ Your Turn" : "Computer's Turn"}
           </Text>
 
+          {!arEnabled && (
           <View
             style={[
               styles.tableContainer,
@@ -1308,6 +1441,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
             </View>
             )}
           </View>
+          )}
         </View>
 
         <View style={[styles.handContainer, showRiffleDealAnimation && { opacity: 0 }]}>
@@ -1424,6 +1558,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
                 {is4P ? '👥 2v2 • 🤖 CPU-free' : '🤖 CPU Partner (same team)'}
               </Text>
 
+              {!arEnabled && (
               <View
                 style={[
                   styles.tableContainer,
@@ -1528,6 +1663,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
                 </View>
                 )}
               </View>
+              )}
             </View>
 
             <View style={[styles.handContainer, showRiffleDealAnimation && { opacity: 0 }]}>
@@ -1573,7 +1709,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
   return (
     <View style={styles.container}>
       <Photosphere360Background overlayOpacity={showBlur ? 0.65 : 0.3}>
-        <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/chess/chess-board/source/ui.glb" />
+        <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/game assets/octagon_table.glb" hideCheckerboard boardScale={1.9} cardGlbPath="glb/cards/card-template.glb" cards={arCards} />
       </Photosphere360Background>
       <View style={styles.overlay} pointerEvents="box-none">
         <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right']}>

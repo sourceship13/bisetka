@@ -20,7 +20,7 @@ import { resolveAvatar } from '../../../utils/avatars';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Photosphere360Background from '../../../components/Photosphere360Background';
-import AR3DOverlay, {type AR3DOverlayHandle} from '../../../components/AR3DOverlay';
+import AR3DOverlay, {type AR3DOverlayHandle, type ARCard} from '../../../components/AR3DOverlay';
 import GameToolbar from '../../../components/global/GameToolbar';
 import GameToolbarControls from '../../../components/global/GameToolbarControls';
 import { CardType, Suit } from '../../../components/Card';
@@ -122,6 +122,7 @@ const BlotScreen = ({ navigation }: any) => {
   };
 
 
+  const [arCards, setArCards] = useState<ARCard[]>([]);
   const [showBlur, setShowBlur] = useState(true);
   const [showMusicPlayer, setShowMusicPlayer] = useState(false);
   const [arEnabled, setArEnabled] = useState(true);
@@ -318,6 +319,42 @@ const BlotScreen = ({ navigation }: any) => {
   }, [showRiffleDealAnimation, gameState?.phase, gameState?.currentPlayer, gameState?.currentTrick, isResolvingTrick]);
 
   const TABLE_SIZE = Math.min(screenWidth - 32, screenHeight * 0.5);
+
+  // Sync trick cards to AR 3D overlay
+  useEffect(() => {
+    if (!arEnabled || !gameState?.currentTrick?.cards) { setArCards([]); return; }
+    const TILT = Math.PI / 8; // 22.5° toward viewer for readability
+    const positions: Record<number, { x: number; y: number; z: number }> = {
+      0: { x:  0.00, y:  1.15, z: 0.13 },  // near player (bottom)
+      1: { x:  0.22, y:  1.50, z: 0.13 },  // right player
+      2: { x:  0.00, y:  1.62, z: 0.13 },  // far player (top)
+      3: { x: -0.22, y:  1.50, z: 0.13 },  // left player
+    };
+    const rotations: Record<number, { x: number; y: number; z: number }> = {
+      0: { x: TILT, y: 0, z: 0 },
+      1: { x: TILT, y: 0, z: -Math.PI / 2 },
+      2: { x: TILT, y: 0, z: Math.PI },
+      3: { x: TILT, y: 0, z:  Math.PI / 2 },
+    };
+    const mapped: ARCard[] = gameState.currentTrick.cards
+      .filter(cp => cp?.card?.suit && cp?.card?.rank)
+      .map(cp => ({
+        key: `trick-${cp.playerId}-${cp.card.suit}-${cp.card.rank}`,
+        position: positions[cp.playerId] ?? { x: 0, y: 0, z: 0.025 },
+        rotation: rotations[cp.playerId] ?? { x: 0, y: 0, z: 0 },
+        scale: 1,
+        cardData: {
+          suit: cp.card.suit as ARCard['cardData']['suit'],
+          rank: cp.card.rank as ARCard['cardData']['rank'],
+          value: 0,
+          faceDown: false,
+          backgroundImageUri: customTheme?.backgroundImage ?? undefined,
+          cardBackImageUri:   customTheme?.cardBackImage   ?? undefined,
+          font:               customTheme?.font             ?? undefined,
+        },
+      }));
+    setArCards(mapped);
+  }, [arEnabled, gameState?.currentTrick?.cards, customTheme]);
 
   // ------------------------------------------------------------------
   // Trick resolution (called after delay so players see all 4 cards)
@@ -642,7 +679,7 @@ const BlotScreen = ({ navigation }: any) => {
   return (
     <View style={styles.container}>
       <Photosphere360Background overlayOpacity={showBlur ? 0.65 : 0.3}>
-        <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/game_boards/rounded_table_panel.glb" />
+        <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/game assets/octagon_table.glb" hideCheckerboard boardScale={1.9} cardGlbPath="glb/cards/card-template.glb" cards={arCards} />
       </Photosphere360Background>
       <View style={styles.overlay} pointerEvents="box-none">
         <SafeAreaView style={[styles.safeArea,]} onLayout={handleBoardLayout}>
@@ -731,7 +768,13 @@ const BlotScreen = ({ navigation }: any) => {
                         gameState.players[gameState.currentPlayer].team
                       })`}
                 </Text>
+                {arEnabled && (
+                  <Text style={{color:'#00ff88',fontSize:11,textAlign:'center',opacity:0.8}}>
+                    3D cards: {arCards.length}
+                  </Text>
+                )}
 
+                {!arEnabled && (
                 <View
                   style={[
                     styles.tableContainer,
@@ -781,7 +824,7 @@ const BlotScreen = ({ navigation }: any) => {
                         })()}
                   </View>
                 </View>
-              </View>
+                )}
 
               {/* Hide player hand during riffle animation but keep layout space */}
               <View style={[styles.handContainer, showRiffleDealAnimation && { opacity: 0 }]}>
@@ -808,6 +851,7 @@ const BlotScreen = ({ navigation }: any) => {
                     }}
                   />
                 </View>
+              </View>
             </>
           )}
         </SafeAreaView>
