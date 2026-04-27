@@ -144,6 +144,8 @@ export interface AR3DOverlayProps {
   hideCheckerboard?: boolean;
   /** Scale multiplier for the board/table size (default 1.0). Use >1 for card-game tables. */
   boardScale?: number;
+  /** Style of the procedural fallback board. 'poker' = oval green felt table. Default: 'default' (chess/checkers). */
+  boardStyle?: string;
 }
 
 // ─── GLB URI resolver ─────────────────────────────────────────────────────────
@@ -158,6 +160,7 @@ const GLB_ASSET_MAP: Record<string, any> = {
   'glb/game_boards/rounded_table_panel.glb':    require('../../assets/glb/game_boards/rounded_table_panel.glb'),
   'glb/game assets/round_table.glb':            require('../../assets/glb/game assets/round_table.glb'),
   'glb/game assets/octagon_table.glb':          require('../../assets/glb/game assets/octagon_table.glb'),
+  'glb/game assets/poker_table2.glb':            require('../../assets/glb/game assets/poker_table2.glb'),
   'glb/chess/chess-board/source/ui.glb':        require('../../assets/glb/chess/chess-board/source/ui.glb'),
   'glb/chess/chess-board/source/armenian_board.glb': require('../../assets/glb/chess/chess-board/source/armenian_board.glb'),
   'glb/chess/pieces/white_pawn.glb':            require('../../assets/glb/chess/pieces/white_pawn.glb'),
@@ -218,12 +221,14 @@ async function resolveAssetUri(assetPath: string): Promise<string | null> {
         return null;
       }
 
-      const safeFileName = assetPath.replace(/[\/\\]/g, '_');
+      const safeFileName = assetPath.replace(/[\/\\]/g, '_').replace(/ /g, '_');
       const tempPath = `${RNFS.TemporaryDirectoryPath}ar_${safeFileName}`;
 
-      // Always re-download so stale cache doesn't block new assets.
+      // Reuse the cached temp file if it already exists — avoids re-downloading
+      // large GLBs (e.g. 26 MB poker_table2.glb) on every Metro reload.
+      // Delete it manually from the device tmp dir if you need a fresh copy.
       if (await RNFS.exists(tempPath)) {
-        await RNFS.unlink(tempPath).catch(() => {});
+        return `file://${tempPath}`;
       }
 
       try {
@@ -233,8 +238,7 @@ async function resolveAssetUri(assetPath: string): Promise<string | null> {
         // bytesWritten > 0 so a partial/empty file doesn't count as success.
         const ok = res.statusCode === 200 || (res.statusCode === 0 && res.bytesWritten > 100);
         if (ok) {
-          const fileUri = `file://${tempPath}`;
-          return fileUri;
+          return `file://${tempPath}`;
         }
       } catch (dlErr) {
       }
@@ -243,17 +247,27 @@ async function resolveAssetUri(assetPath: string): Promise<string | null> {
       return null;
     }
 
-    // Production: read from the app bundle and base64-encode
-    if (Platform.OS === 'ios') {
-      const b64 = await RNFS.readFile(
-        `${RNFS.MainBundlePath}/assets/${assetPath}`,
-        'base64',
-      );
-      return `data:model/gltf-binary;base64,${b64}`;
+    // Production: copy from the app bundle to CachesDirectory once, then reuse the
+    // file:// URL. Avoids the ~33% base64 inflation and prevents WKWebView from
+    // choking on a 30-40 MB string allocation for large GLBs.
+    const safeFileName = assetPath.replace(/[/\\]/g, '_').replace(/ /g, '_');
+    const cacheDir     = `${RNFS.CachesDirectoryPath}/glb_cache`;
+    const cachedPath   = `${cacheDir}/${safeFileName}`;
+
+    if (!(await RNFS.exists(cacheDir))) {
+      await RNFS.mkdir(cacheDir);
     }
-    // Android
-    const b64 = await RNFS.readFileAssets(`assets/${assetPath}`, 'base64');
-    return `data:model/gltf-binary;base64,${b64}`;
+
+    if (!(await RNFS.exists(cachedPath))) {
+      if (Platform.OS === 'ios') {
+        await RNFS.copyFile(`${RNFS.MainBundlePath}/assets/${assetPath}`, cachedPath);
+      } else {
+        // Android: copyFileAssets streams from APK without loading into JS RAM
+        await RNFS.copyFileAssets(`assets/${assetPath}`, cachedPath);
+      }
+    }
+
+    return `file://${cachedPath}`;
   } catch (e) {
     console.warn('[AR3DOverlay] asset resolve failed:', assetPath, e);
     return null;
@@ -281,6 +295,7 @@ function buildSceneHTML(
   localGltfPath:  string | null = null,
   hideCheckerboard: boolean = false,
   boardScale: number = 1.0,
+  boardStyle: string = 'default',
 ): string {
   const BOARD_URI_JS  = boardUri  ? JSON.stringify(boardUri)  : 'null';
   const PIECES_URI_JS = piecesUri ? JSON.stringify(piecesUri) : 'null';
@@ -295,6 +310,7 @@ function buildSceneHTML(
   const BLACK_HEX = `0x${pieceColorBlack.toString(16).padStart(6, '0')}`;
   const HIDE_CHECKERBOARD_JS = hideCheckerboard ? 'true' : 'false';
   const BOARD_SCALE_JS = boardScale.toFixed(4);
+  const BOARD_STYLE_JS = JSON.stringify(boardStyle);
 
   return `<!DOCTYPE html>
 <html>
@@ -381,6 +397,7 @@ camRim.position.set(0, -1, -3); camera.add(camRim);
 // ── World-space constants (1 unit ≈ 1 metre) ─────────────────────────────────
 const BOARD_THICKNESS = 0.045;
 const HIDE_CHECKERBOARD = ${HIDE_CHECKERBOARD_JS};
+const BOARD_STYLE = ${BOARD_STYLE_JS};
 const BOARD_HALF   = 0.35 * ${BOARD_SCALE_JS};
 const BOARD_HALF_W = BOARD_HALF;
 const BOARD_HALF_H = BOARD_HALF;
@@ -460,6 +477,62 @@ document.addEventListener('touchend', (e) => {
 
 // ── Procedural fallback board ─────────────────────────────────────────────────
 function buildProceduralBoard() {
+  if (BOARD_STYLE === 'poker') {
+    // ── Oval poker table ────────────────────────────────────────────────────
+    var SEGS = 64;
+    var RX = BOARD_HALF_W;          // felt semi-axis X
+    var RY = BOARD_HALF_H * 0.62;   // felt semi-axis Y (oval)
+    var RAIL_W = 0.06;              // wood rail width
+    var T = BOARD_THICKNESS;
+
+    // Helper: array of Vector2 points on an ellipse
+    function ellipsePoints(rx, ry, n) {
+      var pts = [];
+      for (var _i = 0; _i <= n; _i++) {
+        var a = (_i / n) * Math.PI * 2;
+        pts.push(new THREE.Vector2(Math.cos(a) * rx, Math.sin(a) * ry));
+      }
+      return pts;
+    }
+
+    // 1. Dark wood base slab
+    boardGroup.add(new THREE.Mesh(
+      new THREE.BoxGeometry((RX + RAIL_W + 0.01) * 2, (RY + RAIL_W + 0.01) * 2, T),
+      new THREE.MeshStandardMaterial({ color: 0x2e1204, roughness: 0.80, metalness: 0.06 })
+    ));
+
+    // 2. Wood rail ring (outer ellipse shape with inner hole)
+    var railShape = new THREE.Shape(ellipsePoints(RX + RAIL_W, RY + RAIL_W, SEGS));
+    var feltHole  = new THREE.Path(ellipsePoints(RX, RY, SEGS));
+    railShape.holes.push(feltHole);
+    var railGeo  = new THREE.ShapeGeometry(railShape, SEGS);
+    var railMesh = new THREE.Mesh(railGeo, new THREE.MeshStandardMaterial({ color: 0x6b2f0e, roughness: 0.58, metalness: 0.18 }));
+    railMesh.position.z = T * 0.5 + 0.004;
+    boardGroup.add(railMesh);
+
+    // 3. Green felt surface with canvas texture
+    var feltShape = new THREE.Shape(ellipsePoints(RX, RY, SEGS));
+    var feltGeo   = new THREE.ShapeGeometry(feltShape, SEGS);
+    var fc = document.createElement('canvas'); fc.width = 512; fc.height = 512;
+    var fctx = fc.getContext('2d');
+    fctx.fillStyle = '#1d5c1d'; fctx.fillRect(0, 0, 512, 512);
+    // Subtle diagonal felt grain
+    fctx.strokeStyle = 'rgba(255,255,255,0.03)'; fctx.lineWidth = 1;
+    for (var fi = -512; fi < 1024; fi += 14) {
+      fctx.beginPath(); fctx.moveTo(fi, 0); fctx.lineTo(fi + 512, 512); fctx.stroke();
+    }
+    // Betting area oval line
+    fctx.strokeStyle = 'rgba(255,255,255,0.12)'; fctx.lineWidth = 4;
+    fctx.beginPath(); fctx.ellipse(256, 256, 160, 116, 0, 0, Math.PI * 2); fctx.stroke();
+    var feltTex = new THREE.CanvasTexture(fc);
+    feltTex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    var feltMesh = new THREE.Mesh(feltGeo, new THREE.MeshStandardMaterial({ map: feltTex, roughness: 0.95, metalness: 0 }));
+    feltMesh.position.z = T * 0.5 + 0.002;
+    boardGroup.add(feltMesh);
+    return;
+  }
+
+  // ── Standard chess/checkers board ───────────────────────────────────────────
   const THICKNESS = BOARD_THICKNESS; // board depth — gives it a solid slab look
   // Solid slab body
   boardGroup.add(new THREE.Mesh(
@@ -501,7 +574,7 @@ function _rnLog(msg) {
   }
 }
 
-_rnLog('[AR3D-HTML] module running. BOARD_URI type=' + (BOARD_URI ? 'data(' + BOARD_URI.length + ')' : 'null') + ' PIECES_URI=' + (PIECES_URI ? 'set' : 'null') + ' CARD_URI=' + (CARD_URI ? 'set' : 'null'));
+_rnLog('[AR3D-HTML] module running. BOARD_URI=' + (BOARD_URI ? BOARD_URI.substring(0,80) : 'null') + ' PIECES_URI=' + (PIECES_URI ? 'set' : 'null') + ' CARD_URI=' + (CARD_URI ? 'set' : 'null'));
 
 // ── Load BOARD
 if (BOARD_URI) {
@@ -509,10 +582,10 @@ if (BOARD_URI) {
   var _boardTimer = setTimeout(function() {
     if (!_boardDone) {
       _boardDone = true;
-      _rnLog('[AR3D-HTML] Board GLB timed out, using procedural fallback');
+      _rnLog('[AR3D-HTML] Board GLB timed out after 120s, using procedural fallback');
       buildProceduralBoard();
     }
-  }, 10000);
+  }, 120000);
   loader.load(BOARD_URI, (gltf) => {
     const model = gltf.scene;
     // Determine the model's natural orientation before applying any correction.
@@ -619,7 +692,11 @@ if (BOARD_URI) {
     // GLB loaded successfully — cancel the procedural fallback timer
     clearTimeout(_boardTimer); _boardDone = true;
     _rnLog('[AR3D-HTML] Board GLB loaded OK.');
-  }, undefined, (err) => {
+  }, (xhr) => {
+    if (xhr.total > 0) {
+      _rnLog('[AR3D-HTML] Board GLB progress: ' + Math.round(xhr.loaded/xhr.total*100) + '%');
+    }
+  }, (err) => {
     clearTimeout(_boardTimer); _boardDone = true;
     _rnLog('[AR3D-HTML] Board GLB FAILED: ' + (err && err.message ? err.message : String(err)));
     buildProceduralBoard();
@@ -1452,6 +1529,7 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
   pieceColorBlack = '#1e2d3d',
   hideCheckerboard = false,
   boardScale = 1.0,
+  boardStyle = 'default',
 }: AR3DOverlayProps, ref: React.Ref<AR3DOverlayHandle>) {
   const attitude = useSharedAttitude();
   const webViewRef = useRef<WebView>(null);
@@ -1565,21 +1643,22 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
   useEffect(() => {
   }, [boardUri, piecesUri, chessPieceUris, cardUri, cardBackUri, spawnYaw]);
 
-  // Build HTML once board + pieces URIs are resolved and spawn yaw is captured.
+  // Build HTML once spawn yaw is captured.
+  // boardUri/piecesUri/cardUri may still be 'undefined' (downloading) — treat as
+  // null so the procedural fallback renders immediately. The useMemo re-runs and
+  // rebuilds the scene once each URI resolves (e.g. the 26 MB poker_table2.glb).
   const htmlString = useMemo(() => {
-    if (boardUri === undefined || piecesUri === undefined) return null;
     if (chessPieceUris === undefined) return null;
-    if (cardUri === undefined || cardBackUri === undefined) return null;
     if (spawnYaw === null) return null;
     const redInt  = parseInt(pieceColorRed.replace(/^#/, ''), 16);
     const blackInt = parseInt(pieceColorBlack.replace(/^#/, ''), 16);
     const result = buildSceneHTML(
-      fov, boardUri, piecesUri, chessPieceUris, tableUri ?? null, spawnYaw,
+      fov, boardUri ?? null, piecesUri ?? null, chessPieceUris, tableUri ?? null, spawnYaw,
       redInt, blackInt, cardUri ?? null, cardBackUri ?? null,
-      localThreePath, localGltfPath, hideCheckerboard, boardScale,
+      localThreePath, localGltfPath, hideCheckerboard, boardScale, boardStyle,
     );
     return result;
-  }, [fov, boardUri, piecesUri, chessPieceUris, tableUri, spawnYaw, cardUri, cardBackUri, hideCheckerboard, boardScale]);
+  }, [fov, boardUri, piecesUri, chessPieceUris, tableUri, spawnYaw, cardUri, cardBackUri, hideCheckerboard, boardScale, boardStyle]);
 
   // Write the HTML to a temp file and give WebView a file:// URI.
   // WKWebView.loadHTMLString silently fails on iOS with large strings (>5 MB).
@@ -1674,6 +1753,10 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
         allowUniversalAccessFromFileURLs
         onLoadEnd={handleLoadEnd}
         onMessage={handleMessage}
+        onContentProcessDidTerminate={() => {
+          console.warn('[AR3DOverlay] WebView process terminated, reloading...');
+          webViewRef.current?.reload();
+        }}
         onError={e => console.warn('[AR3DOverlay] WebView error:', JSON.stringify(e.nativeEvent))}
         onHttpError={e => console.warn('[AR3DOverlay] WebView HTTP error:', e.nativeEvent.statusCode, e.nativeEvent.url)}
         onShouldStartLoadWithRequest={req =>
