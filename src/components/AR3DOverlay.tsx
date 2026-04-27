@@ -161,6 +161,7 @@ const GLB_ASSET_MAP: Record<string, any> = {
   'glb/game assets/round_table.glb':            require('../../assets/glb/game assets/round_table.glb'),
   'glb/game assets/octagon_table.glb':          require('../../assets/glb/game assets/octagon_table.glb'),
   'glb/game assets/poker_table2.glb':            require('../../assets/glb/game assets/poker_table2.glb'),
+  'glb/game assets/casino_table_level2_textured.glb': require('../../assets/glb/game assets/casino_table_level2_textured.glb'),
   'glb/chess/chess-board/source/ui.glb':        require('../../assets/glb/chess/chess-board/source/ui.glb'),
   'glb/chess/chess-board/source/armenian_board.glb': require('../../assets/glb/chess/chess-board/source/armenian_board.glb'),
   'glb/chess/pieces/white_pawn.glb':            require('../../assets/glb/chess/pieces/white_pawn.glb'),
@@ -414,7 +415,7 @@ const SQUARE_W     = (FIELD_HALF_W * 2) / 8;  // 0.0636m per square
 const SQUARE_H     = SQUARE_W;
 const PIECE_SCALE  = SQUARE_W * 0.60;          // 60% of square — clear gap on all 4 sides
 const FIELD_RAISE  = 0.01270;                   // 1/2 inch raise — visible sides from camera angle
-const BOARD_Y    = -1.10;  // table height — lower so sides visible when tilting phone
+const BOARD_Y    = -0.75;  // table surface at eye level
 
 // ── Dynamic TABLE_DIST: closest distance where board corners fit in view ──────
 // hFov derived from vFov + aspect ratio so it adapts to every screen/orientation.
@@ -440,7 +441,7 @@ let _freezeCountdown = 8; // wait 8 frames for live gyro injectJavaScript to arr
 
 // ── Board group — flat horizontal, TABLE_DIST ahead in camera/sceneGroup space ───
 const boardGroup = new THREE.Group();
-boardGroup.position.set(0, BOARD_Y, -TABLE_DIST);
+boardGroup.position.set(0, BOARD_Y, -(TABLE_DIST * 0.9)); // closer to camera
 boardGroup.rotation.x = -Math.PI / 2;
 sceneGroup.add(boardGroup);
 
@@ -598,7 +599,8 @@ if (BOARD_URI) {
     const rawBox  = new THREE.Box3().setFromObject(model);
     const rawSize = rawBox.getSize(new THREE.Vector3());
     const isXYFlat = rawSize.z < Math.min(rawSize.x, rawSize.y) * 0.25;
-    model.rotation.x = isXYFlat ? 0 : Math.PI / 2;
+    model.rotation.x = isXYFlat ? -Math.PI / 2 : 0;
+    model.rotation.z = Math.PI / 2;
     model.updateMatrixWorld(true);
     const box    = new THREE.Box3().setFromObject(model);
     const size   = box.getSize(new THREE.Vector3());
@@ -1462,7 +1464,7 @@ function animate() {
   t += 0.016;
   camera.rotation.order = 'YXZ';
   camera.rotation.y = -window._att.yaw   * DEG;
-  camera.rotation.x = -window._att.pitch * DEG;
+  camera.rotation.x = -window._att.pitch * DEG - 0.28; // ~16° downward — eye level looking across table surface
   camera.rotation.z =  window._att.roll  * DEG;
 
   // Freeze: detach sceneGroup from camera → world space, preserving world matrix.
