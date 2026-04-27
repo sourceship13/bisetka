@@ -1172,7 +1172,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
   return (
     <View style={styles.container}>
       <Photosphere360Background overlayOpacity={showBlur ? 0.65 : 0.3}>
-        <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/chess/chess-board/source/ui.glb" />
+        <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/game assets/poker_table2.glb" hideCheckerboard boardScale={1.9} boardStyle="poker" cardGlbPath="glb/cards/card-template.glb" />
       </Photosphere360Background>
       <View style={styles.overlay} pointerEvents="box-none">
       <SafeAreaView style={styles.safeArea}>
@@ -1320,6 +1320,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
       </View>
 
       <View style={styles.tableContainer}>
+        {!arEnabled && (
         <ImageBackground
           source={require('../../../../assets/poker/table.png')}
           style={styles.pokerTable}
@@ -1335,6 +1336,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
             </View>
           </View>
         </ImageBackground>
+        )}
 
         {/* Player overlays rendered OUTSIDE ImageBackground so they don't cause it to re-render */}
         <View style={StyleSheet.absoluteFill} pointerEvents="none">

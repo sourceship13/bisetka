@@ -24,7 +24,7 @@ import AR3DOverlay, {type AR3DOverlayHandle, type ARCard} from '../../../compone
 import GameToolbar from '../../../components/global/GameToolbar';
 import GameToolbarControls from '../../../components/global/GameToolbarControls';
 import { CardType, Suit } from '../../../components/Card';
-import Card3D from '../../../components/Card3D';
+import GLBCard from '../../../components/GLBCard';
 import RiffleDealAnimation from '../../../components/RiffleDealAnimation';
 import CardCustomizationModal from '../../../components/global/GameCustomizationModal';
 import CardHandFan from '../../../components/CardHandFan';
@@ -519,7 +519,7 @@ const BlotScreen = ({ navigation }: any) => {
   ) => {
     const cardSize = isTrickCard ? 52 : 68;
     const cardContent = (
-      <Card3D
+      <GLBCard
         key={card.id}
         suit={card.suit as any}
         rank={card.rank as any}
