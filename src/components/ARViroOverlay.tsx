@@ -22,6 +22,7 @@ import {
   ViroARScene,
   ViroARSceneNavigator,
   ViroBox,
+  ViroSphere,
   ViroNode,
   ViroMaterials,
   ViroSpotLight,
@@ -35,6 +36,9 @@ export interface ARPiece {
   color: 'red' | 'black';
   isKing: boolean;
   isSelected?: boolean;
+  // Chess-specific (optional — checkers pieces used when absent)
+  pieceType?: 'pawn' | 'rook' | 'knight' | 'bishop' | 'queen' | 'king';
+  side?: 'white' | 'black';
 }
 
 export interface ARMove {
@@ -135,19 +139,23 @@ function registerMaterials() {
   _materialsRegistered = true;
   try {
     ViroMaterials.createMaterials({
-      moveDot:      { diffuseColor: 'rgba(255,255,255,0.75)', roughness: 1.0, blendMode: 'Alpha' },
-      selectedRing: { diffuseColor: 'rgba(255,220,0,0.85)',   roughness: 1.0, blendMode: 'Alpha' },
-      redPiece:     { diffuseColor: '#ff1111', roughness: 0.2, metalness: 0.1, lightingModel: 'Phong' },
-      blackPiece:   { diffuseColor: '#111111', roughness: 0.3, metalness: 0.4, lightingModel: 'Phong' },
-      redSel:       { diffuseColor: '#ff4400', roughness: 0.2, metalness: 0.4, lightingModel: 'Phong' },
-      blackSel:     { diffuseColor: '#3344ff', roughness: 0.2, metalness: 0.4, lightingModel: 'Phong' },
-      debugDark:    { diffuseColor: 'rgba(255,255,255,0.7)', blendMode: 'Alpha' },
-      squareHit:    { diffuseColor: 'rgba(255,255,255,0.01)', blendMode: 'Alpha' },
-      debugLight:   { diffuseColor: 'rgba(0,0,0,0.0)', blendMode: 'Alpha' },
-      debugRed:     { diffuseColor: '#ff0000' },
-      debugGreen:   { diffuseColor: '#00ff00' },
-      debugBlue:    { diffuseColor: '#0000ff' },
-      debugYellow:  { diffuseColor: '#ffff00' },
+      moveDot:       { diffuseColor: 'rgba(255,255,255,0.75)', roughness: 1.0, blendMode: 'Alpha' },
+      selectedRing:  { diffuseColor: 'rgba(255,220,0,0.85)',   roughness: 1.0, blendMode: 'Alpha' },
+      redPiece:      { diffuseColor: '#ff1111', roughness: 0.2, metalness: 0.1, lightingModel: 'Phong' },
+      blackPiece:    { diffuseColor: '#111111', roughness: 0.3, metalness: 0.4, lightingModel: 'Phong' },
+      redSel:        { diffuseColor: '#ff4400', roughness: 0.2, metalness: 0.4, lightingModel: 'Phong' },
+      blackSel:      { diffuseColor: '#3344ff', roughness: 0.2, metalness: 0.4, lightingModel: 'Phong' },
+      chessWhite:    { diffuseColor: '#f0d9b5', roughness: 0.35, metalness: 0.08, lightingModel: 'Phong' },
+      chessBlack:    { diffuseColor: '#5d4037', roughness: 0.40, metalness: 0.08, lightingModel: 'Phong' },
+      chessWhiteSel: { diffuseColor: '#ffe066', roughness: 0.25, metalness: 0.15, lightingModel: 'Phong' },
+      chessBlackSel: { diffuseColor: '#a07040', roughness: 0.30, metalness: 0.15, lightingModel: 'Phong' },
+      debugDark:     { diffuseColor: 'rgba(255,255,255,0.7)', blendMode: 'Alpha' },
+      squareHit:     { diffuseColor: 'rgba(255,255,255,0.01)', blendMode: 'Alpha' },
+      debugLight:    { diffuseColor: 'rgba(0,0,0,0.0)', blendMode: 'Alpha' },
+      debugRed:      { diffuseColor: '#ff0000' },
+      debugGreen:    { diffuseColor: '#00ff00' },
+      debugBlue:     { diffuseColor: '#0000ff' },
+      debugYellow:   { diffuseColor: '#ffff00' },
     });
   } catch (e) {
     console.warn('[ARViroOverlay] createMaterials failed:', e);
@@ -173,6 +181,52 @@ function worldToSquare(localX: number, localZ: number, cfg: BoardConfig, derived
 // -- Piece -----------------------------------------------------------------------
 const BLACK_PIECE_SRC = require('../../assets/glb/checkers/nyu_black_checker.glb');
 const RED_PIECE_SRC   = require('../../assets/glb/checkers/nyu_red_checker.glb');
+
+// Chess piece GLBs — static requires so Metro bundles them at build time.
+const CHESS_GLB_PAWN   = require('../../assets/glb/chess/pawn.glb');
+const CHESS_GLB_ROOK   = require('../../assets/glb/chess/rook.glb');
+const CHESS_GLB_KNIGHT = require('../../assets/glb/chess/knight.glb');
+const CHESS_GLB_BISHOP = require('../../assets/glb/chess/bishop.glb');
+const CHESS_GLB_QUEEN  = require('../../assets/glb/chess/queen.glb');
+const CHESS_GLB_KING   = require('../../assets/glb/chess/king.glb');
+
+function getChessGlb(_side: 'white' | 'black', type: ARPiece['pieceType']) {
+  if (type === 'rook')   return CHESS_GLB_ROOK;
+  if (type === 'knight') return CHESS_GLB_KNIGHT;
+  if (type === 'bishop') return CHESS_GLB_BISHOP;
+  if (type === 'queen')  return CHESS_GLB_QUEEN;
+  if (type === 'king')   return CHESS_GLB_KING;
+  return CHESS_GLB_PAWN;
+}
+
+// Chess pieces — actual GLBs, static-required above.
+// Body is a slim ViroBox; top accent is a ViroSphere (round pieces) or ViroBox cross (king).
+// Height varies per piece type so each is visually distinct.
+
+function ChessPiece({ piece, onTap, cfg, derived }: {
+  piece: ARPiece;
+  onTap?: (r: number, c: number) => void;
+  cfg: BoardConfig;
+  derived: ReturnType<typeof getBoardDerived>;
+}) {
+  const [x, boardY, z] = boardToWorld(piece.row, piece.col, cfg, derived);
+  const lift = piece.isSelected ? 0.018 : 0;
+  const handleTap = useCallback(() => onTap?.(piece.row, piece.col), [onTap, piece.row, piece.col]);
+  const side = piece.side ?? 'white';
+  const type = piece.pieceType ?? 'pawn';
+  const src = getChessGlb(side, type);
+  const pieceScale = derived.SQUARE * 0.035;
+  return (
+    <ViroNode position={[x, boardY + lift, z]} rotation={[-90, 0, 0]} onClick={handleTap}>
+      <Viro3DObject
+        source={src}
+        type="GLB"
+        scale={[pieceScale, pieceScale, pieceScale]}
+        onError={(e: any) => console.error('[chess piece]', piece.key, e)}
+      />
+    </ViroNode>
+  );
+}
 
 function CheckerPiece({ piece, onTap, cfg, derived }: {
   piece: ARPiece;
@@ -299,9 +353,11 @@ function CheckersARScene({ sceneNavigator }: SceneProps) {
           />
         ))}
 
-        {(pieces ?? []).map(p => (
-          <CheckerPiece key={p.key} piece={p} onTap={onSquareTap} cfg={cfg} derived={derived} />
-        ))}
+        {(pieces ?? []).map(p =>
+          p.pieceType
+            ? <ChessPiece   key={p.key} piece={p} onTap={onSquareTap} cfg={cfg} derived={derived} />
+            : <CheckerPiece key={p.key} piece={p} onTap={onSquareTap} cfg={cfg} derived={derived} />
+        )}
         {(moves ?? []).map(m => (
           <MoveDot
             key={`dot_${m.row}_${m.col}`}
