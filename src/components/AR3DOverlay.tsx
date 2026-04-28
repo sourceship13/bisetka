@@ -599,29 +599,24 @@ if (BOARD_URI) {
     const rawBox  = new THREE.Box3().setFromObject(model);
     const rawSize = rawBox.getSize(new THREE.Vector3());
     const isXYFlat = rawSize.z < Math.min(rawSize.x, rawSize.y) * 0.25;
-    model.rotation.x = isXYFlat ? -Math.PI / 2 : 0;
-    model.rotation.z = Math.PI / 2;
+    // XY-flat (e.g. octagon_table.glb): surface normal is +Z, rotation.x=-π/2 lays it flat.
+    // Y-up (e.g. casino_table_level2_textured.glb): +Y is up, rotation.x=+π/2 lays it flat.
+    // In both cases rotation.z is only needed for XY-flat models to orient the front edge.
+    model.rotation.x = isXYFlat ? -Math.PI / 2 : Math.PI / 2;
+    model.rotation.z = isXYFlat ? Math.PI / 2 : 0;
     model.updateMatrixWorld(true);
     const box    = new THREE.Box3().setFromObject(model);
     const size   = box.getSize(new THREE.Vector3());
     const center = box.getCenter(new THREE.Vector3());
-    // Use the largest horizontal dimension (X or Z after rotation) for scale.
-    // For XY-flat boards (isXYFlat=true, no extra rotation) size.x/size.y are the board dims.
-    // For Y-up boards (isXYFlat=false, +π/2 applied) size.x/size.z are board dims.
-    // Always exclude the thin dimension by using max of all three — the thin one is ~10x smaller.
+    // Use the largest horizontal dimension for scale; the thin/height dimension is much smaller.
     const scale  = (BOARD_HALF_W * 2) / Math.max(size.x, size.y, size.z, 0.001);
     model.scale.setScalar(scale);
     model.updateMatrixWorld(true);
     const box2   = new THREE.Box3().setFromObject(model);
     const ctr2   = box2.getCenter(new THREE.Vector3());
-    // For XY-flat boards: top face is at Z=+T (local), bottom at Z=-T.
-    // Center the board in XY and position top face flush with Z=0 of boardGroup.
-    if (isXYFlat) {
-      // XY centered, top face (Z=max) sits at Z=0+epsilon so it faces up
-      model.position.set(-ctr2.x, -ctr2.y, -box2.max.z + 0.001);
-    } else {
-      model.position.set(-ctr2.x, -ctr2.y, -(box2.min.z) + 0.001);
-    }
+    // In both conventions the playing surface is the top face (box2.max.z in boardGroup local Z).
+    // Center in XY and position so the top face sits flush at Z=0 of boardGroup.
+    model.position.set(-ctr2.x, -ctr2.y, -box2.max.z + 0.001);
     model.traverse(ch => {
       if (ch.isMesh) {
         ch.receiveShadow = true;

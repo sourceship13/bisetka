@@ -325,10 +325,10 @@ const BlotScreen = ({ navigation }: any) => {
     if (!arEnabled || !gameState?.currentTrick?.cards) { setArCards([]); return; }
     const TILT = Math.PI / 8; // 22.5° toward viewer for readability
     const positions: Record<number, { x: number; y: number; z: number }> = {
-      0: { x:  0.00, y:  1.15, z: 0.13 },  // near player (bottom)
-      1: { x:  0.50, y:  1.50, z: 0.13 },  // right player
-      2: { x:  0.00, y:  2.15, z: 0.13 },  // far player (top)
-      3: { x: -0.50, y:  1.50, z: 0.13 },  // left player
+      0: { x:  0.00, y: -0.30, z: 0.02 },  // near player (bottom, toward camera)
+      1: { x:  0.30, y:  0.00, z: 0.02 },  // right player
+      2: { x:  0.00, y:  0.30, z: 0.02 },  // far player (top, away from camera)
+      3: { x: -0.30, y:  0.00, z: 0.02 },  // left player
     };
     const rotations: Record<number, { x: number; y: number; z: number }> = {
       0: { x: TILT, y: 0, z: 0 },
@@ -342,7 +342,7 @@ const BlotScreen = ({ navigation }: any) => {
         key: `trick-${cp.playerId}-${cp.card.suit}-${cp.card.rank}`,
         position: positions[cp.playerId] ?? { x: 0, y: 0, z: 0.025 },
         rotation: rotations[cp.playerId] ?? { x: 0, y: 0, z: 0 },
-        scale: 2,
+        scale: 1,
         cardData: {
           suit: cp.card.suit as ARCard['cardData']['suit'],
           rank: cp.card.rank as ARCard['cardData']['rank'],
