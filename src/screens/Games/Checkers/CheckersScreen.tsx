@@ -135,7 +135,7 @@ const CheckersScreen = ({ navigation, route }: any) => {
   const [showMusicPlayer, setShowMusicPlayer] = useState(true);
   const [showBlur, setShowBlur] = useState(true);
   const [showBackground, setShowBackground] = useState(true);
-  const [arEnabled, setArEnabled] = useState(true); // default to VR/photosphere mode
+  const [arEnabled, setArEnabled] = useState(false); // off by default so 2D board is immediately playable
   const arOverlayRef = useRef<AR3DOverlayHandle>(null);
   const toolbarExpanded = useSharedValue(false);
   const chevronStyle = useAnimatedStyle(() => ({
@@ -584,7 +584,7 @@ const CheckersScreen = ({ navigation, route }: any) => {
   return (
     <View style={styles.container}>
       {/* Non-AR fallback background */}
-      {/* Photosphere handled by ViroSceneNavigator when arEnabled */}
+      {!arEnabled && <Photosphere360Background overlayOpacity={0.5} />}
       {/* ViroReact VR overlay — photosphere env + GLB board */}
       <AR3DOverlay
         ref={arOverlayRef}
@@ -630,9 +630,55 @@ const CheckersScreen = ({ navigation, route }: any) => {
         )}
       </View>
 
-      <View style={styles.boardContainer} pointerEvents="box-none">
-        {/* Board rendered in 3D by ViroSceneNavigator — transparent passthrough */}
+      <View style={styles.boardContainer} pointerEvents={arEnabled ? 'box-none' : 'box-none'}>
+        {arEnabled ? (
+          /* Board rendered in 3D by ViroSceneNavigator — transparent passthrough */
           <View style={[styles.board, { width: boardSize, height: boardSize }]} pointerEvents="none" />
+        ) : (
+          /* 2D interactive board */
+          <View style={{ width: boardSize, height: boardSize, borderWidth: 2, borderColor: '#5d3a1a' }}>
+            {Array(8).fill(null).map((_, displayRow) => {
+              return (
+                <View key={displayRow} style={{ flexDirection: 'row' }}>
+                  {Array(8).fill(null).map((_, displayCol) => {
+                    const row = myPieceColor === 'black' ? 7 - displayRow : displayRow;
+                    const col = myPieceColor === 'black' ? 7 - displayCol : displayCol;
+                    const isDark = (displayRow + displayCol) % 2 === 1;
+                    const piece = gameState.board[row]?.[col];
+                    const isSelected = gameState.selectedSquare?.row === row && gameState.selectedSquare?.col === col;
+                    const isPossibleMove = gameState.possibleMoves.some(m => m.row === row && m.col === col);
+                    return (
+                      <TouchableOpacity
+                        key={displayCol}
+                        style={[
+                          { width: squareSize, height: squareSize, justifyContent: 'center', alignItems: 'center' },
+                          { backgroundColor: isDark ? '#b58863' : '#f0d9b5' },
+                          isSelected ? { backgroundColor: 'rgba(130,151,105,0.95)' } : null,
+                          isPossibleMove ? { backgroundColor: 'rgba(100,111,64,0.75)' } : null,
+                        ]}
+                        onPress={() => handleSquarePress(displayRow, displayCol)}
+                        activeOpacity={0.75}
+                      >
+                        {piece && (
+                          <View style={[
+                            styles.piece,
+                            piece.color === 'red' ? styles.redPiece : styles.blackPiece,
+                            piece.type === 'king' && styles.kingPiece,
+                          ]}>
+                            {piece.type === 'king' && <Text style={styles.kingText}>♛</Text>}
+                          </View>
+                        )}
+                        {isPossibleMove && !piece && (
+                          <View style={styles.moveIndicator} />
+                        )}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              );
+            })}
+          </View>
+        )}
       </View>
 
       {gameState.isGameOver && (
