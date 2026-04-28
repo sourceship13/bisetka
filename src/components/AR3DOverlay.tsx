@@ -421,8 +421,8 @@ const BOARD_Y    = -1.10;  // table surface lowered
 const _halfVFovRad = (${fov} / 2) * (Math.PI / 180);
 const _aspect      = W / H;
 const _halfHFovRad = Math.atan(Math.tan(_halfVFovRad) * _aspect);
-const _rawDist     = (BOARD_HALF * 0.75 / Math.tan(_halfHFovRad)) + BOARD_HALF;
-const TABLE_DIST   = Math.min(Math.max(_rawDist, 0.70), 1.10);
+const _rawDist     = (BOARD_HALF * 0.55 / Math.tan(_halfHFovRad)) + BOARD_HALF;
+const TABLE_DIST   = Math.min(Math.max(_rawDist, 0.55), 0.80);
 
 // ── sceneGroup starts as a camera child so it is always in front ─────────────────
 // On the first animation frame (after camera rotation is applied from live gyro)
