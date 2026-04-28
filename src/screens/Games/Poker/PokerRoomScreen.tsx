@@ -16,7 +16,7 @@ import RiffleDealAnimation from '../../../components/RiffleDealAnimation';
 import type { CardTheme } from '../../../components/global/GameCustomizationModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Photosphere360Background from '../../../components/Photosphere360Background';
-import AR3DOverlay, {type AR3DOverlayHandle} from '../../../components/AR3DOverlay';
+import AR3DOverlay, {type AR3DOverlayHandle, type ARCard} from '../../../components/AR3DOverlay';
 
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {RootStackParamList} from '../../../navigation/AppNavigator';
@@ -191,6 +191,49 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
       if (saved) setCustomTheme(JSON.parse(saved));
     }).catch(() => {});
   }, []);
+
+  // AR 3D cards — built from current player hands
+  const [arCards, setArCards] = useState<ARCard[]>([]);
+  useEffect(() => {
+    if (!arEnabled) { setArCards([]); return; }
+    const myIdx = isMultiplayer ? mySeatRef.current : playerIndex;
+    // Positions in boardGroup local space (rotation.x = -PI/2 makes Y = depth, X = left/right, Z = up)
+    // Felt oval: RX=0.665 (left-right), RY=0.412 (near-far). Negative Y = near end (You), positive Y = far.
+    // 6 seats evenly spaced clockwise starting from near-center:
+    const seatPositions: Record<number, { x: number; y: number; z: number }> = {
+      0: { x:  0.00, y: -0.33, z: 0.02 },  // You (near center)
+      1: { x:  0.45, y: -0.17, z: 0.02 },  // near right
+      2: { x:  0.45, y:  0.17, z: 0.02 },  // far right
+      3: { x:  0.00, y:  0.33, z: 0.02 },  // far center
+      4: { x: -0.45, y:  0.17, z: 0.02 },  // far left
+      5: { x: -0.45, y: 1.17, z: 0.02 },  // near left
+    };
+    const mapped: ARCard[] = [];
+    players.forEach((player, seatIdx) => {
+      if (!player || !player.cards?.length) return;
+      const isMe = seatIdx === myIdx;
+      player.cards.forEach((card, cardIdx) => {
+        const basePos = seatPositions[seatIdx] ?? { x: 0, y: 0, z: 0.02 };
+        const offset = (cardIdx - (player.cards.length - 1) / 2) * 0.09;
+        mapped.push({
+          key: `poker-${seatIdx}-${cardIdx}`,
+          position: { x: basePos.x + offset, y: basePos.y, z: basePos.z },
+          rotation: { x: 0, y: 0, z: 0 },
+          scale: 0.73,
+          cardData: {
+            suit: card.suit as ARCard['cardData']['suit'],
+            rank: card.rank as ARCard['cardData']['rank'],
+            value: card.value,
+            faceDown: !isMe,
+            backgroundImageUri: customTheme?.backgroundImage ?? undefined,
+            cardBackImageUri:   customTheme?.cardBackImage   ?? undefined,
+            font:               customTheme?.font             ?? undefined,
+          },
+        });
+      });
+    });
+    setArCards(mapped);
+  }, [arEnabled, players, gamePhase, isMultiplayer, playerIndex, customTheme]);
 
   // Effective seat index for the human player
   const myPlayerIndex = isMultiplayer ? mySeatRef.current : playerIndex;
@@ -1158,7 +1201,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
             Bet: ${player.currentBet}
           </Text>
         </View>
-        {!player.folded && !showRiffleDealAnimation && (
+        {!player.folded && !showRiffleDealAnimation && !arEnabled && (
           <View style={styles.playerCards}>
             {player.cards.map((card, idx) => (
               <View key={idx}>{renderCard(card, !showCards, position, idx)}</View>
@@ -1172,7 +1215,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
   return (
     <View style={styles.container}>
       <Photosphere360Background overlayOpacity={showBlur ? 0.65 : 0.3}>
-        <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/game assets/casino_table_level2_textured.glb" hideCheckerboard boardScale={1.9} boardStyle="poker" cardGlbPath="glb/cards/card-template.glb" />
+        <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/game assets/casino_table_level2_textured.glb" hideCheckerboard boardScale={1.9} boardStyle="poker" cardGlbPath="glb/cards/card-template.glb" cards={arCards} />
       </Photosphere360Background>
       <View style={styles.overlay} pointerEvents="box-none">
       <SafeAreaView style={styles.safeArea}>

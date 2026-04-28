@@ -27,11 +27,10 @@ import AR3DOverlay, {type AR3DOverlayHandle, type ARCard} from '../../../compone
 import GameToolbar from '../../../components/global/GameToolbar';
 import GameToolbarControls from '../../../components/global/GameToolbarControls';
 import { CardType, Suit } from '../../../components/Card';
-import Card3D from '../../../components/Card3D';
-import DynamicCard from '../../../components/DynamicCard';
+import GLBCard from '../../../components/GLBCard';
 import CardCustomizationModal from '../../../components/global/GameCustomizationModal';
 import CardHandFan from '../../../components/CardHandFan';
-import { RiffleDealAnimation } from '../../../components/RiffleDealAnimation';
+import RiffleDealAnimation from '../../../components/RiffleDealAnimation';
 import type { CardTheme } from '../../../components/global/GameCustomizationModal';
 import {
   BaazarGameState,
@@ -49,15 +48,6 @@ import {
   findSequences,
 } from '../../../game/baazarBlotLogic';
 import SyncedYouTubePlayer from '../../../components/SyncedYouTubePlayer';
-
-// ─── Default game music ─────────────────────────────────────────────────────
-// Change videoId/title to whatever track you want auto-playing at game start.
-const DEFAULT_GAME_TRACK = {
-  videoId: '_2kPf5NgVsY',
-  title: 'ARMENIAN DEEP HOUSE MIX 2026 💥 1 Hour Luxury Folk & Vocal Deep [By Navasard]',
-  channel: 'Navasard',
-  thumbnail: 'https://i.ytimg.com/vi/_2kPf5NgVsY/hqdefault.jpg',
-};
 
 const SUIT_ICON: Record<string, string> = {
   hearts: '♥', diamonds: '♦', clubs: '♣', spades: '♠',
@@ -264,7 +254,6 @@ const BaazarBlotScreen = ({ navigation }: any) => {
   useEffect(() => {
     if (gameState?.phase === 'dealing') {
       setDealRevealReady(false); // hide hand until animation finishes
-      setShowMusicPlayer(true);  // auto-start music at game start
       const t = setTimeout(() => setShowDealAnimation(true), 50);
       return () => clearTimeout(t);
     }
@@ -361,32 +350,26 @@ const BaazarBlotScreen = ({ navigation }: any) => {
   // Sync trick cards to AR overlay
   useEffect(() => {
     if (!arEnabled || !gameState?.currentTrick?.cards) { setArCards([]); return; }
-    // Positions are in boardGroup local space.
-    // boardGroup.rotation.x = -PI/2, so boardGroup local-Z points world-UP.
-    // Cards lie flat on the table: their plane faces +Z (world-up) by default since
-    // PlaneGeometry faces +Z in its local space, and boardGroup already tilts it flat.
-    // Spread the 4 slots around the centre of the table.
+    const TILT = Math.PI / 8; // 22.5° toward viewer for readability
     const positions: Record<number, { x: number; y: number; z: number }> = {
-      0: { x:  0.00, y: -0.18, z: 0.025 }, // bottom (you)
-      1: { x:  0.18, y:  0.00, z: 0.025 }, // right
-      2: { x:  0.00, y:  0.18, z: 0.025 }, // top
-      3: { x: -0.18, y:  0.00, z: 0.025 }, // left
+      0: { x:  0.00, y: -0.30, z: 0.02 },  // near player (bottom, toward camera)
+      1: { x:  0.30, y:  0.00, z: 0.02 },  // right player
+      2: { x:  0.00, y:  0.30, z: 0.02 },  // far player (top, away from camera)
+      3: { x: -0.30, y:  0.00, z: 0.02 },  // left player
     };
-    // Rotations: face-up flat. PlaneGeometry's normal is +Z; boardGroup flips that to
-    // world-up already. No extra rotation needed for flat face-up cards.
     const rotations: Record<number, { x: number; y: number; z: number }> = {
-      0: { x: 0, y: 0, z: 0 },
-      1: { x: 0, y: 0, z: -Math.PI / 2 },
-      2: { x: 0, y: 0, z: Math.PI },
-      3: { x: 0, y: 0, z:  Math.PI / 2 },
+      0: { x: TILT, y: 0, z: 0 },
+      1: { x: TILT, y: 0, z: -Math.PI / 2 },
+      2: { x: TILT, y: 0, z: Math.PI },
+      3: { x: TILT, y: 0, z:  Math.PI / 2 },
     };
     const mapped: ARCard[] = gameState.currentTrick.cards
       .filter(cp => cp?.card?.suit && cp?.card?.rank)
       .map(cp => ({
         key: `trick-${cp.playerId}-${cp.card.suit}-${cp.card.rank}`,
-        position: positions[cp.playerId] ?? { x: 0, y: 0, z: 0.004 },
+        position: positions[cp.playerId] ?? { x: 0, y: 0, z: 0.025 },
         rotation: rotations[cp.playerId] ?? { x: 0, y: 0, z: 0 },
-        scale: 1, // CARD_W/H already sized in metres in makeCardMesh
+        scale: 1,
         cardData: {
           suit: cp.card.suit as ARCard['cardData']['suit'],
           rank: cp.card.rank as ARCard['cardData']['rank'],
@@ -721,13 +704,7 @@ const BaazarBlotScreen = ({ navigation }: any) => {
             cards={myPlayer.hand.filter(c => c && c.suit && c.rank)}
             renderCard={(card, idx) => (
               <View key={`${card.suit}-${card.rank}-${idx}`} style={styles.cardWrapper}>
-                <DynamicCard
-                  card={card as any}
-                  faceDown={false}
-                  size="medium"
-                  theme={customTheme as any}
-                  isPlayable={false}
-                />
+                <GLBCard suit={card.suit as any} rank={card.rank as any} faceDown={false} size={68} />
               </View>
             )}
           />
@@ -863,13 +840,7 @@ const BaazarBlotScreen = ({ navigation }: any) => {
             cards={gameState.players[0].hand.filter(c => c && c.suit && c.rank)}
             renderCard={(card, idx) => (
               <View key={`bid-${card.suit}-${card.rank}-${idx}`} style={styles.cardWrapper}>
-                <DynamicCard
-                  card={card as any}
-                  faceDown={false}
-                  size="large"
-                  theme={customTheme as any}
-                  isPlayable={false}
-                />
+                <GLBCard suit={card.suit as any} rank={card.rank as any} faceDown={false} size={68} />
               </View>
             )}
           />
@@ -924,7 +895,7 @@ const BaazarBlotScreen = ({ navigation }: any) => {
                         .filter(cardPlay => cardPlay && cardPlay.card && cardPlay.card.suit)
                         .map((cardPlay, idx) => (
                         <View key={idx} style={[styles.trickSlot, positionStyle[cardPlay.playerId] ?? styles.trickSlotTop]}>
-                          <Card3D suit={(cardPlay.card as any).suit} rank={(cardPlay.card as any).rank} faceDown={false} size={44} />
+                          <GLBCard suit={(cardPlay.card as any).suit} rank={(cardPlay.card as any).rank} faceDown={false} size={44} />
                         </View>
                       ))}
                     </View>
@@ -955,7 +926,7 @@ const BaazarBlotScreen = ({ navigation }: any) => {
                         .filter(cardPlay => cardPlay && cardPlay.card && cardPlay.card.suit)
                         .map((cardPlay, idx) => (
                         <View key={idx} style={[styles.trickSlot, positionStyle[cardPlay.playerId] ?? styles.trickSlotTop]}>
-                          <Card3D suit={(cardPlay.card as any).suit} rank={(cardPlay.card as any).rank} faceDown={false} size={44} />
+                          <GLBCard suit={(cardPlay.card as any).suit} rank={(cardPlay.card as any).rank} faceDown={false} size={44} />
                         </View>
                       ))}
                     </View>
@@ -989,13 +960,7 @@ const BaazarBlotScreen = ({ navigation }: any) => {
                   ]}
                   disabled={!canPlay}
                 >
-                  <DynamicCard
-                    card={card as any}
-                    faceDown={false}
-                    size="large"
-                    theme={customTheme as any}
-                    isPlayable={canPlay}
-                  />
+                  <GLBCard suit={card.suit as any} rank={card.rank as any} faceDown={false} size={68} />
                 </TouchableOpacity>
               );
             }}
@@ -1098,14 +1063,7 @@ const BaazarBlotScreen = ({ navigation }: any) => {
   return (
     <View style={styles.bg}>
       <Photosphere360Background overlayOpacity={showBlur ? 0.65 : 0.3}>
-        <AR3DOverlay
-          ref={arOverlayRef}
-          visible={arEnabled}
-          boardGlbPath="glb/game_boards/rounded_table_panel.glb"
-          cardGlbPath="glb/cards/card-template.glb"
-          cardBackTexturePath="assets/cards/default-card-back.png"
-          cards={arCards}
-        />
+        <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/game assets/octagon_table.glb" hideCheckerboard boardScale={1.9} cardGlbPath="glb/cards/card-template.glb" cards={arCards} />
       </Photosphere360Background>
       <View style={styles.overlay} pointerEvents="box-none">
       <SafeAreaView style={styles.safe}>
@@ -1282,11 +1240,7 @@ const BaazarBlotScreen = ({ navigation }: any) => {
           })}
         </ScrollView>
       </Animated.View>
-      <SyncedYouTubePlayer
-        roomId={null}
-        visible={showMusicPlayer}
-        defaultTrack={DEFAULT_GAME_TRACK}
-      />
+      <SyncedYouTubePlayer roomId={null} visible={showMusicPlayer} />
       {arEnabled && (
         <TouchableOpacity
           style={styles.recenterBtn}
