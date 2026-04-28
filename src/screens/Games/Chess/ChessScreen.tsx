@@ -31,6 +31,13 @@ import { useAchievements } from '../../../contexts/AchievementContext';
 import SyncedYouTubePlayer from '../../../components/SyncedYouTubePlayer';
 import { resolveAvatar } from '../../../utils/avatars';
 
+const PANO_SOURCE = require('../../../../assets/backgrounds/capture360/pano2.jpg');
+
+const CHESS_BOARD_CONFIGS = [
+  { label: 'Classic',  path: 'glb/checkers/chess_board_v2.glb' },
+  { label: 'Armenian', path: 'glb/game_boards/armenian_marble_gold_merged.glb' },
+];
+
 const ChessScreen = ({navigation}: any) => {
   const { user, refreshUser } = useAuth();
   const { showAchievements } = useAchievements();
@@ -44,6 +51,8 @@ const ChessScreen = ({navigation}: any) => {
   const [showBlur, setShowBlur] = useState(true);
   const [showMusicPlayer, setShowMusicPlayer] = useState(false);
   const [arEnabled, setArEnabled] = useState(true);
+  const [boardIdx, setBoardIdx] = useState(0);
+  const boardConfigs = CHESS_BOARD_CONFIGS;
   const arOverlayRef = useRef<AR3DOverlayHandle>(null);
 
   // ── Chess AR pieces ──────────────────────────────────────────────────────
@@ -58,9 +67,9 @@ const ChessScreen = ({navigation}: any) => {
           row: r,
           col: c,
           color: piece.color === 'white' ? 'red' : 'black',
-          isKing: piece.type !== 'pawn',
-          pieceType: piece.type,
-          side: piece.color,
+          isKing: piece.type === 'king',
+          pieceType: piece.type as ARPiece['pieceType'],
+          side: piece.color as 'white' | 'black',
           isSelected:
             gameState.selectedSquare?.row === r &&
             gameState.selectedSquare?.col === c,
@@ -494,28 +503,29 @@ const ChessScreen = ({navigation}: any) => {
   // Game screen
   return (
     <View style={styles.container}>
-      <Photosphere360Background overlayOpacity={showBlur ? 0.5 : 0.3}>
+      <Photosphere360Background overlayOpacity={0.4}>
         <AR3DOverlay
           ref={arOverlayRef}
           visible={arEnabled}
           pieces={arPieces}
           moves={gameState?.possibleMoves}
-          boardGlbPath="glb/chess/chess-board/source/armenian_board.glb"
-          chessPieceGlbPaths={{
-            white_pawn: 'glb/chess/pieces/white_pawn.glb',
-            white_knight: 'glb/chess/pieces/white_knight.glb',
-            white_bishop: 'glb/chess/pieces/white_bishop.glb',
-            white_rook: 'glb/chess/pieces/white_rook.glb',
-            white_queen: 'glb/chess/pieces/white_queen.glb',
-            white_king: 'glb/chess/pieces/white_king.glb',
-            black_pawn: 'glb/chess/pieces/black_pawn.glb',
-            black_knight: 'glb/chess/pieces/black_knight.glb',
-            black_bishop: 'glb/chess/pieces/black_bishop.glb',
-            black_rook: 'glb/chess/pieces/black_rook.glb',
-            black_queen: 'glb/chess/pieces/black_queen.glb',
-            black_king: 'glb/chess/pieces/black_king.glb',
-          }}
           onSquareTap={handleSquarePress}
+          boardGlbPath={boardConfigs[boardIdx].path}
+          hideCheckerboard={true}
+          chessPieceGlbPaths={{
+          white_pawn:   'glb/chess/pawn.glb',
+          white_rook:   'glb/chess/rook.glb',
+          white_knight: 'glb/chess/knight.glb',
+          white_bishop: 'glb/chess/bishop.glb',
+          white_queen:  'glb/chess/queen.glb',
+          white_king:   'glb/chess/king.glb',
+          black_pawn:   'glb/chess/pawn.glb',
+          black_rook:   'glb/chess/rook.glb',
+          black_knight: 'glb/chess/knight.glb',
+          black_bishop: 'glb/chess/bishop.glb',
+          black_queen:  'glb/chess/queen.glb',
+          black_king:   'glb/chess/king.glb',
+          }}
         />
       </Photosphere360Background>
       <View style={styles.overlay} pointerEvents="box-none">
@@ -532,6 +542,7 @@ const ChessScreen = ({navigation}: any) => {
                   { icon: '🎨', onPress: () => setShowCustomization(true) },
                   { icon: showBlur ? '🌫️' : '✨', onPress: () => setShowBlur(!showBlur) },
                   { icon: arEnabled ? '🥽' : '🎮', onPress: () => setArEnabled(!arEnabled) },
+                  { icon: '🔄', onPress: () => setBoardIdx(i => (i + 1) % boardConfigs.length) },
                   { icon: showMusicPlayer ? '🎵' : '🎶', onPress: () => setShowMusicPlayer(s => !s) },
                   { icon: '👥', onPress: togglePanel },
                   { icon: '🚪', onPress: toggleLeave },

@@ -158,24 +158,20 @@ export interface AR3DOverlayProps {
 const GLB_ASSET_MAP: Record<string, any> = {
   'glb/game_boards/rounded_table_panel_v4.glb': require('../../assets/glb/game_boards/rounded_table_panel_v4.glb'),
   'glb/game_boards/rounded_table_panel.glb':    require('../../assets/glb/game_boards/rounded_table_panel.glb'),
+  'glb/game_boards/armenian_marble_gold_merged.glb': require('../../assets/glb/game_boards/armenian_marble_gold_merged.glb'),
+  'glb/checkers/chess_board_v2.glb':            require('../../assets/glb/checkers/chess_board_v2.glb'),
   'glb/game assets/round_table.glb':            require('../../assets/glb/game assets/round_table.glb'),
   'glb/game assets/octagon_table.glb':          require('../../assets/glb/game assets/octagon_table.glb'),
   'glb/game assets/poker_table2.glb':            require('../../assets/glb/game assets/poker_table2.glb'),
   'glb/game assets/casino_table_level2_textured.glb': require('../../assets/glb/game assets/casino_table_level2_textured.glb'),
   'glb/chess/chess-board/source/ui.glb':        require('../../assets/glb/chess/chess-board/source/ui.glb'),
   'glb/chess/chess-board/source/armenian_board.glb': require('../../assets/glb/chess/chess-board/source/armenian_board.glb'),
-  'glb/chess/pieces/white_pawn.glb':            require('../../assets/glb/chess/pieces/white_pawn.glb'),
-  'glb/chess/pieces/white_knight.glb':          require('../../assets/glb/chess/pieces/white_knight.glb'),
-  'glb/chess/pieces/white_bishop.glb':          require('../../assets/glb/chess/pieces/white_bishop.glb'),
-  'glb/chess/pieces/white_rook.glb':            require('../../assets/glb/chess/pieces/white_rook.glb'),
-  'glb/chess/pieces/white_queen.glb':           require('../../assets/glb/chess/pieces/white_queen.glb'),
-  'glb/chess/pieces/white_king.glb':            require('../../assets/glb/chess/pieces/white_king.glb'),
-  'glb/chess/pieces/black_pawn.glb':            require('../../assets/glb/chess/pieces/black_pawn.glb'),
-  'glb/chess/pieces/black_knight.glb':          require('../../assets/glb/chess/pieces/black_knight.glb'),
-  'glb/chess/pieces/black_bishop.glb':          require('../../assets/glb/chess/pieces/black_bishop.glb'),
-  'glb/chess/pieces/black_rook.glb':            require('../../assets/glb/chess/pieces/black_rook.glb'),
-  'glb/chess/pieces/black_queen.glb':           require('../../assets/glb/chess/pieces/black_queen.glb'),
-  'glb/chess/pieces/black_king.glb':            require('../../assets/glb/chess/pieces/black_king.glb'),
+  'glb/chess/pawn.glb':                        require('../../assets/glb/chess/pawn.glb'),
+  'glb/chess/rook.glb':                        require('../../assets/glb/chess/rook.glb'),
+  'glb/chess/knight.glb':                      require('../../assets/glb/chess/knight.glb'),
+  'glb/chess/bishop.glb':                      require('../../assets/glb/chess/bishop.glb'),
+  'glb/chess/queen.glb':                       require('../../assets/glb/chess/queen.glb'),
+  'glb/chess/king.glb':                        require('../../assets/glb/chess/king.glb'),
   'glb/cards/card-template.glb':                require('../../assets/glb/cards/card-template.glb'),
 };
 
@@ -228,8 +224,15 @@ async function resolveAssetUri(assetPath: string): Promise<string | null> {
       // Reuse the cached temp file if it already exists — avoids re-downloading
       // large GLBs (e.g. 26 MB poker_table2.glb) on every Metro reload.
       // Delete it manually from the device tmp dir if you need a fresh copy.
+      // Also validate size > 1 KB — a 0-byte or truncated file from a previous
+      // failed/interrupted download must not be served as a valid cache hit.
       if (await RNFS.exists(tempPath)) {
-        return `file://${tempPath}`;
+        const stat = await RNFS.stat(tempPath);
+        if (stat.size > 1024) {
+          return `file://${tempPath}`;
+        }
+        // Stale / corrupt — delete and re-download
+        await RNFS.unlink(tempPath).catch(() => {});
       }
 
       try {
@@ -402,18 +405,12 @@ const BOARD_STYLE = ${BOARD_STYLE_JS};
 const BOARD_HALF   = 0.35 * ${BOARD_SCALE_JS};
 const BOARD_HALF_W = BOARD_HALF;
 const BOARD_HALF_H = BOARD_HALF;
-// armenian_board.glb geometry (measured from GLB accessors + 2048px texture scan):
-// GLB local: top quad -0.5..0.5, bevel extends to -0.53..0.53 => max dim = 1.06
-// scale = BOARD_HALF_W*2 / 1.06 = 0.70/1.06 = 0.6604
-// top face world half = 0.5 * 0.6604 = 0.3302m
-// Texture field: px 236..1814 of 2048 => UV 0.1152..0.8857
-// Field world half = (0.8857-0.5) * 0.6604 = 0.2544m  (col axis)
-// Per square = 0.2544*2/8 = 0.0636m
-const FIELD_HALF_W = 0.2544;
+// Stretched wider so pieces span more of the board left/right
+const FIELD_HALF_W = 0.305;
 const FIELD_HALF_H = FIELD_HALF_W;
 const SQUARE_W     = (FIELD_HALF_W * 2) / 8;  // 0.0636m per square
 const SQUARE_H     = SQUARE_W;
-const PIECE_SCALE  = SQUARE_W * 0.60;          // 60% of square — clear gap on all 4 sides
+const PIECE_SCALE  = SQUARE_W * 2.40;          // fills ~one square like checkers
 const FIELD_RAISE  = 0.01270;                   // 1/2 inch raise — visible sides from camera angle
 const BOARD_Y    = -1.10;  // table surface lowered
 
@@ -861,25 +858,61 @@ function invalidatePieceCache() {
 }
 
 function normalizePieceModel(model) {
+  // Compute world-space bounds BEFORE any scale change (respects embedded GLB scales)
   const box = new THREE.Box3().setFromObject(model);
   const size = box.getSize(new THREE.Vector3());
   const maxDim = Math.max(size.x, size.y, size.z, 0.001);
-  model.scale.setScalar(1 / maxDim);
+  // Centre the model horizontally and lift it so its bottom sits at y=0
   const center = box.getCenter(new THREE.Vector3());
-  model.position.set(-center.x/maxDim, -(box.min.y/maxDim), -center.z/maxDim);
-  return model;
+  model.position.x -= center.x;
+  model.position.z -= center.z;
+  model.position.y -= box.min.y;
+  // Wrap in a Group that normalises the whole thing to a 1-unit cube.
+  // updatePieces will scale this wrapper — the inner model's own transforms are untouched.
+  const wrapper = new THREE.Group();
+  wrapper.add(model);
+  wrapper.scale.setScalar(1 / maxDim);
+  return wrapper;
 }
 
-Object.entries(CHESS_PIECE_URIS || {}).forEach(([pieceKey, pieceUri]) => {
-  if (!pieceUri) return;
-  loader.load(pieceUri, (gltf) => {
-    baseChessPieceScenes[pieceKey] = normalizePieceModel(gltf.scene);
-    invalidatePieceCache();
-    updatePieces(window._pieces || []);
-  }, undefined, () => {
-    console.warn('[AR3DOverlay] chess piece GLB failed:', pieceKey);
+// ── Helper: load a map of {pieceKey: uri} entries, deduplicating by URI ──────
+function loadChessPieceUris(uriMap) {
+  // Group keys by their URI to avoid loading the same file multiple times
+  var uriToKeys = {};
+  Object.entries(uriMap).forEach(function(entry) {
+    var pieceKey = entry[0]; var pieceUri = entry[1];
+    if (!pieceUri) return;
+    if (!uriToKeys[pieceUri]) uriToKeys[pieceUri] = [];
+    uriToKeys[pieceUri].push(pieceKey);
   });
-});
+  var uriList = Object.keys(uriToKeys);
+  var loadedCount = 0;
+  uriList.forEach(function(pieceUri) {
+    var pieceKeys = uriToKeys[pieceUri];
+    _rnLog('[AR3D] loading piece GLB: ' + pieceKeys[0] + ' from ' + pieceUri.substring(0, 80));
+    loader.load(pieceUri, function(gltf) {
+      var normalized = normalizePieceModel(gltf.scene);
+      pieceKeys.forEach(function(k) { baseChessPieceScenes[k] = normalized; });
+      loadedCount++;
+      _rnLog('[AR3D] piece GLB loaded OK: ' + pieceKeys[0] + ' (' + loadedCount + '/' + uriList.length + ')');
+      if (loadedCount === uriList.length) {
+        // All piece GLBs ready — update once so pieces appear all at once, no fallback→GLB flash
+        invalidatePieceCache();
+        updatePieces(window._pieces || []);
+      }
+    }, undefined, function(err) {
+      _rnLog('[AR3D] piece GLB FAILED: ' + pieceKeys[0] + ' err=' + (err && err.message ? err.message : String(err)));
+      // Count failures too so remaining pieces still render
+      loadedCount++;
+      if (loadedCount === uriList.length) {
+        invalidatePieceCache();
+        updatePieces(window._pieces || []);
+      }
+    });
+  });
+}
+// Load any URIs baked into the HTML at build time (will be {} initially)
+loadChessPieceUris(CHESS_PIECE_URIS || {});
 
 if (PIECES_URI) {
   loader.load(PIECES_URI, (gltf) => {
@@ -904,12 +937,13 @@ function clonePiece(piece) {
   const chessKey = piece.side && piece.pieceType ? (piece.side + '_' + piece.pieceType) : null;
   const sourceScene = chessKey ? baseChessPieceScenes[chessKey] : basePieceScene;
   if (!sourceScene) {
-    return chessKey
-      ? makeFallbackChessPiece(color, piece.pieceType, isKing)
-      : makeFallbackPiece(color, isKing);
+    // Chess pieces: return null (hide until GLB is ready — avoids fallback→GLB flash)
+    if (chessKey) return null;
+    return makeFallbackPiece(color, isKing);
   }
 
   const pieceColor = color === 'red' ? ${RED_HEX} : ${BLACK_HEX};
+  // Clone the wrapper group returned by normalizePieceModel (deep clone preserves inner scale)
   const clone = sourceScene.clone(true);
   clone.rotation.x = Math.PI / 2;  // ← cancels boardGroup rotation → upright in world
 
@@ -934,16 +968,6 @@ function clonePiece(piece) {
     ch.material = Array.isArray(ch.material) ? newMats : newMats[0];
   });
 
-  // King: add gold rim ring on top
-  if (isKing) {
-    const ring = new THREE.Mesh(
-      new THREE.TorusGeometry(0.50, 0.06, 8, 48),
-      new THREE.MeshStandardMaterial({ color:0xf5c842, metalness:0.95, roughness:0.05 })
-    );
-    ring.position.y = 0.52;
-    ring.rotation.x = Math.PI/2;
-    clone.add(ring);
-  }
   return clone;
 }
 
@@ -1327,10 +1351,15 @@ const pieceMeshes = {};
 const pieceState  = {};
 
 function boardToLocal(row, col) {
+  // GLB board (HIDE_CHECKERBOARD=true): surface sits at boardGroup local z≈0 — place piece base just above.
+  // Procedural board: surface is at BOARD_THICKNESS/2, piece needs to clear that.
+  const surfaceZ = HIDE_CHECKERBOARD ? 0.002 : (BOARD_THICKNESS / 2 + 0.010 + FIELD_RAISE);
+  // Row 7 (white back rank) shifted toward near edge; row 0 (black back rank) shifted toward far edge
+  const rowNudge = (row === 7) ? -0.02 : (row === 0) ? 0.02 : 0;
   return [
     -FIELD_HALF_W + (col + 0.5) * SQUARE_W,
-     FIELD_HALF_H - (row + 0.5) * SQUARE_H,
-     BOARD_THICKNESS / 2 + 0.010 + FIELD_RAISE,  // above board + 1/4" raised field
+     FIELD_HALF_H - (row + 0.5) * SQUARE_H + rowNudge,
+     surfaceZ,
   ];
 }
 
@@ -1362,7 +1391,13 @@ function updatePieces(pieces) {
       prev.side !== p.side
     ) {
       if (pieceMeshes[p.key]) boardGroup.remove(pieceMeshes[p.key]);
-      pieceMeshes[p.key] = clonePiece(p);
+      const newMesh = clonePiece(p);
+      if (!newMesh) {
+        delete pieceMeshes[p.key];
+        delete pieceState[p.key]; // don't cache — rebuild when GLB arrives
+        continue;
+      }
+      pieceMeshes[p.key] = newMesh;
       boardGroup.add(pieceMeshes[p.key]);
       pieceState[p.key] = {
         color: p.color,
@@ -1373,6 +1408,7 @@ function updatePieces(pieces) {
     }
 
     const mesh  = pieceMeshes[p.key];
+    if (!mesh) continue;
     const loc   = boardToLocal(p.row, p.col);
     const lift  = p.isSelected ? 0.12 : 0;
     const isChessPiece = !!(p.pieceType && p.side);
@@ -1416,6 +1452,10 @@ window.handleRNMessage = function(data) {
     // Camera forward at yaw Y is (sin(Y*DEG), 0, -cos(Y*DEG)); sceneGroup -Z after
     // rotation.y = -Y*DEG gives the same direction.
     sceneGroup.rotation.y = -data.yaw * DEG;
+  }
+  if (data.type === 'loadPieces') {
+    // Inject piece URIs after downloads complete — no WebView remount needed.
+    loadChessPieceUris(data.uris || {});
   }
   if (data.type === 'scene') {
     window._pieces = data.pieces || [];
@@ -1571,9 +1611,7 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
 
   const [boardUri,  setBoardUri]  = useState<string | null | undefined>(boardGlbPath  ? undefined : null);
   const [piecesUri, setPiecesUri] = useState<string | null | undefined>(piecesGlbPath ? undefined : null);
-  const [chessPieceUris, setChessPieceUris] = useState<Record<string, string | null> | undefined>(
-    chessPieceGlbPaths ? undefined : {}
-  );
+  const [chessPieceUris, setChessPieceUris] = useState<Record<string, string | null>>({});
   const [tableUri,  setTableUri]  = useState<string | null | undefined>(tableGlbPath  ? undefined : null);
   const [cardUri,   setCardUri]   = useState<string | null | undefined>(cardGlbPath   ? undefined : null);
   const [cardBackUri, setCardBackUri] = useState<string | null | undefined>(cardBackTexturePath ? undefined : null);
@@ -1592,28 +1630,49 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
     return () => { cancelled = true; };
   }, [piecesGlbPath]);
 
+  // Resolve chess piece URIs.
+  // DEV:  Use the Metro HTTP URL directly — Image.resolveAssetSource() returns the
+  //       correct LAN-IP URL.  The WebView fetches it via XHR (allowUniversalAccessFromFileURLs).
+  //       This is synchronous and avoids a fragile 240 MB RNFS download step.
+  // PROD: Fall back to resolveAssetUri() which copies from the app bundle.
   useEffect(() => {
     if (!chessPieceGlbPaths) {
       setChessPieceUris({});
       return;
     }
-    let cancelled = false;
-    const entries = Object.entries(chessPieceGlbPaths).filter(([, path]) => !!path);
-    Promise.all(
-      entries.map(async ([pieceKey, path]) => {
-        const uri = await resolveAssetUri(path as string);
-        return [pieceKey, uri] as const;
-      })
-    ).then(resolvedEntries => {
-      if (cancelled) return;
+    const entries = Object.entries(chessPieceGlbPaths).filter(([, path]) => !!path) as [string, string][];
+
+    if (__DEV__) {
+      // Synchronous — no download needed.
       const resolvedMap: Record<string, string | null> = {};
-      resolvedEntries.forEach(([pieceKey, uri]) => {
-        resolvedMap[pieceKey] = uri;
+      entries.forEach(([pieceKey, path]) => {
+        const assetRef = GLB_ASSET_MAP[path];
+        const metroUrl = assetRef ? (Image.resolveAssetSource(assetRef)?.uri ?? null) : null;
+        resolvedMap[pieceKey] = metroUrl;
       });
+      setChessPieceUris(resolvedMap);
+      return;
+    }
+
+    // Production: copy each unique file from the bundle once, then fan out.
+    let cancelled = false;
+    const uniquePaths = [...new Set(entries.map(([, p]) => p))];
+    Promise.all(
+      uniquePaths.map(async (path) => {
+        const uri = await resolveAssetUri(path);
+        return [path, uri] as const;
+      })
+    ).then(pathResults => {
+      if (cancelled) return;
+      const pathToUri: Record<string, string | null> = {};
+      pathResults.forEach(([path, uri]) => { pathToUri[path] = uri; });
+      const resolvedMap: Record<string, string | null> = {};
+      entries.forEach(([pieceKey, path]) => { resolvedMap[pieceKey] = pathToUri[path] ?? null; });
       setChessPieceUris(resolvedMap);
     });
     return () => { cancelled = true; };
-  }, [chessPieceGlbPaths]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(chessPieceGlbPaths)]);
 
   useEffect(() => {
     if (!tableGlbPath) { setTableUri(null); return; }
@@ -1640,18 +1699,26 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
   useEffect(() => {
   }, [boardUri, piecesUri, chessPieceUris, cardUri, cardBackUri, spawnYaw]);
 
-  // Build HTML once spawn yaw is captured.
-  // boardUri/piecesUri/cardUri may still be 'undefined' (downloading) — treat as
-  // null so the procedural fallback renders immediately. The useMemo re-runs and
-  // rebuilds the scene once each URI resolves (e.g. the 26 MB poker_table2.glb).
+  // Build HTML once all required URIs have resolved.
+  // Returning null while boardUri OR chessPieceUris are still loading prevents a
+  // partial WebView build that would force a remount when they resolve.
+  // Chess piece URIs are BAKED into CHESS_PIECE_URIS so Three.js starts loading them
+  // immediately on module init — no post-load injection or race condition.
   const htmlString = useMemo(() => {
-    if (chessPieceUris === undefined) return null;
     if (spawnYaw === null) return null;
+    if (boardUri    === undefined) return null;
+    if (piecesUri   === undefined) return null;
+    if (tableUri    === undefined) return null;
+    if (cardUri     === undefined) return null;
+    if (cardBackUri === undefined) return null;
+    // If chessPieceGlbPaths was provided but URIs haven't resolved yet, wait.
+    if (chessPieceGlbPaths && Object.keys(chessPieceGlbPaths).length > 0
+        && Object.keys(chessPieceUris).length === 0) return null;
     const redInt  = parseInt(pieceColorRed.replace(/^#/, ''), 16);
     const blackInt = parseInt(pieceColorBlack.replace(/^#/, ''), 16);
     const result = buildSceneHTML(
-      fov, boardUri ?? null, piecesUri ?? null, chessPieceUris, tableUri ?? null, spawnYaw,
-      redInt, blackInt, cardUri ?? null, cardBackUri ?? null,
+      fov, boardUri, piecesUri, chessPieceUris, tableUri, spawnYaw,
+      redInt, blackInt, cardUri, cardBackUri,
       localThreePath, localGltfPath, hideCheckerboard, boardScale, boardStyle,
     );
     return result;
@@ -1688,10 +1755,12 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
   const latestPiecesRef = useRef(pieces);
   const latestMovesRef  = useRef(moves);
   const latestCardsRef  = useRef(cards);
+  const latestChessPieceUrisRef = useRef(chessPieceUris);
   
   latestPiecesRef.current = pieces;
   latestMovesRef.current  = moves;
   latestCardsRef.current  = cards;
+  latestChessPieceUrisRef.current = chessPieceUris;
 
   // Push board state on every piece/move change
   useEffect(() => {
