@@ -412,7 +412,7 @@ const SQUARE_W     = (FIELD_HALF_W * 2) / 8;  // 0.0636m per square
 const SQUARE_H     = SQUARE_W;
 const PIECE_SCALE  = SQUARE_W * 2.40;          // fills ~one square like checkers
 const FIELD_RAISE  = 0.01270;                   // 1/2 inch raise — visible sides from camera angle
-const BOARD_Y    = -1.10;  // table surface lowered
+const BOARD_Y    = -0.80;  // lowered so board sits in lower half of viewport
 
 // ── Dynamic TABLE_DIST: closest distance where board corners fit in view ──────
 // hFov derived from vFov + aspect ratio so it adapts to every screen/orientation.
@@ -421,8 +421,8 @@ const BOARD_Y    = -1.10;  // table surface lowered
 const _halfVFovRad = (${fov} / 2) * (Math.PI / 180);
 const _aspect      = W / H;
 const _halfHFovRad = Math.atan(Math.tan(_halfVFovRad) * _aspect);
-const _rawDist     = (BOARD_HALF * 0.55 / Math.tan(_halfHFovRad)) + BOARD_HALF;
-const TABLE_DIST   = Math.min(Math.max(_rawDist, 0.55), 0.80);
+const _rawDist     = (BOARD_HALF * 1.10 / Math.tan(_halfHFovRad)) + BOARD_HALF;
+const TABLE_DIST   = Math.min(Math.max(_rawDist, 0.80), 1.10);
 
 // ── sceneGroup starts as a camera child so it is always in front ─────────────────
 // On the first animation frame (after camera rotation is applied from live gyro)
@@ -438,7 +438,7 @@ let _freezeCountdown = 8; // wait 8 frames for live gyro injectJavaScript to arr
 
 // ── Board group — flat horizontal, TABLE_DIST ahead in camera/sceneGroup space ───
 const boardGroup = new THREE.Group();
-boardGroup.position.set(0, BOARD_Y, -(TABLE_DIST * 0.9)); // closer to camera
+boardGroup.position.set(0, BOARD_Y, -TABLE_DIST);
 boardGroup.rotation.x = -Math.PI / 2;
 sceneGroup.add(boardGroup);
 
@@ -451,23 +451,33 @@ const hitPlane = new THREE.Mesh(
 boardGroup.add(hitPlane);
 
 function handleTap(clientX, clientY) {
-  const nx =  (clientX / window.innerWidth)  * 2 - 1;
-  const ny = -(clientY / window.innerHeight) * 2 + 1;
+  // Force camera matrix current BEFORE building the ray — gyro updates rotation
+  // every animate() frame; without this the ray uses the previous frame's matrix.
+  camera.updateMatrixWorld(true);
+  // Force boardGroup world matrix current before worldToLocal conversion.
+  boardGroup.updateWorldMatrix(true, true);
+
+  const rect = renderer.domElement.getBoundingClientRect();
+  const nx =  ((clientX - rect.left) / rect.width)  * 2 - 1;
+  const ny = -((clientY - rect.top)  / rect.height) * 2 + 1;
   raycaster.setFromCamera(new THREE.Vector2(nx, ny), camera);
+
   const hits = raycaster.intersectObject(hitPlane, false);
   if (!hits.length) return;
   // Convert world hit point → boardGroup local space
-  boardGroup.updateWorldMatrix(true, false);
   const lp = boardGroup.worldToLocal(hits[0].point.clone());
-  const col = Math.floor((lp.x + FIELD_HALF_W) / SQUARE_W);
-  const row = Math.floor((FIELD_HALF_H - lp.y) / SQUARE_H);
+  // Clamp to field bounds before flooring so border taps land on edge squares
+  const clampedX = Math.max(-FIELD_HALF_W + 0.001, Math.min(FIELD_HALF_W - 0.001, lp.x));
+  const clampedY = Math.max(-FIELD_HALF_H + 0.001, Math.min(FIELD_HALF_H - 0.001, lp.y));
+  const col = Math.floor((clampedX + FIELD_HALF_W) / SQUARE_W);
+  const row = Math.floor((FIELD_HALF_H - clampedY) / SQUARE_H);
   if (row >= 0 && row < 8 && col >= 0 && col < 8) {
     if (window.ReactNativeWebView) {
       window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'tap', row, col }));
     }
   }
 }
-document.addEventListener('touchend', (e) => {
+document.addEventListener('touchstart', (e) => {
   if (e.changedTouches.length > 0) {
     handleTap(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
   }
@@ -1354,11 +1364,9 @@ function boardToLocal(row, col) {
   // GLB board (HIDE_CHECKERBOARD=true): surface sits at boardGroup local z≈0 — place piece base just above.
   // Procedural board: surface is at BOARD_THICKNESS/2, piece needs to clear that.
   const surfaceZ = HIDE_CHECKERBOARD ? 0.002 : (BOARD_THICKNESS / 2 + 0.010 + FIELD_RAISE);
-  // Row 7 (white back rank) shifted toward near edge; row 0 (black back rank) shifted toward far edge
-  const rowNudge = (row === 7) ? -0.02 : (row === 0) ? 0.02 : 0;
   return [
     -FIELD_HALF_W + (col + 0.5) * SQUARE_W,
-     FIELD_HALF_H - (row + 0.5) * SQUARE_H + rowNudge,
+     FIELD_HALF_H - (row + 0.5) * SQUARE_H,
      surfaceZ,
   ];
 }
@@ -1499,7 +1507,7 @@ function animate() {
   t += 0.016;
   camera.rotation.order = 'YXZ';
   camera.rotation.y = -window._att.yaw   * DEG;
-  camera.rotation.x = -window._att.pitch * DEG - 0.28; // ~16° downward — eye level looking across table surface
+  camera.rotation.x = -window._att.pitch * DEG - 0.60; // ~34° downward — see full board
   camera.rotation.z =  window._att.roll  * DEG;
 
   // Freeze: detach sceneGroup from camera → world space, preserving world matrix.
