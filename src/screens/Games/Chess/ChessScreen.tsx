@@ -1,5 +1,5 @@
 import React, {useState, useEffect, useRef, useMemo} from 'react';
-import {View, Text, StyleSheet, TouchableOpacity, Alert, Animated, ScrollView, Image} from 'react-native';
+import {View, Text, StyleSheet, TouchableOpacity, Alert, Animated, ScrollView, Image, useWindowDimensions} from 'react-native';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Photosphere360Background from '../../../components/Photosphere360Background';
@@ -33,12 +33,20 @@ import { resolveAvatar } from '../../../utils/avatars';
 
 const PANO_SOURCE = require('../../../../assets/backgrounds/capture360/pano2.jpg');
 
+const CHESS_SYMBOLS: Record<string, Record<string, string>> = {
+  white: { king: '♔', queen: '♕', rook: '♖', bishop: '♗', knight: '♘', pawn: '♙' },
+  black: { king: '♚', queen: '♛', rook: '♜', bishop: '♝', knight: '♞', pawn: '♟' },
+};
+
 const CHESS_BOARD_CONFIGS = [
   { label: 'Classic',  path: 'glb/checkers/chess_board_v2.glb' },
   { label: 'Armenian', path: 'glb/game_boards/armenian_marble_gold_merged.glb' },
 ];
 
 const ChessScreen = ({navigation}: any) => {
+  const { width, height } = useWindowDimensions();
+  const boardSize = Math.min(width, height - 200);
+  const squareSize = boardSize / 8;
   const { user, refreshUser } = useAuth();
   const { showAchievements } = useAchievements();
   const [difficulty, setDifficulty] = useState<Difficulty | null>(null);
@@ -216,7 +224,7 @@ const ChessScreen = ({navigation}: any) => {
         'ai', // Chess is always AI mode
         {
           gameId: gameIdRef.current,
-          playerScore: result === 'win' ? 1 : result === 'draw' ? 0.5 : 0,
+          playerScore: result === 'win' ? 1 : 0,
         }
       );
       
@@ -503,16 +511,17 @@ const ChessScreen = ({navigation}: any) => {
   // Game screen
   return (
     <View style={styles.container}>
-      <Photosphere360Background overlayOpacity={0.4}>
-        <AR3DOverlay
-          ref={arOverlayRef}
-          visible={arEnabled}
-          pieces={arPieces}
-          moves={gameState?.possibleMoves}
-          onSquareTap={handleSquarePress}
-          boardGlbPath={boardConfigs[boardIdx].path}
-          hideCheckerboard={true}
-          chessPieceGlbPaths={{
+      {/* Photosphere always renders — AR3DOverlay WebView is transparent and sits on top */}
+      <Photosphere360Background overlayOpacity={0.4} />
+      <AR3DOverlay
+        ref={arOverlayRef}
+        visible={arEnabled}
+        pieces={arPieces}
+        moves={gameState?.possibleMoves}
+        onSquareTap={handleSquarePress}
+        boardGlbPath={boardConfigs[boardIdx].path}
+        hideCheckerboard={true}
+        chessPieceGlbPaths={{
           white_pawn:   'glb/chess/pawn.glb',
           white_rook:   'glb/chess/rook.glb',
           white_knight: 'glb/chess/knight.glb',
@@ -525,11 +534,10 @@ const ChessScreen = ({navigation}: any) => {
           black_bishop: 'glb/chess/bishop.glb',
           black_queen:  'glb/chess/queen.glb',
           black_king:   'glb/chess/king.glb',
-          }}
-        />
-      </Photosphere360Background>
+        }}
+      />
       <View style={styles.overlay} pointerEvents="box-none">
-        <SafeAreaView style={styles.safeArea}>
+        <SafeAreaView style={styles.safeArea} pointerEvents="box-none">
           <View>
             <GameToolbar
               title={`Chess - ${difficulty}`}
@@ -557,6 +565,44 @@ const ChessScreen = ({navigation}: any) => {
         </Text>
         {gameState.isCheck && <Text style={styles.checkText}>CHECK!</Text>}
       </View>
+
+      {!arEnabled && (
+        <View style={styles.boardContainer}>
+          <View style={{ width: boardSize, height: boardSize, borderWidth: 2, borderColor: '#5d3a1a' }}>
+            {gameState.board.map((row, r) => (
+              <View key={r} style={{ flexDirection: 'row' }}>
+                {row.map((piece, c) => {
+                  const isDark = (r + c) % 2 === 1;
+                  const isSelected = gameState.selectedSquare?.row === r && gameState.selectedSquare?.col === c;
+                  const isPossible = gameState.possibleMoves.some(m => m.row === r && m.col === c);
+                  return (
+                    <TouchableOpacity
+                      key={c}
+                      style={[
+                        { width: squareSize, height: squareSize, justifyContent: 'center', alignItems: 'center' },
+                        { backgroundColor: isDark ? '#b58863' : '#f0d9b5' },
+                        isSelected ? { backgroundColor: 'rgba(127,166,80,0.95)' } : null,
+                        isPossible ? { backgroundColor: isDark ? 'rgba(127,166,80,0.75)' : 'rgba(127,166,80,0.55)' } : null,
+                      ]}
+                      onPress={() => handleSquarePress(r, c)}
+                      activeOpacity={0.8}
+                    >
+                      {piece && (
+                        <Text style={{ fontSize: squareSize * 0.68, lineHeight: squareSize, textAlign: 'center', includeFontPadding: false }}>
+                          {CHESS_SYMBOLS[piece.color]?.[piece.type] ?? '?'}
+                        </Text>
+                      )}
+                      {isPossible && !piece && (
+                        <View style={{ width: squareSize * 0.3, height: squareSize * 0.3, borderRadius: squareSize * 0.15, backgroundColor: 'rgba(0,0,0,0.25)' }} />
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            ))}
+          </View>
+        </View>
+      )}
 
       {(gameState.isCheckmate || gameState.isStalemate) && (
         <View style={styles.gameOverOverlay}>
