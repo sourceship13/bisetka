@@ -443,11 +443,16 @@ boardGroup.rotation.x = -Math.PI / 2;
 sceneGroup.add(boardGroup);
 
 // ── Invisible hit plane for raycasting — covers the board surface exactly ────
+// CRITICAL: position hitPlane at the same height as the visual dots/pieces.
+// At a 34° camera tilt, a plane at z=0 vs z=SURFACE_Z creates a parallax
+// shift of ~0.3–0.7 squares, causing taps to land on the wrong square.
+const SURFACE_Z = HIDE_CHECKERBOARD ? 0.002 : (BOARD_THICKNESS / 2 + FIELD_RAISE + 0.002);
 const raycaster = new THREE.Raycaster();
 const hitPlane = new THREE.Mesh(
   new THREE.PlaneGeometry(BOARD_HALF_W * 2, BOARD_HALF_H * 2),
   new THREE.MeshBasicMaterial({ visible: false, side: THREE.DoubleSide })
 );
+hitPlane.position.z = SURFACE_Z;
 boardGroup.add(hitPlane);
 
 function handleTap(clientX, clientY) {
@@ -1442,7 +1447,8 @@ function updateDots(moves) {
   for (const m of (moves||[])) {
     const d = new THREE.Mesh(dotGeo, dotMat);
     const loc = boardToLocal(m.row, m.col);
-    d.position.set(loc[0], loc[1], BOARD_THICKNESS / 2 + FIELD_RAISE + 0.002);
+    // Place dots at same z as hitPlane so visual and tap positions align exactly.
+    d.position.set(loc[0], loc[1], SURFACE_Z);
     dotMeshes.push(d);
     boardGroup.add(d);
   }
