@@ -212,20 +212,28 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
       const isMe = seatIdx === myIdx;
       player.cards.forEach((card, cardIdx) => {
         const basePos = seatPositions[seatIdx] ?? { x: 0, y: 0, z: 0.004 };
-        // Opponent cards: flat on table, landscape, spread along Y (long sides touching)
-        // Player cards: portrait, standing upright side by side spread along X
-        const spread = isMe
-          ? (cardIdx - (player.cards.length - 1) / 2) * 0.14  // X spread for standing cards
-          : (cardIdx - (player.cards.length - 1) / 2) * 0.12; // Y spread for flat cards
-        // Standing card center at z = half card height above table (CARD_H * scale / 2 ≈ 0.08m)
+        // Card top faces toward the table center (away from owning player)
+        // Seat 0 = bottom, 3 = top, 1&2 = right side, 4&5 = left side
+        const seatRotZ: Record<number, number> = {
+          0:  0,               // bottom → top faces up (+Y)
+          1: -Math.PI / 2,     // right  → top faces left (-X)
+          2: -Math.PI / 2,     // far right
+          3:  Math.PI,         // top    → top faces down (-Y)
+          4:  Math.PI / 2,     // far left → top faces right (+X)
+          5:  Math.PI / 2,     // left
+        };
+        const cardOffset = (cardIdx - (player.cards.length - 1) / 2);
+        // Seat 3 (top center) spreads left-right (X); all others spread depth (Y)
+        const spreadX = isMe ? cardOffset * 0.14 : (seatIdx === 3 ? cardOffset * 0.12 : 0);
+        const spreadY = isMe ? 0 : (seatIdx === 3 ? 0 : cardOffset * 0.12);
         const cardZ = isMe ? 0.08 : basePos.z;
-        const cardRotX = isMe ? Math.PI / 2 : 0;  // player cards stand upright
-        const cardRotZ = isMe ? 0 : Math.PI / 2;    // opponent cards landscape
+        const cardRotX = isMe ? Math.PI / 2 : 0;
+        const cardRotZ = isMe ? 0 : (seatRotZ[seatIdx] ?? 0);
         mapped.push({
           key: `poker-${seatIdx}-${cardIdx}`,
           position: {
-            x: basePos.x + (isMe ? spread : 0),
-            y: basePos.y + (isMe ? 0 : spread),
+            x: basePos.x + spreadX,
+            y: basePos.y + spreadY,
             z: cardZ,
           },
           rotation: { x: cardRotX, y: 0, z: cardRotZ },
