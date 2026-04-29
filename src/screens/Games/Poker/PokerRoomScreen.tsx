@@ -197,28 +197,32 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
   useEffect(() => {
     if (!arEnabled) { setArCards([]); return; }
     const myIdx = isMultiplayer ? mySeatRef.current : playerIndex;
-    // Positions in boardGroup local space (rotation.x = -PI/2 makes Y = depth, X = left/right, Z = up)
-    // Felt oval: RX=0.665 (left-right), RY=0.412 (near-far). Negative Y = near end (You), positive Y = far.
-    // 6 seats evenly spaced clockwise starting from near-center:
+    // Positions in boardGroup local space (rotation.x = -PI/2 → X = left/right, Y = depth, Z = up)
+    // All seats placed well inside the felt. Cards all rotated 90° (landscape) and spread along Y axis.
     const seatPositions: Record<number, { x: number; y: number; z: number }> = {
-      0: { x:  0.00, y: -0.33, z: 0.02 },  // You (near center)
-      1: { x:  0.45, y: -0.17, z: 0.02 },  // near right
-      2: { x:  0.45, y:  0.17, z: 0.02 },  // far right
-      3: { x:  0.00, y:  0.33, z: 0.02 },  // far center
-      4: { x: -0.45, y:  0.17, z: 0.02 },  // far left
-      5: { x: -0.45, y: 1.17, z: 0.02 },  // near left
+      0: { x:  0.00, y: -0.18, z: 0.004 },  // You (near center — on felt)
+      1: { x:  0.22, y: -0.08, z: 0.004 },  // near right
+      2: { x:  0.22, y:  0.08, z: 0.004 },  // far right
+      3: { x:  0.00, y:  0.22, z: 0.004 },  // far center
+      4: { x: -0.22, y:  0.08, z: 0.004 },  // far left
+      5: { x: -0.22, y: -0.08, z: 0.004 },  // near left
     };
     const mapped: ARCard[] = [];
     players.forEach((player, seatIdx) => {
       if (!player || !player.cards?.length) return;
       const isMe = seatIdx === myIdx;
       player.cards.forEach((card, cardIdx) => {
-        const basePos = seatPositions[seatIdx] ?? { x: 0, y: 0, z: 0.02 };
-        const offset = (cardIdx - (player.cards.length - 1) / 2) * 0.09;
+        const basePos = seatPositions[seatIdx] ?? { x: 0, y: 0, z: 0.004 };
+        // Your cards: landscape (z=π/2), opponent cards: portrait (z=0)
+        // Portrait card width = 0.16m → 0.10m offset gives clear gap between 2 cards
+        // Landscape card width = 0.22m → use 0.14m offset
+        const cardRotZ = isMe ? Math.PI / 2 : 0;
+        const cardOffset = isMe ? 0.14 : 0.10;
+        const offset = (cardIdx - (player.cards.length - 1) / 2) * cardOffset;
         mapped.push({
           key: `poker-${seatIdx}-${cardIdx}`,
           position: { x: basePos.x + offset, y: basePos.y, z: basePos.z },
-          rotation: { x: 0, y: 0, z: 0 },
+          rotation: { x: 0, y: 0, z: cardRotZ },
           scale: 0.73,
           cardData: {
             suit: card.suit as ARCard['cardData']['suit'],
@@ -1215,7 +1219,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
   return (
     <View style={styles.container}>
       <Photosphere360Background overlayOpacity={showBlur ? 0.65 : 0.3}>
-        <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/game assets/casino_table_level2_textured.glb" hideCheckerboard boardScale={1.9} boardStyle="poker" cardGlbPath="glb/cards/card-template.glb" cards={arCards} />
+        <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/game assets/casino_table_level2_textured.glb" hideCheckerboard boardScale={1.9} boardY={-1.0} boardGlbForceFlat boardTiltX={0.25} cardGlbPath="glb/cards/card-template.glb" cards={arCards} />
       </Photosphere360Background>
       <View style={styles.overlay} pointerEvents="box-none">
       <SafeAreaView style={styles.safeArea}>
