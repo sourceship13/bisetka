@@ -1358,32 +1358,21 @@ const _cardMeshMap = new Map();
 
 function updateCards(cards) {
   _rnLog('[AR3D] updateCards count=' + (cards ? cards.length : 0) + (cards && cards[0] ? ' pos0='+JSON.stringify(cards[0].position) : ''));
-  if (!cards || cards.length === 0) {
-    _cardMeshMap.forEach(grp => cardGroup.remove(grp));
-    _cardMeshMap.clear();
-    return;
-  }
-  const incoming = new Set(cards.map(c => c.key));
-  _cardMeshMap.forEach((grp, key) => {
-    if (!incoming.has(key)) { cardGroup.remove(grp); _cardMeshMap.delete(key); }
-  });
+  // Always clear all existing card meshes so new hands always show fresh cards.
+  _cardMeshMap.forEach(grp => cardGroup.remove(grp));
+  _cardMeshMap.clear();
+  if (!cards || cards.length === 0) return;
   cards.forEach(card => {
     const cd = card.cardData || {};
     const { suit='spades', rank='A', faceDown=false,
             backgroundImageUri, cardBackImageUri, font } = cd;
-    const themeKey = ['v3', backgroundImageUri||'', cardBackImageUri||'', font||'', faceDown].join('|');
-    let grp = _cardMeshMap.get(card.key);
-    if (!grp || grp.userData.themeKey !== themeKey) {
-      if (grp) cardGroup.remove(grp);
-      grp = makeCardMesh(suit, rank, faceDown, { font, backgroundImageUri, cardBackImageUri });
-      grp.userData.cardKey  = card.key;
-      grp.userData.themeKey = themeKey;
-      cardGroup.add(grp);
-      _cardMeshMap.set(card.key, grp);
-    }
+    var grp = makeCardMesh(suit, rank, faceDown, { font, backgroundImageUri, cardBackImageUri });
+    grp.userData.cardKey = card.key;
+    cardGroup.add(grp);
+    _cardMeshMap.set(card.key, grp);
     grp.position.set(card.position.x, card.position.y, card.position.z);
     if (card.rotation) grp.rotation.set(card.rotation.x||0, card.rotation.y||0, card.rotation.z||0);
-    const s = card.scale !== undefined ? card.scale : 1;
+    var s = card.scale !== undefined ? card.scale : 1;
     grp.scale.set(s, s, s);
   });
 }
