@@ -1045,7 +1045,7 @@ const NardiScreen = ({ navigation, route }: any) => {
   return (
     <View style={styles.container}>
       <Photosphere360Background overlayOpacity={showBlur ? 0.5 : 0.3} />
-      <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/game assets/Backgammon_board_only.glb" hideCheckerboard boardColorOverride="#ffffff" boardStyle="backgammon" />
+      <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/game assets/Backgammon_board_only.glb" hideCheckerboard boardSurfaceImagePath="nardi/board-futuristic.png" />
       <View style={styles.overlay} pointerEvents="box-none">
         <SafeAreaView style={styles.safeArea}>
           <View>
