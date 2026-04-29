@@ -212,18 +212,23 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
       const isMe = seatIdx === myIdx;
       player.cards.forEach((card, cardIdx) => {
         const basePos = seatPositions[seatIdx] ?? { x: 0, y: 0, z: 0.004 };
-        // Your cards: landscape (z=π/2), opponent cards: portrait (z=0)
-        // Portrait card width = 0.16m → 0.10m offset gives clear gap between 2 cards
-        // Landscape card width = 0.22m → use 0.14m offset
-        const cardRotZ = Math.PI / 2;  // all cards landscape (90°)
-        // Opponent cards spread along Y (depth) so long sides touch. CARD_W*scale ≈ 0.117m → 0.12m offset
-        // Your cards spread along X as before
-        const xOffset = isMe ? (cardIdx - (player.cards.length - 1) / 2) * 0.24 : 0;
-        const yOffset = isMe ? 0 : (cardIdx - (player.cards.length - 1) / 2) * 0.12;
+        // Opponent cards: flat on table, landscape, spread along Y (long sides touching)
+        // Player cards: portrait, standing upright side by side spread along X
+        const spread = isMe
+          ? (cardIdx - (player.cards.length - 1) / 2) * 0.14  // X spread for standing cards
+          : (cardIdx - (player.cards.length - 1) / 2) * 0.12; // Y spread for flat cards
+        // Standing card center at z = half card height above table (CARD_H * scale / 2 ≈ 0.08m)
+        const cardZ = isMe ? 0.08 : basePos.z;
+        const cardRotX = isMe ? Math.PI / 2 : 0;  // player cards stand upright
+        const cardRotZ = isMe ? 0 : Math.PI / 2;    // opponent cards landscape
         mapped.push({
           key: `poker-${seatIdx}-${cardIdx}`,
-          position: { x: basePos.x + xOffset, y: basePos.y + yOffset, z: basePos.z },
-          rotation: { x: 0, y: 0, z: cardRotZ },
+          position: {
+            x: basePos.x + (isMe ? spread : 0),
+            y: basePos.y + (isMe ? 0 : spread),
+            z: cardZ,
+          },
+          rotation: { x: cardRotX, y: 0, z: cardRotZ },
           scale: 0.73,
           cardData: {
             suit: card.suit as ARCard['cardData']['suit'],
