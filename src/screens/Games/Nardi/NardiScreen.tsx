@@ -19,7 +19,7 @@ import ReAnimated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-
 import ExpandableView from '../../../components/global/ExpandableView';
 import { useGameEndRefresh } from '../../../libs/hooks/useGameEndRefresh';
 import Photosphere360Background from '../../../components/Photosphere360Background';
-import AR3DOverlay, {type AR3DOverlayHandle} from '../../../components/AR3DOverlay';
+import AR3DOverlay, {type AR3DOverlayHandle, type ARPiece} from '../../../components/AR3DOverlay';
 import LinearGradient from 'react-native-linear-gradient';
 import {
   GameMode,
@@ -40,6 +40,7 @@ import { getGameBoardSize } from '../../../utils/gameBoardSize';
 import {BisetkaAlert} from '../../../utils/BisetkaAlert';
 import {apiConfig} from '../../../libs/utils/api.utils';
 import NardiDice from '../../../components/Games/NardiDice';
+import Dice3DSimple from '../../../components/Games/Dice3DSimple';
 import { apiService } from '../../../services/api.service';
 import { useAuth } from '../../../libs/hooks/useAuth';
 import { useAchievements } from '../../../contexts/AchievementContext';
@@ -126,6 +127,54 @@ const NardiScreen = ({ navigation, route }: any) => {
   const [showMusicPlayer, setShowMusicPlayer] = useState(false);
   const [arEnabled, setArEnabled] = useState(true);
   const arOverlayRef = useRef<AR3DOverlayHandle>(null);
+
+  // Backgammon piece positions in AR board-local space
+  const arPieces = useMemo((): ARPiece[] => {
+    if (!gameState) return [];
+    const pieces: ARPiece[] = [];
+    // Board-local coordinate constants (must match AR3DOverlay FIELD_HALF_W=0.305)
+    const BHW = 0.305;           // board half-width in metres
+    const BAR = BHW * 2 * 0.085 / 2; // half of bar width = 0.026m
+    const PLAY = BHW - BAR;      // playable half-width = 0.279m
+    const PTW  = PLAY / 7;       // 7-slot span for 6 columns → 1-column gap at outer edges
+    const CD   = PTW * 0.88;     // checker diameter
+    const CT   = CD * 0.28;      // checker thickness (Z stacking)
+
+    function pointX(ptNum: number): number {
+      let col: number;
+      if      (ptNum >= 19) col = ptNum - 19;
+      else if (ptNum >= 13) col = ptNum - 13;
+      else if (ptNum >= 7)  col = 5 - (ptNum - 7);
+      else                  col = 6 - ptNum;
+      const isLeft = ptNum >= 7 && ptNum <= 18;
+      // Right half: natural 1-col gap at outer edge from PTW/7 sizing
+      // Left half:  +1 offset explicitly creates the same 1-col gap at left edge
+      return isLeft ? (-BHW + (col + 1.5) * PTW) : (BAR + (col + 0.5) * PTW);
+    }
+
+    gameState.points.forEach((pt, idx) => {
+      const ptNum = idx + 1;
+      const isTop = ptNum >= 13;
+      // Align with triangle bases — start pieces at the inner edge of the board rail
+      const edgeY = BHW * 0.95 - CD * 0.5;
+      pt.checkers.forEach((color, si) => {
+        const y = isTop ? (edgeY - si * CD) : -(edgeY - si * CD);
+        pieces.push({
+          key: `bg-${ptNum}-${si}`,
+          row: 0, col: 0,
+          color: color === 'white' ? 'red' : 'black',
+          isKing: false,
+          side: color,
+          pieceType: 'bg_checker',
+          posX: pointX(ptNum),
+          posY: y,
+          posZ: 0.006 + si * CT,
+          pieceScale: CD,
+        });
+      });
+    });
+    return pieces;
+  }, [gameState]);
   const [showBackground, setShowBackground] = useState(true);
   const [easyMode, setEasyMode] = useState(false); // Easy Mode: tap-to-move, Normal Mode: drag-to-move
   const toolbarExpanded = useSharedValue(false);
@@ -152,6 +201,11 @@ const NardiScreen = ({ navigation, route }: any) => {
 
   const myMpColorRef = useRef<'white'|'black'>('white');
   const myNardiColor: 'white'|'black' = isMultiplayer ? myMpColor : 'white';
+  const handleRollDiceRef = useRef<() => void>(() => {});
+  const swipeStartY = useRef(0);
+  const [pendingDice, setPendingDice] = useState<{ die1: number; die2: number } | null>(null);
+  const [diceAnimating, setDiceAnimating] = useState(false);
+  const diceCompleteCount = useRef(0);
 
   // Entry fee and prize tracking
   const { user, refreshUser } = useAuth();
@@ -551,35 +605,48 @@ const NardiScreen = ({ navigation, route }: any) => {
     return true;
   };
 
+  const applyDiceRoll = (dice: Dice) => {
+    setGameState(prev => {
+      if (!prev) return prev;
+      const movesRemaining = dice.die1 === dice.die2 ? 4 : 2;
+      const newState: NardiGameState = {
+        ...prev,
+        dice,
+        phase: 'moving',
+        movesRemaining,
+        possibleMoves: [],
+      };
+      newState.possibleMoves = calculatePossibleMoves(newState);
+      console.log('🎲 Applied:', dice.die1, dice.die2, 'possible moves:', newState.possibleMoves.length);
+      if (newState.possibleMoves.length === 0) {
+        if (isMultiplayer && roomIdRef.current) {
+          socketService.makeMove(roomIdRef.current, userId, {type: 'end_turn'});
+        }
+        return switchPlayer(newState);
+      }
+      return newState;
+    });
+  };
+
   const handleRollDice = () => {
     if (!gameState || gameState.phase !== 'rolling') return;
     const myColor = isMultiplayer ? myMpColorRef.current : 'white';
     if (gameState.currentPlayer !== myColor) return;
 
     const dice = rollDice();
-    const movesRemaining = dice.die1 === dice.die2 ? 4 : 2;
-    const newState: NardiGameState = {
-      ...gameState,
-      dice,
-      phase: 'moving',
-      movesRemaining,
-      possibleMoves: [],
-    };
-    newState.possibleMoves = calculatePossibleMoves(newState);
-    console.log('🎲 Rolled:', dice.die1, dice.die2, 'possible moves:', newState.possibleMoves.length);
+    console.log('🎲 Rolled (animating):', dice.die1, dice.die2);
 
     if (isMultiplayer && roomIdRef.current) {
       socketService.makeMove(roomIdRef.current, userId, {type: 'roll_dice', dice: {die1: dice.die1, die2: dice.die2}});
     }
-    if (newState.possibleMoves.length === 0) {
-      if (isMultiplayer && roomIdRef.current) {
-        socketService.makeMove(roomIdRef.current, userId, {type: 'end_turn'});
-      }
-      setGameState(switchPlayer(newState));
-    } else {
-      setGameState(newState);
-    }
+
+    // Show 3D dice animation; applyDiceRoll is called after both dice finish
+    diceCompleteCount.current = 0;
+    setPendingDice(dice);
+    setDiceAnimating(true);
   };
+  // Keep ref current so swipe PanResponder always calls latest version
+  handleRollDiceRef.current = handleRollDice;
 
   const handleMove = (move: Move) => {
     if (!gameState) return;
@@ -1045,7 +1112,19 @@ const NardiScreen = ({ navigation, route }: any) => {
   return (
     <View style={styles.container}>
       <Photosphere360Background overlayOpacity={showBlur ? 0.5 : 0.3} />
-      <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/game assets/Backgammon_board_only.glb" hideCheckerboard boardSurfaceImagePath="nardi/board-futuristic.png" />
+      <AR3DOverlay
+        ref={arOverlayRef}
+        visible={arEnabled}
+        boardGlbPath="glb/game_boards/Untitled.glb"
+        hideCheckerboard
+        boardY={-1.40}
+        tableDist={0.50}
+        pieces={arPieces}
+        chessPieceGlbPaths={{
+          white_bg_checker: 'glb/checkers/nyu_red_checker.glb',
+          black_bg_checker: 'glb/checkers/nyu_black_checker.glb',
+        }}
+      />
       <View style={styles.overlay} pointerEvents="box-none">
         <SafeAreaView style={styles.safeArea}>
           <View>
@@ -1373,7 +1452,7 @@ const NardiScreen = ({ navigation, route }: any) => {
               </View>
             )}
             
-            {gameState.phase === 'rolling' && gameState.currentPlayer === myNardiColor && (
+            {!arEnabled && gameState.phase === 'rolling' && gameState.currentPlayer === myNardiColor && (
               <NardiDice
                 onRollComplete={(die1, die2) => {
                   console.log('🎲 Rolled:', die1, die2);
@@ -1502,6 +1581,86 @@ const NardiScreen = ({ navigation, route }: any) => {
           <Text style={styles.recenterIcon}>⊕</Text>
           <Text style={styles.recenterLabel}>Re-center</Text>
         </TouchableOpacity>
+      )}
+      {/* 3D dice animation overlay — shown while dice are spinning after swipe */}
+      {arEnabled && diceAnimating && pendingDice && (
+        <View
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            bottom: 220,
+            left: 0,
+            right: 0,
+            alignItems: 'center',
+            flexDirection: 'row',
+            justifyContent: 'center',
+            gap: 12,
+          }}
+        >
+          <Dice3DSimple
+            value={pendingDice.die1}
+            isRolling={diceAnimating}
+            index={0}
+            size={110}
+            onRollComplete={() => {
+              diceCompleteCount.current += 1;
+              if (diceCompleteCount.current >= 2) {
+                setDiceAnimating(false);
+                applyDiceRoll(pendingDice);
+                setPendingDice(null);
+              }
+            }}
+          />
+          <Dice3DSimple
+            value={pendingDice.die2}
+            isRolling={diceAnimating}
+            index={1}
+            size={110}
+            onRollComplete={() => {
+              diceCompleteCount.current += 1;
+              if (diceCompleteCount.current >= 2) {
+                setDiceAnimating(false);
+                applyDiceRoll(pendingDice);
+                setPendingDice(null);
+              }
+            }}
+          />
+        </View>
+      )}
+      {/* Thumb-zone swipe-up dice — only in AR mode on player's rolling turn */}
+      {arEnabled && gameState?.phase === 'rolling' && gameState.currentPlayer === myNardiColor && !diceAnimating && (
+        <View
+          style={{
+            position: 'absolute',
+            bottom: 120,
+            left: 0,
+            right: 0,
+            alignItems: 'center',
+          }}
+          onTouchStart={e => { swipeStartY.current = e.nativeEvent.pageY; }}
+          onTouchEnd={e => {
+            const dy = e.nativeEvent.pageY - swipeStartY.current;
+            if (dy < -40) handleRollDiceRef.current();
+          }}
+        >
+          <View style={{
+            backgroundColor: 'rgba(0,0,0,0.55)',
+            borderRadius: 24,
+            paddingHorizontal: 28,
+            paddingVertical: 16,
+            alignItems: 'center',
+            borderWidth: 1,
+            borderColor: 'rgba(255,255,255,0.15)',
+          }}>
+            <NardiDice
+              onRollComplete={() => handleRollDiceRef.current()}
+              enabled={true}
+            />
+            <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, marginTop: 4 }}>
+              ↑ Swipe up to roll
+            </Text>
+          </View>
+        </View>
       )}
     </View>
   );

@@ -31,6 +31,7 @@ import {StyleSheet, View, NativeModules, Platform, Image} from 'react-native';
 import WebView from 'react-native-webview';
 import RNFS from 'react-native-fs';
 import {useSharedAttitude} from './Photosphere360Background';
+import {useAttitude} from '@sourceship13/react-native-capture360';
 
 // ─── Public types ─────────────────────────────────────────────────────────────
 
@@ -41,8 +42,16 @@ export interface ARPiece {
   color: 'red' | 'black';
   isKing: boolean;
   isSelected?: boolean;
-  pieceType?: 'pawn' | 'knight' | 'bishop' | 'rook' | 'queen' | 'king';
+  pieceType?: string;
   side?: 'white' | 'black';
+  /** Direct board-local X position (metres). When set, overrides row/col-based placement. */
+  posX?: number;
+  /** Direct board-local Y position (metres). When set, overrides row/col-based placement. */
+  posY?: number;
+  /** Direct board-local Z position (metres). Defaults to surface Z when posX/posY set. */
+  posZ?: number;
+  /** Scale override (metres) — replaces computed PIECE_SCALE. */
+  pieceScale?: number;
 }
 
 export interface ARMove {
@@ -102,11 +111,7 @@ export interface AR3DOverlayProps {
    * Piece-type-specific GLB paths for chess.
    * If provided, these override the generic `piecesGlbPath` model per piece.
    */
-  chessPieceGlbPaths?: Partial<Record<
-    | 'white_pawn' | 'white_knight' | 'white_bishop' | 'white_rook' | 'white_queen' | 'white_king'
-    | 'black_pawn' | 'black_knight' | 'black_bishop' | 'black_rook' | 'black_queen' | 'black_king',
-    string
-  >>;
+  chessPieceGlbPaths?: Partial<Record<string, string>>;
   /**
    * Path relative to assets/ folder for the park table GLB.
    * e.g. "glb/park/tableCoffeeGlassSquare.glb"
@@ -183,6 +188,12 @@ export interface AR3DOverlayProps {
    * Use for poker/casino tables where the steep viewing angle makes the back rail look raised.
    */
   boardTiltX?: number;
+  /**
+   * Override the Z distance (metres) of the board from the camera.
+   * By default the distance is computed dynamically from FOV/screen size and clamped [0.55, 0.80].
+   * Use a smaller value (e.g. 0.45) to bring the board closer to the camera.
+   */
+  tableDist?: number;
 }
 
 // ─── GLB URI resolver ─────────────────────────────────────────────────────────
@@ -202,6 +213,7 @@ const GLB_ASSET_MAP: Record<string, any> = {
   'glb/game assets/poker_table2.glb':            require('../../assets/glb/game assets/poker_table2.glb'),
   'glb/game assets/casino_table_level2_textured.glb': require('../../assets/glb/game assets/casino_table_level2_textured.glb'),
   'glb/chess/chess-board/source/ui.glb':        require('../../assets/glb/chess/chess-board/source/ui.glb'),
+  'glb/game_boards/Untitled.glb':               require('../../assets/glb/game_boards/Untitled.glb'),
   'glb/game assets/Backgammon_board_only.glb':  require('../../assets/glb/game assets/Backgammon_board_only.glb'),
   'nardi/board-futuristic.png':                  require('../../assets/nardi/board-futuristic.png'),
   'glb/chess/chess-board/source/armenian_board.glb': require('../../assets/glb/chess/chess-board/source/armenian_board.glb'),
@@ -212,6 +224,8 @@ const GLB_ASSET_MAP: Record<string, any> = {
   'glb/chess/queen.glb':                       require('../../assets/glb/chess/queen.glb'),
   'glb/chess/king.glb':                        require('../../assets/glb/chess/king.glb'),
   'glb/cards/card-template.glb':                require('../../assets/glb/cards/card-template.glb'),
+  'glb/checkers/nyu_red_checker.glb':           require('../../assets/glb/checkers/nyu_red_checker.glb'),
+  'glb/checkers/nyu_black_checker.glb':         require('../../assets/glb/checkers/nyu_black_checker.glb'),
 };
 
 /**
@@ -344,6 +358,7 @@ function buildSceneHTML(
   boardTiltX: number = 0,
   boardColorOverride: string | null = null,
   boardSurfaceImageUri: string | null = null,
+  tableDist: number | null = null,
 ): string {
   const BOARD_URI_JS  = boardUri  ? JSON.stringify(boardUri)  : 'null';
   const PIECES_URI_JS = piecesUri ? JSON.stringify(piecesUri) : 'null';
@@ -471,7 +486,7 @@ const _halfVFovRad = (${fov} / 2) * (Math.PI / 180);
 const _aspect      = W / H;
 const _halfHFovRad = Math.atan(Math.tan(_halfVFovRad) * _aspect);
 const _rawDist     = (BOARD_HALF * 1.10 / Math.tan(_halfHFovRad)) + BOARD_HALF;
-const TABLE_DIST   = Math.min(Math.max(_rawDist, 0.55), 0.80);
+const TABLE_DIST   = ${tableDist !== null ? tableDist.toFixed(3) : 'Math.min(Math.max(_rawDist, 0.55), 0.80)'};
 
 // ── sceneGroup starts as a camera child so it is always in front ─────────────────
 // On the first animation frame (after camera rotation is applied from live gyro)
@@ -1010,6 +1025,7 @@ function normalizePieceModel(model) {
   const wrapper = new THREE.Group();
   wrapper.add(model);
   wrapper.scale.setScalar(1 / maxDim);
+  wrapper.userData.normMaxDim = maxDim;  // remember native size for exact-metre scaling
   return wrapper;
 }
 
@@ -1083,7 +1099,10 @@ function clonePiece(piece) {
   const pieceColor = color === 'red' ? ${RED_HEX} : ${BLACK_HEX};
   // Clone the wrapper group returned by normalizePieceModel (deep clone preserves inner scale)
   const clone = sourceScene.clone(true);
-  clone.rotation.x = Math.PI / 2;  // ← cancels boardGroup rotation → upright in world
+  // Chess pieces need rotation.x = π/2 to cancel boardGroup's -π/2 and stand upright in world.
+  // Backgammon checkers (bg_checker) should lay FLAT on the board surface — no cancellation needed.
+  const isCheckerDisc = piece.pieceType === 'bg_checker';
+  clone.rotation.x = isCheckerDisc ? 0 : Math.PI / 2;
 
   clone.traverse(ch => {
     if (!ch.isMesh) return;
@@ -1592,12 +1611,23 @@ function updatePieces(pieces) {
 
     const mesh  = pieceMeshes[p.key];
     if (!mesh) continue;
-    const loc   = boardToLocal(p.row, p.col);
-    const lift  = p.isSelected ? 0.12 : 0;
+    const isDirectPos = (p.posX !== undefined && p.posX !== null);
+    const loc = isDirectPos
+      ? [p.posX, p.posY, (p.posZ !== undefined && p.posZ !== null) ? p.posZ : 0.005]
+      : boardToLocal(p.row, p.col);
+    const lift  = p.isSelected ? 0.08 : 0;
     const isChessPiece = !!(p.pieceType && p.side);
-    const scale = (p.isSelected ? PIECE_SCALE * 1.12 : PIECE_SCALE);
-    mesh.position.set(loc[0], loc[1], loc[2] + lift + (isChessPiece ? 0.004 : 0));
-    if (isChessPiece) {
+    const scale = (p.pieceScale !== undefined && p.pieceScale !== null)
+      ? p.pieceScale
+      : (p.isSelected ? PIECE_SCALE * 1.12 : PIECE_SCALE);
+    mesh.position.set(loc[0], loc[1], loc[2] + lift);
+    if (p.pieceScale !== undefined && p.pieceScale !== null) {
+      // pieceScale is the desired physical size in metres.
+      // After normalizePieceModel, setScalar(s) renders at s * normMaxDim metres,
+      // so divide by normMaxDim to get exactly pieceScale metres.
+      const nmd = mesh.userData.normMaxDim || 1;
+      mesh.scale.setScalar(scale / nmd);
+    } else if (isChessPiece) {
       mesh.scale.setScalar(scale * 0.92);
     } else {
       // Checker-style fallback discs stay flattened.
@@ -1758,8 +1788,9 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
   boardTiltX = 0,
   boardColorOverride,
   boardSurfaceImagePath,
+  tableDist,
 }: AR3DOverlayProps, ref: React.Ref<AR3DOverlayHandle>) {
-  const attitude = useSharedAttitude();
+  const attitude = useAttitude();
   const webViewRef = useRef<WebView>(null);
   const renderKey = useRef(0); // Force re-render on demand
 
@@ -1921,9 +1952,10 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
       redInt, blackInt, cardUri, cardBackUri,
       localThreePath, localGltfPath, hideCheckerboard, boardScale, boardStyle,
       boardY, boardGlbForceFlat, boardTiltX, boardColorOverride ?? null, boardSurfaceImageUri ?? null,
+      tableDist ?? null,
     );
     return result;
-  }, [fov, boardUri, boardSurfaceImageUri, piecesUri, chessPieceUris, tableUri, spawnYaw, cardUri, cardBackUri, hideCheckerboard, boardScale, boardStyle, boardY, boardGlbForceFlat, boardTiltX, boardColorOverride]);
+  }, [fov, boardUri, boardSurfaceImageUri, piecesUri, chessPieceUris, tableUri, spawnYaw, cardUri, cardBackUri, hideCheckerboard, boardScale, boardStyle, boardY, boardGlbForceFlat, boardTiltX, boardColorOverride, tableDist]);
 
   // Write the HTML to a temp file and give WebView a file:// URI.
   // WKWebView.loadHTMLString silently fails on iOS with large strings (>5 MB).
