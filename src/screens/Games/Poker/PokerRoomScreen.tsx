@@ -197,15 +197,14 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
   useEffect(() => {
     if (!arEnabled) { setArCards([]); return; }
     const myIdx = isMultiplayer ? mySeatRef.current : playerIndex;
-    // Positions in boardGroup local space (rotation.x = -PI/2 → X = left/right, Y = depth, Z = up)
-    // All seats placed well inside the felt. Cards all rotated 90° (landscape) and spread along Y axis.
+    // Positions spread around the table felt. Table felt ≈ ±0.50 X, ±0.38 Y
     const seatPositions: Record<number, { x: number; y: number; z: number }> = {
-      0: { x:  0.00, y: -0.18, z: 0.004 },  // You (near center — on felt)
-      1: { x:  0.22, y: -0.08, z: 0.004 },  // near right
-      2: { x:  0.22, y:  0.08, z: 0.004 },  // far right
-      3: { x:  0.00, y:  0.22, z: 0.004 },  // far center
-      4: { x: -0.22, y:  0.08, z: 0.004 },  // far left
-      5: { x: -0.22, y: -0.08, z: 0.004 },  // near left
+      0: { x:  0.00, y: -0.30, z: 0.004 },  // You — bottom center
+      1: { x:  0.42, y: -0.20, z: 0.004 },  // near right
+      2: { x:  0.42, y:  0.12, z: 0.004 },  // far right
+      3: { x:  0.00, y:  0.34, z: 0.004 },  // far center — top
+      4: { x: -0.42, y:  0.12, z: 0.004 },  // far left
+      5: { x: -0.42, y: -0.20, z: 0.004 },  // near left
     };
     const mapped: ARCard[] = [];
     players.forEach((player, seatIdx) => {
@@ -216,12 +215,14 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
         // Your cards: landscape (z=π/2), opponent cards: portrait (z=0)
         // Portrait card width = 0.16m → 0.10m offset gives clear gap between 2 cards
         // Landscape card width = 0.22m → use 0.14m offset
-        const cardRotZ = isMe ? Math.PI / 2 : 0;
-        const cardOffset = isMe ? 0.14 : 0.10;
-        const offset = (cardIdx - (player.cards.length - 1) / 2) * cardOffset;
+        const cardRotZ = Math.PI / 2;  // all cards landscape (90°)
+        // Opponent cards spread along Y (depth) so long sides touch. CARD_W*scale ≈ 0.117m → 0.12m offset
+        // Your cards spread along X as before
+        const xOffset = isMe ? (cardIdx - (player.cards.length - 1) / 2) * 0.24 : 0;
+        const yOffset = isMe ? 0 : (cardIdx - (player.cards.length - 1) / 2) * 0.12;
         mapped.push({
           key: `poker-${seatIdx}-${cardIdx}`,
-          position: { x: basePos.x + offset, y: basePos.y, z: basePos.z },
+          position: { x: basePos.x + xOffset, y: basePos.y + yOffset, z: basePos.z },
           rotation: { x: 0, y: 0, z: cardRotZ },
           scale: 0.73,
           cardData: {
