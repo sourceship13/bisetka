@@ -1044,9 +1044,8 @@ const NardiScreen = ({ navigation, route }: any) => {
 
   return (
     <View style={styles.container}>
-      <Photosphere360Background overlayOpacity={showBlur ? 0.5 : 0.3}>
-        <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/chess/chess-board/source/ui.glb" />
-      </Photosphere360Background>
+      <Photosphere360Background overlayOpacity={showBlur ? 0.5 : 0.3} />
+      <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/game assets/Backgammon_board_only.glb" hideCheckerboard boardColorOverride="#ffffff" boardStyle="backgammon" />
       <View style={styles.overlay} pointerEvents="box-none">
         <SafeAreaView style={styles.safeArea}>
           <View>
@@ -1151,7 +1150,7 @@ const NardiScreen = ({ navigation, route }: any) => {
             </TouchableOpacity>
           </View>
 
-          <View style={styles.boardContainer}>
+          {!arEnabled && <View style={styles.boardContainer}>
             <ImageBackground
               source={require('../../../../assets/nardi/board-futuristic.png')}
               style={[styles.board, { width: boardSize, height: boardSize }]}
@@ -1300,7 +1299,7 @@ const NardiScreen = ({ navigation, route }: any) => {
                 )}
               </View>
             </ImageBackground>
-          </View>
+          </View>}
 
           {/* White player's borne-off tray (bottom right) */}
           <View style={{ 
