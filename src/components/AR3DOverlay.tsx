@@ -115,6 +115,18 @@ export interface AR3DOverlayProps {
    */
   tableGlbPath?: string;
   /**
+   * AR floating labels — billboard sprites above each seat.
+   * Each label has a position (board-relative, same coords as cards) and text lines.
+   */
+  arLabels?: Array<{
+    key: string;
+    position: { x: number; y: number; z: number };
+    name: string;
+    chips: string;
+    active?: boolean;
+    folded?: boolean;
+  }>;
+  /**
    * Cards to render in 3D AR space.
    * Each card has a unique key, position (x,y,z in meters), rotation, and card data.
    */
@@ -1377,6 +1389,61 @@ function updateCards(cards) {
   });
 }
 
+// ── Floating player label sprites ─────────────────────────────────────────────
+const _labelMap = new Map();
+const labelGroup = new THREE.Group();
+boardGroup.add(labelGroup);
+
+function makePlayerLabel(name, chips, active, folded) {
+  var cw = 256, ch = 96;
+  var canvas = document.createElement('canvas');
+  canvas.width = cw; canvas.height = ch;
+  var ctx = canvas.getContext('2d');
+  // Background pill
+  var alpha = folded ? 0.4 : 0.85;
+  ctx.clearRect(0, 0, cw, ch);
+  ctx.fillStyle = active ? 'rgba(255,200,0,' + alpha + ')' : 'rgba(20,20,20,' + alpha + ')';
+  var r = 18;
+  ctx.beginPath();
+  ctx.moveTo(r, 0); ctx.lineTo(cw-r, 0); ctx.quadraticCurveTo(cw, 0, cw, r);
+  ctx.lineTo(cw, ch-r); ctx.quadraticCurveTo(cw, ch, cw-r, ch);
+  ctx.lineTo(r, ch); ctx.quadraticCurveTo(0, ch, 0, ch-r);
+  ctx.lineTo(0, r); ctx.quadraticCurveTo(0, 0, r, 0);
+  ctx.closePath(); ctx.fill();
+  // Name
+  ctx.fillStyle = active ? '#111' : '#fff';
+  ctx.font = 'bold 28px Arial';
+  ctx.textAlign = 'center';
+  ctx.fillText(name, cw/2, 38);
+  // Chips
+  ctx.fillStyle = active ? '#333' : '#FFD700';
+  ctx.font = '22px Arial';
+  ctx.fillText(chips, cw/2, 68);
+  if (folded) {
+    ctx.fillStyle = 'rgba(255,80,80,0.85)';
+    ctx.font = 'bold 18px Arial';
+    ctx.fillText('FOLDED', cw/2, 88);
+  }
+  var tex = new THREE.CanvasTexture(canvas);
+  var mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false });
+  var sprite = new THREE.Sprite(mat);
+  var aspect = cw / ch;
+  sprite.scale.set(0.14 * aspect, 0.14, 1);
+  return sprite;
+}
+
+function updateLabels(labels) {
+  _labelMap.forEach(s => labelGroup.remove(s));
+  _labelMap.clear();
+  if (!labels || labels.length === 0) return;
+  labels.forEach(function(lbl) {
+    var sprite = makePlayerLabel(lbl.name, lbl.chips, lbl.active, lbl.folded);
+    sprite.position.set(lbl.position.x, lbl.position.y, (lbl.position.z || 0) + 0.18);
+    labelGroup.add(sprite);
+    _labelMap.set(lbl.key, sprite);
+  });
+}
+
 // ── Piece management ──────────────────────────────────────────────────────────
 const pieceMeshes = {};
 const pieceState  = {};
@@ -1493,6 +1560,7 @@ window.handleRNMessage = function(data) {
     updatePieces(window._pieces);
     updateDots(data.moves || []);
     updateCards(window._cards);
+    updateLabels(data.labels || []);
   }
   if (data.type === 'recenter') {
     // Re-attach sceneGroup to camera so it tracks the player again,
@@ -1584,6 +1652,7 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
   pieces = [],
   moves  = [],
   cards  = [],
+  arLabels = [],
   fov = 75,
   boardGlbPath,
   piecesGlbPath,
@@ -1789,20 +1858,22 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
   const latestPiecesRef = useRef(pieces);
   const latestMovesRef  = useRef(moves);
   const latestCardsRef  = useRef(cards);
+  const latestLabelsRef = useRef(arLabels);
   const latestChessPieceUrisRef = useRef(chessPieceUris);
   
   latestPiecesRef.current = pieces;
   latestMovesRef.current  = moves;
   latestCardsRef.current  = cards;
+  latestLabelsRef.current = arLabels;
   latestChessPieceUrisRef.current = chessPieceUris;
 
   // Push board state on every piece/move change
   useEffect(() => {
     if (!visible || !htmlFileUri) return;
     console.log('[AR3DOverlay] pushing scene — cards:', cards?.length ?? 0, 'pieces:', pieces?.length ?? 0);
-    const msg = JSON.stringify({type: 'scene', pieces, moves, cards});
+    const msg = JSON.stringify({type: 'scene', pieces, moves, cards, labels: arLabels});
     webViewRef.current?.injectJavaScript(`window.handleRNMessage(${msg});true;`);
-  }, [pieces, moves, cards, visible, htmlFileUri]);
+  }, [pieces, moves, cards, arLabels, visible, htmlFileUri]);
 
   // Re-send pieces once the WebView has finished loading (Three.js CDN async import).
   // The useEffect above may fire before handleRNMessage is registered, so this
@@ -1815,6 +1886,7 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
         pieces: latestPiecesRef.current,
         moves:  latestMovesRef.current,
         cards:  latestCardsRef.current,
+        labels: latestLabelsRef.current,
       });
       webViewRef.current?.injectJavaScript(`window.handleRNMessage(${msg});true;`);
     };
