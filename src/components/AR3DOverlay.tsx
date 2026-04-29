@@ -154,6 +154,8 @@ export interface AR3DOverlayProps {
   pieceColorBlack?: string;
   /** When true, suppresses the procedural chess/checkerboard overlay on top of the board GLB. */
   hideCheckerboard?: boolean;
+  /** CSS hex string to override ALL board GLB mesh colors (e.g. '#ffffff' for white). Leave undefined to keep original textures. */
+  boardColorOverride?: string;
   /** Scale multiplier for the board/table size (default 1.0). Use >1 for card-game tables. */
   boardScale?: number;
   /** Style of the procedural fallback board. 'poker' = oval green felt table. Default: 'default' (chess/checkers). */
@@ -194,6 +196,7 @@ const GLB_ASSET_MAP: Record<string, any> = {
   'glb/game assets/poker_table2.glb':            require('../../assets/glb/game assets/poker_table2.glb'),
   'glb/game assets/casino_table_level2_textured.glb': require('../../assets/glb/game assets/casino_table_level2_textured.glb'),
   'glb/chess/chess-board/source/ui.glb':        require('../../assets/glb/chess/chess-board/source/ui.glb'),
+  'glb/game assets/Backgammon_board_only.glb':  require('../../assets/glb/game assets/Backgammon_board_only.glb'),
   'glb/chess/chess-board/source/armenian_board.glb': require('../../assets/glb/chess/chess-board/source/armenian_board.glb'),
   'glb/chess/pawn.glb':                        require('../../assets/glb/chess/pawn.glb'),
   'glb/chess/rook.glb':                        require('../../assets/glb/chess/rook.glb'),
@@ -332,6 +335,7 @@ function buildSceneHTML(
   boardY: number = -0.80,
   boardGlbForceFlat: boolean = false,
   boardTiltX: number = 0,
+  boardColorOverride: string | null = null,
 ): string {
   const BOARD_URI_JS  = boardUri  ? JSON.stringify(boardUri)  : 'null';
   const PIECES_URI_JS = piecesUri ? JSON.stringify(piecesUri) : 'null';
@@ -350,6 +354,7 @@ function buildSceneHTML(
   const BOARD_Y_JS = boardY.toFixed(3);
   const BOARD_GLB_FORCE_FLAT_JS = boardGlbForceFlat ? 'true' : 'false';
   const BOARD_TILT_X_JS = boardTiltX.toFixed(4);
+  const BOARD_COLOR_OVERRIDE_JS = boardColorOverride ? JSON.stringify(boardColorOverride) : 'null';
 
   return `<!DOCTYPE html>
 <html>
@@ -665,28 +670,84 @@ if (BOARD_URI) {
     // In both conventions the playing surface is the top face (box2.max.z in boardGroup local Z).
     // Center in XY and position so the top face sits flush at Z=0 of boardGroup.
     model.position.set(-ctr2.x, -ctr2.y, -box2.max.z + 0.001);
+    const BOARD_COLOR_OVERRIDE = ${BOARD_COLOR_OVERRIDE_JS};
     model.traverse(ch => {
       if (ch.isMesh) {
         ch.receiveShadow = true;
         const mats = Array.isArray(ch.material) ? ch.material : [ch.material];
         mats.forEach(m => {
           if (m) {
-            m.roughness = Math.max((m.roughness||0.5)*0.8, 0.35);
+            if (BOARD_COLOR_OVERRIDE) {
+              m.color = new THREE.Color(BOARD_COLOR_OVERRIDE);
+              m.map = null;
+              m.roughness = 0.6;
+              m.metalness = 0.1;
+            } else {
+              m.roughness = Math.max((m.roughness||0.5)*0.8, 0.35);
+            }
             m.side = THREE.DoubleSide; // visible regardless of face orientation
             // Enable anisotropic filtering on all textures — prevents blur at oblique angles
             const texSlots = ['map','normalMap','roughnessMap','metalnessMap','aoMap'];
             texSlots.forEach(slot => {
               const tex = m[slot];
-              if (tex) {
+              if (tex && !BOARD_COLOR_OVERRIDE) {
                 tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
                 tex.needsUpdate = true;
               }
             });
+            m.needsUpdate = true;
           }
         });
       }
     });
     boardGroup.add(model);
+
+    // ── Backgammon point triangles (canvas texture plane) ───────────────
+    if (BOARD_STYLE === 'backgammon') {
+      var _bgCvs = document.createElement('canvas');
+      _bgCvs.width = 1024; _bgCvs.height = 1024;
+      var _bgCtx = _bgCvs.getContext('2d');
+      var _BW = 1024, _BH = 1024;
+      var _bar = Math.round(_BW * 0.085); // center bar ~8.5% of width
+      var _playW = (_BW - _bar) / 2;     // each playing half-width
+      var _ptW = _playW / 6;             // one triangle point width
+      var _ptH = _BH * 0.44;            // triangle height (44% of board height)
+      var _dark = '#7B1C2E';            // dark maroon
+      var _lite = '#C8963A';            // gold/amber
+      // Top row — 12 triangles pointing DOWN
+      for (var _ti = 0; _ti < 12; _ti++) {
+        var _thalf = _ti < 6 ? 0 : 1;
+        var _tidx  = _ti < 6 ? _ti : _ti - 6;
+        _bgCtx.fillStyle = _ti % 2 === 0 ? _dark : _lite;
+        var _tx = _thalf === 0 ? _tidx * _ptW : _playW + _bar + _tidx * _ptW;
+        _bgCtx.beginPath();
+        _bgCtx.moveTo(_tx,          0);
+        _bgCtx.lineTo(_tx + _ptW,   0);
+        _bgCtx.lineTo(_tx + _ptW/2, _ptH);
+        _bgCtx.closePath();
+        _bgCtx.fill();
+      }
+      // Bottom row — 12 triangles pointing UP
+      for (var _bi = 0; _bi < 12; _bi++) {
+        var _bhalf = _bi < 6 ? 0 : 1;
+        var _bidx  = _bi < 6 ? _bi : _bi - 6;
+        _bgCtx.fillStyle = _bi % 2 === 0 ? _lite : _dark;
+        var _bx = _bhalf === 0 ? _bidx * _ptW : _playW + _bar + _bidx * _ptW;
+        _bgCtx.beginPath();
+        _bgCtx.moveTo(_bx,          _BH);
+        _bgCtx.lineTo(_bx + _ptW,   _BH);
+        _bgCtx.lineTo(_bx + _ptW/2, _BH - _ptH);
+        _bgCtx.closePath();
+        _bgCtx.fill();
+      }
+      var _bgTex = new THREE.CanvasTexture(_bgCvs);
+      _bgTex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+      var _bgMat = new THREE.MeshBasicMaterial({ map: _bgTex, transparent: true, depthWrite: false });
+      var _bgGeo = new THREE.PlaneGeometry(BOARD_HALF_W * 2, BOARD_HALF_H * 2);
+      var _bgMesh = new THREE.Mesh(_bgGeo, _bgMat);
+      _bgMesh.position.z = 0.003; // just above GLB surface
+      boardGroup.add(_bgMesh);
+    }
 
     // ── Raised checkerboard platform ─────────────────────────────────────
     if (!HIDE_CHECKERBOARD) {
@@ -1669,6 +1730,7 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
   boardY = -0.80,
   boardGlbForceFlat = false,
   boardTiltX = 0,
+  boardColorOverride,
 }: AR3DOverlayProps, ref: React.Ref<AR3DOverlayHandle>) {
   const attitude = useSharedAttitude();
   const webViewRef = useRef<WebView>(null);
@@ -1822,10 +1884,10 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
       fov, boardUri, piecesUri, chessPieceUris, tableUri, spawnYaw,
       redInt, blackInt, cardUri, cardBackUri,
       localThreePath, localGltfPath, hideCheckerboard, boardScale, boardStyle,
-      boardY, boardGlbForceFlat, boardTiltX,
+      boardY, boardGlbForceFlat, boardTiltX, boardColorOverride ?? null,
     );
     return result;
-  }, [fov, boardUri, piecesUri, chessPieceUris, tableUri, spawnYaw, cardUri, cardBackUri, hideCheckerboard, boardScale, boardStyle, boardY, boardGlbForceFlat, boardTiltX]);
+  }, [fov, boardUri, piecesUri, chessPieceUris, tableUri, spawnYaw, cardUri, cardBackUri, hideCheckerboard, boardScale, boardStyle, boardY, boardGlbForceFlat, boardTiltX, boardColorOverride]);
 
   // Write the HTML to a temp file and give WebView a file:// URI.
   // WKWebView.loadHTMLString silently fails on iOS with large strings (>5 MB).
