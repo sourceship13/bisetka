@@ -253,6 +253,37 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
     setArCards(mapped);
   }, [arEnabled, players, gamePhase, isMultiplayer, playerIndex, customTheme]);
 
+  // AR floating player labels
+  const [arLabels, setArLabels] = useState<any[]>([]);
+  useEffect(() => {
+    if (!arEnabled) { setArLabels([]); return; }
+    const myIdx = isMultiplayer ? mySeatRef.current : playerIndex;
+    const labelPositions: Record<number, { x: number; y: number; z: number }> = {
+      0: { x:  0.00, y: -0.45, z: 0.004 },
+      1: { x:  0.55, y: -0.25, z: 0.004 },
+      2: { x:  0.55, y:  0.15, z: 0.004 },
+      3: { x:  0.00, y:  0.48, z: 0.004 },
+      4: { x: -0.55, y:  0.15, z: 0.004 },
+      5: { x: -0.55, y: -0.25, z: 0.004 },
+    };
+    const labels = players
+      .map((player, seatIdx) => {
+        if (!player) return null;
+        if (seatIdx === myIdx) return null; // no label for the local player
+        const pos = labelPositions[seatIdx] ?? { x: 0, y: 0, z: 0.004 };
+        return {
+          key: `label-${seatIdx}`,
+          position: pos,
+          name: player.name,
+          chips: `$${player.chips}`,
+          active: player.isActive,
+          folded: player.folded,
+        };
+      })
+      .filter(Boolean);
+    setArLabels(labels);
+  }, [arEnabled, players, activePlayerIndex, isMultiplayer, playerIndex]);
+
   // Effective seat index for the human player
   const myPlayerIndex = isMultiplayer ? mySeatRef.current : playerIndex;
   const myPlayer = players[myPlayerIndex];
@@ -1233,7 +1264,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
   return (
     <View style={styles.container}>
       <Photosphere360Background overlayOpacity={showBlur ? 0.65 : 0.3}>
-        <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/game assets/casino_table_level2_textured.glb" hideCheckerboard boardScale={1.9} boardY={-1.0} boardGlbForceFlat boardTiltX={0.25} cardGlbPath="glb/cards/card-template.glb" cards={arCards} />
+        <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/game assets/casino_table_level2_textured.glb" hideCheckerboard boardScale={1.9} boardY={-1.0} boardGlbForceFlat boardTiltX={0.25} cardGlbPath="glb/cards/card-template.glb" cards={arCards} arLabels={arLabels} />
       </Photosphere360Background>
       <View style={styles.overlay} pointerEvents="box-none">
       <SafeAreaView style={styles.safeArea}>
@@ -1399,18 +1430,20 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
         </ImageBackground>
         )}
 
-        {/* Player overlays rendered OUTSIDE ImageBackground so they don't cause it to re-render */}
-        <View style={StyleSheet.absoluteFill} pointerEvents="none">
-          {isSpectating
-            ? players
-                .map((player, seatIdx) => ({ player, seatIdx }))
-                .filter(({ player }) => player != null)
-                .map(({ player, seatIdx }) => renderPlayer(player, seatIdx))
-            : players
-                .map((player, seatIdx) => ({ player, seatIdx }))
-                .filter(({ player, seatIdx }) => seatIdx !== myPlayerIndex && player != null)
-                .map(({ player, seatIdx }, idx) => renderPlayer(player, idx + 1))}
-        </View>
+        {/* Player overlays — hidden when AR is active (labels float in AR space instead) */}
+        {!arEnabled && (
+          <View style={StyleSheet.absoluteFill} pointerEvents="none">
+            {isSpectating
+              ? players
+                  .map((player, seatIdx) => ({ player, seatIdx }))
+                  .filter(({ player }) => player != null)
+                  .map(({ player, seatIdx }) => renderPlayer(player, seatIdx))
+              : players
+                  .map((player, seatIdx) => ({ player, seatIdx }))
+                  .filter(({ player, seatIdx }) => seatIdx !== myPlayerIndex && player != null)
+                  .map(({ player, seatIdx }, idx) => renderPlayer(player, idx + 1))}
+          </View>
+        )}
 
         {/* Shuffle Animation */}
         <CardShuffleAnimation
@@ -1432,7 +1465,8 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
         />
       </View>
 
-      {/* Current player (you) at bottom */}
+      {/* Current player (you) at bottom — hidden in AR mode */}
+      {!arEnabled && (
       <View style={styles.currentPlayerArea}>
         {isSpectating ? (
           <View style={{ alignItems: 'center', paddingVertical: 16 }}>
@@ -1522,6 +1556,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
           </>
         )}
       </View>
+      )}
 
       <Snackbar
         visible={winSnackbar.visible}
