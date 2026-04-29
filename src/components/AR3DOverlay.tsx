@@ -156,6 +156,12 @@ export interface AR3DOverlayProps {
   hideCheckerboard?: boolean;
   /** CSS hex string to override ALL board GLB mesh colors (e.g. '#ffffff' for white). Leave undefined to keep original textures. */
   boardColorOverride?: string;
+  /**
+   * Path relative to assets/ for a PNG/JPG to render as a flat textured plane
+   * on the board surface in 3D AR space (covers the GLB playing field).
+   * e.g. "nardi/board-futuristic.png"
+   */
+  boardSurfaceImagePath?: string;
   /** Scale multiplier for the board/table size (default 1.0). Use >1 for card-game tables. */
   boardScale?: number;
   /** Style of the procedural fallback board. 'poker' = oval green felt table. Default: 'default' (chess/checkers). */
@@ -197,6 +203,7 @@ const GLB_ASSET_MAP: Record<string, any> = {
   'glb/game assets/casino_table_level2_textured.glb': require('../../assets/glb/game assets/casino_table_level2_textured.glb'),
   'glb/chess/chess-board/source/ui.glb':        require('../../assets/glb/chess/chess-board/source/ui.glb'),
   'glb/game assets/Backgammon_board_only.glb':  require('../../assets/glb/game assets/Backgammon_board_only.glb'),
+  'nardi/board-futuristic.png':                  require('../../assets/nardi/board-futuristic.png'),
   'glb/chess/chess-board/source/armenian_board.glb': require('../../assets/glb/chess/chess-board/source/armenian_board.glb'),
   'glb/chess/pawn.glb':                        require('../../assets/glb/chess/pawn.glb'),
   'glb/chess/rook.glb':                        require('../../assets/glb/chess/rook.glb'),
@@ -336,6 +343,7 @@ function buildSceneHTML(
   boardGlbForceFlat: boolean = false,
   boardTiltX: number = 0,
   boardColorOverride: string | null = null,
+  boardSurfaceImageUri: string | null = null,
 ): string {
   const BOARD_URI_JS  = boardUri  ? JSON.stringify(boardUri)  : 'null';
   const PIECES_URI_JS = piecesUri ? JSON.stringify(piecesUri) : 'null';
@@ -355,6 +363,7 @@ function buildSceneHTML(
   const BOARD_GLB_FORCE_FLAT_JS = boardGlbForceFlat ? 'true' : 'false';
   const BOARD_TILT_X_JS = boardTiltX.toFixed(4);
   const BOARD_COLOR_OVERRIDE_JS = boardColorOverride ? JSON.stringify(boardColorOverride) : 'null';
+  const BOARD_SURFACE_IMAGE_URI_JS = boardSurfaceImageUri ? JSON.stringify(boardSurfaceImageUri) : 'null';
 
   return `<!DOCTYPE html>
 <html>
@@ -809,6 +818,23 @@ if (BOARD_URI) {
   });
 } else {
   buildProceduralBoard();
+}
+
+// ── Board surface image plane ─────────────────────────────────────────
+const BOARD_SURFACE_IMAGE_URI = ${BOARD_SURFACE_IMAGE_URI_JS};
+if (BOARD_SURFACE_IMAGE_URI) {
+  var _sImgLoader = new THREE.TextureLoader();
+  _sImgLoader.load(BOARD_SURFACE_IMAGE_URI, function(_sImgTex) {
+    _sImgTex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    var _sImgMat = new THREE.MeshBasicMaterial({ map: _sImgTex, transparent: false, depthWrite: true });
+    var _sImgGeo = new THREE.PlaneGeometry(BOARD_HALF_W * 2, BOARD_HALF_H * 2);
+    var _sImgMesh = new THREE.Mesh(_sImgGeo, _sImgMat);
+    _sImgMesh.position.z = 0.004; // just above board GLB surface
+    boardGroup.add(_sImgMesh);
+    _rnLog('[AR3D-HTML] Board surface image loaded OK.');
+  }, undefined, function(_sErr) {
+    _rnLog('[AR3D-HTML] Board surface image failed: ' + String(_sErr));
+  });
 }
 
 // ── Procedural fallback piece ─────────────────────────────────────────────────
@@ -1731,6 +1757,7 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
   boardGlbForceFlat = false,
   boardTiltX = 0,
   boardColorOverride,
+  boardSurfaceImagePath,
 }: AR3DOverlayProps, ref: React.Ref<AR3DOverlayHandle>) {
   const attitude = useSharedAttitude();
   const webViewRef = useRef<WebView>(null);
@@ -1774,6 +1801,7 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
   const localGltfPath:  string | null = null;
 
   const [boardUri,  setBoardUri]  = useState<string | null | undefined>(boardGlbPath  ? undefined : null);
+  const [boardSurfaceImageUri, setBoardSurfaceImageUri] = useState<string | null | undefined>(boardSurfaceImagePath ? undefined : null);
   const [piecesUri, setPiecesUri] = useState<string | null | undefined>(piecesGlbPath ? undefined : null);
   const [chessPieceUris, setChessPieceUris] = useState<Record<string, string | null>>({});
   const [tableUri,  setTableUri]  = useState<string | null | undefined>(tableGlbPath  ? undefined : null);
@@ -1786,6 +1814,13 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
     resolveAssetUri(boardGlbPath).then(u => { if (!cancelled) setBoardUri(u); });
     return () => { cancelled = true; };
   }, [boardGlbPath]);
+
+  useEffect(() => {
+    if (!boardSurfaceImagePath) { setBoardSurfaceImageUri(null); return; }
+    let cancelled = false;
+    resolveAssetUri(boardSurfaceImagePath).then(u => { if (!cancelled) setBoardSurfaceImageUri(u); });
+    return () => { cancelled = true; };
+  }, [boardSurfaceImagePath]);
 
   useEffect(() => {
     if (!piecesGlbPath) { setPiecesUri(null); return; }
@@ -1871,6 +1906,7 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
   const htmlString = useMemo(() => {
     if (spawnYaw === null) return null;
     if (boardUri    === undefined) return null;
+    if (boardSurfaceImageUri === undefined) return null;
     if (piecesUri   === undefined) return null;
     if (tableUri    === undefined) return null;
     if (cardUri     === undefined) return null;
@@ -1884,10 +1920,10 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
       fov, boardUri, piecesUri, chessPieceUris, tableUri, spawnYaw,
       redInt, blackInt, cardUri, cardBackUri,
       localThreePath, localGltfPath, hideCheckerboard, boardScale, boardStyle,
-      boardY, boardGlbForceFlat, boardTiltX, boardColorOverride ?? null,
+      boardY, boardGlbForceFlat, boardTiltX, boardColorOverride ?? null, boardSurfaceImageUri ?? null,
     );
     return result;
-  }, [fov, boardUri, piecesUri, chessPieceUris, tableUri, spawnYaw, cardUri, cardBackUri, hideCheckerboard, boardScale, boardStyle, boardY, boardGlbForceFlat, boardTiltX, boardColorOverride]);
+  }, [fov, boardUri, boardSurfaceImageUri, piecesUri, chessPieceUris, tableUri, spawnYaw, cardUri, cardBackUri, hideCheckerboard, boardScale, boardStyle, boardY, boardGlbForceFlat, boardTiltX, boardColorOverride]);
 
   // Write the HTML to a temp file and give WebView a file:// URI.
   // WKWebView.loadHTMLString silently fails on iOS with large strings (>5 MB).
