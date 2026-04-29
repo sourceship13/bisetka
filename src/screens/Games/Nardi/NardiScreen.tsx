@@ -640,10 +640,15 @@ const NardiScreen = ({ navigation, route }: any) => {
       socketService.makeMove(roomIdRef.current, userId, {type: 'roll_dice', dice: {die1: dice.die1, die2: dice.die2}});
     }
 
-    // Show 3D dice animation; applyDiceRoll is called after both dice finish
-    diceCompleteCount.current = 0;
-    setPendingDice(dice);
-    setDiceAnimating(true);
+    if (arEnabled) {
+      // Show 3D dice animation over the board; applyDiceRoll is called after both dice finish
+      diceCompleteCount.current = 0;
+      setPendingDice(dice);
+      setDiceAnimating(true);
+    } else {
+      // Non-AR mode — apply immediately (NardiDice handles its own visual animation)
+      applyDiceRoll(dice);
+    }
   };
   // Keep ref current so swipe PanResponder always calls latest version
   handleRollDiceRef.current = handleRollDice;
@@ -1456,7 +1461,12 @@ const NardiScreen = ({ navigation, route }: any) => {
               <NardiDice
                 onRollComplete={(die1, die2) => {
                   console.log('🎲 Rolled:', die1, die2);
-                  handleRollDice();
+                  // Use the values NardiDice already animated so the UI stays in sync
+                  const dice: Dice = { die1, die2, rolled: true };
+                  if (isMultiplayer && roomIdRef.current) {
+                    socketService.makeMove(roomIdRef.current, userId, { type: 'roll_dice', dice: { die1, die2 } });
+                  }
+                  applyDiceRoll(dice);
                 }}
                 enabled={true}
               />
@@ -1653,7 +1663,16 @@ const NardiScreen = ({ navigation, route }: any) => {
             borderColor: 'rgba(255,255,255,0.15)',
           }}>
             <NardiDice
-              onRollComplete={() => handleRollDiceRef.current()}
+              onRollComplete={(die1, die2) => {
+                // NardiDice shows its own small animation; use its values for the overlay
+                const dice: Dice = { die1, die2, rolled: true };
+                if (isMultiplayer && roomIdRef.current) {
+                  socketService.makeMove(roomIdRef.current, userId, { type: 'roll_dice', dice: { die1, die2 } });
+                }
+                diceCompleteCount.current = 0;
+                setPendingDice(dice);
+                setDiceAnimating(true);
+              }}
               enabled={true}
             />
             <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, marginTop: 4 }}>
