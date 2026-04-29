@@ -146,6 +146,23 @@ export interface AR3DOverlayProps {
   boardScale?: number;
   /** Style of the procedural fallback board. 'poker' = oval green felt table. Default: 'default' (chess/checkers). */
   boardStyle?: string;
+  /**
+   * Override the vertical position of the board in world space (metres below camera).
+   * Default: -0.80. Use a more-negative value to lower the board further from the camera.
+   */
+  boardY?: number;
+  /**
+   * When true, forces the loaded GLB to be treated as an XY-flat model (surface normal = +Z in
+   * model space) regardless of bounding-box auto-detection. Use for casino/poker table GLBs that
+   * have legs making the Z dimension too large to pass the automatic isXYFlat check.
+   */
+  boardGlbForceFlat?: boolean;
+  /**
+   * Forward tilt applied to the board group in radians (default 0).
+   * Positive value tips the far/back edge of the table downward toward the floor.
+   * Use for poker/casino tables where the steep viewing angle makes the back rail look raised.
+   */
+  boardTiltX?: number;
 }
 
 // ─── GLB URI resolver ─────────────────────────────────────────────────────────
@@ -300,6 +317,9 @@ function buildSceneHTML(
   hideCheckerboard: boolean = false,
   boardScale: number = 1.0,
   boardStyle: string = 'default',
+  boardY: number = -0.80,
+  boardGlbForceFlat: boolean = false,
+  boardTiltX: number = 0,
 ): string {
   const BOARD_URI_JS  = boardUri  ? JSON.stringify(boardUri)  : 'null';
   const PIECES_URI_JS = piecesUri ? JSON.stringify(piecesUri) : 'null';
@@ -315,6 +335,9 @@ function buildSceneHTML(
   const HIDE_CHECKERBOARD_JS = hideCheckerboard ? 'true' : 'false';
   const BOARD_SCALE_JS = boardScale.toFixed(4);
   const BOARD_STYLE_JS = JSON.stringify(boardStyle);
+  const BOARD_Y_JS = boardY.toFixed(3);
+  const BOARD_GLB_FORCE_FLAT_JS = boardGlbForceFlat ? 'true' : 'false';
+  const BOARD_TILT_X_JS = boardTiltX.toFixed(4);
 
   return `<!DOCTYPE html>
 <html>
@@ -412,7 +435,7 @@ const SQUARE_W     = (FIELD_HALF_W * 2) / 8;  // 0.0636m per square
 const SQUARE_H     = SQUARE_W;
 const PIECE_SCALE  = SQUARE_W * 2.40;          // fills ~one square like checkers
 const FIELD_RAISE  = 0.01270;                   // 1/2 inch raise — visible sides from camera angle
-const BOARD_Y    = -0.80;  // lowered so board sits in lower half of viewport
+const BOARD_Y    = ${BOARD_Y_JS};  // lowered so board sits in lower half of viewport
 
 // ── Dynamic TABLE_DIST: closest distance where board corners fit in view ──────
 // hFov derived from vFov + aspect ratio so it adapts to every screen/orientation.
@@ -422,7 +445,7 @@ const _halfVFovRad = (${fov} / 2) * (Math.PI / 180);
 const _aspect      = W / H;
 const _halfHFovRad = Math.atan(Math.tan(_halfVFovRad) * _aspect);
 const _rawDist     = (BOARD_HALF * 1.10 / Math.tan(_halfHFovRad)) + BOARD_HALF;
-const TABLE_DIST   = Math.min(Math.max(_rawDist, 0.80), 1.10);
+const TABLE_DIST   = Math.min(Math.max(_rawDist, 0.55), 0.80);
 
 // ── sceneGroup starts as a camera child so it is always in front ─────────────────
 // On the first animation frame (after camera rotation is applied from live gyro)
@@ -439,7 +462,7 @@ let _freezeCountdown = 8; // wait 8 frames for live gyro injectJavaScript to arr
 // ── Board group — flat horizontal, TABLE_DIST ahead in camera/sceneGroup space ───
 const boardGroup = new THREE.Group();
 boardGroup.position.set(0, BOARD_Y, -TABLE_DIST);
-boardGroup.rotation.x = -Math.PI / 2;
+boardGroup.rotation.x = -Math.PI / 2 - ${BOARD_TILT_X_JS};
 sceneGroup.add(boardGroup);
 
 // ── Invisible hit plane for raycasting — covers the board surface exactly ────
@@ -493,10 +516,16 @@ function buildProceduralBoard() {
   if (BOARD_STYLE === 'poker') {
     // ── Oval poker table ────────────────────────────────────────────────────
     var SEGS = 64;
-    var RX = BOARD_HALF_W;          // felt semi-axis X
-    var RY = BOARD_HALF_H * 0.62;   // felt semi-axis Y (oval)
+    var RX = BOARD_HALF_W * 0.62;   // felt semi-axis X (narrow — skinny end faces camera)
+    var RY = BOARD_HALF_H;          // felt semi-axis Y (deep — long side runs depth)
     var RAIL_W = 0.06;              // wood rail width
     var T = BOARD_THICKNESS;
+
+    // Sub-group so we can spin the whole table without touching boardGroup
+    // 90° + 180° = 270° = -90° around Z
+    var pokerGroup = new THREE.Group();
+    pokerGroup.rotation.z = Math.PI * 1.5;
+    boardGroup.add(pokerGroup);
 
     // Helper: array of Vector2 points on an ellipse
     function ellipsePoints(rx, ry, n) {
@@ -509,7 +538,7 @@ function buildProceduralBoard() {
     }
 
     // 1. Dark wood base slab
-    boardGroup.add(new THREE.Mesh(
+    pokerGroup.add(new THREE.Mesh(
       new THREE.BoxGeometry((RX + RAIL_W + 0.01) * 2, (RY + RAIL_W + 0.01) * 2, T),
       new THREE.MeshStandardMaterial({ color: 0x2e1204, roughness: 0.80, metalness: 0.06 })
     ));
@@ -521,7 +550,7 @@ function buildProceduralBoard() {
     var railGeo  = new THREE.ShapeGeometry(railShape, SEGS);
     var railMesh = new THREE.Mesh(railGeo, new THREE.MeshStandardMaterial({ color: 0x6b2f0e, roughness: 0.58, metalness: 0.18 }));
     railMesh.position.z = T * 0.5 + 0.004;
-    boardGroup.add(railMesh);
+    pokerGroup.add(railMesh);
 
     // 3. Green felt surface with canvas texture
     var feltShape = new THREE.Shape(ellipsePoints(RX, RY, SEGS));
@@ -536,12 +565,12 @@ function buildProceduralBoard() {
     }
     // Betting area oval line
     fctx.strokeStyle = 'rgba(255,255,255,0.12)'; fctx.lineWidth = 4;
-    fctx.beginPath(); fctx.ellipse(256, 256, 160, 116, 0, 0, Math.PI * 2); fctx.stroke();
+    fctx.beginPath(); fctx.ellipse(256, 256, 116, 160, 0, 0, Math.PI * 2); fctx.stroke();
     var feltTex = new THREE.CanvasTexture(fc);
     feltTex.anisotropy = renderer.capabilities.getMaxAnisotropy();
     var feltMesh = new THREE.Mesh(feltGeo, new THREE.MeshStandardMaterial({ map: feltTex, roughness: 0.95, metalness: 0 }));
     feltMesh.position.z = T * 0.5 + 0.002;
-    boardGroup.add(feltMesh);
+    pokerGroup.add(feltMesh);
     return;
   }
 
@@ -601,20 +630,15 @@ if (BOARD_URI) {
   }, 120000);
   loader.load(BOARD_URI, (gltf) => {
     const model = gltf.scene;
-    // Determine the model's natural orientation before applying any correction.
-    // Two common conventions from DCC tools:
-    //   (A) Y-up / XZ-flat  — e.g. chess board ui.glb (roughly cubic bounding box)
-    //       boardGroup.rotation.x = -π/2 would stand it up, so we need +π/2 to lay it flat.
-    //   (B) Z-normal / XY-flat — e.g. rounded_table_panel_v4.glb (very thin in Z)
-    //       boardGroup.rotation.x = -π/2 maps XY → world XZ (already horizontal), so
-    //       adding +π/2 would stand it back up — we want rotation.x = 0 here.
     const rawBox  = new THREE.Box3().setFromObject(model);
     const rawSize = rawBox.getSize(new THREE.Vector3());
-    const isXYFlat = rawSize.z < Math.min(rawSize.x, rawSize.y) * 0.25;
-    // XY-flat (e.g. octagon_table.glb): surface normal is +Z, rotation.x=-π/2 lays it flat.
-    // Y-up (e.g. casino_table_level2_textured.glb): +Y is up, rotation.x=+π/2 lays it flat.
-    // In both cases rotation.z is only needed for XY-flat models to orient the front edge.
-    model.rotation.x = isXYFlat ? -Math.PI / 2 : Math.PI / 2;
+    const isXYFlat = ${BOARD_GLB_FORCE_FLAT_JS} || rawSize.z < Math.min(rawSize.x, rawSize.y) * 0.25;
+    // XY-flat (e.g. octagon_table.glb): surface normal is +Z in model space.
+    //   boardGroup.rotation.x=-π/2 maps boardGroup +Z → world +Y (up).
+    //   So model normal must stay as boardGroup +Z → model.rotation.x = 0.
+    // Y-up (e.g. casino_table_level2_textured.glb): +Y is up in model space.
+    //   Rx(+π/2) maps model +Y → boardGroup +Z → world +Y. ✓
+    model.rotation.x = isXYFlat ? 0 : Math.PI / 2;
     model.rotation.z = isXYFlat ? Math.PI / 2 : 0;
     model.updateMatrixWorld(true);
     const box    = new THREE.Box3().setFromObject(model);
@@ -1281,8 +1305,11 @@ function makeCardTexture(suit, rank, faceDown, opts) {
 // Card = two PlaneGeometry quads (face + back) with depthTest:false so they
 // always render on top of the table regardless of depth buffer state.
 function makeCardMesh(suit, rank, faceDown, opts) {
-  var frontTex = makeCardTexture(suit, rank, false, opts);
-  var backTex  = makeCardTexture(suit, rank, true,  opts);
+  // faceDown=true → back design faces up (+Z = toward viewer from above)
+  var faceUpTex  = makeCardTexture(suit, rank, false, opts);
+  var faceDownTex = makeCardTexture(suit, rank, true,  opts);
+  var frontTex = faceDown ? faceDownTex : faceUpTex;   // +Z face (viewed from above)
+  var backTex  = faceDown ? faceUpTex   : faceDownTex; // -Z face (viewed from below)
   var aniso = renderer.capabilities.getMaxAnisotropy();
   frontTex.anisotropy = aniso; frontTex.needsUpdate = true;
   backTex.anisotropy  = aniso; backTex.needsUpdate  = true;
@@ -1581,6 +1608,9 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
   hideCheckerboard = false,
   boardScale = 1.0,
   boardStyle = 'default',
+  boardY = -0.80,
+  boardGlbForceFlat = false,
+  boardTiltX = 0,
 }: AR3DOverlayProps, ref: React.Ref<AR3DOverlayHandle>) {
   const attitude = useSharedAttitude();
   const webViewRef = useRef<WebView>(null);
@@ -1734,9 +1764,10 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
       fov, boardUri, piecesUri, chessPieceUris, tableUri, spawnYaw,
       redInt, blackInt, cardUri, cardBackUri,
       localThreePath, localGltfPath, hideCheckerboard, boardScale, boardStyle,
+      boardY, boardGlbForceFlat, boardTiltX,
     );
     return result;
-  }, [fov, boardUri, piecesUri, chessPieceUris, tableUri, spawnYaw, cardUri, cardBackUri, hideCheckerboard, boardScale, boardStyle]);
+  }, [fov, boardUri, piecesUri, chessPieceUris, tableUri, spawnYaw, cardUri, cardBackUri, hideCheckerboard, boardScale, boardStyle, boardY, boardGlbForceFlat, boardTiltX]);
 
   // Write the HTML to a temp file and give WebView a file:// URI.
   // WKWebView.loadHTMLString silently fails on iOS with large strings (>5 MB).
