@@ -88,12 +88,16 @@ export interface AR3DOverlayHandle {
   recenter: () => void;
   /** Uniformly scales the AR board scene (clamped 0.4–3.0) */
   setScale: (scale: number) => void;
+  /** Launch physics dice onto the 3D board. vx/vy are swipe velocity (screen units/s). */
+  rollDiceOnBoard: (vx: number, vy: number, die1: number, die2: number) => void;
 }
 
 export interface AR3DOverlayProps {
   visible?: boolean;
   /** Called when the user taps a backgammon/nardi point in AR mode (0-based index 0-23) */
   onNardiPointTap?: (pointIndex: number) => void;
+  /** Called when physics dice settle on the board; receives the pre-determined die values */
+  onDiceRolled?: (die1: number, die2: number) => void;
   pieces?: ARPiece[];
   /** Possible-move squares — shown as 3D glowing dots on the board */
   moves?: ARMove[];
@@ -523,6 +527,149 @@ const hitPlane = new THREE.Mesh(
 );
 hitPlane.position.z = SURFACE_Z;
 boardGroup.add(hitPlane);
+
+// ── Physics Dice (boardGroup local space: Z=up, surface at SURFACE_Z) ─────────
+// BoxGeometry face order [+X,-X,+Y,-Y,+Z,-Z] maps to die values [1,6,2,5,3,4]
+const _FVAL = [1, 6, 2, 5, 3, 4];
+const _DIE_HALF = 0.022;
+const _DIE_REST = 0.58;      // realistic restitution — multiple bounces
+const _DIE_FRIC = 0.20;      // lateral friction per floor contact
+const _DIE_FLRZ = SURFACE_Z + 0.022;
+const _DIE_WALL = FIELD_HALF_W * 0.88;
+const _DIE_MIN_FRAMES = 95;  // must tumble this many frames before face-snapping (~1.5 s)
+function _drawFace(ctx, v, s) {
+  const r = s * 0.13;
+  ctx.fillStyle = '#FFF8D4';
+  ctx.beginPath();
+  ctx.moveTo(r,0); ctx.lineTo(s-r,0); ctx.quadraticCurveTo(s,0,s,r);
+  ctx.lineTo(s,s-r); ctx.quadraticCurveTo(s,s,s-r,s);
+  ctx.lineTo(r,s); ctx.quadraticCurveTo(0,s,0,s-r);
+  ctx.lineTo(0,r); ctx.quadraticCurveTo(0,0,r,0);
+  ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = 'rgba(180,160,80,0.45)'; ctx.lineWidth = 2; ctx.stroke();
+  const dotMap = {
+    1:[[.5,.5]],
+    2:[[.28,.28],[.72,.72]],
+    3:[[.28,.28],[.5,.5],[.72,.72]],
+    4:[[.28,.28],[.72,.28],[.28,.72],[.72,.72]],
+    5:[[.28,.28],[.72,.28],[.5,.5],[.28,.72],[.72,.72]],
+    6:[[.28,.22],[.72,.22],[.28,.5],[.72,.5],[.28,.78],[.72,.78]]
+  };
+  const dr = s * 0.085;
+  ctx.fillStyle = '#1A1A1A';
+  (dotMap[v]||dotMap[1]).forEach(([nx,ny])=>{ ctx.beginPath(); ctx.arc(nx*s,ny*s,dr,0,Math.PI*2); ctx.fill(); });
+}
+function _mkDieMesh() {
+  const geo = new THREE.BoxGeometry(_DIE_HALF*2, _DIE_HALF*2, _DIE_HALF*2);
+  const mats = _FVAL.map(v => {
+    const c = document.createElement('canvas'); c.width = c.height = 128;
+    _drawFace(c.getContext('2d'), v, 128);
+    return new THREE.MeshStandardMaterial({ map: new THREE.CanvasTexture(c), roughness: 0.35, metalness: 0.05 });
+  });
+  const m = new THREE.Mesh(geo, mats);
+  m.castShadow = true; m.visible = false;
+  boardGroup.add(m); return m;
+}
+function _settleQ(tv) {
+  const fi = _FVAL.indexOf(tv);
+  if (fi < 0) return new THREE.Quaternion();
+  const ns = [
+    new THREE.Vector3(1,0,0), new THREE.Vector3(-1,0,0),
+    new THREE.Vector3(0,1,0), new THREE.Vector3(0,-1,0),
+    new THREE.Vector3(0,0,1), new THREE.Vector3(0,0,-1)
+  ];
+  return new THREE.Quaternion().setFromUnitVectors(ns[fi], new THREE.Vector3(0,0,1));
+}
+let _physMeshes = null, _physState = null;
+function _ensurePhys() { if (!_physMeshes) _physMeshes = [_mkDieMesh(), _mkDieMesh()]; }
+function _mkBody(x, y0, vx, vy, tv) {
+  return {
+    pos: new THREE.Vector3(x, y0, _DIE_FLRZ + 0.36),
+    vel: new THREE.Vector3(vx, vy, -0.4),
+    q: new THREE.Quaternion(Math.random()-.5, Math.random()-.5, Math.random()-.5, 1).normalize(),
+    av: new THREE.Vector3((Math.random()-.5)*62, (Math.random()-.5)*62, (Math.random()-.5)*38),
+    settled: false, sf: 0, tf: 0, tv
+  };
+}
+function _launchPhys(vxS, vyS, d1, d2) {
+  _ensurePhys();
+  const spd = Math.sqrt(vxS*vxS + vyS*vyS);
+  const sc = Math.min(Math.max(spd, 0.25), 3.0) * 2.5;
+  const bvx = vxS * sc * 0.45;
+  const bvy = Math.max(-vyS * sc, 0.8);
+  // Start the two dice at clearly different X and Y so they land separately
+  _physState = {
+    d1, d2, done: false,
+    p: [
+      _mkBody(-0.12, -FIELD_HALF_W * 0.22, bvx - 0.26, bvy * 0.92, d1),
+      _mkBody( 0.12, -FIELD_HALF_W * 0.08, bvx + 0.26, bvy * 1.08, d2)
+    ]
+  };
+  _physMeshes[0].visible = true; _physMeshes[1].visible = true;
+}
+function _stepPhysDice() {
+  if (!_physState || _physState.done) return;
+  const DT = 0.016;
+  _physState.p.forEach((d, i) => {
+    if (d.settled) return;
+    d.tf++;
+    // Gravity
+    d.vel.z -= 9.81 * DT;
+    d.pos.x += d.vel.x * DT; d.pos.y += d.vel.y * DT; d.pos.z += d.vel.z * DT;
+    // Floor bounce
+    if (d.pos.z < _DIE_FLRZ) {
+      d.pos.z = _DIE_FLRZ;
+      if (d.vel.z < 0) {
+        d.vel.z = -d.vel.z * _DIE_REST;
+        d.vel.x *= (1 - _DIE_FRIC); d.vel.y *= (1 - _DIE_FRIC);
+        d.av.multiplyScalar(0.78);
+      }
+    }
+    // Wall bounces
+    if (d.pos.x >  _DIE_WALL) { d.pos.x =  _DIE_WALL; d.vel.x = -Math.abs(d.vel.x)*0.52; }
+    if (d.pos.x < -_DIE_WALL) { d.pos.x = -_DIE_WALL; d.vel.x =  Math.abs(d.vel.x)*0.52; }
+    if (d.pos.y >  _DIE_WALL) { d.pos.y =  _DIE_WALL; d.vel.y = -Math.abs(d.vel.y)*0.52; }
+    if (d.pos.y < -_DIE_WALL) { d.pos.y = -_DIE_WALL; d.vel.y =  Math.abs(d.vel.y)*0.52; }
+    // Angular momentum
+    const onFloor = d.pos.z <= _DIE_FLRZ + 0.003;
+    d.av.multiplyScalar(onFloor ? 0.93 : 0.999);
+    const aSpd = d.av.length();
+    if (aSpd > 0.02) {
+      const dq = new THREE.Quaternion().setFromAxisAngle(d.av.clone().divideScalar(aSpd), aSpd * DT);
+      d.q.multiplyQuaternions(dq, d.q).normalize();
+    }
+    // Settle only after minimum tumble duration AND both linear + angular slow
+    const lSpd = Math.sqrt(d.vel.x*d.vel.x + d.vel.y*d.vel.y + d.vel.z*d.vel.z);
+    if (onFloor && lSpd < 0.07 && aSpd < 1.4 && d.tf >= _DIE_MIN_FRAMES) {
+      if (++d.sf >= 38) {
+        d.settled = true; d.pos.z = _DIE_FLRZ;
+        d.vel.set(0,0,0); d.av.set(0,0,0); d.q.copy(_settleQ(d.tv));
+      }
+    } else d.sf = 0;
+    _physMeshes[i].position.copy(d.pos);
+    _physMeshes[i].quaternion.copy(d.q);
+  });
+  // Die-die collision: sphere repulsion prevents overlap
+  const A = _physState.p[0], B = _physState.p[1];
+  if (!A.settled || !B.settled) {
+    const dx = B.pos.x - A.pos.x, dy = B.pos.y - A.pos.y, dz = B.pos.z - A.pos.z;
+    const dist2 = dx*dx + dy*dy + dz*dz;
+    const minD = _DIE_HALF * 2.25;
+    if (dist2 > 0.000001 && dist2 < minD*minD) {
+      const dist = Math.sqrt(dist2);
+      const pen = (minD - dist) * 0.5;
+      const nx = dx/dist, ny = dy/dist;
+      if (!A.settled) { A.pos.x -= nx*pen; A.pos.y -= ny*pen; A.vel.x -= nx*0.22; A.vel.y -= ny*0.22; }
+      if (!B.settled) { B.pos.x += nx*pen; B.pos.y += ny*pen; B.vel.x += nx*0.22; B.vel.y += ny*0.22; }
+    }
+  }
+  if (_physState.p[0].settled && _physState.p[1].settled) {
+    _physState.done = true;
+    if (window.ReactNativeWebView) window.ReactNativeWebView.postMessage(
+      JSON.stringify({ type: 'dice_result', die1: _physState.d1, die2: _physState.d2 })
+    );
+  }
+}
 
 function handleTap(clientX, clientY) {
   // Force camera matrix current BEFORE building the ray — gyro updates rotation
@@ -1760,6 +1907,9 @@ window.handleRNMessage = function(data) {
       _freezeCountdown = 8;
     }
   }
+  if (data.type === 'roll_dice') {
+    _launchPhys(data.vx || 0, data.vy || -1, data.die1 || 1, data.die2 || 1);
+  }
 };
 // Flush messages that arrived before Three.js finished loading.
 _rnQueuedMessages.forEach(function(d) { window.handleRNMessage(d); });
@@ -1809,6 +1959,7 @@ function animate() {
       mesh.position.z += Math.sin(t * 3.5) * 0.0005;
     }
   }
+  _stepPhysDice();
   renderer.render(scene, camera);
 }
 animate();
@@ -1839,6 +1990,7 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
   cardBackTexturePath,
   onSquareTap,
   onNardiPointTap,
+  onDiceRolled,
   pieceColorRed   = '#c0392b',
   pieceColorBlack = '#1e2d3d',
   hideCheckerboard = false,
@@ -1864,6 +2016,11 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
     setScale(scale: number) {
       webViewRef.current?.injectJavaScript(
         `window.handleRNMessage({type:'scale',value:${scale}});true;`
+      );
+    },
+    rollDiceOnBoard(vx: number, vy: number, die1: number, die2: number) {
+      webViewRef.current?.injectJavaScript(
+        `window.handleRNMessage({type:'roll_dice',vx:${vx},vy:${vy},die1:${die1},die2:${die2}});true;`
       );
     },
   }));
@@ -2099,11 +2256,13 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
         onSquareTap(data.row, data.col);
       } else if (data.type === 'nardi_tap' && onNardiPointTap) {
         onNardiPointTap(data.point);
+      } else if (data.type === 'dice_result' && onDiceRolled) {
+        onDiceRolled(data.die1, data.die2);
       } else if (data.type === 'log') {
         console.warn('[AR3D WebView]', data.msg);
       }
     } catch (_) {}
-  }, [onSquareTap, onNardiPointTap]);
+  }, [onSquareTap, onNardiPointTap, onDiceRolled]);
 
   if (!visible || !htmlFileUri) return null;
 

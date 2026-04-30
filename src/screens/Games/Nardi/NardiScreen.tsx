@@ -10,6 +10,8 @@ import {
   ActivityIndicator,
   Alert,
   PanResponder,
+  Animated,
+  Easing,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import GameToolbar from '../../../components/global/GameToolbar';
@@ -262,6 +264,32 @@ const NardiScreen = ({ navigation, route }: any) => {
   const [diceAnimating, setDiceAnimating] = useState(false);
   const [settledDice, setSettledDice] = useState<{ die1: number; die2: number } | null>(null);
   const diceCompleteCount = useRef(0);
+  // AR-mode physics dice: track rolling state and swipe handler
+  const arDiceRollingRef = useRef(false);
+  const arDiceSwipeRef = useRef<(vx: number, vy: number) => void>(() => {});
+  const arDicePanResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderRelease: (_, gs) => {
+        const { vx, vy, dx, dy } = gs;
+        const speed = Math.sqrt(vx * vx + vy * vy);
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (speed >= 0.15 || dist >= 20) arDiceSwipeRef.current(vx, vy);
+      },
+    })
+  ).current;
+  // Tray slide/fade animation values — reset at start of each rolling turn
+  const arTraySlideY = useRef(new Animated.Value(0)).current;
+  const arTrayOpacity = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    if (arEnabled && gameState?.phase === 'rolling' && gameState.currentPlayer === myNardiColor) {
+      arTraySlideY.setValue(0);
+      arTrayOpacity.setValue(1);
+      arDiceRollingRef.current = false;
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [arEnabled, gameState?.phase, gameState?.currentPlayer]);
 
   // Entry fee and prize tracking
   const { user, refreshUser } = useAuth();
@@ -719,6 +747,30 @@ const NardiScreen = ({ navigation, route }: any) => {
   };
   // Keep ref current so swipe PanResponder always calls latest version
   handleRollDiceRef.current = handleRollDice;
+
+  // AR physics dice swipe — updated every render for fresh closure
+  arDiceSwipeRef.current = (vx: number, vy: number) => {
+    if (!gameState || gameState.phase !== 'rolling') return;
+    if (arDiceRollingRef.current) return;
+    arDiceRollingRef.current = true;
+    const myColor = isMultiplayer ? myMpColorRef.current : 'white';
+    if (gameState.currentPlayer !== myColor) return;
+    const die1 = Math.floor(Math.random() * 6) + 1;
+    const die2 = Math.floor(Math.random() * 6) + 1;
+    if (isMultiplayer && roomIdRef.current) {
+      socketService.makeMove(roomIdRef.current, userId, { type: 'roll_dice', dice: { die1, die2 } });
+    }
+    arOverlayRef.current?.rollDiceOnBoard(vx, vy, die1, die2);
+    // Animate the tray flying off, then commit dice state
+    Animated.parallel([
+      Animated.timing(arTraySlideY, { toValue: -320, duration: 290, easing: Easing.in(Easing.quad), useNativeDriver: true }),
+      Animated.timing(arTrayOpacity, { toValue: 0, duration: 210, useNativeDriver: true }),
+    ]).start(() => {
+      diceCompleteCount.current = 0;
+      setPendingDice({ die1, die2 });
+      setDiceAnimating(true);
+    });
+  };
 
   const handleMove = (move: Move) => {
     if (!gameState) return;
@@ -1193,6 +1245,14 @@ const NardiScreen = ({ navigation, route }: any) => {
           black_bg_checker: 'glb/checkers/nyu_black_checker.glb',
         }}
         onNardiPointTap={handlePointPress}
+        onDiceRolled={(die1, die2) => {
+          arDiceRollingRef.current = false;
+          const diceData: Dice = { die1, die2, rolled: true };
+          setSettledDice(diceData);
+          setDiceAnimating(false);
+          applyDiceRoll(diceData);
+          setPendingDice(null);
+        }}
       />
       {/* Red flash overlay — covers entire screen on invalid tap */}
       <ReAnimated.View
@@ -1675,7 +1735,7 @@ const NardiScreen = ({ navigation, route }: any) => {
         </TouchableOpacity>
       )}
       {/* 3D dice overlay — spinning while animating, then shows settled face during moving phase */}
-      {arEnabled && (diceAnimating ? pendingDice : settledDice) && (
+      {!arEnabled && (diceAnimating ? pendingDice : settledDice) && (
         <View
           pointerEvents="none"
           style={{
@@ -1733,47 +1793,57 @@ const NardiScreen = ({ navigation, route }: any) => {
           </View>
         </View>
       )}
-      {/* Thumb-zone swipe-up dice — only in AR mode on player's rolling turn */}
+      {/* AR dice tray — visible dice sitting at the bottom; swipe anywhere to throw onto board */}
       {arEnabled && gameState?.phase === 'rolling' && gameState.currentPlayer === myNardiColor && !diceAnimating && (
         <View
-          style={{
-            position: 'absolute',
-            bottom: 120,
-            left: 0,
-            right: 0,
-            alignItems: 'center',
-          }}
-          onTouchStart={e => { swipeStartY.current = e.nativeEvent.pageY; }}
-          onTouchEnd={e => {
-            const dy = e.nativeEvent.pageY - swipeStartY.current;
-            if (dy < -40) handleRollDiceRef.current();
-          }}
+          style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, zIndex: 3 }}
+          {...arDicePanResponder.panHandlers}
         >
-          <View style={{
-            backgroundColor: 'rgba(0,0,0,0.55)',
-            borderRadius: 24,
-            paddingHorizontal: 28,
-            paddingVertical: 16,
-            alignItems: 'center',
-            borderWidth: 1,
-            borderColor: 'rgba(255,255,255,0.15)',
-          }}>
-            <NardiDice
-              onRollComplete={(die1, die2) => {
-                // NardiDice already showed its own animation; show result directly in AR overlay without re-spinning
-                const dice: Dice = { die1, die2, rolled: true };
-                if (isMultiplayer && roomIdRef.current) {
-                  socketService.makeMove(roomIdRef.current, userId, { type: 'roll_dice', dice: { die1, die2 } });
-                }
-                setSettledDice({ die1, die2 });
-                applyDiceRoll(dice);
-              }}
-              enabled={true}
-            />
-            <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, marginTop: 4 }}>
-              ↑ Swipe up to roll
-            </Text>
-          </View>
+          <Animated.View
+            style={{
+              position: 'absolute',
+              bottom: 50,
+              left: 0,
+              right: 0,
+              alignItems: 'center',
+              transform: [{ translateY: arTraySlideY }],
+              opacity: arTrayOpacity,
+            }}
+            pointerEvents="none"
+          >
+            <View style={{
+              backgroundColor: 'rgba(18,18,22,0.84)',
+              borderRadius: 28,
+              paddingHorizontal: 36,
+              paddingVertical: 22,
+              alignItems: 'center',
+              borderWidth: 1,
+              borderColor: 'rgba(255,255,255,0.10)',
+              shadowColor: '#000',
+              shadowOpacity: 0.55,
+              shadowRadius: 18,
+              shadowOffset: { width: 0, height: 6 },
+            }}>
+              {/* Static dice previews */}
+              <View style={{ flexDirection: 'row', gap: 22, marginBottom: 16 }}>
+                <View style={{
+                  width: 60, height: 60, backgroundColor: '#FFF8D4', borderRadius: 13,
+                  shadowColor: '#000', shadowOpacity: 0.4, shadowRadius: 8,
+                  shadowOffset: { width: 0, height: 4 }, borderWidth: 1.5,
+                  borderColor: 'rgba(160,140,60,0.35)',
+                }} />
+                <View style={{
+                  width: 60, height: 60, backgroundColor: '#FFF8D4', borderRadius: 13,
+                  shadowColor: '#000', shadowOpacity: 0.4, shadowRadius: 8,
+                  shadowOffset: { width: 0, height: 4 }, borderWidth: 1.5,
+                  borderColor: 'rgba(160,140,60,0.35)',
+                }} />
+              </View>
+              <Text style={{ color: 'rgba(255,255,255,0.78)', fontSize: 14, fontWeight: '600', letterSpacing: 0.4 }}>
+                ↗ Swipe to throw dice onto board
+              </Text>
+            </View>
+          </Animated.View>
         </View>
       )}
     </View>
