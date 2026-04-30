@@ -267,15 +267,35 @@ const NardiScreen = ({ navigation, route }: any) => {
   // AR-mode physics dice: track rolling state and swipe handler
   const arDiceRollingRef = useRef(false);
   const arDiceSwipeRef = useRef<(vx: number, vy: number) => void>(() => {});
+  // Tracks the maximum simultaneous touch count for the current gesture so we
+  // can distinguish a single-finger swipe (roll dice) from a two-finger pinch
+  // (zoom board).  Reset on grant and terminate.
+  const arDiceTouchCountRef = useRef(0);
   const arDicePanResponder = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => true,
+      // Only claim single-finger touches — 2-finger pinch passes through to the WebView
+      onStartShouldSetPanResponder: (evt) => evt.nativeEvent.touches.length === 1,
+      onMoveShouldSetPanResponder:  (evt) => evt.nativeEvent.touches.length === 1,
+      onPanResponderGrant: (evt) => {
+        arDiceTouchCountRef.current = evt.nativeEvent.touches.length;
+      },
+      onPanResponderMove: (evt) => {
+        // If a second finger joins mid-gesture, record it so we can ignore the release
+        if (evt.nativeEvent.touches.length > arDiceTouchCountRef.current) {
+          arDiceTouchCountRef.current = evt.nativeEvent.touches.length;
+        }
+      },
       onPanResponderRelease: (_, gs) => {
+        const wasPinch = arDiceTouchCountRef.current > 1;
+        arDiceTouchCountRef.current = 0;
+        if (wasPinch) return;
         const { vx, vy, dx, dy } = gs;
         const speed = Math.sqrt(vx * vx + vy * vy);
         const dist = Math.sqrt(dx * dx + dy * dy);
         if (speed >= 0.15 || dist >= 20) arDiceSwipeRef.current(vx, vy);
+      },
+      onPanResponderTerminate: () => {
+        arDiceTouchCountRef.current = 0;
       },
     })
   ).current;
