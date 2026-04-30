@@ -183,14 +183,26 @@ export const calculatePossibleMoves = (
 };
 
 const getBarEntryMoves = (state: NardiGameState): Move[] => {
-  const moves: Move[] = [];
-  const { dice, currentPlayer, points } = state;
-  const diceValues = [dice.die1, dice.die2];
+  const { dice, currentPlayer, points, movesRemaining } = state;
 
+  // For doubles both dice have the same face; one entry per face value is enough
+  // (movesRemaining tracks how many of those moves are still available).
+  // For non-doubles collect each non-zero die value once.
+  let diceValues: number[];
+  if (dice.die1 === dice.die2 && dice.die1 > 0) {
+    diceValues = [dice.die1];
+  } else {
+    diceValues = [dice.die1, dice.die2].filter(v => v > 0);
+    diceValues = [...new Set(diceValues)]; // deduplicate in case both happen to be equal
+  }
+
+  const seen = new Set<number>();
+  const moves: Move[] = [];
   diceValues.forEach(dieValue => {
-    // REVERSED: White enters into opponent's home (18-23), black enters into 0-5
+    // White enters opponent's home (indices 18-23); Black enters White's home (indices 0-5)
     const entryPoint = currentPlayer === 'white' ? 24 - dieValue : dieValue - 1;
-    if (canEnterFromBar(entryPoint, currentPlayer, points, state.mode)) {
+    if (!seen.has(entryPoint) && canEnterFromBar(entryPoint, currentPlayer, points, state.mode)) {
+      seen.add(entryPoint);
       moves.push({ from: -1, to: entryPoint, checker: currentPlayer });
     }
   });
