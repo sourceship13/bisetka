@@ -839,6 +839,14 @@ const NardiScreen = ({ navigation, route }: any) => {
 
     console.log('🤖 AI Rolled:', dice.die1, dice.die2, 'possible moves:', currentState.possibleMoves.length);
 
+    // In AR mode throw the AI dice onto the board so both players see physics
+    if (arEnabled) {
+      // Random swipe from the opposite side (top of board) heading downward
+      const aiVx = (Math.random() - 0.5) * 0.6;
+      const aiVy = 0.8 + Math.random() * 0.4; // positive Y = toward player
+      arOverlayRef.current?.rollDiceOnBoard(aiVx, aiVy, dice.die1, dice.die2);
+    }
+
     if (currentState.possibleMoves.length === 0) {
       // No moves - switch after brief delay
       const t = setTimeout(() => {
@@ -859,8 +867,8 @@ const NardiScreen = ({ navigation, route }: any) => {
       statesSequence.push(workingState);
     }
 
-    // Schedule showing each state with delays
-    let delay = 800; // Initial delay before first move shows
+    // Schedule showing each state with delays (give dice time to land first)
+    let delay = arEnabled ? 1600 : 800; // extra wait in AR so dice finish rolling before pieces move
     statesSequence.forEach((s, i) => {
       const t = setTimeout(() => {
         setGameState(s);
@@ -1844,20 +1852,28 @@ const NardiScreen = ({ navigation, route }: any) => {
               shadowRadius: 18,
               shadowOffset: { width: 0, height: 6 },
             }}>
-              {/* Static dice previews */}
+              {/* Static dice preview — two 6s */}
               <View style={{ flexDirection: 'row', gap: 22, marginBottom: 16 }}>
-                <View style={{
-                  width: 60, height: 60, backgroundColor: '#FFF8D4', borderRadius: 13,
-                  shadowColor: '#000', shadowOpacity: 0.4, shadowRadius: 8,
-                  shadowOffset: { width: 0, height: 4 }, borderWidth: 1.5,
-                  borderColor: 'rgba(160,140,60,0.35)',
-                }} />
-                <View style={{
-                  width: 60, height: 60, backgroundColor: '#FFF8D4', borderRadius: 13,
-                  shadowColor: '#000', shadowOpacity: 0.4, shadowRadius: 8,
-                  shadowOffset: { width: 0, height: 4 }, borderWidth: 1.5,
-                  borderColor: 'rgba(160,140,60,0.35)',
-                }} />
+                {[0, 1].map(di => (
+                  <View key={di} style={{
+                    width: 62, height: 62, backgroundColor: '#FFF8D4', borderRadius: 13,
+                    shadowColor: '#000', shadowOpacity: 0.4, shadowRadius: 8,
+                    shadowOffset: { width: 0, height: 4 }, borderWidth: 1.5,
+                    borderColor: 'rgba(160,140,60,0.35)',
+                    padding: 7, justifyContent: 'space-between',
+                  }}>
+                    {/* 6 pips: 3 columns × 2 rows */}
+                    {[[0,1],[0,1],[0,1]].map((col, ci) => (
+                      <View key={ci} style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                        {col.map((_, ri) => (
+                          <View key={ri} style={{
+                            width: 10, height: 10, borderRadius: 5, backgroundColor: '#1A1A1A',
+                          }} />
+                        ))}
+                      </View>
+                    ))}
+                  </View>
+                ))}
               </View>
               <Text style={{ color: 'rgba(255,255,255,0.78)', fontSize: 14, fontWeight: '600', letterSpacing: 0.4 }}>
                 ↗ Swipe to throw dice onto board
