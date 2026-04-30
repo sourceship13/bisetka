@@ -74,10 +74,10 @@ const QUADRANT_LAYOUT = {
   //  xOffset: shift left (−) or right (+) in pixels
   //  yOffset: shift up (−) or down (+) in pixels
   //  colWidth: column-centre step multiplier (1.0 = 1 column-width apart, 0.9 = tighter, 1.1 = wider)
-  topLeft:     { xOffset:  6, yOffset: 0, colWidth: 1.0 },  // ← tune to match triangle centres
-  topRight:    { xOffset:  0, yOffset: 0, colWidth: 1.0 },
-  bottomLeft:  { xOffset:  6, yOffset: 0, colWidth: 1.0 },  // ← tune to match triangle centres
-  bottomRight: { xOffset:  0, yOffset: 0, colWidth: 1.0 },
+  topLeft:     { xOffset:  40, yOffset: 40, colWidth: 1.0 },  // ← tune to match triangle centres
+  topRight:    { xOffset:  0, yOffset: 100, colWidth: 1.0 },
+  bottomLeft:  { xOffset:  6, yOffset: 22, colWidth: 1.0 },  // ← tune to match triangle centres
+  bottomRight: { xOffset:  0, yOffset: 22, colWidth: 1.0 },
 };
 
 // Map point index (1-24) → screen coordinates inside the ImageBackground
@@ -157,8 +157,10 @@ const NardiScreen = ({ navigation, route }: any) => {
       const isTop = ptNum >= 13;
       // Align with triangle bases — start pieces at the inner edge of the board rail
       const edgeY = BHW * 0.95 - CD * 0.5;
+      // Uniform screen-down shift: subtracting from posY moves both rows down in perspective
+      const PIECE_Y_SHIFT = 0.02;
       pt.checkers.forEach((color, si) => {
-        const y = isTop ? (edgeY - si * CD) : -(edgeY - si * CD);
+        const y = isTop ? (edgeY - si * CD - PIECE_Y_SHIFT) : -(edgeY - si * CD) - PIECE_Y_SHIFT;
         pieces.push({
           key: `bg-${ptNum}-${si}`,
           row: 0, col: 0,
