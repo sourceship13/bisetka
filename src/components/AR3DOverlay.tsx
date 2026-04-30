@@ -232,6 +232,7 @@ const GLB_ASSET_MAP: Record<string, any> = {
   'glb/game_boards/Untitled.glb':               require('../../assets/glb/game_boards/Untitled.glb'),
   'glb/game assets/Backgammon_board_only.glb':  require('../../assets/glb/game assets/Backgammon_board_only.glb'),
   'nardi/board-futuristic.png':                  require('../../assets/nardi/board-futuristic.png'),
+  'nardi/board.png':                             require('../../assets/nardi/board.png'),
   'glb/chess/chess-board/source/armenian_board.glb': require('../../assets/glb/chess/chess-board/source/armenian_board.glb'),
   'glb/chess/pawn.glb':                        require('../../assets/glb/chess/pawn.glb'),
   'glb/chess/rook.glb':                        require('../../assets/glb/chess/rook.glb'),

@@ -1314,7 +1314,7 @@ const NardiScreen = ({ navigation, route }: any) => {
       <AR3DOverlay
         ref={arOverlayRef}
         visible={arEnabled}
-        boardGlbPath="glb/game assets/Backgammon_board_only.glb"
+        boardGlbPath="glb/game_boards/Untitled.glb"
         hideCheckerboard
         boardY={-1.40}
         tableDist={0.50}
@@ -1327,6 +1327,10 @@ const NardiScreen = ({ navigation, route }: any) => {
         onDiceRolled={(die1, die2) => {
           arDiceRollingRef.current = false;
           arOverlayRef.current?.resetDiceTint();
+          // Only apply dice roll for the human player — the AI useEffect already
+          // computed and scheduled its state updates before throwing the dice.
+          const myColor = isMultiplayer ? myMpColorRef.current : 'white';
+          if (!gameState || gameState.currentPlayer !== myColor) return;
           const diceData: Dice = { die1, die2, rolled: true };
           setSettledDice(diceData);
           setDiceAnimating(false);
