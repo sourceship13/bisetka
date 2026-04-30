@@ -16,7 +16,7 @@ const GLB_ASSET_MAP: Record<string, any> = {
   'glb/game_boards/rounded_table_panel_v4.glb': require('../../assets/glb/game_boards/rounded_table_panel_v4.glb'),
   'glb/game_boards/rounded_table_panel.glb':    require('../../assets/glb/game_boards/rounded_table_panel.glb'),
   'glb/game assets/round_table.glb':            require('../../assets/glb/game assets/round_table.glb'),
-  'glb/game assets/Backgammon.glb':             require('../../assets/glb/game assets/Backgammon.glb'),
+  'glb/game_boards/Backgammon.glb':             require('../../assets/glb/game_boards/Backgammon.glb'),
   'glb/game assets/Backgammon_board_only.glb':  require('../../assets/glb/game assets/Backgammon_board_only.glb'),
   'nardi/board.png':                            require('../../assets/nardi/board.png'),
   'glb/chess/chess-board/source/ui.glb':        require('../../assets/glb/chess/chess-board/source/ui.glb'),
