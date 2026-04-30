@@ -230,6 +230,7 @@ const GLB_ASSET_MAP: Record<string, any> = {
   'glb/game assets/casino_table_level2_textured.glb': require('../../assets/glb/game assets/casino_table_level2_textured.glb'),
   'glb/chess/chess-board/source/ui.glb':        require('../../assets/glb/chess/chess-board/source/ui.glb'),
   'glb/game_boards/Untitled.glb':               require('../../assets/glb/game_boards/Untitled.glb'),
+  'glb/game assets/Backgammon.glb':             require('../../assets/glb/game assets/Backgammon.glb'),
   'glb/game assets/Backgammon_board_only.glb':  require('../../assets/glb/game assets/Backgammon_board_only.glb'),
   'nardi/board-futuristic.png':                  require('../../assets/nardi/board-futuristic.png'),
   'nardi/board.png':                             require('../../assets/nardi/board.png'),
