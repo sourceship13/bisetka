@@ -15,7 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import GameToolbar from '../../../components/global/GameToolbar';
 import GameToolbarControls from '../../../components/global/GameToolbarControls';
 import RoomNameModal from '../../../components/RoomNameModal';
-import ReAnimated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
+import ReAnimated, { useSharedValue, useAnimatedStyle, withTiming, withSequence, withDelay } from 'react-native-reanimated';
 import ExpandableView from '../../../components/global/ExpandableView';
 import { useGameEndRefresh } from '../../../libs/hooks/useGameEndRefresh';
 import Photosphere360Background from '../../../components/Photosphere360Background';
@@ -127,6 +127,17 @@ const NardiScreen = ({ navigation, route }: any) => {
   const [showMusicPlayer, setShowMusicPlayer] = useState(false);
   const [arEnabled, setArEnabled] = useState(true);
   const arOverlayRef = useRef<AR3DOverlayHandle>(null);
+  // selectedPoint declared here (before arPieces) so the useMemo can reference it
+  const [selectedPoint, setSelectedPoint] = useState<number | null>(null);
+  // Red flash overlay — triggered when player taps an invalid destination
+  const invalidFlashOpacity = useSharedValue(0);
+  const invalidFlashStyle = useAnimatedStyle(() => ({ opacity: invalidFlashOpacity.value }));
+  const flashInvalid = () => {
+    invalidFlashOpacity.value = withSequence(
+      withTiming(0.45, { duration: 80 }),
+      withDelay(120, withTiming(0, { duration: 250 })),
+    );
+  };
 
   // Backgammon piece positions in AR board-local space
   const arPieces = useMemo((): ARPiece[] => {
@@ -154,18 +165,23 @@ const NardiScreen = ({ navigation, route }: any) => {
 
     gameState.points.forEach((pt, idx) => {
       const ptNum = idx + 1;
+      const pointIdx = idx; // 0-based
       const isTop = ptNum >= 13;
+      const isPointSelected = selectedPoint === pointIdx;
       // Align with triangle bases — start pieces at the inner edge of the board rail
       const edgeY = BHW * 0.95 - CD * 0.5;
       // Uniform screen-down shift: subtracting from posY moves both rows down in perspective
       const PIECE_Y_SHIFT = 0.02;
       pt.checkers.forEach((color, si) => {
         const y = isTop ? (edgeY - si * CD - PIECE_Y_SHIFT) : -(edgeY - si * CD) - PIECE_Y_SHIFT;
+        // Only lift the top checker of the selected point (the one the player will move)
+        const isTopChecker = si === pt.checkers.length - 1;
         pieces.push({
           key: `bg-${ptNum}-${si}`,
           row: 0, col: 0,
           color: color === 'white' ? 'red' : 'black',
           isKing: false,
+          isSelected: isPointSelected && isTopChecker,
           side: color,
           pieceType: 'bg_checker',
           posX: pointX(ptNum),
@@ -175,15 +191,52 @@ const NardiScreen = ({ navigation, route }: any) => {
         });
       });
     });
+
+    // Bar pieces — placed along the center spine (posX=0)
+    // White bar pieces stack upward from board center; black stack downward
+    const BAR_START_Y = CD * 0.6; // offset from center so first piece clears the middle
+    const barSelected = selectedPoint === -1;
+    for (let si = 0; si < gameState.bar.white; si++) {
+      const isTopBarPiece = si === gameState.bar.white - 1;
+      pieces.push({
+        key: `bar-white-${si}`,
+        row: 0, col: 0,
+        color: 'red',
+        isKing: false,
+        isSelected: barSelected && isTopBarPiece,
+        side: 'white',
+        pieceType: 'bg_checker',
+        posX: 0,
+        posY: BAR_START_Y + si * CD,
+        posZ: 0.006 + si * CT,
+        pieceScale: CD,
+      });
+    }
+    for (let si = 0; si < gameState.bar.black; si++) {
+      const isTopBarPiece = si === gameState.bar.black - 1;
+      pieces.push({
+        key: `bar-black-${si}`,
+        row: 0, col: 0,
+        color: 'black',
+        isKing: false,
+        isSelected: barSelected && isTopBarPiece,
+        side: 'black',
+        pieceType: 'bg_checker',
+        posX: 0,
+        posY: -(BAR_START_Y + si * CD),
+        posZ: 0.006 + si * CT,
+        pieceScale: CD,
+      });
+    }
+
     return pieces;
-  }, [gameState]);
+  }, [gameState, selectedPoint]);
   const [showBackground, setShowBackground] = useState(true);
   const [easyMode, setEasyMode] = useState(true); // Easy Mode: tap-to-move (default on for AR); drag-to-move when off
   const toolbarExpanded = useSharedValue(false);
   const chevronStyle = useAnimatedStyle(() => ({
     transform: [{ rotate: withTiming(toolbarExpanded.value ? '180deg' : '0deg', { duration: 250 }) }],
   }));
-  const [selectedPoint, setSelectedPoint] = useState<number | null>(null);
   const [draggedFrom, setDraggedFrom] = useState<number | null>(null);
   const [dragPosition, setDragPosition] = useState<{ x: number; y: number } | null>(null);
   // Ref so the PanResponder can read the in-progress drag source without stale closure
@@ -800,17 +853,16 @@ const NardiScreen = ({ navigation, route }: any) => {
     if (gameState.bar[myColor] <= 0) return;
 
     const barMoves = gameState.possibleMoves.filter(m => m.from === -1);
-    console.log('🔴 Bar pressed, moves:', barMoves.length);
 
     if (barMoves.length === 1) {
-      // Only one option — auto-execute
-      console.log('✅ Auto-entering from bar to point', barMoves[0].to);
+      // Only one valid entry point — auto-execute immediately
       handleMove(barMoves[0]);
       setSelectedPoint(null);
     } else if (barMoves.length > 1) {
-      // Multiple entry points — select bar, let player pick destination
+      // Multiple entry choices — highlight bar and wait for destination tap
       setSelectedPoint(-1);
     }
+    // barMoves.length === 0: all entries blocked, auto-skip effect will end the turn
   };
 
   const handleBearOffTrayPress = (player: PlayerColor) => {
@@ -855,66 +907,61 @@ const NardiScreen = ({ navigation, route }: any) => {
       return;
     }
 
-    // If player has checkers on bar, they MUST enter from bar first
+    // ── Bar-entry flow ───────────────────────────────────────────────────────
+    // When player has pieces on bar they MUST enter first. Two-tap: first tap
+    // selects the bar (piece floats), second tap picks the entry column.
     if (gameState.bar[myColor] > 0) {
-      // Only allow tapping destinations for bar entry
       if (selectedPoint === -1) {
-        const move = gameState.possibleMoves.find(m => m.from === -1 && m.to === pointIndex);
-        if (move) {
-          console.log('✅ Entering from bar to point', pointIndex);
-          handleMove(move);
+        // Bar already selected — try to enter at tapped point
+        const barMove = gameState.possibleMoves.find(m => m.from === -1 && m.to === pointIndex);
+        if (barMove) {
+          handleMove(barMove);
           setSelectedPoint(null);
         } else {
-          console.log('❌ Not a valid bar entry destination');
-          setSelectedPoint(null);
+          // Invalid entry point — flash red, keep bar selected
+          flashInvalid();
         }
       } else {
-        // Auto-select bar when they tap anything
+        // Nothing selected yet — select the bar so the piece floats
         handleBarPress();
       }
       return;
     }
-    
-    console.log('👆 Point pressed:', pointIndex, 'selected:', selectedPoint);
-    console.log('🎲 Current dice:', gameState.dice, 'movesRemaining:', gameState.movesRemaining);
-    console.log('📋 Total possible moves:', gameState.possibleMoves.length);
-    
+
+    // ── Normal two-tap flow ──────────────────────────────────────────────────
     if (selectedPoint === null) {
+      // FIRST TAP: select a piece
       const point = gameState.points[pointIndex];
-      const hasOwnChecker = point.checkers.length > 0 && 
+      const hasOwnChecker = point.checkers.length > 0 &&
         point.checkers[point.checkers.length - 1] === gameState.currentPlayer;
-      console.log('🔍 Checking point:', { pointIndex, checkers: point.checkers.length, isOwn: hasOwnChecker });
-      
-      // Show which moves are available from this point
-      const movesFromThisPoint = gameState.possibleMoves.filter(m => m.from === pointIndex);
-      console.log('🎯 Moves from point', pointIndex + 1, ':', movesFromThisPoint.length, movesFromThisPoint);
-      
-      if (hasOwnChecker) {
-        if (movesFromThisPoint.length > 0) {
-          const bearOffMove = movesFromThisPoint.find(m => m.to >= 24 || m.to < 0);
-          if (movesFromThisPoint.length === 1 && bearOffMove) {
-            console.log('✅ Auto-bearing off from point:', pointIndex + 1);
-            handleMove(bearOffMove);
-            setSelectedPoint(null);
-          } else {
-            setSelectedPoint(pointIndex);
-            console.log('✅ Selected point:', pointIndex + 1, 'with', movesFromThisPoint.length, 'possible moves');
-          }
-        } else {
-          console.log('⚠️ No valid moves from point', pointIndex + 1);
-        }
+      if (hasOwnChecker && gameState.possibleMoves.some(m => m.from === pointIndex)) {
+        setSelectedPoint(pointIndex);
+      } else {
+        // Tapped empty or opponent point with nothing selected — flash red
+        flashInvalid();
       }
+    } else if (selectedPoint === pointIndex) {
+      // Re-tapped the selected piece — deselect
+      setSelectedPoint(null);
     } else {
+      // SECOND TAP: try to move selected piece to this point
       const move = gameState.possibleMoves.find(m => m.from === selectedPoint && m.to === pointIndex);
-      console.log('🎯 Looking for move:', { from: selectedPoint + 1, to: pointIndex + 1, found: !!move });
-      console.log('📋 Available moves from selected point:', gameState.possibleMoves.filter(m => m.from === selectedPoint));
       if (move) {
-        console.log('✅ Executing move:', move);
         handleMove(move);
         setSelectedPoint(null);
       } else {
-        console.log('❌ No valid move, deselecting');
-        setSelectedPoint(null);
+        // Invalid destination — flash red
+        // Also check if player tapped one of their own pieces to switch selection
+        const point = gameState.points[pointIndex];
+        const hasOwnChecker = point.checkers.length > 0 &&
+          point.checkers[point.checkers.length - 1] === gameState.currentPlayer;
+        if (hasOwnChecker && gameState.possibleMoves.some(m => m.from === pointIndex)) {
+          // Switch selection to this piece instead
+          setSelectedPoint(pointIndex);
+        } else {
+          flashInvalid();
+          setSelectedPoint(null);
+        }
       }
     }
   };
@@ -1146,6 +1193,15 @@ const NardiScreen = ({ navigation, route }: any) => {
           black_bg_checker: 'glb/checkers/nyu_black_checker.glb',
         }}
         onNardiPointTap={handlePointPress}
+      />
+      {/* Red flash overlay — covers entire screen on invalid tap */}
+      <ReAnimated.View
+        pointerEvents="none"
+        style={[
+          StyleSheet.absoluteFillObject,
+          { backgroundColor: '#ff2020', zIndex: 5 },
+          invalidFlashStyle,
+        ]}
       />
       <View style={styles.overlay} pointerEvents="box-none">
         <SafeAreaView style={styles.safeArea} pointerEvents="box-none">
