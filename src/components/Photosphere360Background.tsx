@@ -94,7 +94,7 @@ export default function Photosphere360Background({
 
   return (
     <AttitudeContext.Provider value={attitude}>
-      <View style={StyleSheet.absoluteFill} pointerEvents="none">
+      <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
         <SphereViewer
           imagePath={panoramaImagePath}
           placeholderSource={panoramaSource}

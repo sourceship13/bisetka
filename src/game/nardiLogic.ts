@@ -125,53 +125,52 @@ export const calculatePossibleMoves = (
 
       // Check for bearing off
       if (canBearOff(state, fromPos)) {
-        console.log(`🎯 Can bear off from point ${fromPos} for ${currentPlayer}`);
-        // REVERSED: White bears off past point 0 (to -1), Black bears off past point 23 (to 24)
+        // White bears off to -1 (below index 0, ptNum 1 edge)
+        // Black bears off to 24 (above index 23, ptNum 24 edge)
         const bearOffPos = currentPlayer === 'white' ? -1 : 24;
-        
+
         diceValues.forEach(dieValue => {
           const targetPos = currentPlayer === 'white' ? fromPos - dieValue : fromPos + dieValue;
-          
-          console.log(`  Checking die ${dieValue}: fromPos=${fromPos}, targetPos=${targetPos}`);
-          
-          // Exact bear-off: die value moves piece exactly off the board (REVERSED)
+
           if (currentPlayer === 'white' && targetPos < 0) {
-            console.log(`    ✅ White exact bear-off from ${fromPos} with die ${dieValue}`);
-            const key = `${fromPos}-${bearOffPos}`;
-            if (!seen.has(key)) { seen.add(key); moves.push({ from: fromPos, to: bearOffPos, checker: currentPlayer }); }
+            if (targetPos === -1) {
+              // Exact bear-off: die value exactly equals distance to exit (fromPos + 1)
+              const key = `${fromPos}-${bearOffPos}`;
+              if (!seen.has(key)) { seen.add(key); moves.push({ from: fromPos, to: bearOffPos, checker: currentPlayer }); }
+            } else {
+              // High-roll bear-off: only the highest-occupied point in home board (0-5) may use it.
+              // "Highest index" = furthest from exit edge (ptNum 1 = index 0 is closest to exit).
+              let isFurthest = true;
+              for (let i = fromPos + 1; i < 6; i++) {
+                if (points[i].checkers.some(c => c === currentPlayer)) {
+                  isFurthest = false;
+                  break;
+                }
+              }
+              if (isFurthest) {
+                const key = `${fromPos}-${bearOffPos}`;
+                if (!seen.has(key)) { seen.add(key); moves.push({ from: fromPos, to: bearOffPos, checker: currentPlayer }); }
+              }
+            }
           } else if (currentPlayer === 'black' && targetPos >= 24) {
-            console.log(`    ✅ Black exact bear-off from ${fromPos} with die ${dieValue}`);
-            const key = `${fromPos}-${bearOffPos}`;
-            if (!seen.has(key)) { seen.add(key); moves.push({ from: fromPos, to: bearOffPos, checker: currentPlayer }); }
-          }
-          // High roll bear-off: can bear off from furthest back point when die is too large (REVERSED)
-          else if (currentPlayer === 'white' && targetPos < 0) {
-            // Only the furthest-back piece in the home board (highest index in 0-5) may use a high roll
-            let isFurthest = true;
-            for (let i = fromPos + 1; i < 6; i++) {
-              if (points[i].checkers.some(c => c === currentPlayer)) {
-                isFurthest = false;
-                break;
-              }
-            }
-            if (isFurthest) {
-              console.log(`    ✅ White high roll bear-off from ${fromPos} with die ${dieValue}`);
+            if (targetPos === 24) {
+              // Exact bear-off
               const key = `${fromPos}-${bearOffPos}`;
               if (!seen.has(key)) { seen.add(key); moves.push({ from: fromPos, to: bearOffPos, checker: currentPlayer }); }
-            }
-          } else if (currentPlayer === 'black' && targetPos > 23) {
-            // Only the furthest-back piece for black (lowest index in 18-23) may use a high roll
-            let isFurthest = true;
-            for (let i = 18; i < fromPos; i++) {
-              if (points[i].checkers.some(c => c === currentPlayer)) {
-                isFurthest = false;
-                break;
+            } else {
+              // High-roll bear-off: only the lowest-occupied point in home board (18-23) may use it.
+              // "Lowest index" = furthest from exit edge (ptNum 24 = index 23 is closest to exit).
+              let isFurthest = true;
+              for (let i = 18; i < fromPos; i++) {
+                if (points[i].checkers.some(c => c === currentPlayer)) {
+                  isFurthest = false;
+                  break;
+                }
               }
-            }
-            if (isFurthest) {
-              console.log(`    ✅ Black high roll bear-off from ${fromPos} with die ${dieValue}`);
-              const key = `${fromPos}-${bearOffPos}`;
-              if (!seen.has(key)) { seen.add(key); moves.push({ from: fromPos, to: bearOffPos, checker: currentPlayer }); }
+              if (isFurthest) {
+                const key = `${fromPos}-${bearOffPos}`;
+                if (!seen.has(key)) { seen.add(key); moves.push({ from: fromPos, to: bearOffPos, checker: currentPlayer }); }
+              }
             }
           }
         });

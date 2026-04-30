@@ -86,10 +86,14 @@ export interface ARCard {
 export interface AR3DOverlayHandle {
   /** Re-centers the board in front of the player's current looking direction */
   recenter: () => void;
+  /** Uniformly scales the AR board scene (clamped 0.4–3.0) */
+  setScale: (scale: number) => void;
 }
 
 export interface AR3DOverlayProps {
   visible?: boolean;
+  /** Called when the user taps a backgammon/nardi point in AR mode (0-based index 0-23) */
+  onNardiPointTap?: (pointIndex: number) => void;
   pieces?: ARPiece[];
   /** Possible-move squares — shown as 3D glowing dots on the board */
   moves?: ARMove[];
@@ -497,6 +501,7 @@ const DEG = Math.PI / 180;
 const sceneGroup = new THREE.Group();
 sceneGroup.position.x = 0.0; // shift right in camera space to centre in view
 camera.add(sceneGroup);  // ← camera child: local (0,0,-TABLE_DIST) = always in front
+var _boardZoom = 1.0;  // current uniform scale, updated by RN pinch gesture
 let _frozen = false;
 let _freezeCountdown = 8; // wait 8 frames for live gyro injectJavaScript to arrive
 
@@ -535,6 +540,33 @@ function handleTap(clientX, clientY) {
   if (!hits.length) return;
   // Convert world hit point → boardGroup local space
   const lp = boardGroup.worldToLocal(hits[0].point.clone());
+
+  // ── Nardi (backgammon) point detection ──────────────────────────────────
+  // Constants must match arPieces computation in NardiScreen (BHW=0.305, BAR≈0.026)
+  var N_BHW = 0.305;
+  var N_BAR = N_BHW * 2 * 0.085 / 2;   // ≈ 0.026m
+  var N_PTW = (N_BHW - N_BAR) / 7;      // ≈ 0.0399m per column
+  if (Math.abs(lp.x) <= N_BHW && Math.abs(lp.y) <= N_BHW) {
+    var nIsTop  = lp.y > 0;
+    var nIsLeft = lp.x < 0;
+    var nCol;
+    if (nIsLeft) {
+      nCol = Math.round((lp.x + N_BHW) / N_PTW - 1.5);
+    } else {
+      nCol = Math.round((lp.x - N_BAR) / N_PTW - 0.5);
+    }
+    nCol = Math.max(0, Math.min(5, nCol));
+    var nPoint1Based;
+    if (nIsLeft && nIsTop)   nPoint1Based = nCol + 13;  // 13-18
+    else if (nIsLeft)        nPoint1Based = 12 - nCol;  // 12-7
+    else if (nIsTop)         nPoint1Based = nCol + 19;  // 19-24
+    else                     nPoint1Based = 6 - nCol;   // 6-1
+    if (window.ReactNativeWebView) {
+      window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'nardi_tap', point: nPoint1Based - 1 }));
+    }
+  }
+
+  // ── Chess / generic grid tap ─────────────────────────────────────────────
   // Clamp to field bounds before flooring so border taps land on edge squares
   const clampedX = Math.max(-FIELD_HALF_W + 0.001, Math.min(FIELD_HALF_W - 0.001, lp.x));
   const clampedY = Math.max(-FIELD_HALF_H + 0.001, Math.min(FIELD_HALF_H - 0.001, lp.y));
@@ -546,10 +578,33 @@ function handleTap(clientX, clientY) {
     }
   }
 }
-document.addEventListener('touchstart', (e) => {
-  if (e.changedTouches.length > 0) {
+// Pinch-to-zoom: scales sceneGroup uniformly so the board gets bigger/smaller
+// regardless of whether it is frozen in world space or camera-attached.
+// Spreading fingers = board grows; pinching = shrinks.
+var _pinchStartDist = 0;
+var _pinchBaseZoom = 1.0; // committed scale at start of each gesture
+document.addEventListener('touchstart', function(e) {
+  if (e.touches.length === 2) {
+    var dx = e.touches[0].clientX - e.touches[1].clientX;
+    var dy = e.touches[0].clientY - e.touches[1].clientY;
+    _pinchStartDist = Math.sqrt(dx * dx + dy * dy);
+    _pinchBaseZoom = _boardZoom; // lock in current scale
+  } else if (e.touches.length === 1 && e.changedTouches.length > 0) {
     handleTap(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
   }
+}, { passive: true });
+document.addEventListener('touchmove', function(e) {
+  if (e.touches.length === 2 && _pinchStartDist > 0) {
+    var dx = e.touches[0].clientX - e.touches[1].clientX;
+    var dy = e.touches[0].clientY - e.touches[1].clientY;
+    var dist = Math.sqrt(dx * dx + dy * dy);
+    var ratio = dist / _pinchStartDist; // >1 = spreading = zoom in
+    _boardZoom = Math.max(0.3, Math.min(4.0, _pinchBaseZoom * ratio));
+    boardGroup.scale.setScalar(_boardZoom);
+  }
+}, { passive: true });
+document.addEventListener('touchend', function(e) {
+  if (e.touches.length < 2) _pinchStartDist = 0;
 }, { passive: true });
 
 // ── Procedural fallback board ─────────────────────────────────────────────────
@@ -1679,6 +1734,10 @@ window.handleRNMessage = function(data) {
     updateCards(window._cards);
     updateLabels(data.labels || []);
   }
+  if (data.type === 'scale') {
+    _boardZoom = Math.max(0.4, Math.min(3.0, data.value));
+    boardGroup.scale.setScalar(_boardZoom);
+  }
   if (data.type === 'recenter') {
     // Re-attach sceneGroup to camera so it tracks the player again,
     // then let the freeze countdown re-fire to lock it in the new direction.
@@ -1696,6 +1755,7 @@ window.handleRNMessage = function(data) {
       sceneGroup.position.set(0, 0, 0);
       sceneGroup.rotation.set(0, 0, 0);
       sceneGroup.scale.set(1, 1, 1);
+      boardGroup.scale.setScalar(_boardZoom); // preserve current pinch zoom
       _frozen = false;
       _freezeCountdown = 8;
     }
@@ -1778,6 +1838,7 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
   cardGlbPath,
   cardBackTexturePath,
   onSquareTap,
+  onNardiPointTap,
   pieceColorRed   = '#c0392b',
   pieceColorBlack = '#1e2d3d',
   hideCheckerboard = false,
@@ -1798,6 +1859,11 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
     recenter() {
       webViewRef.current?.injectJavaScript(
         `window.handleRNMessage({type:'recenter'});true;`
+      );
+    },
+    setScale(scale: number) {
+      webViewRef.current?.injectJavaScript(
+        `window.handleRNMessage({type:'scale',value:${scale}});true;`
       );
     },
   }));
@@ -2031,11 +2097,13 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
       const data = JSON.parse(event.nativeEvent.data);
       if (data.type === 'tap' && onSquareTap) {
         onSquareTap(data.row, data.col);
+      } else if (data.type === 'nardi_tap' && onNardiPointTap) {
+        onNardiPointTap(data.point);
       } else if (data.type === 'log') {
         console.warn('[AR3D WebView]', data.msg);
       }
     } catch (_) {}
-  }, [onSquareTap]);
+  }, [onSquareTap, onNardiPointTap]);
 
   if (!visible || !htmlFileUri) return null;
 
