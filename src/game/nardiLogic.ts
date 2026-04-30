@@ -286,7 +286,13 @@ export const executeMove = (
   // Handle bar entry
   if (move.from === -1) {
     newState.bar[move.checker]--;
-    newState.points[move.to].checkers.push(move.checker);
+    const entryPoint = newState.points[move.to];
+    // Hit a blot (single opponent checker) if landing on it
+    if (entryPoint.checkers.length === 1 && entryPoint.checkers[0] !== move.checker) {
+      newState.bar[entryPoint.checkers[0]]++;
+      entryPoint.checkers = [];
+    }
+    entryPoint.checkers.push(move.checker);
     return newState;
   }
 

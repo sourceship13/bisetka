@@ -608,8 +608,32 @@ function _launchPhys(vxS, vyS, d1, d2) {
   _physMeshes[0].visible = true; _physMeshes[1].visible = true;
 }
 function _stepPhysDice() {
-  if (!_physState || _physState.done) return;
+  if (!_physState) return;
+  // Once done and finished sliding there's nothing left to do
+  if (_physState.done && !_physState.sliding) return;
   const DT = 0.016;
+
+  // ── Sliding phase: lerp both dice toward their center-bar rest positions ──
+  if (_physState.done && _physState.sliding) {
+    let allArrived = true;
+    _physState.p.forEach((d, i) => {
+      const tgt = _physState.restTargets[i];
+      d.pos.lerp(tgt, 0.08);
+      _physMeshes[i].position.copy(d.pos);
+      if (d.pos.distanceTo(tgt) > 0.001) allArrived = false;
+    });
+    if (allArrived) {
+      // Snap exactly to targets and stop
+      _physState.p.forEach((d, i) => {
+        d.pos.copy(_physState.restTargets[i]);
+        _physMeshes[i].position.copy(d.pos);
+      });
+      _physState.sliding = false;
+    }
+    return;
+  }
+
+  // ── Physics simulation ────────────────────────────────────────────────────
   _physState.p.forEach((d, i) => {
     if (d.settled) return;
     d.tf++;
@@ -663,11 +687,18 @@ function _stepPhysDice() {
       if (!B.settled) { B.pos.x += nx*pen; B.pos.y += ny*pen; B.vel.x += nx*0.22; B.vel.y += ny*0.22; }
     }
   }
-  if (_physState.p[0].settled && _physState.p[1].settled) {
+  // Both settled → fire result and start slide to center bar
+  if (_physState.p[0].settled && _physState.p[1].settled && !_physState.done) {
     _physState.done = true;
     if (window.ReactNativeWebView) window.ReactNativeWebView.postMessage(
       JSON.stringify({ type: 'dice_result', die1: _physState.d1, die2: _physState.d2 })
     );
+    // Rest targets: both dice side by side at dead center of the board
+    _physState.restTargets = [
+      new THREE.Vector3(-_DIE_HALF * 1.6, 0, _DIE_FLRZ),
+      new THREE.Vector3( _DIE_HALF * 1.6, 0, _DIE_FLRZ)
+    ];
+    _physState.sliding = true;
   }
 }
 

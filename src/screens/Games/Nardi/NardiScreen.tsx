@@ -1175,9 +1175,10 @@ const NardiScreen = ({ navigation, route }: any) => {
       point.checkers[point.checkers.length - 1] === myColorForRender &&
       gameState.possibleMoves.some(m => m.from === pointIndex);
 
-    const maxVisible = 5;
+    const maxVisible = 4;
     const stackGap = CHECKER_SIZE * 0.35;
-    const visibleCheckers = Math.min(checkers, maxVisible);
+    const overflow = checkers > maxVisible;
+    const visibleCheckers = overflow ? maxVisible : checkers;
     const isDragging = !easyMode && draggedFrom === pointIndex;
 
     const positionStyle = {
@@ -1188,24 +1189,33 @@ const NardiScreen = ({ navigation, route }: any) => {
         : { top: pos.y - TRIANGLE_HEIGHT, height: TRIANGLE_HEIGHT, justifyContent: 'flex-end' as const }),
     };
 
-    const stackedCheckers = checkers > 0 && Array.from({ length: visibleCheckers }).map((_, i) => {
-      const checkerIndex = checkers > maxVisible ? (checkers - visibleCheckers) + i : i;
+    const countBadge = overflow && !isDragging ? (
+      <View key="count" style={styles.checkerCount}>
+        <Text style={styles.checkerCountText}>{checkers}</Text>
+      </View>
+    ) : null;
+
+    const checkerItems = checkers > 0 ? Array.from({ length: visibleCheckers }).map((_, i) => {
+      const checkerIndex = overflow ? (checkers - visibleCheckers) + i : i;
       const individualColor = (point.checkers[checkerIndex] ?? color) as 'white' | 'black';
       return (
         <View key={i} style={{ marginTop: i > 0 ? -stackGap : 0, opacity: isDragging ? 0.25 : 1 }}>
           {renderChecker(individualColor, i)}
         </View>
       );
-    });
+    }) : [];
+
+    // For bottom columns the tip is at the TOP — badge goes before checkers so it sits at the tip.
+    // For top columns the tip is at the BOTTOM — badge goes after checkers.
+    const children = pos.isTop
+      ? [...checkerItems, countBadge]
+      : [countBadge, ...checkerItems];
 
     // Drag mode: plain non-interactive Views — board PanResponder handles all gestures
     if (!easyMode) {
       return (
         <View key={pointNum} style={[styles.pointStack, positionStyle]} pointerEvents="none">
-          {stackedCheckers}
-          {checkers > maxVisible && !isDragging && (
-            <View style={styles.checkerCount}><Text style={styles.checkerCountText}>{checkers}</Text></View>
-          )}
+          {children}
         </View>
       );
     }
@@ -1223,12 +1233,7 @@ const NardiScreen = ({ navigation, route }: any) => {
         ]}
         onPress={() => handlePointPress(pointIndex)}
         activeOpacity={0.8}>
-        {stackedCheckers}
-        {checkers > maxVisible && (
-          <View style={styles.checkerCount}>
-            <Text style={styles.checkerCountText}>{checkers}</Text>
-          </View>
-        )}
+        {children}
         {checkers === 0 && (isValidDestination || isBarEntryDest) && (
           <View style={styles.emptyDestinationMarker}>
             <Text style={styles.emptyDestinationText}>✓</Text>
@@ -1344,56 +1349,6 @@ const NardiScreen = ({ navigation, route }: any) => {
               </TouchableOpacity>
             </View>
           )}
-
-          {/* Black player's borne-off tray (top left, below toolbar) */}
-          <View style={{ 
-            position: 'absolute',
-            top: 140,
-            left: 16,
-            zIndex: 50,
-          }}>
-            <TouchableOpacity
-              activeOpacity={0.85}
-              disabled={gameState.currentPlayer !== 'black'}
-              onPress={() => handleBearOffTrayPress('black')}
-              style={{
-              backgroundColor: 'rgba(26, 26, 46, 0.95)',
-              borderRadius: 12,
-              borderWidth: blackTrayIsValidDestination ? 3 : 2,
-              borderColor: blackTrayIsValidDestination ? '#fbbf24' : '#555',
-              padding: 8,
-              minWidth: 100,
-              maxWidth: 130,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.3,
-              shadowRadius: 5,
-              elevation: 8,
-            }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6, gap: 4 }}>
-                <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: '#1a1a2e', borderWidth: 1, borderColor: '#fff' }} />
-                <Text style={{ color: '#fff', fontSize: 11, fontWeight: '700' }}>
-                  {gameState.home.black}/15
-                </Text>
-              </View>
-              <View style={{ 
-                flexDirection: 'row', 
-                flexWrap: 'wrap', 
-                gap: 2,
-                minHeight: 30,
-                alignItems: 'flex-start',
-                justifyContent: 'flex-start',
-              }}>
-                {Array.from({ length: gameState.home.black }).map((_, i) => (
-                  <Image
-                    key={i}
-                    source={require('../../../../assets/nardi/checker-black.png')}
-                    style={{ width: 14, height: 14, resizeMode: 'contain' }}
-                  />
-                ))}
-              </View>
-            </TouchableOpacity>
-          </View>
 
           <View style={styles.boardContainer} pointerEvents={arEnabled ? 'box-none' : 'auto'}>
             {arEnabled ? (
@@ -1553,56 +1508,6 @@ const NardiScreen = ({ navigation, route }: any) => {
               </View>
             </ImageBackground>
             )}
-          </View>
-
-          {/* White player's borne-off tray (bottom right) */}
-          <View style={{ 
-            position: 'absolute',
-            bottom: 120,
-            right: 16,
-            zIndex: 50,
-          }}>
-            <TouchableOpacity
-              activeOpacity={0.85}
-              disabled={gameState.currentPlayer !== 'white'}
-              onPress={() => handleBearOffTrayPress('white')}
-              style={{
-              backgroundColor: 'rgba(255, 255, 255, 0.95)',
-              borderRadius: 12,
-              borderWidth: whiteTrayIsValidDestination ? 3 : 2,
-              borderColor: whiteTrayIsValidDestination ? '#fbbf24' : '#ccc',
-              padding: 8,
-              minWidth: 100,
-              maxWidth: 130,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.3,
-              shadowRadius: 5,
-              elevation: 8,
-            }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6, gap: 4 }}>
-                <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: '#fff', borderWidth: 1, borderColor: '#333' }} />
-                <Text style={{ color: '#1a1a2e', fontSize: 11, fontWeight: '700' }}>
-                  {gameState.home.white}/15
-                </Text>
-              </View>
-              <View style={{ 
-                flexDirection: 'row', 
-                flexWrap: 'wrap', 
-                gap: 2,
-                minHeight: 30,
-                alignItems: 'flex-start',
-                justifyContent: 'flex-start',
-              }}>
-                {Array.from({ length: gameState.home.white }).map((_, i) => (
-                  <Image
-                    key={i}
-                    source={require('../../../../assets/nardi/checker-white.png')}
-                    style={{ width: 14, height: 14, resizeMode: 'contain' }}
-                  />
-                ))}
-              </View>
-            </TouchableOpacity>
           </View>
 
           <View style={{ paddingHorizontal: 16, paddingVertical: 12 }}>
@@ -1960,16 +1865,20 @@ const styles = StyleSheet.create({
     resizeMode: 'contain',
   },
   checkerCount: {
-    backgroundColor: 'rgba(0,0,0,0.8)',
-    borderRadius: 10,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    marginTop: 2,
+    backgroundColor: 'rgba(0,0,0,0.82)',
+    borderRadius: 12,
+    paddingHorizontal: 5,
+    paddingVertical: 3,
+    marginVertical: 1,
+    alignSelf: 'center',
+    minWidth: 26,
+    alignItems: 'center',
   },
   checkerCountText: {
     color: '#fff',
-    fontSize: 9,
-    fontWeight: '700',
+    fontSize: 12,
+    fontWeight: '800',
+    textAlign: 'center',
   },
   emptyDestinationMarker: {
     width: CHECKER_SIZE,
