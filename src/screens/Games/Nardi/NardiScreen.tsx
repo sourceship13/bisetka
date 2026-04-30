@@ -149,7 +149,7 @@ const NardiScreen = ({ navigation, route }: any) => {
       const isLeft = ptNum >= 7 && ptNum <= 18;
       // Right half: natural 1-col gap at outer edge from PTW/7 sizing
       // Left half:  +1 offset explicitly creates the same 1-col gap at left edge
-      return isLeft ? (-BHW + (col + 1.5) * PTW) : (BAR + (col + 0.5) * PTW);
+      return isLeft ? (-BHW + (col + 1.5) * PTW + 0.01) : (BAR + (col + 0.5) * PTW - 0.01);
     }
 
     gameState.points.forEach((pt, idx) => {
@@ -178,7 +178,7 @@ const NardiScreen = ({ navigation, route }: any) => {
     return pieces;
   }, [gameState]);
   const [showBackground, setShowBackground] = useState(true);
-  const [easyMode, setEasyMode] = useState(false); // Easy Mode: tap-to-move, Normal Mode: drag-to-move
+  const [easyMode, setEasyMode] = useState(true); // Easy Mode: tap-to-move (default on for AR); drag-to-move when off
   const toolbarExpanded = useSharedValue(false);
   const chevronStyle = useAnimatedStyle(() => ({
     transform: [{ rotate: withTiming(toolbarExpanded.value ? '180deg' : '0deg', { duration: 250 }) }],
@@ -537,12 +537,16 @@ const NardiScreen = ({ navigation, route }: any) => {
   // is >= the actual distance so that high-roll bear-offs are handled correctly.
   const getUsedDieValue = (move: Move, player: PlayerColor, dice: Dice): number => {
     if (move.from === -1) {
-      // Re-entering from bar: die equals the destination point number
-      return player === 'white' ? move.to + 1 : 24 - move.to;
+      // Re-entering from bar:
+      // White enters Black's home (entryPoint = 24 - die), so die = 24 - move.to
+      // Black enters White's home (entryPoint = die - 1),  so die = move.to + 1
+      return player === 'white' ? 24 - move.to : move.to + 1;
     }
     if (move.to === 24 || move.to === -1) {
-      // Bearing off: find the die that is >= the distance (handles high-roll bear-offs)
-      const dist = player === 'white' ? (24 - move.from) : (move.from + 1);
+      // Bearing off:
+      // White bears off to -1: distance = fromPos - (-1) = fromPos + 1
+      // Black bears off to 24: distance = 24 - fromPos
+      const dist = player === 'white' ? (move.from + 1) : (24 - move.from);
       // Prefer exact match first
       if (dice.die1 === dist && dice.die1 > 0) return dice.die1;
       if (dice.die2 === dist && dice.die2 > 0) return dice.die2;
@@ -600,10 +604,10 @@ const NardiScreen = ({ navigation, route }: any) => {
     if (!gameState) return false;
     if (gameState.bar[player] > 0) return false;
     
-    // White moves 0→23, bears off from home board 18-23
-    // Black moves 23→0, bears off from home board 0-5
-    const homeStart = player === 'white' ? 18 : 0;
-    const homeEnd = player === 'white' ? 24 : 6;
+    // White moves 24→1 (decreasing), bears off from home board indices 0-5 (ptNum 1-6)
+    // Black moves 1→24 (increasing), bears off from home board indices 18-23 (ptNum 19-24)
+    const homeStart = player === 'white' ? 0 : 18;
+    const homeEnd = player === 'white' ? 6 : 24;
     
     for (let i = 0; i < 24; i++) {
       if (i >= homeStart && i < homeEnd) continue;
@@ -814,7 +818,8 @@ const NardiScreen = ({ navigation, route }: any) => {
     if (!gameState || gameState.currentPlayer !== myColor || gameState.phase !== 'moving') return;
     if (player !== myColor) return;
 
-    const bearOffTarget = player === 'white' ? 24 : -1;
+    // White bears off to -1 (below index 0); Black bears off to 24 (above index 23)
+    const bearOffTarget = player === 'white' ? -1 : 24;
 
     if (selectedPoint !== null) {
       const selectedBearOffMove = gameState.possibleMoves.find(
@@ -1115,14 +1120,15 @@ const NardiScreen = ({ navigation, route }: any) => {
   }
 
   // Tray highlights only shown in easy mode
+  // White bears off to -1 (below point 0), Black bears off to 24 (above point 23)
   const whiteTrayIsValidDestination = easyMode &&
     selectedPoint !== null &&
     gameState.currentPlayer === 'white' &&
-    gameState.possibleMoves.some(m => m.from === selectedPoint && m.to === 24);
+    gameState.possibleMoves.some(m => m.from === selectedPoint && m.to === -1);
   const blackTrayIsValidDestination = easyMode &&
     selectedPoint !== null &&
     gameState.currentPlayer === 'black' &&
-    gameState.possibleMoves.some(m => m.from === selectedPoint && m.to === -1);
+    gameState.possibleMoves.some(m => m.from === selectedPoint && m.to === 24);
 
   return (
     <View style={styles.container}>
@@ -1139,9 +1145,10 @@ const NardiScreen = ({ navigation, route }: any) => {
           white_bg_checker: 'glb/checkers/nyu_red_checker.glb',
           black_bg_checker: 'glb/checkers/nyu_black_checker.glb',
         }}
+        onNardiPointTap={handlePointPress}
       />
       <View style={styles.overlay} pointerEvents="box-none">
-        <SafeAreaView style={styles.safeArea}>
+        <SafeAreaView style={styles.safeArea} pointerEvents="box-none">
           <View>
             <GameToolbar
               title={isMultiplayer ? '🎲 Nardi (Online)' : '🎲 Nardi'}
@@ -1244,7 +1251,15 @@ const NardiScreen = ({ navigation, route }: any) => {
             </TouchableOpacity>
           </View>
 
-          {!arEnabled && <View style={styles.boardContainer}>
+          <View style={styles.boardContainer} pointerEvents={arEnabled ? 'box-none' : 'auto'}>
+            {arEnabled ? (
+              // In AR mode: WebView handles all touches (tap = nardi point, pinch = zoom).
+              // This View must NOT intercept touches — pointerEvents=none passes everything to WebView.
+              <View
+                style={[styles.board, { width: boardSize, height: boardSize, backgroundColor: 'transparent' }]}
+                pointerEvents="none"
+              />
+            ) : (
             <ImageBackground
               source={require('../../../../assets/nardi/board-futuristic.png')}
               style={[styles.board, { width: boardSize, height: boardSize }]}
@@ -1393,7 +1408,8 @@ const NardiScreen = ({ navigation, route }: any) => {
                 )}
               </View>
             </ImageBackground>
-          </View>}
+            )}
+          </View>
 
           {/* White player's borne-off tray (bottom right) */}
           <View style={{ 
@@ -1612,43 +1628,53 @@ const NardiScreen = ({ navigation, route }: any) => {
             left: 0,
             right: 0,
             alignItems: 'center',
+          }}
+        >
+          <View style={{
+            backgroundColor: 'rgba(0,0,0,0.55)',
+            borderRadius: 24,
+            paddingHorizontal: 28,
+            paddingVertical: 16,
+            alignItems: 'center',
             flexDirection: 'row',
             justifyContent: 'center',
             gap: 12,
-          }}
-        >
-          <Dice3DSimple
-            value={diceAnimating ? pendingDice!.die1 : settledDice!.die1}
-            isRolling={diceAnimating}
-            index={0}
-            size={110}
-            onRollComplete={() => {
-              diceCompleteCount.current += 1;
-              if (diceCompleteCount.current >= 2) {
-                const settled = pendingDice!;
-                setSettledDice(settled);
-                setDiceAnimating(false);
-                applyDiceRoll({ ...settled, rolled: true });
-                setPendingDice(null);
-              }
-            }}
-          />
-          <Dice3DSimple
-            value={diceAnimating ? pendingDice!.die2 : settledDice!.die2}
-            isRolling={diceAnimating}
-            index={1}
-            size={110}
-            onRollComplete={() => {
-              diceCompleteCount.current += 1;
-              if (diceCompleteCount.current >= 2) {
-                const settled = pendingDice!;
-                setSettledDice(settled);
-                setDiceAnimating(false);
-                applyDiceRoll({ ...settled, rolled: true });
-                setPendingDice(null);
-              }
-            }}
-          />
+            borderWidth: 1,
+            borderColor: 'rgba(255,255,255,0.15)',
+          }}>
+            <Dice3DSimple
+              value={diceAnimating ? pendingDice!.die1 : settledDice!.die1}
+              isRolling={diceAnimating}
+              index={0}
+              size={110}
+              onRollComplete={() => {
+                diceCompleteCount.current += 1;
+                if (diceCompleteCount.current >= 2) {
+                  const settled = pendingDice!;
+                  setSettledDice(settled);
+                  setDiceAnimating(false);
+                  applyDiceRoll({ ...settled, rolled: true });
+                  setPendingDice(null);
+                }
+              }}
+            />
+            <Dice3DSimple
+              value={diceAnimating ? pendingDice!.die2 : settledDice!.die2}
+              isRolling={diceAnimating}
+              index={1}
+              size={110}
+              onRollComplete={() => {
+                diceCompleteCount.current += 1;
+                if (diceCompleteCount.current >= 2) {
+                  const settled = pendingDice!;
+                  setSettledDice(settled);
+                  setDiceAnimating(false);
+                  applyDiceRoll({ ...settled, rolled: true });
+                  setPendingDice(null);
+                }
+              }}
+            />
+          </View>
         </View>
       )}
       {/* Thumb-zone swipe-up dice — only in AR mode on player's rolling turn */}
@@ -1678,14 +1704,13 @@ const NardiScreen = ({ navigation, route }: any) => {
           }}>
             <NardiDice
               onRollComplete={(die1, die2) => {
-                // NardiDice shows its own small animation; use its values for the overlay
+                // NardiDice already showed its own animation; show result directly in AR overlay without re-spinning
                 const dice: Dice = { die1, die2, rolled: true };
                 if (isMultiplayer && roomIdRef.current) {
                   socketService.makeMove(roomIdRef.current, userId, { type: 'roll_dice', dice: { die1, die2 } });
                 }
-                diceCompleteCount.current = 0;
-                setPendingDice(dice);
-                setDiceAnimating(true);
+                setSettledDice({ die1, die2 });
+                applyDiceRoll(dice);
               }}
               enabled={true}
             />
@@ -1824,13 +1849,14 @@ const styles = StyleSheet.create({
     color: '#000',
   },
   dieUsed: {
-    backgroundColor: '#e5e5e5',
-    opacity: 0.5,
+    backgroundColor: '#111',
+    borderWidth: 2,
+    borderColor: '#333',
   },
   dieTextUsed: {
     fontSize: 26,
     fontWeight: '800',
-    color: '#999',
+    color: '#555',
   },
   controls: {
     paddingHorizontal: 16,
