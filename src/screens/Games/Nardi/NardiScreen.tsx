@@ -174,24 +174,46 @@ const NardiScreen = ({ navigation, route }: any) => {
       const edgeY = BHW * 0.95 - CD * 0.5;
       // Uniform screen-down shift: subtracting from posY moves both rows down in perspective
       const PIECE_Y_SHIFT = 0.02;
-      pt.checkers.forEach((color, si) => {
+      const MAX_VIS_AR = 5;
+      const totalCheckers = pt.checkers.length;
+      const showCount = Math.min(totalCheckers, MAX_VIS_AR);
+      for (let si = 0; si < showCount; si++) {
         const y = isTop ? (edgeY - si * CD - PIECE_Y_SHIFT) : -(edgeY - si * CD) - PIECE_Y_SHIFT;
-        // Only lift the top checker of the selected point (the one the player will move)
-        const isTopChecker = si === pt.checkers.length - 1;
+        // Only lift the top checker of the selected point (and only when stack is fully visible)
+        const isTopChecker = totalCheckers <= MAX_VIS_AR && si === totalCheckers - 1;
         pieces.push({
           key: `bg-${ptNum}-${si}`,
           row: 0, col: 0,
-          color: color === 'white' ? 'red' : 'black',
+          color: pt.checkers[si] === 'white' ? 'red' : 'black',
           isKing: false,
           isSelected: isPointSelected && isTopChecker,
-          side: color,
+          side: pt.checkers[si],
           pieceType: 'bg_checker',
           posX: pointX(ptNum),
           posY: y,
           posZ: 0.006 + si * CT,
           pieceScale: CD,
         });
-      });
+      }
+      if (totalCheckers > MAX_VIS_AR) {
+        // Float a count badge above the 5th (top visible) piece
+        const lastSi = MAX_VIS_AR - 1;
+        const badgeY = isTop ? (edgeY - lastSi * CD - PIECE_Y_SHIFT) : -(edgeY - lastSi * CD) - PIECE_Y_SHIFT;
+        pieces.push({
+          key: `bg-badge-${ptNum}`,
+          row: 0, col: 0,
+          color: 'red',
+          isKing: false,
+          isSelected: false,
+          side: pt.checkers[0] as 'white' | 'black',
+          pieceType: 'stack_badge',
+          posX: pointX(ptNum),
+          posY: badgeY,
+          posZ: 0.006 + lastSi * CT + 0.028,
+          pieceScale: CD,
+          stackCount: totalCheckers,
+        });
+      }
     });
 
     // Bar pieces — placed along the center spine (posX=0)
@@ -310,6 +332,15 @@ const NardiScreen = ({ navigation, route }: any) => {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [arEnabled, gameState?.phase, gameState?.currentPlayer]);
+
+  // Sync borne-off piece counts to AR pocket visualization
+  useEffect(() => {
+    if (!arEnabled || !gameState) return;
+    arOverlayRef.current?.updateBorneOff(
+      gameState.home.white,
+      gameState.home.black
+    );
+  }, [arEnabled, gameState?.home.white, gameState?.home.black]);
 
   // Entry fee and prize tracking
   const { user, refreshUser } = useAuth();
@@ -797,8 +828,15 @@ const NardiScreen = ({ navigation, route }: any) => {
     const myColor = isMultiplayer ? myMpColorRef.current : 'white';
     if (gameState.currentPlayer !== myColor) return;
 
+    const usedDieVal = getUsedDieValue(move, gameState.currentPlayer, gameState.dice);
     const updated = applyMove(gameState, move);
     console.log('📍 Move:', move.from, '->', move.to, 'movesLeft:', updated.movesRemaining);
+
+    // Tint the matching die red in AR mode
+    if (arEnabled && usedDieVal > 0) {
+      const isDoubles = gameState.dice.die1 === gameState.dice.die2 && gameState.dice.die1 > 0;
+      arOverlayRef.current?.useDieTint(usedDieVal, updated.movesRemaining, isDoubles);
+    }
 
     if (isMultiplayer && roomIdRef.current) {
       socketService.makeMove(roomIdRef.current, userId, {type: 'move_piece', from: move.from, to: move.to});
@@ -858,13 +896,17 @@ const NardiScreen = ({ navigation, route }: any) => {
 
     // Pre-calculate all AI moves
     const statesSequence: NardiGameState[] = [currentState];
+    const aiDieValues: number[] = [0]; // parallel array; index 0 = no move yet
+    const aiIsDoubles = dice.die1 === dice.die2;
     let workingState = currentState;
 
     while (workingState.possibleMoves.length > 0 && workingState.movesRemaining > 0) {
       const move = workingState.possibleMoves[Math.floor(Math.random() * workingState.possibleMoves.length)]!;
       console.log('🤖 AI planned move:', move.from, '->', move.to);
+      const aiUsedDie = getUsedDieValue(move, workingState.currentPlayer, workingState.dice);
       workingState = applyMove(workingState, move);
       statesSequence.push(workingState);
+      aiDieValues.push(aiUsedDie);
     }
 
     // Schedule showing each state with delays (give dice time to land first)
@@ -872,6 +914,10 @@ const NardiScreen = ({ navigation, route }: any) => {
     statesSequence.forEach((s, i) => {
       const t = setTimeout(() => {
         setGameState(s);
+        // Tint the AI's consumed die red (skip index 0 = initial state before moves)
+        if (arEnabled && i > 0 && aiDieValues[i] > 0) {
+          arOverlayRef.current?.useDieTint(aiDieValues[i], s.movesRemaining, aiIsDoubles);
+        }
       }, delay);
       aiTimeoutsRef.current.push(t);
       delay += 700;
@@ -1280,6 +1326,7 @@ const NardiScreen = ({ navigation, route }: any) => {
         onNardiPointTap={handlePointPress}
         onDiceRolled={(die1, die2) => {
           arDiceRollingRef.current = false;
+          arOverlayRef.current?.resetDiceTint();
           const diceData: Dice = { die1, die2, rolled: true };
           setSettledDice(diceData);
           setDiceAnimating(false);

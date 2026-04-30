@@ -52,6 +52,8 @@ export interface ARPiece {
   posZ?: number;
   /** Scale override (metres) — replaces computed PIECE_SCALE. */
   pieceScale?: number;
+  /** For pieceType 'stack_badge': the true total count to display. */
+  stackCount?: number;
 }
 
 export interface ARMove {
@@ -90,6 +92,12 @@ export interface AR3DOverlayHandle {
   setScale: (scale: number) => void;
   /** Launch physics dice onto the 3D board. vx/vy are swipe velocity (screen units/s). */
   rollDiceOnBoard: (vx: number, vy: number, die1: number, die2: number) => void;
+  /** Tint the die matching `value` red (die consumed by a move). */
+  useDieTint: (value: number, movesRemaining: number, isDoubles: boolean) => void;
+  /** Remove all tints (called when a new roll starts). */
+  resetDiceTint: () => void;
+  /** Update borne-off piece counts in the board's pocket areas. */
+  updateBorneOff: (white: number, black: number) => void;
 }
 
 export interface AR3DOverlayProps {
@@ -513,7 +521,28 @@ let _freezeCountdown = 8; // wait 8 frames for live gyro injectJavaScript to arr
 const boardGroup = new THREE.Group();
 boardGroup.position.set(0, BOARD_Y, -TABLE_DIST);
 boardGroup.rotation.x = -Math.PI / 2 - ${BOARD_TILT_X_JS};
+boardGroup.visible = false; // hidden until all GLBs are ready
 sceneGroup.add(boardGroup);
+
+// ── Asset-gate: show boardGroup + flush pieces only after all GLBs have loaded ─
+var _gateNeeded = 0;    // total async loads to wait for
+var _gateDone   = 0;    // completed (success or error)
+var _gateOpen   = false; // true once everything is ready
+var _gatePendingPieces = null; // last pieces[] received before gate opened
+function _gateStart() { _gateNeeded++; }
+function _gateDoneOne() {
+  _gateDone++;
+  if (!_gateOpen && _gateDone >= _gateNeeded) {
+    _gateOpen = true;
+    boardGroup.visible = true;
+    _rnLog('[AR3D-HTML] All assets loaded — showing board and pieces.');
+    if (_gatePendingPieces !== null) {
+      var _flush = _gatePendingPieces;
+      _gatePendingPieces = null;
+      updatePieces(_flush);
+    }
+  }
+}
 
 // ── Invisible hit plane for raycasting — covers the board surface exactly ────
 // CRITICAL: position hitPlane at the same height as the visual dots/pieces.
@@ -580,7 +609,133 @@ function _settleQ(tv) {
   ];
   return new THREE.Quaternion().setFromUnitVectors(ns[fi], new THREE.Vector3(0,0,1));
 }
+// ── Borne-off piece pockets ───────────────────────────────────────────────────
+// Placed inside the board's decorative circular medallions (centre of each half).
+// Left  circle (x≈-0.155): black / AI borne-off pieces
+// Right circle (x≈+0.155): white / player borne-off pieces
+// Pieces lie flat (circular face up), stacked along Y inside the circle.
+// 5 discs at 0.026 spacing span 0.104 m — fits inside the ~0.13 m radius circle.
+const _PKT = {
+  black: { cx: -0.155, cyStart: -0.052, dir:  1 },
+  white: { cx:  0.155, cyStart:  0.052, dir: -1 },
+};
+const _PKT_DISC_R   = 0.013;
+const _PKT_DISC_H   = 0.007;
+const _PKT_SPACING  = 0.026;  // tight stack to fit inside medallion circle
+const _PKT_MAX_SHOW = 5;      // max discs rendered; badge shows true count
+const _PKT_SZ       = SURFACE_Z + _PKT_DISC_H * 0.5 + 0.001;
+let _pocketMeshes = null;
+
+function _ensurePockets() {
+  if (_pocketMeshes) return;
+  _pocketMeshes = {};
+  // Shared geometries
+  const discGeo = new THREE.CylinderGeometry(_PKT_DISC_R, _PKT_DISC_R, _PKT_DISC_H, 20);
+  ['white', 'black'].forEach(function(color) {
+    const isWhite = color === 'white';
+    const mat = new THREE.MeshStandardMaterial({
+      color: isWhite ? 0xcc2828 : 0x1a1a30,
+      roughness: 0.55, metalness: 0.12
+    });
+    var discs = [];
+    for (var i = 0; i < _PKT_MAX_SHOW; i++) {
+      var m = new THREE.Mesh(discGeo, mat);
+      // CylinderGeometry axis is Y; rotate 90° around X so axis aligns with Z (face-up)
+      m.rotation.x = Math.PI / 2;
+      m.visible = false;
+      boardGroup.add(m);
+      discs.push(m);
+    }
+    // Count badge: canvas-textured sprite
+    var bc = document.createElement('canvas'); bc.width = 72; bc.height = 72;
+    var btex = new THREE.CanvasTexture(bc);
+    var bmat = new THREE.SpriteMaterial({ map: btex, transparent: true, depthTest: false, depthWrite: false });
+    var badge = new THREE.Sprite(bmat);
+    badge.scale.set(0.048, 0.048, 1);
+    badge.visible = false;
+    boardGroup.add(badge);
+    _pocketMeshes[color] = { discs: discs, badge: badge, badgeCanvas: bc };
+  });
+}
+
+function _updatePocket(color, count) {
+  _ensurePockets();
+  var def = _PKT[color];
+  var pm = _pocketMeshes[color];
+  var show = Math.min(count, _PKT_MAX_SHOW);
+  for (var i = 0; i < _PKT_MAX_SHOW; i++) {
+    if (i < show) {
+      pm.discs[i].position.set(def.cx, def.cyStart + def.dir * i * _PKT_SPACING, _PKT_SZ);
+      pm.discs[i].visible = true;
+    } else {
+      pm.discs[i].visible = false;
+    }
+  }
+  if (count > 0) {
+    // Draw count badge
+    var ctx = pm.badgeCanvas.getContext('2d');
+    ctx.clearRect(0, 0, 72, 72);
+    ctx.fillStyle = 'rgba(0,0,0,0.80)';
+    ctx.beginPath(); ctx.arc(36, 36, 30, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = color === 'white' ? '#e05555' : '#8888cc';
+    ctx.lineWidth = 3; ctx.stroke();
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 30px sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(String(count), 36, 37);
+    pm.badge.material.map.needsUpdate = true;
+    // Place badge just beyond the last disc
+    var lastIdx = Math.min(count - 1, _PKT_MAX_SHOW - 1);
+    var badgeY = def.cyStart + def.dir * (lastIdx * _PKT_SPACING + 0.038);
+    pm.badge.position.set(def.cx, badgeY, _PKT_SZ + 0.035);
+    pm.badge.visible = true;
+  } else {
+    pm.badge.visible = false;
+  }
+}
+
 let _physMeshes = null, _physState = null;
+// Tint planes: one transparent quad floating above each die's top face
+let _tintPlanes = null;
+function _ensureTintPlanes() {
+  if (_tintPlanes) return;
+  _tintPlanes = [0,1].map(() => {
+    const geo = new THREE.PlaneGeometry(_DIE_HALF*1.7, _DIE_HALF*1.7);
+    const mat = new THREE.MeshBasicMaterial({ color:0x00dd55, transparent:true, opacity:0, depthWrite:false, side:THREE.DoubleSide });
+    const m = new THREE.Mesh(geo, mat);
+    m.visible = false;
+    boardGroup.add(m);
+    return m;
+  });
+}
+function _setDieTint(i, color, opacity) {
+  if (!_tintPlanes) return;
+  _tintPlanes[i].material.color.set(color);
+  _tintPlanes[i].material.opacity = opacity;
+  _tintPlanes[i].visible = opacity > 0;
+}
+function _resetDiceTint() {
+  if (!_tintPlanes) return;
+  _tintPlanes.forEach(p => {
+    p.material.color.set(0x00dd55); // reset to green so next _applyGreenTints works
+    p.material.opacity = 0;
+    p.visible = false;
+  });
+}
+function _applyGreenTints() {
+  _ensureTintPlanes();
+  if (!_physMeshes || !_physState) return;
+  [0,1].forEach(i => {
+    const pos = _physState.p[i].pos;
+    _tintPlanes[i].position.set(pos.x, pos.y, _DIE_FLRZ + _DIE_HALF + 0.001);
+    _tintPlanes[i].quaternion.set(0,0,0,1); // flat, faces up (+Z)
+    // Don't overwrite a tint that was already set red by useDieTint
+    // (happens when AI fires moves before slide finishes)
+    if (_tintPlanes[i].material.color.getHex() !== 0xff3322) {
+      _setDieTint(i, 0x00dd55, 0.38);
+    }
+  });
+}
 function _ensurePhys() { if (!_physMeshes) _physMeshes = [_mkDieMesh(), _mkDieMesh()]; }
 function _mkBody(x, y0, vx, vy, tv) {
   return {
@@ -629,6 +784,8 @@ function _stepPhysDice() {
         _physMeshes[i].position.copy(d.pos);
       });
       _physState.sliding = false;
+      // Apply green tint now that dice are in their final resting positions
+      _applyGreenTints();
     }
     return;
   }
@@ -894,12 +1051,14 @@ _rnLog('[AR3D-HTML] module running. BOARD_URI=' + (BOARD_URI ? BOARD_URI.substri
 
 // ── Load BOARD
 if (BOARD_URI) {
+  _gateStart(); // board GLB is one asset to wait for
   var _boardDone = false;
   var _boardTimer = setTimeout(function() {
     if (!_boardDone) {
       _boardDone = true;
       _rnLog('[AR3D-HTML] Board GLB timed out after 120s, using procedural fallback');
       buildProceduralBoard();
+      _gateDoneOne();
     }
   }, 120000);
   loader.load(BOARD_URI, (gltf) => {
@@ -1055,6 +1214,7 @@ if (BOARD_URI) {
     // GLB loaded successfully — cancel the procedural fallback timer
     clearTimeout(_boardTimer); _boardDone = true;
     _rnLog('[AR3D-HTML] Board GLB loaded OK.');
+    _gateDoneOne();
   }, (xhr) => {
     if (xhr.total > 0) {
       _rnLog('[AR3D-HTML] Board GLB progress: ' + Math.round(xhr.loaded/xhr.total*100) + '%');
@@ -1063,9 +1223,12 @@ if (BOARD_URI) {
     clearTimeout(_boardTimer); _boardDone = true;
     _rnLog('[AR3D-HTML] Board GLB FAILED: ' + (err && err.message ? err.message : String(err)));
     buildProceduralBoard();
+    _gateDoneOne();
   });
 } else {
   buildProceduralBoard();
+  // No board GLB — board is immediately ready (procedural is synchronous)
+  _gateStart(); _gateDoneOne();
 }
 
 // ── Board surface image plane ─────────────────────────────────────────
@@ -1286,6 +1449,7 @@ function loadChessPieceUris(uriMap) {
         // All piece GLBs ready — update once so pieces appear all at once, no fallback→GLB flash
         invalidatePieceCache();
         updatePieces(window._pieces || []);
+        _gateDoneOne(); // release the single gate token registered for the chessPiece batch
       }
     }, undefined, function(err) {
       _rnLog('[AR3D] piece GLB FAILED: ' + pieceKeys[0] + ' err=' + (err && err.message ? err.message : String(err)));
@@ -1294,14 +1458,23 @@ function loadChessPieceUris(uriMap) {
       if (loadedCount === uriList.length) {
         invalidatePieceCache();
         updatePieces(window._pieces || []);
+        _gateDoneOne();
       }
     });
   });
 }
-// Load any URIs baked into the HTML at build time (will be {} initially)
+// Load any URIs baked into the HTML at build time.
+// Count these as gate assets so pieces wait for piece GLBs before appearing.
+var _chessPieceUriList = Object.values(CHESS_PIECE_URIS || {}).filter(function(v,i,a){ return v && a.indexOf(v)===i; });
+if (_chessPieceUriList.length > 0) {
+  // Register each unique URI as a gate asset; loadChessPieceUris will call
+  // _gateDoneOne when ALL of them are done (it already has a loaded-count check).
+  _gateStart(); // one gate token for the entire chessPiece batch
+}
 loadChessPieceUris(CHESS_PIECE_URIS || {});
 
 if (PIECES_URI) {
+  _gateStart();
   loader.load(PIECES_URI, (gltf) => {
     basePieceScene = normalizePieceModel(gltf.scene);
     invalidatePieceCache();
@@ -1309,13 +1482,21 @@ if (PIECES_URI) {
     const toFlush = pendingPiecesUpdate || window._pieces || [];
     pendingPiecesUpdate = null;
     updatePieces(toFlush);
+    _gateDoneOne();
   }, undefined, () => {
     // Pieces GLB failed — clonePiece() will use fallback geometry
     console.warn('[AR3DOverlay] pieces GLB load failed, using procedural discs');
     const toFlush = pendingPiecesUpdate || window._pieces || [];
     pendingPiecesUpdate = null;
     updatePieces(toFlush);
+    _gateDoneOne();
   });
+}
+
+// Safety valve: if nothing was registered to load (no board GLB, no piece GLBs),
+// open the gate now so the board is immediately visible.
+if (_gateNeeded === 0) {
+  _gateStart(); _gateDoneOne();
 }
 
 function clonePiece(piece) {
@@ -1786,6 +1967,7 @@ function updateLabels(labels) {
 // ── Piece management ──────────────────────────────────────────────────────────
 const pieceMeshes = {};
 const pieceState  = {};
+const _badgeMeshes = {};  // key → { sprite, canvas } for stack overflow badges
 
 function boardToLocal(row, col) {
   // GLB board (HIDE_CHECKERBOARD=true): surface sits at boardGroup local z≈0 — place piece base just above.
@@ -1799,6 +1981,11 @@ function boardToLocal(row, col) {
 }
 
 function updatePieces(pieces) {
+  // If the asset gate isn't open yet, save the latest pieces and wait.
+  if (!_gateOpen) {
+    _gatePendingPieces = pieces;
+    return;
+  }
   // If pieces GLB is still loading, defer
   if (PIECES_URI && !basePieceScene) {
     pendingPiecesUpdate = pieces;
@@ -1808,8 +1995,45 @@ function updatePieces(pieces) {
   const incoming = {};
   pieces.forEach(p => { incoming[p.key] = p; });
 
-  for (const k of Object.keys(pieceMeshes)) {
+  // ── Badge sprites (stack overflow count indicators) ──────────────────────
+  // Remove stale badges
+  for (const k of Object.keys(_badgeMeshes)) {
     if (!incoming[k]) {
+      boardGroup.remove(_badgeMeshes[k].sprite);
+      _badgeMeshes[k].sprite.material.map.dispose();
+      _badgeMeshes[k].sprite.material.dispose();
+      delete _badgeMeshes[k];
+    }
+  }
+  // Create/update badges for stack_badge pieces
+  for (const p of pieces) {
+    if (p.pieceType !== 'stack_badge') continue;
+    if (!_badgeMeshes[p.key]) {
+      var bc = document.createElement('canvas'); bc.width = 72; bc.height = 72;
+      var btex = new THREE.CanvasTexture(bc);
+      var bspr = new THREE.Sprite(new THREE.SpriteMaterial({ map: btex, transparent: true, depthTest: false, depthWrite: false }));
+      bspr.scale.set(0.038, 0.038, 1);
+      boardGroup.add(bspr);
+      _badgeMeshes[p.key] = { sprite: bspr, canvas: bc };
+    }
+    var bm = _badgeMeshes[p.key];
+    var ctx2 = bm.canvas.getContext('2d');
+    ctx2.clearRect(0, 0, 72, 72);
+    ctx2.fillStyle = 'rgba(0,0,0,0.82)';
+    ctx2.beginPath(); ctx2.arc(36, 36, 30, 0, Math.PI * 2); ctx2.fill();
+    ctx2.strokeStyle = p.side === 'white' ? '#e05555' : '#8888cc';
+    ctx2.lineWidth = 3; ctx2.stroke();
+    ctx2.fillStyle = '#ffffff';
+    ctx2.font = 'bold 28px sans-serif';
+    ctx2.textAlign = 'center'; ctx2.textBaseline = 'middle';
+    ctx2.fillText(String(p.stackCount || '?'), 36, 37);
+    bm.sprite.material.map.needsUpdate = true;
+    bm.sprite.position.set(p.posX, p.posY, p.posZ !== undefined ? p.posZ : 0.06);
+  }
+
+  // ── Regular piece meshes ──────────────────────────────────────────────────
+  for (const k of Object.keys(pieceMeshes)) {
+    if (!incoming[k] || incoming[k].pieceType === 'stack_badge') {
       boardGroup.remove(pieceMeshes[k]);
       delete pieceMeshes[k];
       delete pieceState[k];
@@ -1817,6 +2041,7 @@ function updatePieces(pieces) {
   }
 
   for (const p of pieces) {
+    if (p.pieceType === 'stack_badge') continue; // handled above
     const prev = pieceState[p.key];
     if (
       !prev ||
@@ -1939,7 +2164,53 @@ window.handleRNMessage = function(data) {
     }
   }
   if (data.type === 'roll_dice') {
+    _resetDiceTint();
     _launchPhys(data.vx || 0, data.vy || -1, data.die1 || 1, data.die2 || 1);
+  }
+  if (data.type === 'use_die') {
+    _ensureTintPlanes();
+    if (!_physState || !_tintPlanes) return;
+    const isDoubles = data.isDoubles;
+    const rem = data.movesRemaining; // remaining AFTER this move
+    // Reposition tint planes — use final rest targets when available (most reliable),
+    // fall back to current physics pos if dice haven't settled yet.
+    [0,1].forEach(function(i) {
+      var tgt = (_physState.restTargets && _physState.restTargets[i]) ? _physState.restTargets[i] : _physState.p[i].pos;
+      _tintPlanes[i].position.set(tgt.x, tgt.y, _DIE_FLRZ + _DIE_HALF + 0.001);
+      // Ensure planes are at least visible (opacity may still be 0 if dice haven't settled)
+      if (!_tintPlanes[i].visible && _tintPlanes[i].material.color.getHex() !== 0xff3322) {
+        _setDieTint(i, 0x00dd55, 0.38);
+      }
+    });
+    if (isDoubles) {
+      // Doubles = 4 moves total; each physical die represents 2 uses.
+      // Keep green while the die still has a remaining use; turn red when fully consumed.
+      // rem=3 (move 1 done): die0 used once, 1 more use → stay green
+      // rem=2 (move 2 done): die0 both uses consumed → die0 red
+      // rem=1 (move 3 done): die1 used once, 1 more use → stay green
+      // rem=0 (move 4 done): die1 both uses consumed → die1 red
+      if (rem === 2) {
+        _setDieTint(0, 0xff3322, 0.52);
+      } else if (rem === 0) {
+        _setDieTint(1, 0xff3322, 0.52);
+      }
+      // rem===3 or rem===1: die still has a use left — leave green
+    } else {
+      // Normal (non-doubles): turn the first still-green die whose face value matches red
+      for (var i = 0; i < 2; i++) {
+        if (_physState.p[i].tv === data.value && _tintPlanes[i].material.color.getHex() !== 0xff3322) {
+          _setDieTint(i, 0xff3322, 0.52);
+          break;
+        }
+      }
+    }
+  }
+  if (data.type === 'reset_dice_tint') {
+    _resetDiceTint();
+  }
+  if (data.type === 'update_borne_off') {
+    _updatePocket('white', data.white || 0);
+    _updatePocket('black', data.black || 0);
   }
 };
 // Flush messages that arrived before Three.js finished loading.
@@ -2052,6 +2323,21 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
     rollDiceOnBoard(vx: number, vy: number, die1: number, die2: number) {
       webViewRef.current?.injectJavaScript(
         `window.handleRNMessage({type:'roll_dice',vx:${vx},vy:${vy},die1:${die1},die2:${die2}});true;`
+      );
+    },
+    useDieTint(value: number, movesRemaining: number, isDoubles: boolean) {
+      webViewRef.current?.injectJavaScript(
+        `window.handleRNMessage({type:'use_die',value:${value},movesRemaining:${movesRemaining},isDoubles:${isDoubles}});true;`
+      );
+    },
+    resetDiceTint() {
+      webViewRef.current?.injectJavaScript(
+        `window.handleRNMessage({type:'reset_dice_tint'});true;`
+      );
+    },
+    updateBorneOff(white: number, black: number) {
+      webViewRef.current?.injectJavaScript(
+        `window.handleRNMessage({type:'update_borne_off',white:${white},black:${black}});true;`
       );
     },
   }));
