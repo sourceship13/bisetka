@@ -1314,7 +1314,7 @@ const NardiScreen = ({ navigation, route }: any) => {
       <AR3DOverlay
         ref={arOverlayRef}
         visible={arEnabled}
-        boardGlbPath="glb/game assets/Backgammon.glb"
+        boardGlbPath="glb/game_boards/Backgammon.glb"
         hideCheckerboard
         boardY={-1.40}
         tableDist={0.50}
