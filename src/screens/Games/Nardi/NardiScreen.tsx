@@ -207,6 +207,7 @@ const NardiScreen = ({ navigation, route }: any) => {
   const swipeStartY = useRef(0);
   const [pendingDice, setPendingDice] = useState<{ die1: number; die2: number } | null>(null);
   const [diceAnimating, setDiceAnimating] = useState(false);
+  const [settledDice, setSettledDice] = useState<{ die1: number; die2: number } | null>(null);
   const diceCompleteCount = useRef(0);
 
   // Entry fee and prize tracking
@@ -295,6 +296,13 @@ const NardiScreen = ({ navigation, route }: any) => {
       setSelectedPoint(null);
     }
   }, [gameState]);
+
+  // Clear settled dice display when the turn ends (phase returns to rolling)
+  useEffect(() => {
+    if (gameState?.phase === 'rolling') {
+      setSettledDice(null);
+    }
+  }, [gameState?.phase]);
 
   // Entry fee & prize logic
   // Deduct entry when game starts (AI mode starts when gameState is initialized, multiplayer waits for game_started)
@@ -1594,8 +1602,8 @@ const NardiScreen = ({ navigation, route }: any) => {
           <Text style={styles.recenterLabel}>Re-center</Text>
         </TouchableOpacity>
       )}
-      {/* 3D dice animation overlay — shown while dice are spinning after swipe */}
-      {arEnabled && diceAnimating && pendingDice && (
+      {/* 3D dice overlay — spinning while animating, then shows settled face during moving phase */}
+      {arEnabled && (diceAnimating ? pendingDice : settledDice) && (
         <View
           pointerEvents="none"
           style={{
@@ -1610,29 +1618,33 @@ const NardiScreen = ({ navigation, route }: any) => {
           }}
         >
           <Dice3DSimple
-            value={pendingDice.die1}
+            value={diceAnimating ? pendingDice!.die1 : settledDice!.die1}
             isRolling={diceAnimating}
             index={0}
             size={110}
             onRollComplete={() => {
               diceCompleteCount.current += 1;
               if (diceCompleteCount.current >= 2) {
+                const settled = pendingDice!;
+                setSettledDice(settled);
                 setDiceAnimating(false);
-                applyDiceRoll(pendingDice);
+                applyDiceRoll({ ...settled, rolled: true });
                 setPendingDice(null);
               }
             }}
           />
           <Dice3DSimple
-            value={pendingDice.die2}
+            value={diceAnimating ? pendingDice!.die2 : settledDice!.die2}
             isRolling={diceAnimating}
             index={1}
             size={110}
             onRollComplete={() => {
               diceCompleteCount.current += 1;
               if (diceCompleteCount.current >= 2) {
+                const settled = pendingDice!;
+                setSettledDice(settled);
                 setDiceAnimating(false);
-                applyDiceRoll(pendingDice);
+                applyDiceRoll({ ...settled, rolled: true });
                 setPendingDice(null);
               }
             }}
