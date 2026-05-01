@@ -32,7 +32,17 @@ const GLB_ASSET_MAP: Record<string, any> = {
 
 export async function resolveAssetUri(assetPath: string): Promise<string | null> {
   try {
+    // iOS: try the app bundle first — works in both dev AND production builds.
+    // This mirrors exactly how TestFlight / release builds load assets, so dev
+    // testing reflects real behaviour without a separate TestFlight deployment.
+    if (Platform.OS === 'ios') {
+      const bundlePath = `${RNFS.MainBundlePath}/assets/${assetPath}`;
+      const exists = await RNFS.exists(bundlePath);
+      if (exists) return `file://${bundlePath}`;
+    }
+
     if (__DEV__) {
+      // Bundle path didn't have the file — fall back to Metro download (dev only).
       const assetRef = GLB_ASSET_MAP[assetPath];
       let metroUrl: string | null = null;
 
@@ -70,12 +80,7 @@ export async function resolveAssetUri(assetPath: string): Promise<string | null>
       return null;
     }
 
-    // Production
-    if (Platform.OS === 'ios') {
-      const filePath = `${RNFS.MainBundlePath}/assets/${assetPath}`;
-      const exists = await RNFS.exists(filePath);
-      if (exists) return `file://${filePath}`;
-    }
+    // Production non-iOS (Android)
 
     // Android prod fallback — base64
     const b64 = await RNFS.readFileAssets(`assets/${assetPath}`, 'base64');
