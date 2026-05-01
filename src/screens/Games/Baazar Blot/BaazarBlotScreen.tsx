@@ -49,6 +49,7 @@ import {
   findSequences,
 } from '../../../game/baazarBlotLogic';
 import SyncedYouTubePlayer from '../../../components/SyncedYouTubePlayer';
+import InGameChat from '../../../components/InGameChat';
 
 const SUIT_ICON: Record<string, string> = {
   hearts: '♥', diamonds: '♦', clubs: '♣', spades: '♠',
@@ -1277,7 +1278,13 @@ const BaazarBlotScreen = ({ navigation }: any) => {
           })}
         </ScrollView>
       </Animated.View>
-      <SyncedYouTubePlayer roomId={null} visible={showMusicPlayer} />
+      <InGameChat
+        roomId={''}
+        currentUserId={currentUser?.id ?? ''}
+        gameType="baazar-blot"
+        visible={true}
+      />
+      <SyncedYouTubePlayer roomId={null} visible={true} />
       {arEnabled && (
         <TouchableOpacity
           style={styles.recenterBtn}

@@ -18,6 +18,7 @@ import { useAchievements } from '../../../contexts/AchievementContext';
 import useDeviceType from '../../../hooks/useDeviceType';
 import { getSpacing, getFontSize } from '../../../theme/responsive';
 import SyncedYouTubePlayer from '../../../components/SyncedYouTubePlayer';
+import InGameChat from '../../../components/InGameChat';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -714,7 +715,13 @@ const MrotsiScreen = ({navigation, route}: any) => {
         )}
       </SafeAreaView>
       </View>
-      <SyncedYouTubePlayer roomId={null} visible={showMusicPlayer} />
+      <InGameChat
+        roomId={''}
+        currentUserId={user?.id ?? ''}
+        gameType="mrotsi"
+        visible={true}
+      />
+      <SyncedYouTubePlayer roomId={null} visible={true} />
       {arEnabled && (
         <TouchableOpacity
           style={styles.recenterBtn}
@@ -1061,7 +1068,7 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 2,
   },
-  recenterBtn: { position:'absolute', bottom:90, alignSelf:'center', left:'50%', transform:[{translateX:-54}], flexDirection:'row', alignItems:'center', gap:6, backgroundColor:'rgba(0,0,0,0.35)', borderWidth:1, borderColor:'rgba(255,255,255,0.25)', borderRadius:24, paddingHorizontal:18, paddingVertical:10 },
+  recenterBtn: { position:'absolute', bottom:200, alignSelf:'center', left:'50%', transform:[{translateX:-54}], flexDirection:'row', alignItems:'center', gap:6, backgroundColor:'rgba(0,0,0,0.35)', borderWidth:1, borderColor:'rgba(255,255,255,0.25)', borderRadius:24, paddingHorizontal:18, paddingVertical:10 },
   recenterIcon: { fontSize:20, color:'#fff' },
   recenterLabel: { fontSize:13, color:'#fff', fontWeight:'600', letterSpacing:0.3 },
 });

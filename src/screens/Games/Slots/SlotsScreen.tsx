@@ -25,6 +25,7 @@ import ExpandableView from '../../../components/global/ExpandableView';
 import { apiService } from '../../../services/api.service';
 import { v4 as uuidv4 } from 'uuid';
 import SyncedYouTubePlayer from '../../../components/SyncedYouTubePlayer';
+import InGameChat from '../../../components/InGameChat';
 
 const { width } = Dimensions.get('window');
 const CONTAINER_PADDING = 8;
@@ -447,7 +448,13 @@ const SlotsScreen = ({ navigation }: any) => {
         </TouchableOpacity>
       </SafeAreaView>
       </View>
-      <SyncedYouTubePlayer roomId={null} visible={showMusicPlayer} />
+      <InGameChat
+        roomId={''}
+        currentUserId={user?.id ?? ''}
+        gameType="slots"
+        visible={true}
+      />
+      <SyncedYouTubePlayer roomId={null} visible={true} />
       {arEnabled && (
         <TouchableOpacity
           style={styles.recenterBtn}
@@ -739,7 +746,7 @@ const styles = StyleSheet.create({
     shadowRadius: 15,
     elevation: 10,
   },
-  recenterBtn: { position:'absolute', bottom:90, alignSelf:'center', left:'50%', transform:[{translateX:-54}], flexDirection:'row', alignItems:'center', gap:6, backgroundColor:'rgba(0,0,0,0.35)', borderWidth:1, borderColor:'rgba(255,255,255,0.25)', borderRadius:24, paddingHorizontal:18, paddingVertical:10 },
+  recenterBtn: { position:'absolute', bottom:200, alignSelf:'center', left:'50%', transform:[{translateX:-54}], flexDirection:'row', alignItems:'center', gap:6, backgroundColor:'rgba(0,0,0,0.35)', borderWidth:1, borderColor:'rgba(255,255,255,0.25)', borderRadius:24, paddingHorizontal:18, paddingVertical:10 },
   recenterIcon: { fontSize:20, color:'#fff' },
   recenterLabel: { fontSize:13, color:'#fff', fontWeight:'600', letterSpacing:0.3 },
 });

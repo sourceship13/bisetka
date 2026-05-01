@@ -597,6 +597,10 @@ const CheckersScreen = ({ navigation, route }: any) => {
         onSquareTap={handleArSquareTap}
         boardGlbPath="glb/checkers/chess_board_v2.glb"
         hideCheckerboard
+        boardTiltX={0}
+        boardY={-0.35}
+        tableDist={0.50}
+        boardScale={0.8}
         chessPieceGlbPaths={{
           white_checker: 'glb/checkers/nyu_red_checker.glb',
           black_checker: 'glb/checkers/nyu_black_checker.glb',
@@ -805,7 +809,7 @@ const CheckersScreen = ({ navigation, route }: any) => {
       />
       <SyncedYouTubePlayer
         roomId={isMultiplayer && roomId ? roomId : null}
-        visible={showMusicPlayer}
+        visible={true}
         defaultTrack={{ videoId: '_2kPf5NgVsY', title: 'Chill Mix', playlistId: 'RD_2kPf5NgVsY' }}
       />
       {arEnabled && (
@@ -857,7 +861,7 @@ const styles = StyleSheet.create({
   moveIndicator:      { width:12, height:12, borderRadius:6, backgroundColor:'rgba(255,255,255,0.6)' },
   recenterBtn: {
     position: 'absolute',
-    bottom: 90,
+    bottom: 200,
     alignSelf: 'center',
     left: '50%',
     transform: [{ translateX: -54 }],
