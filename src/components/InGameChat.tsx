@@ -303,7 +303,7 @@ const InGameChat: React.FC<InGameChatProps> = ({
 const styles = StyleSheet.create({
   root: {
     position: 'absolute',
-    bottom: 0,
+    bottom: 50,
     left: 0,
     right: 0,
     zIndex: 999,

@@ -41,6 +41,7 @@ import {
   dealCards,
 } from '../../../game/blotLogic';
 import SyncedYouTubePlayer from '../../../components/SyncedYouTubePlayer';
+import InGameChat from '../../../components/InGameChat';
 
 const SUIT_ICON: Record<string, string> = {
   hearts: '♥',
@@ -1015,7 +1016,13 @@ const BlotScreen = ({ navigation }: any) => {
         }}
         theme={customTheme}
       />
-      <SyncedYouTubePlayer roomId={null} visible={showMusicPlayer} />
+      <InGameChat
+        roomId={''}
+        currentUserId={currentUser?.id ?? ''}
+        gameType="blot"
+        visible={true}
+      />
+      <SyncedYouTubePlayer roomId={null} visible={true} />
       {arEnabled && (
         <TouchableOpacity
           style={styles.recenterBtn}
@@ -1692,7 +1699,7 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     marginLeft: 4,
   },
-  recenterBtn: { position:'absolute', bottom:90, alignSelf:'center', left:'50%', transform:[{translateX:-54}], flexDirection:'row', alignItems:'center', gap:6, backgroundColor:'rgba(0,0,0,0.35)', borderWidth:1, borderColor:'rgba(255,255,255,0.25)', borderRadius:24, paddingHorizontal:18, paddingVertical:10 },
+  recenterBtn: { position:'absolute', bottom:200, alignSelf:'center', left:'50%', transform:[{translateX:-54}], flexDirection:'row', alignItems:'center', gap:6, backgroundColor:'rgba(0,0,0,0.35)', borderWidth:1, borderColor:'rgba(255,255,255,0.25)', borderRadius:24, paddingHorizontal:18, paddingVertical:10 },
   recenterIcon: { fontSize:20, color:'#fff' },
   recenterLabel: { fontSize:13, color:'#fff', fontWeight:'600', letterSpacing:0.3 },
 });

@@ -29,6 +29,7 @@ import { apiService } from '../../../services/api.service';
 import { useAuth } from '../../../libs/hooks/useAuth';
 import { useAchievements } from '../../../contexts/AchievementContext';
 import SyncedYouTubePlayer from '../../../components/SyncedYouTubePlayer';
+import InGameChat from '../../../components/InGameChat';
 import { resolveAvatar } from '../../../utils/avatars';
 
 const PANO_SOURCE = require('../../../../assets/backgrounds/capture360/pano2.jpg');
@@ -521,6 +522,10 @@ const ChessScreen = ({navigation}: any) => {
         onSquareTap={handleSquarePress}
         boardGlbPath={boardConfigs[boardIdx].path}
         hideCheckerboard={true}
+        boardTiltX={0}
+        boardY={-0.35}
+        tableDist={0.50}
+        boardScale={0.8}
         chessPieceGlbPaths={{
           white_pawn:   'glb/chess/pawn.glb',
           white_rook:   'glb/chess/rook.glb',
@@ -704,7 +709,13 @@ const ChessScreen = ({navigation}: any) => {
         gameType="chess"
         initialTheme={gameTheme}
       />
-      <SyncedYouTubePlayer roomId={null} visible={showMusicPlayer} />
+      <InGameChat
+        roomId={''}
+        currentUserId={user?.id ?? ''}
+        gameType="chess"
+        visible={true}
+      />
+      <SyncedYouTubePlayer roomId={null} visible={true} />
       {arEnabled && (
         <TouchableOpacity
           style={styles.recenterBtn}
@@ -1001,7 +1012,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#fff',
   },
-  recenterBtn: { position:'absolute', bottom:90, alignSelf:'center', left:'50%', transform:[{translateX:-54}], flexDirection:'row', alignItems:'center', gap:6, backgroundColor:'rgba(0,0,0,0.35)', borderWidth:1, borderColor:'rgba(255,255,255,0.25)', borderRadius:24, paddingHorizontal:18, paddingVertical:10 },
+  recenterBtn: { position:'absolute', bottom:200, alignSelf:'center', left:'50%', transform:[{translateX:-54}], flexDirection:'row', alignItems:'center', gap:6, backgroundColor:'rgba(0,0,0,0.35)', borderWidth:1, borderColor:'rgba(255,255,255,0.25)', borderRadius:24, paddingHorizontal:18, paddingVertical:10 },
   recenterIcon: { fontSize:20, color:'#fff' },
   recenterLabel: { fontSize:13, color:'#fff', fontWeight:'600', letterSpacing:0.3 },
 });
