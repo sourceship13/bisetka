@@ -1299,7 +1299,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
   return (
     <View style={styles.container} {...(arEnabled ? arPinchResponder.panHandlers : {})}>
       <Photosphere360Background overlayOpacity={showBlur ? 0.65 : 0.3}>
-        <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/game_assets/casino_table_level2_textured.glb" hideCheckerboard boardScale={1.9} boardY={-0.5} boardGlbForceFlat boardTiltX={0.25} cardGlbPath="glb/cards/card-template.glb" cards={arCards} arLabels={arLabels} tableDist={0.90} />
+        <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/game_assets/casino_table_level2_textured.glb" hideCheckerboard boardScale={1.9} boardY={-0.91} boardGlbForceFlat boardTiltX={0.55} cardGlbPath="glb/cards/card-template.glb" cards={arCards} arLabels={arLabels} tableDist={0.90} />
       </Photosphere360Background>
       <View style={styles.overlay} pointerEvents="box-none">
       <SafeAreaView style={styles.safeArea}>
