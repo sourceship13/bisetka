@@ -11,6 +11,7 @@ import {
   Dimensions,
   Animated,
   ScrollView,
+  PanResponder,
 } from 'react-native';
 import ReAnimated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import ExpandableView from '../../../components/global/ExpandableView';
@@ -24,7 +25,6 @@ import AR3DOverlay, {type AR3DOverlayHandle, type ARCard} from '../../../compone
 import GameToolbar from '../../../components/global/GameToolbar';
 import GameToolbarControls from '../../../components/global/GameToolbarControls';
 import { CardType, Suit } from '../../../components/Card';
-import GLBCard from '../../../components/GLBCard';
 import RiffleDealAnimation from '../../../components/RiffleDealAnimation';
 import CardCustomizationModal from '../../../components/global/GameCustomizationModal';
 import CardHandFan from '../../../components/CardHandFan';
@@ -127,6 +127,36 @@ const BlotScreen = ({ navigation }: any) => {
   const [showMusicPlayer, setShowMusicPlayer] = useState(false);
   const [arEnabled, setArEnabled] = useState(true);
   const arOverlayRef = useRef<AR3DOverlayHandle>(null);
+  const _pinchZoom = useRef(1.0);
+  const _pinchBase = useRef(1.0);
+  const _pinchStartDist = useRef(0);
+  const pinchResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: (_, gs) => gs.numberActiveTouches === 2,
+      onMoveShouldSetPanResponder: (_, gs) => gs.numberActiveTouches === 2,
+      onPanResponderGrant: (e) => {
+        const [t0, t1] = e.nativeEvent.touches as any[];
+        if (!t0 || !t1) return;
+        const dx = t1.pageX - t0.pageX;
+        const dy = t1.pageY - t0.pageY;
+        _pinchStartDist.current = Math.sqrt(dx * dx + dy * dy);
+        _pinchBase.current = _pinchZoom.current;
+      },
+      onPanResponderMove: (e) => {
+        const [t0, t1] = e.nativeEvent.touches as any[];
+        if (!t0 || !t1 || _pinchStartDist.current === 0) return;
+        const dx = t1.pageX - t0.pageX;
+        const dy = t1.pageY - t0.pageY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const ratio = dist / _pinchStartDist.current;
+        const next = Math.min(Math.max(_pinchBase.current * ratio, 0.4), 3.0);
+        _pinchZoom.current = next;
+        arOverlayRef.current?.setScale(next);
+      },
+      onPanResponderRelease: () => { _pinchStartDist.current = 0; },
+      onPanResponderTerminate: () => { _pinchStartDist.current = 0; },
+    })
+  ).current;
   const [showPanel, setShowPanel] = useState(false);
   const panelAnim = useRef(new Animated.Value(0)).current;
   const toolbarExpanded = useSharedValue(false);
@@ -517,23 +547,32 @@ const BlotScreen = ({ navigation }: any) => {
     onPress?: () => void,
     playable = true,
   ) => {
-    const cardSize = isTrickCard ? 52 : 68;
+    const suitColor = SUIT_COLOR[card.suit] ?? '#000';
+    const suitIcon  = SUIT_ICON[card.suit]  ?? card.suit;
+    // Native card — always legible regardless of background
     const cardContent = (
-      <GLBCard
-        key={card.id}
-        suit={card.suit as any}
-        rank={card.rank as any}
-        faceDown={false}
-        size={cardSize}
-      />
+      <View style={isTrickCard ? styles.nativeCardTrick : styles.nativeCard}>
+        {/* Top-left */}
+        <View style={styles.nativeCardCorner}>
+          <Text style={[styles.nativeCardRank, { color: suitColor }]}>{card.rank}</Text>
+          <Text style={[styles.nativeCardSuit, { color: suitColor }]}>{suitIcon}</Text>
+        </View>
+        {/* Center suit */}
+        <Text style={[styles.nativeCardCenter, { color: suitColor }]}>{suitIcon}</Text>
+        {/* Bottom-right (rotated) */}
+        <View style={[styles.nativeCardCorner, { transform: [{ rotate: '180deg' }] }]}>
+          <Text style={[styles.nativeCardRank, { color: suitColor }]}>{card.rank}</Text>
+          <Text style={[styles.nativeCardSuit, { color: suitColor }]}>{suitIcon}</Text>
+        </View>
+      </View>
     );
-    const baseStyle = isTrickCard ? styles.trickCard : styles.card;
     if (!onPress) {
-      return <View style={baseStyle}>{cardContent}</View>;
+      return <View key={card.id}>{cardContent}</View>;
     }
     return (
       <TouchableOpacity
-        style={[baseStyle, !playable && styles.disabledCard]}
+        key={card.id}
+        style={!playable && styles.disabledCard}
         onPress={playable ? onPress : undefined}
         disabled={!playable}
       >
@@ -679,8 +718,9 @@ const BlotScreen = ({ navigation }: any) => {
   return (
     <View style={styles.container}>
       <Photosphere360Background overlayOpacity={showBlur ? 0.65 : 0.3}>
-        <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/game_assets/octagon_table.glb" hideCheckerboard boardScale={1.9} cardGlbPath="glb/cards/card-template.glb" cards={arCards} />
+        <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/game_assets/octagon_table.glb" hideCheckerboard boardScale={1.9} tableDist={1.5} boardY={-1.10} boardTiltX={0.32} cardGlbPath="glb/cards/card-template.glb" cards={arCards} />
       </Photosphere360Background>
+      <View style={StyleSheet.absoluteFill} {...pinchResponder.panHandlers} pointerEvents="box-none" />
       <View style={styles.overlay} pointerEvents="box-none">
         <SafeAreaView style={[styles.safeArea,]} onLayout={handleBoardLayout}>
           <View>
@@ -1282,6 +1322,57 @@ const styles = StyleSheet.create({
     padding: 8,
     marginHorizontal: 5,
     overflow: 'hidden',
+  },
+  nativeCard: {
+    width: 72,
+    height: 100,
+    backgroundColor: '#ffffff',
+    borderRadius: 8,
+    borderWidth: 1.5,
+    borderColor: '#cccccc',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 6,
+    marginHorizontal: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3,
+    elevation: 4,
+  },
+  nativeCardTrick: {
+    width: 52,
+    height: 72,
+    backgroundColor: '#ffffff',
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: '#cccccc',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 4,
+    paddingHorizontal: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3,
+    elevation: 4,
+  },
+  nativeCardCorner: {
+    alignSelf: 'flex-start',
+    alignItems: 'center',
+  },
+  nativeCardRank: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    lineHeight: 18,
+  },
+  nativeCardSuit: {
+    fontSize: 12,
+    lineHeight: 14,
+  },
+  nativeCardCenter: {
+    fontSize: 28,
   },
   selectedCard: {
     borderColor: '#007AFF',

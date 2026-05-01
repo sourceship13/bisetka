@@ -1,5 +1,5 @@
 import React, {useState, useEffect, useRef, useCallback} from 'react';
-import {View, Text, StyleSheet, TouchableOpacity, ScrollView, ImageBackground, ActivityIndicator, Clipboard, TextInput, Dimensions, Animated, ViewStyle, Alert, Image} from 'react-native';
+import {View, Text, StyleSheet, TouchableOpacity, ScrollView, ImageBackground, ActivityIndicator, Clipboard, TextInput, Dimensions, Animated, ViewStyle, Alert, Image, PanResponder} from 'react-native';
 import { Snackbar } from 'react-native-paper';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { apiService } from '../../../services/api.service';
@@ -199,12 +199,12 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
     const myIdx = isMultiplayer ? mySeatRef.current : playerIndex;
     // Positions spread around the table felt. Table felt ≈ ±0.50 X, ±0.38 Y
     const seatPositions: Record<number, { x: number; y: number; z: number }> = {
-      0: { x:  0.00, y: -0.30, z: 0.004 },  // You — bottom center
-      1: { x:  0.42, y: -0.20, z: 0.004 },  // near right
-      2: { x:  0.42, y:  0.12, z: 0.004 },  // far right
-      3: { x:  0.00, y:  0.34, z: 0.004 },  // far center — top
-      4: { x: -0.42, y:  0.12, z: 0.004 },  // far left
-      5: { x: -0.42, y: -0.20, z: 0.004 },  // near left
+      0: { x:  0.00, y: -0.76, z: 0.004 },  // You — bottom center
+      1: { x:  0.48, y: -0.22, z: 0.004 },  // near right
+      2: { x:  0.48, y:  0.10, z: 0.004 },  // far right
+      3: { x:  0.00, y:  0.36, z: 0.004 },  // far center — top
+      4: { x: -0.48, y:  0.10, z: 0.004 },  // far left
+      5: { x: -0.48, y: -0.22, z: 0.004 },  // near left
     };
     const mapped: ARCard[] = [];
     players.forEach((player, seatIdx) => {
@@ -224,10 +224,10 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
         };
         const cardOffset = (cardIdx - (player.cards.length - 1) / 2);
         // Seat 3 (top center) spreads left-right (X); all others spread depth (Y)
-        const spreadX = isMe ? cardOffset * 0.14 : (seatIdx === 3 ? cardOffset * 0.12 : 0);
-        const spreadY = isMe ? 0 : (seatIdx === 3 ? 0 : cardOffset * 0.12);
-        const cardZ = isMe ? 0.08 : basePos.z;
-        const cardRotX = isMe ? Math.PI / 2 : 0;
+        const spreadX = isMe ? cardOffset * 0.04 : (seatIdx === 3 ? cardOffset * 0.07 : 0);
+        const spreadY = isMe ? 0 : (seatIdx === 3 ? 0 : cardOffset * 0.07);
+        const cardZ = basePos.z;
+        const cardRotX = isMe ? Math.PI / 2 : 0;  // stand upright facing player
         const cardRotZ = isMe ? 0 : (seatRotZ[seatIdx] ?? 0);
         mapped.push({
           key: `poker-${seatIdx}-${cardIdx}`,
@@ -237,7 +237,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
             z: cardZ,
           },
           rotation: { x: cardRotX, y: 0, z: cardRotZ },
-          scale: 0.73,
+          scale: 0.2,
           cardData: {
             suit: card.suit as ARCard['cardData']['suit'],
             rank: card.rank as ARCard['cardData']['rank'],
@@ -1261,10 +1261,45 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
     );
   };
 
+  // ── Pinch-to-zoom for AR table ────────────────────────────────────────────
+  const arScaleRef         = useRef(1.0);
+  const pinchStartDistRef  = useRef(0);
+  const pinchBaseScaleRef  = useRef(1.0);
+  const arPinchResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: (evt) => arEnabled && evt.nativeEvent.touches.length === 2,
+      onMoveShouldSetPanResponder:  (evt) => arEnabled && evt.nativeEvent.touches.length === 2,
+      onPanResponderGrant: (evt) => {
+        if (evt.nativeEvent.touches.length === 2) {
+          const t0 = evt.nativeEvent.touches[0];
+          const t1 = evt.nativeEvent.touches[1];
+          const dx = t0.pageX - t1.pageX;
+          const dy = t0.pageY - t1.pageY;
+          pinchStartDistRef.current  = Math.sqrt(dx * dx + dy * dy);
+          pinchBaseScaleRef.current  = arScaleRef.current;
+        }
+      },
+      onPanResponderMove: (evt) => {
+        if (evt.nativeEvent.touches.length === 2 && pinchStartDistRef.current > 0) {
+          const t0 = evt.nativeEvent.touches[0];
+          const t1 = evt.nativeEvent.touches[1];
+          const dx = t0.pageX - t1.pageX;
+          const dy = t0.pageY - t1.pageY;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          const newScale = Math.max(0.4, Math.min(3.0, pinchBaseScaleRef.current * (dist / pinchStartDistRef.current)));
+          arScaleRef.current = newScale;
+          arOverlayRef.current?.setScale(newScale);
+        }
+      },
+      onPanResponderRelease:   () => { pinchStartDistRef.current = 0; },
+      onPanResponderTerminate: () => { pinchStartDistRef.current = 0; },
+    })
+  ).current;
+
   return (
-    <View style={styles.container}>
+    <View style={styles.container} {...(arEnabled ? arPinchResponder.panHandlers : {})}>
       <Photosphere360Background overlayOpacity={showBlur ? 0.65 : 0.3}>
-        <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/game assets/casino_table_level2_textured.glb" hideCheckerboard boardScale={1.9} boardY={-1.0} boardGlbForceFlat boardTiltX={0.25} cardGlbPath="glb/cards/card-template.glb" cards={arCards} arLabels={arLabels} tableDist={0.50} />
+        <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/game_assets/casino_table_level2_textured.glb" hideCheckerboard boardScale={1.9} boardY={-0.5} boardGlbForceFlat boardTiltX={0.25} cardGlbPath="glb/cards/card-template.glb" cards={arCards} arLabels={arLabels} tableDist={0.90} />
       </Photosphere360Background>
       <View style={styles.overlay} pointerEvents="box-none">
       <SafeAreaView style={styles.safeArea}>
