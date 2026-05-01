@@ -133,7 +133,17 @@ renderer.setClearColor(0x000000, 0);
 document.body.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
-const camera = new THREE.OrthographicCamera(-0.5, 0.5, 0.5, -0.5, 0.01, 10);
+// Frustum sized to show the full card (63:89 aspect) with a small margin
+const HALF_W = (63 / 89) * 0.55;  // ~0.39 — fits card width + padding
+const HALF_H = 0.55;               // fits card height + padding
+const aspect = W / H;
+const camera = new THREE.OrthographicCamera(
+  -HALF_W * (aspect < 1 ? 1 : aspect),
+   HALF_W * (aspect < 1 ? 1 : aspect),
+   HALF_H,
+  -HALF_H,
+  0.01, 10,
+);
 camera.position.set(0, 0, 3);
 camera.lookAt(0, 0, 0);
 

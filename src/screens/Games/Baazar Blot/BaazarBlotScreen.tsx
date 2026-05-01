@@ -12,6 +12,7 @@ import {
   ScrollView,
   Image,
   Alert,
+  PanResponder,
 } from 'react-native';
 import { apiService } from '../../../services/api.service';
 import { v4 as uuidv4 } from 'uuid';
@@ -27,7 +28,7 @@ import AR3DOverlay, {type AR3DOverlayHandle, type ARCard} from '../../../compone
 import GameToolbar from '../../../components/global/GameToolbar';
 import GameToolbarControls from '../../../components/global/GameToolbarControls';
 import { CardType, Suit } from '../../../components/Card';
-import GLBCard from '../../../components/GLBCard';
+import Card3D from '../../../components/Card3D';
 import CardCustomizationModal from '../../../components/global/GameCustomizationModal';
 import CardHandFan from '../../../components/CardHandFan';
 import RiffleDealAnimation from '../../../components/RiffleDealAnimation';
@@ -129,6 +130,42 @@ const BaazarBlotScreen = ({ navigation }: any) => {
   const [arEnabled, setArEnabled] = useState(true);
   const [arCards, setArCards] = useState<ARCard[]>([]);
   const arOverlayRef = useRef<AR3DOverlayHandle>(null);
+
+  // ── Pinch-to-zoom for AR table ────────────────────────────────────────────
+  const arScaleRef        = useRef(1.0);
+  const pinchStartDistRef = useRef(0);
+  const pinchBaseScaleRef = useRef(1.0);
+  const arPinchResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: (evt) => arEnabled && evt.nativeEvent.touches.length === 2,
+      onMoveShouldSetPanResponder:  (evt) => arEnabled && evt.nativeEvent.touches.length === 2,
+      onPanResponderGrant: (evt) => {
+        if (evt.nativeEvent.touches.length === 2) {
+          const t0 = evt.nativeEvent.touches[0];
+          const t1 = evt.nativeEvent.touches[1];
+          const dx = t0.pageX - t1.pageX;
+          const dy = t0.pageY - t1.pageY;
+          pinchStartDistRef.current = Math.sqrt(dx * dx + dy * dy);
+          pinchBaseScaleRef.current = arScaleRef.current;
+        }
+      },
+      onPanResponderMove: (evt) => {
+        if (evt.nativeEvent.touches.length === 2 && pinchStartDistRef.current > 0) {
+          const t0 = evt.nativeEvent.touches[0];
+          const t1 = evt.nativeEvent.touches[1];
+          const dx = t0.pageX - t1.pageX;
+          const dy = t0.pageY - t1.pageY;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          const newScale = Math.max(0.4, Math.min(3.0, pinchBaseScaleRef.current * (dist / pinchStartDistRef.current)));
+          arScaleRef.current = newScale;
+          arOverlayRef.current?.setScale(newScale);
+        }
+      },
+      onPanResponderRelease:   () => { pinchStartDistRef.current = 0; },
+      onPanResponderTerminate: () => { pinchStartDistRef.current = 0; },
+    })
+  ).current;
+
   const [showPanel, setShowPanel] = useState(false);
   const panelAnim = useRef(new Animated.Value(0)).current;
   const toolbarExpanded = useSharedValue(false);
@@ -350,7 +387,7 @@ const BaazarBlotScreen = ({ navigation }: any) => {
   // Sync trick cards to AR overlay
   useEffect(() => {
     if (!arEnabled || !gameState?.currentTrick?.cards) { setArCards([]); return; }
-    const TILT = Math.PI / 8; // 22.5° toward viewer for readability
+    const TILT = 0; // flat on table
     const positions: Record<number, { x: number; y: number; z: number }> = {
       0: { x:  0.00, y: -0.30, z: 0.02 },  // near player (bottom, toward camera)
       1: { x:  0.30, y:  0.00, z: 0.02 },  // right player
@@ -704,7 +741,7 @@ const BaazarBlotScreen = ({ navigation }: any) => {
             cards={myPlayer.hand.filter(c => c && c.suit && c.rank)}
             renderCard={(card, idx) => (
               <View key={`${card.suit}-${card.rank}-${idx}`} style={styles.cardWrapper}>
-                <GLBCard suit={card.suit as any} rank={card.rank as any} faceDown={false} size={68} />
+                <Card3D suit={card.suit as any} rank={card.rank as any} faceDown={false} size={72} />
               </View>
             )}
           />
@@ -840,7 +877,7 @@ const BaazarBlotScreen = ({ navigation }: any) => {
             cards={gameState.players[0].hand.filter(c => c && c.suit && c.rank)}
             renderCard={(card, idx) => (
               <View key={`bid-${card.suit}-${card.rank}-${idx}`} style={styles.cardWrapper}>
-                <GLBCard suit={card.suit as any} rank={card.rank as any} faceDown={false} size={68} />
+                <Card3D suit={card.suit as any} rank={card.rank as any} faceDown={false} size={72} />
               </View>
             )}
           />
@@ -895,7 +932,7 @@ const BaazarBlotScreen = ({ navigation }: any) => {
                         .filter(cardPlay => cardPlay && cardPlay.card && cardPlay.card.suit)
                         .map((cardPlay, idx) => (
                         <View key={idx} style={[styles.trickSlot, positionStyle[cardPlay.playerId] ?? styles.trickSlotTop]}>
-                          <GLBCard suit={(cardPlay.card as any).suit} rank={(cardPlay.card as any).rank} faceDown={false} size={44} />
+                          <Card3D suit={(cardPlay.card as any).suit} rank={(cardPlay.card as any).rank} faceDown={false} size={44} />
                         </View>
                       ))}
                     </View>
@@ -926,7 +963,7 @@ const BaazarBlotScreen = ({ navigation }: any) => {
                         .filter(cardPlay => cardPlay && cardPlay.card && cardPlay.card.suit)
                         .map((cardPlay, idx) => (
                         <View key={idx} style={[styles.trickSlot, positionStyle[cardPlay.playerId] ?? styles.trickSlotTop]}>
-                          <GLBCard suit={(cardPlay.card as any).suit} rank={(cardPlay.card as any).rank} faceDown={false} size={44} />
+                          <Card3D suit={(cardPlay.card as any).suit} rank={(cardPlay.card as any).rank} faceDown={false} size={44} />
                         </View>
                       ))}
                     </View>
@@ -960,7 +997,7 @@ const BaazarBlotScreen = ({ navigation }: any) => {
                   ]}
                   disabled={!canPlay}
                 >
-                  <GLBCard suit={card.suit as any} rank={card.rank as any} faceDown={false} size={68} />
+                  <Card3D suit={card.suit as any} rank={card.rank as any} faceDown={false} size={72} />
                 </TouchableOpacity>
               );
             }}
@@ -1061,9 +1098,9 @@ const BaazarBlotScreen = ({ navigation }: any) => {
   };
 
   return (
-    <View style={styles.bg}>
+    <View style={styles.bg} {...(arEnabled ? arPinchResponder.panHandlers : {})}>
       <Photosphere360Background overlayOpacity={showBlur ? 0.65 : 0.3}>
-        <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/game_assets/octagon_table.glb" hideCheckerboard boardScale={1.9} cardGlbPath="glb/cards/card-template.glb" cards={arCards} />
+        <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/game_assets/octagon_table.glb" hideCheckerboard boardScale={1.9} tableDist={0.9} boardY={-1.5} boardTiltX={0.32} cardGlbPath="glb/cards/card-template.glb" cards={arCards} />
       </Photosphere360Background>
       <View style={styles.overlay} pointerEvents="box-none">
       <SafeAreaView style={styles.safe}>
