@@ -609,19 +609,20 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
           pieces={arPieces}
           moves={gameState?.possibleMoves || []}
           boardGlbPath="glb/chess/chess-board/source/ui.glb"
+          hideCheckerboard={true}
           chessPieceGlbPaths={{
-            white_pawn: 'glb/chess/pieces/white_pawn.glb',
-            white_knight: 'glb/chess/pieces/white_knight.glb',
-            white_bishop: 'glb/chess/pieces/white_bishop.glb',
-            white_rook: 'glb/chess/pieces/white_rook.glb',
-            white_queen: 'glb/chess/pieces/white_queen.glb',
-            white_king: 'glb/chess/pieces/white_king.glb',
-            black_pawn: 'glb/chess/pieces/black_pawn.glb',
-            black_knight: 'glb/chess/pieces/black_knight.glb',
-            black_bishop: 'glb/chess/pieces/black_bishop.glb',
-            black_rook: 'glb/chess/pieces/black_rook.glb',
-            black_queen: 'glb/chess/pieces/black_queen.glb',
-            black_king: 'glb/chess/pieces/black_king.glb',
+            white_pawn:   'glb/chess/pawn.glb',
+            white_rook:   'glb/chess/rook.glb',
+            white_knight: 'glb/chess/knight.glb',
+            white_bishop: 'glb/chess/bishop.glb',
+            white_queen:  'glb/chess/queen.glb',
+            white_king:   'glb/chess/king.glb',
+            black_pawn:   'glb/chess/pawn.glb',
+            black_rook:   'glb/chess/rook.glb',
+            black_knight: 'glb/chess/knight.glb',
+            black_bishop: 'glb/chess/bishop.glb',
+            black_queen:  'glb/chess/queen.glb',
+            black_king:   'glb/chess/king.glb',
           }}
           onSquareTap={handleSquarePress}
         />

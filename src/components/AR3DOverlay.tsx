@@ -224,14 +224,14 @@ const GLB_ASSET_MAP: Record<string, any> = {
   'glb/game_boards/rounded_table_panel.glb':    require('../../assets/glb/game_boards/rounded_table_panel.glb'),
   'glb/game_boards/armenian_marble_gold_merged.glb': require('../../assets/glb/game_boards/armenian_marble_gold_merged.glb'),
   'glb/checkers/chess_board_v2.glb':            require('../../assets/glb/checkers/chess_board_v2.glb'),
-  'glb/game assets/round_table.glb':            require('../../assets/glb/game assets/round_table.glb'),
-  'glb/game assets/octagon_table.glb':          require('../../assets/glb/game assets/octagon_table.glb'),
-  'glb/game assets/poker_table2.glb':            require('../../assets/glb/game assets/poker_table2.glb'),
-  'glb/game assets/casino_table_level2_textured.glb': require('../../assets/glb/game assets/casino_table_level2_textured.glb'),
+  'glb/game_assets/round_table.glb':            require('../../assets/glb/game_assets/round_table.glb'),
+  'glb/game_assets/octagon_table.glb':          require('../../assets/glb/game_assets/octagon_table.glb'),
+  'glb/game_assets/poker_table2.glb':            require('../../assets/glb/game_assets/poker_table2.glb'),
+  'glb/game_assets/casino_table_level2_textured.glb': require('../../assets/glb/game_assets/casino_table_level2_textured.glb'),
   'glb/chess/chess-board/source/ui.glb':        require('../../assets/glb/chess/chess-board/source/ui.glb'),
   'glb/game_boards/Untitled.glb':               require('../../assets/glb/game_boards/Untitled.glb'),
   'glb/game_boards/Backgammon.glb':             require('../../assets/glb/game_boards/Backgammon.glb'),
-  'glb/game assets/Backgammon_board_only.glb':  require('../../assets/glb/game assets/Backgammon_board_only.glb'),
+  'glb/game_assets/Backgammon_board_only.glb':  require('../../assets/glb/game_assets/Backgammon_board_only.glb'),
   'nardi/board-futuristic.png':                  require('../../assets/nardi/board-futuristic.png'),
   'nardi/board.png':                             require('../../assets/nardi/board.png'),
   'glb/chess/chess-board/source/armenian_board.glb': require('../../assets/glb/chess/chess-board/source/armenian_board.glb'),
@@ -322,9 +322,16 @@ async function resolveAssetUri(assetPath: string): Promise<string | null> {
       return null;
     }
 
-    // Production: copy from the app bundle to CachesDirectory once, then reuse the
-    // file:// URL. Avoids the ~33% base64 inflation and prevents WKWebView from
-    // choking on a 30-40 MB string allocation for large GLBs.
+    // Production: use RN's asset registry first — it knows the exact bundle path
+    // regardless of iOS/Android layout. Works with allowUniversalAccessFromFileURLs.
+    const assetRef = GLB_ASSET_MAP[assetPath];
+    if (assetRef != null) {
+      const resolved = Image.resolveAssetSource(assetRef);
+      if (resolved?.uri) return resolved.uri;
+    }
+
+    // Fallback: copy from bundle to CachesDirectory (in case the direct URI is
+    // inaccessible cross-origin from within the WebView's JS context).
     const safeFileName = assetPath.replace(/[/\\]/g, '_').replace(/ /g, '_');
     const cacheDir     = `${RNFS.CachesDirectoryPath}/glb_cache`;
     const cachedPath   = `${cacheDir}/${safeFileName}`;
@@ -333,13 +340,18 @@ async function resolveAssetUri(assetPath: string): Promise<string | null> {
       await RNFS.mkdir(cacheDir);
     }
 
-    if (!(await RNFS.exists(cachedPath))) {
-      if (Platform.OS === 'ios') {
-        await RNFS.copyFile(`${RNFS.MainBundlePath}/assets/${assetPath}`, cachedPath);
-      } else {
-        // Android: copyFileAssets streams from APK without loading into JS RAM
-        await RNFS.copyFileAssets(`assets/${assetPath}`, cachedPath);
-      }
+    if (await RNFS.exists(cachedPath)) {
+      const stat = await RNFS.stat(cachedPath);
+      if (stat.size > 1024) return `file://${cachedPath}`;
+      // Stale / 0-byte from a previous failed copy — delete and re-copy
+      await RNFS.unlink(cachedPath).catch(() => {});
+    }
+
+    if (Platform.OS === 'ios') {
+      await RNFS.copyFile(`${RNFS.MainBundlePath}/assets/${assetPath}`, cachedPath);
+    } else {
+      // Android: copyFileAssets streams from APK without loading into JS RAM
+      await RNFS.copyFileAssets(`assets/${assetPath}`, cachedPath);
     }
 
     return `file://${cachedPath}`;
@@ -1007,27 +1019,12 @@ function buildProceduralBoard() {
     return;
   }
 
-  // ── Standard chess/checkers board ───────────────────────────────────────────
-  const THICKNESS = BOARD_THICKNESS; // board depth — gives it a solid slab look
-  // Solid slab body
+  // ── Plain wooden plinth — no chess pattern ─────────────────────────────────
+  const THICKNESS = BOARD_THICKNESS;
   boardGroup.add(new THREE.Mesh(
     new THREE.BoxGeometry(BOARD_HALF_W*2+0.04, BOARD_HALF_H*2+0.04, THICKNESS),
     new THREE.MeshStandardMaterial({ color:0x3b2206, roughness:0.75, metalness:0.06 })
   ));
-  const lMat = new THREE.MeshStandardMaterial({ color:0xe8d5b5, roughness:0.5,  metalness:0.04 });
-  const dMat = new THREE.MeshStandardMaterial({ color:0x7a4a22, roughness:0.65, metalness:0.06 });
-  const sqGeo = new THREE.PlaneGeometry(SQUARE_W*0.97, SQUARE_H*0.97);
-  for (let r=0;r<8;r++) for (let c=0;c<8;c++) {
-    const sq = new THREE.Mesh(sqGeo, (r+c)%2===0 ? lMat : dMat);
-    sq.position.set(-FIELD_HALF_W+(c+0.5)*SQUARE_W, FIELD_HALF_H-(r+0.5)*SQUARE_H, THICKNESS/2+0.001);
-    boardGroup.add(sq);
-  }
-  const rimLine = new THREE.LineSegments(
-    new THREE.EdgesGeometry(new THREE.BoxGeometry(BOARD_HALF_W*2+0.03, BOARD_HALF_H*2+0.03, THICKNESS+0.002)),
-    new THREE.LineBasicMaterial({ color:0xd4af37 })
-  );
-  rimLine.position.z = 0.001;
-  boardGroup.add(rimLine);
 }
 
 // ── Load GLB assets ─────────────────────────────────────────────────────────────────
@@ -1118,6 +1115,18 @@ if (BOARD_URI) {
         });
       }
     });
+
+    // Hide pre-placed checker pieces and embedded dice baked into the GLB.
+    // The Backgammon material uses alphaMode:MASK so these sub-objects (e.g.
+    // BoardRight.005–BoardRight.035, BoardLeft.005–BoardLeft.035,
+    // Dice1.001–Dice1.002) show through the transparent areas of the board
+    // texture as tan/beige discs at checker positions.
+    model.traverse(ch => {
+      if (/^(Board[A-Za-z]*|Dice\d*)\.\d/.test(ch.name || '')) {
+        ch.visible = false;
+      }
+    });
+
     boardGroup.add(model);
 
     // ── Backgammon point triangles (canvas texture plane) ───────────────
@@ -1516,8 +1525,8 @@ function clonePiece(piece) {
   // Clone the wrapper group returned by normalizePieceModel (deep clone preserves inner scale)
   const clone = sourceScene.clone(true);
   // Chess pieces need rotation.x = π/2 to cancel boardGroup's -π/2 and stand upright in world.
-  // Backgammon checkers (bg_checker) should lay FLAT on the board surface — no cancellation needed.
-  const isCheckerDisc = piece.pieceType === 'bg_checker';
+  // Disc pieces (bg_checker, checker) should lay FLAT on the board surface — no rotation cancellation needed.
+  const isCheckerDisc = piece.pieceType === 'bg_checker' || piece.pieceType === 'checker';
   clone.rotation.x = isCheckerDisc ? 0 : Math.PI / 2;
 
   clone.traverse(ch => {
