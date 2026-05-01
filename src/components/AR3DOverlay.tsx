@@ -222,7 +222,7 @@ export interface AR3DOverlayProps {
 const GLB_ASSET_MAP: Record<string, any> = {
   'glb/game_boards/rounded_table_panel_v4.glb': require('../../assets/glb/game_boards/rounded_table_panel_v4.glb'),
   'glb/game_boards/rounded_table_panel.glb':    require('../../assets/glb/game_boards/rounded_table_panel.glb'),
-  'glb/game_boards/armenian_marble_gold_merged.glb': require('../../assets/glb/game_boards/armenian_marble_gold_merged.glb'),
+  'glb/game_boards/Poker_table.glb':            require('../../assets/glb/game_boards/Poker_table.glb'),
   'glb/checkers/chess_board_v2.glb':            require('../../assets/glb/checkers/chess_board_v2.glb'),
   'glb/game_assets/round_table.glb':            require('../../assets/glb/game_assets/round_table.glb'),
   'glb/game_assets/octagon_table.glb':          require('../../assets/glb/game_assets/octagon_table.glb'),
