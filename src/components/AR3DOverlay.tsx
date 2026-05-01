@@ -2599,6 +2599,7 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
         allowFileAccess
         allowFileAccessFromFileURLs
         allowUniversalAccessFromFileURLs
+        allowingReadAccessToURL="file:///"
         onLoadEnd={handleLoadEnd}
         onMessage={handleMessage}
         onContentProcessDidTerminate={() => {
