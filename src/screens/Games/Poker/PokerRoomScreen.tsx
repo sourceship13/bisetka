@@ -237,7 +237,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
             z: cardZ,
           },
           rotation: { x: cardRotX, y: 0, z: cardRotZ },
-          scale: 0.2,
+          scale: 0.24,
           cardData: {
             suit: card.suit as ARCard['cardData']['suit'],
             rank: card.rank as ARCard['cardData']['rank'],
