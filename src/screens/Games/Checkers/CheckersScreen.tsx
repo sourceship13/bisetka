@@ -135,7 +135,7 @@ const CheckersScreen = ({ navigation, route }: any) => {
   const [showMusicPlayer, setShowMusicPlayer] = useState(true);
   const [showBlur, setShowBlur] = useState(true);
   const [showBackground, setShowBackground] = useState(true);
-  const [arEnabled, setArEnabled] = useState(false); // off by default so 2D board is immediately playable
+  const [arEnabled, setArEnabled] = useState(true);
   const arOverlayRef = useRef<AR3DOverlayHandle>(null);
   const toolbarExpanded = useSharedValue(false);
   const chevronStyle = useAnimatedStyle(() => ({
