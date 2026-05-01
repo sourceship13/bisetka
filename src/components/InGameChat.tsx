@@ -32,6 +32,24 @@ interface InGameChatProps {
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
+const GIFTS = [
+  { emoji: '🍌', label: 'Banana' },
+  { emoji: '🍅', label: 'Tomato' },
+  { emoji: '⭐', label: 'Star' },
+  { emoji: '🪨', label: 'Rock' },
+  { emoji: '💎', label: 'Diamond' },
+  { emoji: '🌹', label: 'Rose' },
+  { emoji: '🍎', label: 'Apple' },
+  { emoji: '🎁', label: 'Gift' },
+  { emoji: '🏆', label: 'Trophy' },
+  { emoji: '🎯', label: 'Bullseye' },
+  { emoji: '🔥', label: 'Fire' },
+  { emoji: '💰', label: 'Coins' },
+  { emoji: '🎪', label: 'Confetti' },
+  { emoji: '🌟', label: 'Glowing Star' },
+  { emoji: '🎉', label: 'Party' },
+];
+
 const InGameChat: React.FC<InGameChatProps> = ({
   roomId,
   currentUserId,
@@ -42,6 +60,7 @@ const InGameChat: React.FC<InGameChatProps> = ({
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
   const [chatId, setChatId] = useState<string | null>(null);
+  const [showGiftPanel, setShowGiftPanel] = useState(false);
   const flatListRef = useRef<FlatList>(null);
 
   // ── Voice chat ─────────────────────────────────────────────────────────────
@@ -119,6 +138,34 @@ const InGameChat: React.FC<InGameChatProps> = ({
       chatSocketService.leaveChat(chatId);
     };
   }, [chatId, currentUserId]);
+
+  const handleGift = async (gift: { emoji: string; label: string }) => {
+    setShowGiftPanel(false);
+    const text = `${gift.emoji} gifted a ${gift.label}!`;
+    // Single player: no chat room — show locally only
+    if (!chatId) {
+      const localMsg: Message = {
+        id: `local-${Date.now()}`,
+        content: text,
+        sender_id: currentUserId || 'me',
+        sender_username: 'You',
+        created_at: new Date().toISOString(),
+      } as Message;
+      setMessages(prev => [...prev, localMsg]);
+      setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 50);
+      return;
+    }
+    try {
+      const { message } = await chatService.postMessage(chatId, text);
+      setMessages(prev => {
+        if (prev.some(m => m.id === message.id)) return prev;
+        return [...prev, message];
+      });
+      setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 50);
+    } catch (err) {
+      console.warn('[InGameChat] gift send error:', err);
+    }
+  };
 
   const handleSend = async () => {
     const text = inputText.trim();
@@ -266,6 +313,29 @@ const InGameChat: React.FC<InGameChatProps> = ({
           )}
         </View>
 
+        {/* Gift Panel */}
+        {showGiftPanel && (
+          <>
+            {/* Tap-outside dismiss */}
+            <TouchableOpacity
+              style={styles.giftDismiss}
+              onPress={() => setShowGiftPanel(false)}
+              activeOpacity={1}
+            />
+            <View style={styles.giftPanel}>
+              {GIFTS.map(g => (
+                <TouchableOpacity
+                  key={g.emoji}
+                  style={styles.giftItem}
+                  onPress={() => handleGift(g)}
+                  activeOpacity={0.7}>
+                  <Text style={styles.giftEmoji}>{g.emoji}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </>
+        )}
+
         {/* Input Bar */}
         <View style={styles.inputContainer}>
           <View style={styles.inputWrapper}>
@@ -279,7 +349,15 @@ const InGameChat: React.FC<InGameChatProps> = ({
               returnKeyType="send"
               maxLength={500}
             />
-            
+
+            {/* Gift Arrow Button */}
+            <TouchableOpacity
+              style={styles.giftBtn}
+              onPress={() => setShowGiftPanel(prev => !prev)}
+              activeOpacity={0.75}>
+              <Text style={styles.giftBtnIcon}>{showGiftPanel ? '▼' : '▲'}</Text>
+            </TouchableOpacity>
+
             {/* Send Button */}
             <TouchableOpacity
               style={[styles.sendBtn, !inputText.trim() && styles.sendBtnDisabled]}
@@ -508,6 +586,58 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 12,
     fontWeight: '600',
+  },
+
+  // ── Gift panel ─────────────────────────────────────────────────────────────
+  giftDismiss: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 999,
+  },
+  giftPanel: {
+    position: 'absolute',
+    bottom: 90,
+    right: 16,
+    width: 54,
+    backgroundColor: 'rgba(10,10,20,0.92)',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.18)',
+    paddingVertical: 6,
+    zIndex: 1000,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.5,
+    shadowRadius: 10,
+    elevation: 12,
+  },
+  giftItem: {
+    width: 54,
+    height: 46,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  giftEmoji: {
+    fontSize: 26,
+  },
+  giftBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  giftBtnIcon: {
+    color: '#F5C518',
+    fontSize: 14,
+    fontWeight: '700',
   },
 });
 
