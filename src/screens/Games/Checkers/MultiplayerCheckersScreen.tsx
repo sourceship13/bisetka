@@ -563,6 +563,10 @@ const MultiplayerCheckersScreen = ({navigation, route}: any) => {
           visible={arEnabled}
           boardGlbPath="glb/checkers/chess_board_v2.glb"
           hideCheckerboard
+          boardTiltX={0}
+          boardY={-0.35}
+          tableDist={0.50}
+          boardScale={0.8}
           chessPieceGlbPaths={{
             white_checker: 'glb/checkers/nyu_red_checker.glb',
             black_checker: 'glb/checkers/nyu_black_checker.glb',

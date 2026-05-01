@@ -244,7 +244,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
   useEffect(() => {
     if (!arEnabled) { setArCards([]); return; }
 
-    const TILT = Math.PI / 8; // 22.5° toward viewer for readability
+    const TILT = 0; // flat on table surface
     const arPositions: Record<number, { x: number; y: number; z: number }> = {
       0: { x:  0.00, y:  0.35, z: 0.13 },  // near player (bottom)
       1: { x:  0.22, y:  0.50, z: 0.13 },  // right player
@@ -1709,7 +1709,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
   return (
     <View style={styles.container}>
       <Photosphere360Background overlayOpacity={showBlur ? 0.65 : 0.3}>
-        <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/game assets/octagon_table.glb" hideCheckerboard boardScale={1.9} cardGlbPath="glb/cards/card-template.glb" cards={arCards} />
+        <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/game_boards/Poker_table.glb" hideCheckerboard boardScale={1.9} tableDist={0.9} boardY={-1.5} boardTiltX={0.35} cardGlbPath="glb/cards/card-template.glb" cards={arCards} />
       </Photosphere360Background>
       <View style={styles.overlay} pointerEvents="box-none">
         <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right']}>
