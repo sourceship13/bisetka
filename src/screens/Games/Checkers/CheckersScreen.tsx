@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, ImageBackground, Alert, Animated, ScrollView, Image } from 'react-native';
 import Photosphere360Background from '../../../components/Photosphere360Background';
-import AR3DOverlay, { type ARPiece, type AR3DOverlayHandle } from '../../../components/ARViroOverlay';
+import AR3DOverlay, { type ARPiece, type AR3DOverlayHandle } from '../../../components/AR3DOverlay';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import ReAnimated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
@@ -248,6 +248,8 @@ const CheckersScreen = ({ navigation, route }: any) => {
   // Converts logical board (row, col) to an ARPiece for the 3D overlay.
   // The coordinates stay in board-space; AR3DOverlay maps them to 3D world space.
   const arPieces = useMemo<ARPiece[]>(() => {
+    // SQUARE_W must match AR3DOverlay: FIELD_HALF_W*2/8 = 0.305*2/8
+    const CHECKER_SZ = (0.305 * 2 / 8) * 0.82;  // 82% of one square
     const result: ARPiece[] = [];
     gameState.board.forEach((row, r) => {
       row.forEach((piece, c) => {
@@ -259,6 +261,9 @@ const CheckersScreen = ({ navigation, route }: any) => {
           row: r,
           col: c,
           color: piece.color,
+          side: piece.color === 'red' ? 'white' : 'black',  // white→red GLB, black→black GLB
+          pieceType: 'checker',
+          pieceScale: CHECKER_SZ,
           isKing: piece.type === 'king',
           isSelected:
             gameState.selectedSquare?.row === r &&
@@ -583,17 +588,19 @@ const CheckersScreen = ({ navigation, route }: any) => {
   // ── board render ──────────────────────────────────────────────────────────
   return (
     <View style={styles.container}>
-      {/* Non-AR fallback background */}
-      {!arEnabled && <Photosphere360Background overlayOpacity={0.5} />}
-      {/* ViroReact VR overlay — photosphere env + GLB board */}
+      <Photosphere360Background overlayOpacity={0.5} />
       <AR3DOverlay
         ref={arOverlayRef}
         visible={arEnabled}
         pieces={arPieces}
         moves={gameState.possibleMoves}
         onSquareTap={handleArSquareTap}
-        boardGlbPath="glb/chess/chess-board/source/armenian_board.glb"
-        panoramaSource={PANO_SOURCE}
+        boardGlbPath="glb/checkers/chess_board_v2.glb"
+        hideCheckerboard
+        chessPieceGlbPaths={{
+          white_checker: 'glb/checkers/nyu_red_checker.glb',
+          black_checker: 'glb/checkers/nyu_black_checker.glb',
+        }}
       />
       <View style={styles.overlay} pointerEvents="box-none">
         <SafeAreaView style={styles.safeArea} pointerEvents="box-none">

@@ -1063,7 +1063,7 @@ const BaazarBlotScreen = ({ navigation }: any) => {
   return (
     <View style={styles.bg}>
       <Photosphere360Background overlayOpacity={showBlur ? 0.65 : 0.3}>
-        <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/game assets/octagon_table.glb" hideCheckerboard boardScale={1.9} cardGlbPath="glb/cards/card-template.glb" cards={arCards} />
+        <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/game_assets/octagon_table.glb" hideCheckerboard boardScale={1.9} cardGlbPath="glb/cards/card-template.glb" cards={arCards} />
       </Photosphere360Background>
       <View style={styles.overlay} pointerEvents="box-none">
       <SafeAreaView style={styles.safe}>

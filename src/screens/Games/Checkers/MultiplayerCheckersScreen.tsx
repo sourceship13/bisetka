@@ -558,7 +558,16 @@ const MultiplayerCheckersScreen = ({navigation, route}: any) => {
   return (
     <View style={styles.container}>
       <Photosphere360Background overlayOpacity={showBlur ? 0.5 : 0.3}>
-        <AR3DOverlay ref={arOverlayRef} visible={arEnabled} />
+        <AR3DOverlay
+          ref={arOverlayRef}
+          visible={arEnabled}
+          boardGlbPath="glb/checkers/chess_board_v2.glb"
+          hideCheckerboard
+          chessPieceGlbPaths={{
+            white_checker: 'glb/checkers/nyu_red_checker.glb',
+            black_checker: 'glb/checkers/nyu_black_checker.glb',
+          }}
+        />
       </Photosphere360Background>
       <View style={styles.overlay} pointerEvents="box-none">
         <SafeAreaView style={styles.safeArea}>
