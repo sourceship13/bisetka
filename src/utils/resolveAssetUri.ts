@@ -32,18 +32,11 @@ const GLB_ASSET_MAP: Record<string, any> = {
 
 export async function resolveAssetUri(assetPath: string): Promise<string | null> {
   try {
-    // iOS: try the app bundle first — works in both dev AND production builds.
-    // This mirrors exactly how TestFlight / release builds load assets, so dev
-    // testing reflects real behaviour without a separate TestFlight deployment.
-    if (Platform.OS === 'ios') {
-      const bundlePath = `${RNFS.MainBundlePath}/assets/${assetPath}`;
-      const exists = await RNFS.exists(bundlePath);
-      if (exists) return `file://${bundlePath}`;
-    }
+    const assetRef = GLB_ASSET_MAP[assetPath];
 
     if (__DEV__) {
-      // Bundle path didn't have the file — fall back to Metro download (dev only).
-      const assetRef = GLB_ASSET_MAP[assetPath];
+      // Dev: resolve via Metro asset registry → download to temp file so
+      // the WebView (file:// origin) can read it cross-origin.
       let metroUrl: string | null = null;
 
       if (assetRef != null) {
@@ -80,7 +73,20 @@ export async function resolveAssetUri(assetPath: string): Promise<string | null>
       return null;
     }
 
-    // Production non-iOS (Android)
+    // Production: use the RN asset registry directly — it knows the exact
+    // bundle path regardless of iOS/Android layout. No path-guessing needed.
+    if (assetRef != null) {
+      const resolved = Image.resolveAssetSource(assetRef);
+      const uri = resolved?.uri ?? null;
+      if (uri) return uri;
+    }
+
+    // Fallback: manual bundle path (iOS)
+    if (Platform.OS === 'ios') {
+      const bundlePath = `${RNFS.MainBundlePath}/assets/${assetPath}`;
+      const exists = await RNFS.exists(bundlePath);
+      if (exists) return `file://${bundlePath}`;
+    }
 
     // Android prod fallback — base64
     const b64 = await RNFS.readFileAssets(`assets/${assetPath}`, 'base64');
