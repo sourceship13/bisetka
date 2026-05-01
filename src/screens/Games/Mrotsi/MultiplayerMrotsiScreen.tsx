@@ -579,7 +579,7 @@ const MultiplayerMrotsiScreen = ({navigation, route}: any) => {
   return (
     <View style={styles.backgroundImage}>
     <Photosphere360Background overlayOpacity={showBlur ? 0.5 : 0.3}>
-      <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/chess/chess-board/source/ui.glb" />
+      <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/game_boards/rounded_table_panel_v4.glb" />
     </Photosphere360Background>
     <View style={styles.overlay} pointerEvents="box-none">
     <SafeAreaView style={styles.container}>

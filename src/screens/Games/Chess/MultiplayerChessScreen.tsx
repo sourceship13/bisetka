@@ -610,6 +610,10 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
           moves={gameState?.possibleMoves || []}
           boardGlbPath="glb/chess/chess-board/source/ui.glb"
           hideCheckerboard={true}
+          boardTiltX={0}
+          boardY={-0.35}
+          tableDist={0.50}
+          boardScale={0.8}
           chessPieceGlbPaths={{
             white_pawn:   'glb/chess/pawn.glb',
             white_rook:   'glb/chess/rook.glb',
