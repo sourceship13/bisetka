@@ -354,7 +354,7 @@ const BlotScreen = ({ navigation }: any) => {
   // Sync trick cards to AR 3D overlay
   useEffect(() => {
     if (!arEnabled || !gameState?.currentTrick?.cards) { setArCards([]); return; }
-    const TILT = Math.PI / 8; // 22.5° toward viewer for readability
+    const TILT = 0; // flat on table
     const positions: Record<number, { x: number; y: number; z: number }> = {
       0: { x:  0.00, y: -0.30, z: 0.02 },  // near player (bottom, toward camera)
       1: { x:  0.30, y:  0.00, z: 0.02 },  // right player
@@ -719,7 +719,7 @@ const BlotScreen = ({ navigation }: any) => {
   return (
     <View style={styles.container}>
       <Photosphere360Background overlayOpacity={showBlur ? 0.65 : 0.3}>
-        <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/game_assets/octagon_table.glb" hideCheckerboard boardScale={1.9} tableDist={1.5} boardY={-1.10} boardTiltX={0.32} cardGlbPath="glb/cards/card-template.glb" cards={arCards} />
+        <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/game_boards/Poker_table.glb" hideCheckerboard boardScale={1.9} tableDist={0.9} boardY={-1.5} boardTiltX={0.35} cardGlbPath="glb/cards/card-template.glb" cards={arCards} />
       </Photosphere360Background>
       <View style={StyleSheet.absoluteFill} {...pinchResponder.panHandlers} pointerEvents="box-none" />
       <View style={styles.overlay} pointerEvents="box-none">
@@ -1412,7 +1412,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 16,
-    paddingBottom: 16,
+    paddingBottom: 220,
   },
   handLabel: {
     fontSize: 16,
