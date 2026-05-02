@@ -1,11 +1,20 @@
 apply plugin: "com.android.application"
 apply plugin: "org.jetbrains.kotlin.android"
+apply plugin: "com.facebook.react"
 
-def jscFlavor = 'org.webkit:android-jsc:+'
+// Provide react-native path so libraries can skip the `node` exec call
+ext {
+    REACT_NATIVE_NODE_MODULES_DIR = new File("${rootProject.projectDir}/../node_modules/react-native").canonicalPath
+}
+
+react {
+    // Autolinks all native libraries as implementation project(:...) dependencies
+    autolinkLibrariesWithApp()
+}
 
 android {
     namespace "com.sera.dev.bisetka"
-    compileSdk 35
+    compileSdk 36
 
     buildFeatures {
         buildConfig true
@@ -46,10 +55,9 @@ android {
 }
 
 dependencies {
-    def reactNativeVersion = "0.83.1"
-    
-    implementation("com.facebook.react:react-android:$reactNativeVersion")
-    implementation jscFlavor
+    // The version of react-native is set by the React Native Gradle Plugin
+    implementation("com.facebook.react:react-android")
+    implementation("com.facebook.react:hermes-android")
 }
 
 repositories {

@@ -19,4 +19,18 @@ buildscript {
     }
 }
 
+// Set REACT_NATIVE_NODE_MODULES_DIR so libraries skip the `node` exec fallback
+ext {
+    REACT_NATIVE_NODE_MODULES_DIR = new File("${rootProject.projectDir}/../node_modules/react-native").canonicalPath
+}
+
+// Add Mapbox Maven registry (auth no longer required) to all projects
+allprojects {
+    repositories {
+        maven {
+            url 'https://api.mapbox.com/downloads/v2/releases/maven'
+        }
+    }
+}
+
 apply plugin: "com.facebook.react.rootproject"
