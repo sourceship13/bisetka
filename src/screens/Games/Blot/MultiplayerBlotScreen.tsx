@@ -115,6 +115,9 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
   const [isMyTurn, setIsMyTurn] = useState(false);
   const [selectedCard, setSelectedCard] = useState<Card | null>(null);
   const [opponent, setOpponent] = useState<any>(null);
+  // Seat names relative to this player: [0=bottom/me, 1=right, 2=top, 3=left]
+  const myName = route.params?.session?.displayName || route.params?.session?.username || 'You';
+  const [seatNames, setSeatNames] = useState<string[]>([myName, '', '', '']);
   const [gameStatus, setGameStatus] = useState('');
   const [isConnecting, setIsConnecting] = useState(false);
   const [isGameStarted, setIsGameStarted] = useState(false);
@@ -639,6 +642,17 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
         isRoundTransitioningRef.current = true;
         setTimeout(() => setShowRiffleDealAnimation(true), 300);
         setIsMyTurn(data.gameState?.currentTurn === data.myPosition);
+        // Build relative seat names: rel 0=me(bottom), 1=right, 2=top, 3=left
+        const names4P = [myName, '', '', ''];
+        if (data.players && Array.isArray(data.players)) {
+          data.players.forEach((p: any, absPos: number) => {
+            const rel = (absPos - data.myPosition + 4) % 4;
+            names4P[rel] = absPos === data.myPosition
+              ? myName
+              : (p?.displayName || p?.username || `P${absPos + 1}`);
+          });
+        }
+        setSeatNames(names4P);
         return;
       }
       // ────────────────────────────────────────────────────────────────────
@@ -649,6 +663,11 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
       console.log('✅ My color (from server):', myColor, '| gameState.currentTurn:', data.gameState?.currentTurn);
 
       updatePlayerColor(myColor);
+      // Build 2P seat names: [me(bottom), unused, opponent(top), unused]
+      const oppName2P = data.opponent?.displayName || data.opponent?.username
+        || (myColor === 'white' ? data.player2?.displayName || data.player2?.username : data.player1?.displayName || data.player1?.username)
+        || 'Opponent';
+      setSeatNames([myName, '', oppName2P, '']);
       if (data.roomId) {
         setCurrentRoom((prev: any) => ({
           ...(prev || {}),
@@ -1466,6 +1485,25 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
     );
   };
 
+  // ── Player name chips around the table ──────────────────────────────────
+  const renderSeatLabels = (is4P: boolean) => {
+    const nameChip = (name: string, isSelf: boolean) => (
+      <View style={[styles.seatChip, isSelf && styles.seatChipSelf]}>
+        <Text style={[styles.seatChipText, isSelf && styles.seatChipTextSelf]} numberOfLines={1}>
+          {name}
+        </Text>
+      </View>
+    );
+    return (
+      <View style={styles.seatNameArea} pointerEvents="none">
+        <View style={styles.seatNameBottom}>{nameChip(seatNames[0] || myName, true)}</View>
+        {seatNames[2] ? <View style={styles.seatNameTop}>{nameChip(seatNames[2], false)}</View> : null}
+        {is4P && seatNames[1] ? <View style={styles.seatNameRight}>{nameChip(seatNames[1], false)}</View> : null}
+        {is4P && seatNames[3] ? <View style={styles.seatNameLeft}>{nameChip(seatNames[3], false)}</View> : null}
+      </View>
+    );
+  };
+
   const renderGame = () => {
     const is4P = playerPosition !== null;
     // 4-player: use the per-player hand from gameState.myHand or hands[position]
@@ -1621,6 +1659,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
                       })}
                     </View>
                   )}
+                  {renderSeatLabels(is4P)}
                 </ImageBackground>
                 ) : (
                 <View style={styles.cardTable}>
@@ -1666,6 +1705,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
                       })}
                     </View>
                   )}
+                  {renderSeatLabels(is4P)}
                 </View>
                 )}
               </View>
@@ -2332,6 +2372,61 @@ const styles = StyleSheet.create({
     color: '#fff',
     marginBottom: 6,
     fontWeight: '600',
+  },
+  // ── Seat name chips around the table ──────────────────────────────────
+  seatNameArea: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  seatNameBottom: {
+    position: 'absolute',
+    bottom: 4,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+  },
+  seatNameTop: {
+    position: 'absolute',
+    top: 4,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+  },
+  seatNameLeft: {
+    position: 'absolute',
+    left: 4,
+    top: '50%',
+    marginTop: -12,
+  },
+  seatNameRight: {
+    position: 'absolute',
+    right: 4,
+    top: '50%',
+    marginTop: -12,
+  },
+  seatChip: {
+    backgroundColor: 'rgba(0,0,0,0.62)',
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.18)',
+    maxWidth: 110,
+  },
+  seatChipSelf: {
+    borderColor: 'rgba(245,197,24,0.55)',
+    backgroundColor: 'rgba(20,10,0,0.72)',
+  },
+  seatChipText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  seatChipTextSelf: {
+    color: '#F5C518',
   },
   roundScore: {
     fontSize: 12,
