@@ -543,7 +543,9 @@ const NardiScreen = ({ navigation, route }: any) => {
         });
         socket.on('game_started', () => {
           if (cancelled) return;
-          setGameState(initializeNardiGame('short'));
+          // Skip the 'setup' phase in multiplayer — go straight to 'rolling'
+          // so the white player can roll immediately (no opening ceremony needed)
+          setGameState({ ...initializeNardiGame('short'), phase: 'rolling' });
           setMpStatus('playing');
         });
         socket.on('move_made', (data: any) => {
