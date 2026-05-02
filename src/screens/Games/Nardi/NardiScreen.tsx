@@ -280,6 +280,16 @@ const NardiScreen = ({ navigation, route }: any) => {
 
   const myMpColorRef = useRef<'white'|'black'>('white');
   const myNardiColor: 'white'|'black' = isMultiplayer ? myMpColor : 'white';
+  // Opening roll ceremony (multiplayer only)
+  const [mpOpeningPhase, setMpOpeningPhase] = useState<'idle'|'rolling'|'done'>('idle');
+  const [myOpeningRoll, setMyOpeningRoll] = useState<number|null>(null);
+  const [opponentOpeningRoll, setOpponentOpeningRoll] = useState<number|null>(null);
+  const [openingTieMsg, setOpeningTieMsg] = useState<string|null>(null);
+  // Prevent our own socket echoes from being applied twice
+  const justEndedTurnRef = useRef(false);
+  const sentOpeningRollRef = useRef(false);
+  // Counts how many move_piece echoes we should skip (one per emitted move)
+  const pendingMyMoveEchoesRef = useRef(0);
   const handleRollDiceRef = useRef<() => void>(() => {});
   const swipeStartY = useRef(0);
   const [pendingDice, setPendingDice] = useState<{ die1: number; die2: number } | null>(null);
@@ -543,14 +553,28 @@ const NardiScreen = ({ navigation, route }: any) => {
         });
         socket.on('game_started', () => {
           if (cancelled) return;
-          // Skip the 'setup' phase in multiplayer — go straight to 'rolling'
-          // so the white player can roll immediately (no opening ceremony needed)
-          setGameState({ ...initializeNardiGame('short'), phase: 'rolling' });
+          // Enter the pre-game opening roll ceremony instead of jumping straight in
           setMpStatus('playing');
+          setMpOpeningPhase('rolling');
+          setMyOpeningRoll(null);
+          setOpponentOpeningRoll(null);
+          setOpeningTieMsg(null);
         });
         socket.on('move_made', (data: any) => {
           if (cancelled) return;
           const mv = data.move;
+
+          // ── Opening roll exchange ─────────────────────────────────────────
+          if (mv?.type === 'opening_roll') {
+            // Skip the echo of our own opening roll
+            if (sentOpeningRollRef.current) {
+              sentOpeningRollRef.current = false;
+              return;
+            }
+            setOpponentOpeningRoll(mv.die);
+            return;
+          }
+
           if (mv?.type === 'roll_dice') {
             setGameState(prev => {
               if (!prev || prev.phase !== 'rolling') return prev;
@@ -569,21 +593,30 @@ const NardiScreen = ({ navigation, route }: any) => {
               return ns.possibleMoves.length === 0 ? switchPlayer(ns) : ns;
             });
           } else if (mv?.type === 'move_piece') {
+            // Skip echo of our own move (counter survives turn switches)
+            if (pendingMyMoveEchoesRef.current > 0) {
+              pendingMyMoveEchoesRef.current -= 1;
+              return;
+            }
             setGameState(prev => {
               if (!prev) return prev;
-              // Skip if this is our own move (already applied locally by handleMove)
-              if (prev.currentPlayer === myMpColorRef.current) return prev;
+              // Use the checker colour sent in the message (never infer from currentPlayer
+              // — it can change between when the move was emitted and when the echo arrives).
+              const checker: 'white' | 'black' = mv.checker ?? prev.currentPlayer;
               return applyMove(prev, {
                 from: mv.from,
                 to: mv.to,
-                checker: prev.currentPlayer,
+                checker,
               });
             });
           } else if (mv?.type === 'end_turn') {
+            // Skip the echo of our own end_turn (we already switched locally)
+            if (justEndedTurnRef.current) {
+              justEndedTurnRef.current = false;
+              return;
+            }
             setGameState(prev => {
               if (!prev) return prev;
-              // Skip if this is our own end_turn (already applied locally by handleMove)
-              if (prev.currentPlayer === myMpColorRef.current) return prev;
               return switchPlayer(prev);
             });
           }
@@ -665,6 +698,38 @@ const NardiScreen = ({ navigation, route }: any) => {
       }
     };
   }, []);
+
+  // ── Opening roll resolution ──────────────────────────────────────────────
+  // Runs when both players have sent their opening-roll die. Decides colors and
+  // starts the game once the result has been shown for a moment.
+  useEffect(() => {
+    if (!isMultiplayer || mpOpeningPhase !== 'rolling') return;
+    if (myOpeningRoll === null || opponentOpeningRoll === null) return;
+
+    if (myOpeningRoll === opponentOpeningRoll) {
+      // Tie — show message and re-roll after delay
+      setOpeningTieMsg(`Tie! Both rolled ${myOpeningRoll}. Rolling again...`);
+      const t = setTimeout(() => {
+        setMyOpeningRoll(null);
+        setOpponentOpeningRoll(null);
+        setOpeningTieMsg(null);
+      }, 1600);
+      return () => clearTimeout(t);
+    }
+
+    // Higher roll → 'white' (red pieces, goes first)
+    const iGoFirst = myOpeningRoll > opponentOpeningRoll;
+    const myColor: 'white' | 'black' = iGoFirst ? 'white' : 'black';
+    myMpColorRef.current = myColor;
+    setMyMpColor(myColor);
+
+    const t = setTimeout(() => {
+      setGameState({ ...initializeNardiGame('short'), phase: 'rolling' });
+      setMpOpeningPhase('done');
+    }, 1400);
+    return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [myOpeningRoll, opponentOpeningRoll]);
 
   // Helper: figure out which die value a move consumed.
   // For a bear-off (to === 24 or to === -1) we must pick the die whose value
@@ -768,6 +833,7 @@ const NardiScreen = ({ navigation, route }: any) => {
       console.log('🎲 Applied:', dice.die1, dice.die2, 'possible moves:', newState.possibleMoves.length);
       if (newState.possibleMoves.length === 0) {
         if (isMultiplayer && roomIdRef.current) {
+          justEndedTurnRef.current = true;
           socketService.makeMove(roomIdRef.current, userId, {type: 'end_turn'});
         }
         return switchPlayer(newState);
@@ -841,10 +907,12 @@ const NardiScreen = ({ navigation, route }: any) => {
     }
 
     if (isMultiplayer && roomIdRef.current) {
-      socketService.makeMove(roomIdRef.current, userId, {type: 'move_piece', from: move.from, to: move.to});
+      pendingMyMoveEchoesRef.current += 1;
+      socketService.makeMove(roomIdRef.current, userId, {type: 'move_piece', from: move.from, to: move.to, checker: move.checker});
     }
     if (updated.movesRemaining === 0 || updated.possibleMoves.length === 0) {
       if (isMultiplayer && roomIdRef.current) {
+        justEndedTurnRef.current = true;
         socketService.makeMove(roomIdRef.current, userId, {type: 'end_turn'});
       }
       setGameState(switchPlayer(updated));
@@ -963,6 +1031,7 @@ const NardiScreen = ({ navigation, route }: any) => {
         return switchPlayer(prev);
       });
       if (isMultiplayer && roomIdRef.current) {
+        justEndedTurnRef.current = true;
         socketService.makeMove(roomIdRef.current, userId, {type: 'end_turn'});
       }
     }, 1500);
@@ -982,12 +1051,10 @@ const NardiScreen = ({ navigation, route }: any) => {
 
     const barMoves = gameState.possibleMoves.filter(m => m.from === -1);
 
-    if (barMoves.length === 1) {
-      // Only one valid entry point — auto-execute immediately
-      handleMove(barMoves[0]);
-      setSelectedPoint(null);
-    } else if (barMoves.length > 1) {
-      // Multiple entry choices — highlight bar and wait for destination tap
+    if (barMoves.length > 0) {
+      // Always highlight bar first so the player sees visual feedback before any move fires.
+      // When there is exactly one valid entry point the destination is revealed on the board;
+      // the player still needs a second tap to confirm, preventing accidental auto-moves.
       setSelectedPoint(-1);
     }
     // barMoves.length === 0: all entries blocked, auto-skip effect will end the turn
@@ -1400,6 +1467,111 @@ const NardiScreen = ({ navigation, route }: any) => {
                 }}>
                 <Text style={{ color: '#fff', fontWeight: '700', fontSize: 15 }}>Cancel</Text>
               </TouchableOpacity>
+            </View>
+          )}
+
+          {/* Opening roll overlay — shown after match found, before game begins */}
+          {isMultiplayer && mpStatus === 'playing' && mpOpeningPhase === 'rolling' && (
+            <View style={{
+              ...StyleSheet.absoluteFillObject,
+              backgroundColor: 'rgba(10,10,30,0.95)',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 110,
+              gap: 24,
+              paddingHorizontal: 32,
+            }}>
+              <Text style={{ color: '#fbbf24', fontSize: 22, fontWeight: '800', textAlign: 'center' }}>
+                🎲 Roll for First Move
+              </Text>
+              <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 14, textAlign: 'center' }}>
+                Highest roll plays as 🔴 Red and goes first
+              </Text>
+
+              {/* Die result display */}
+              <View style={{ flexDirection: 'row', gap: 32, alignItems: 'center' }}>
+                {/* My die */}
+                <View style={{ alignItems: 'center', gap: 8 }}>
+                  <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>YOU</Text>
+                  <View style={{
+                    width: 64, height: 64,
+                    backgroundColor: myOpeningRoll !== null ? '#ef4444' : 'rgba(255,255,255,0.1)',
+                    borderRadius: 14,
+                    alignItems: 'center', justifyContent: 'center',
+                    borderWidth: 2,
+                    borderColor: myOpeningRoll !== null ? '#ef4444' : 'rgba(255,255,255,0.2)',
+                  }}>
+                    <Text style={{ color: '#fff', fontSize: 30, fontWeight: '800' }}>
+                      {myOpeningRoll !== null ? myOpeningRoll : '?'}
+                    </Text>
+                  </View>
+                </View>
+
+                <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 24 }}>vs</Text>
+
+                {/* Opponent die */}
+                <View style={{ alignItems: 'center', gap: 8 }}>
+                  <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>OPPONENT</Text>
+                  <View style={{
+                    width: 64, height: 64,
+                    backgroundColor: opponentOpeningRoll !== null ? '#6366f1' : 'rgba(255,255,255,0.1)',
+                    borderRadius: 14,
+                    alignItems: 'center', justifyContent: 'center',
+                    borderWidth: 2,
+                    borderColor: opponentOpeningRoll !== null ? '#6366f1' : 'rgba(255,255,255,0.2)',
+                  }}>
+                    <Text style={{ color: '#fff', fontSize: 30, fontWeight: '800' }}>
+                      {opponentOpeningRoll !== null ? opponentOpeningRoll : '?'}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* Tie message */}
+              {openingTieMsg !== null && (
+                <Text style={{ color: '#fbbf24', fontSize: 15, fontWeight: '700', textAlign: 'center' }}>
+                  {openingTieMsg}
+                </Text>
+              )}
+
+              {/* Result message when both have rolled */}
+              {myOpeningRoll !== null && opponentOpeningRoll !== null && openingTieMsg === null && (
+                <Text style={{ color: '#10b981', fontSize: 16, fontWeight: '700', textAlign: 'center' }}>
+                  {myOpeningRoll > opponentOpeningRoll
+                    ? '🔴 You go first!'
+                    : '⚫ Opponent goes first — you play Black'}
+                </Text>
+              )}
+
+              {/* Roll button — only if haven't rolled yet */}
+              {myOpeningRoll === null && (
+                <TouchableOpacity
+                  onPress={() => {
+                    const die = Math.floor(Math.random() * 6) + 1;
+                    setMyOpeningRoll(die);
+                    if (roomIdRef.current) {
+                      sentOpeningRollRef.current = true;
+                      socketService.makeMove(roomIdRef.current, userId, { type: 'opening_roll', die });
+                    }
+                  }}
+                  style={{ borderRadius: 16, overflow: 'hidden', marginTop: 8 }}>
+                  <LinearGradient
+                    colors={['#ef4444', '#dc2626']}
+                    style={{ paddingHorizontal: 48, paddingVertical: 16, alignItems: 'center' }}>
+                    <Text style={{ color: '#fff', fontSize: 18, fontWeight: '800' }}>🎲 Roll</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              )}
+
+              {/* Waiting message when we rolled but opponent hasn't */}
+              {myOpeningRoll !== null && opponentOpeningRoll === null && openingTieMsg === null && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                  <ActivityIndicator size="small" color="#6366f1" />
+                  <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14 }}>
+                    Waiting for opponent to roll...
+                  </Text>
+                </View>
+              )}
             </View>
           )}
 

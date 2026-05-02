@@ -9,8 +9,9 @@ export interface GridGameMove {
 
 export type NardiGameMove =
   | { type: 'roll_dice'; dice: { die1: number; die2: number } }
-  | { type: 'move_piece'; from: number; to: number }
-  | { type: 'end_turn' };
+  | { type: 'move_piece'; from: number; to: number; checker?: 'white' | 'black' }
+  | { type: 'end_turn' }
+  | { type: 'opening_roll'; die: number };
 
 export type GameMove = GridGameMove | NardiGameMove;
 
