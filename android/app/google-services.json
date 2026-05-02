@@ -12,7 +12,20 @@
           "package_name": "com.sera.dev.bisetka"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "378583720606-l2fp4rasjbpufaermmcof1449ou3uttd.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.sera.dev.bisetka",
+            "certificate_hash": "a46f20b59925d21c8d310fb44c0eefd01d0de62d"
+          }
+        },
+        {
+          "client_id": "378583720606-h0fk22ojpusud1i2p1a6jnf9f8hrkntb.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyAUz8nZmV02pj3DHvC0WWI5qrVhCx4ii7A"
@@ -20,7 +33,20 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "378583720606-h0fk22ojpusud1i2p1a6jnf9f8hrkntb.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "378583720606-itd8kjg5l2nuv5ud9kn0oq4pcv4rfk3n.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "org.sera.dev.bisetka.staging",
+                "app_store_id": "6759070813"
+              }
+            }
+          ]
         }
       }
     },
@@ -31,7 +57,20 @@
           "package_name": "com.sera.dev.bisetka.staging"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "378583720606-5ikbqr66bsjpn50c5bcs3ig3lsfbg7db.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.sera.dev.bisetka.staging",
+            "certificate_hash": "a46f20b59925d21c8d310fb44c0eefd01d0de62d"
+          }
+        },
+        {
+          "client_id": "378583720606-h0fk22ojpusud1i2p1a6jnf9f8hrkntb.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyAUz8nZmV02pj3DHvC0WWI5qrVhCx4ii7A"
@@ -39,7 +78,20 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "378583720606-h0fk22ojpusud1i2p1a6jnf9f8hrkntb.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "378583720606-itd8kjg5l2nuv5ud9kn0oq4pcv4rfk3n.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "org.sera.dev.bisetka.staging",
+                "app_store_id": "6759070813"
+              }
+            }
+          ]
         }
       }
     }

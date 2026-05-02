@@ -3,6 +3,15 @@ import AuthService from '../../services/AuthService';
 import apiService from '../../services/api.service';
 import { Platform, AppState, AppStateStatus } from 'react-native';
 import { appleAuth } from '@invertase/react-native-apple-authentication';
+import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
+
+// Configure Google Sign-In (called once at module load)
+// TODO: Replace with your actual Web Client ID from Google Cloud Console
+// Get it from: https://console.cloud.google.com/ → APIs & Services → Credentials → OAuth 2.0 Client IDs → Web client
+GoogleSignin.configure({
+  webClientId: '378583720606-h0fk22ojpusud1i2p1a6jnf9f8hrkntb.apps.googleusercontent.com',
+  offlineAccess: true,
+});
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import tokenService from '../../services/token.service';
 import { registerDevice } from '../utils/deviceInfo';
@@ -18,6 +27,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   setUser: React.Dispatch<React.SetStateAction<User | null>>;
   signInWithApple: () => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
   signInWithEmail: (email: string, password: string) => Promise<void>;
   signUpWithEmail: (
     email: string,
@@ -263,6 +273,62 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const signInWithGoogle = async () => {
+    try {
+      setIsLoading(true);
+
+      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      const response = await GoogleSignin.signIn();
+
+      if (response.type !== 'success') {
+        // User cancelled
+        return;
+      }
+
+      const { idToken } = response.data;
+      if (!idToken) {
+        throw new Error('No ID token returned from Google');
+      }
+
+      const { user: googleUser } = response.data;
+      const backendResponse = await apiService.googleSignIn({
+        idToken,
+        user: {
+          email: googleUser.email,
+          name: googleUser.name || googleUser.email,
+          photo: googleUser.photo || undefined,
+        },
+      });
+
+      await tokenService.storeSession(backendResponse);
+      setUser(mapBackendUser(backendResponse.user));
+
+      if (backendResponse.bisetka) {
+        await bisetkaStorageService.storeBisetka({
+          id: backendResponse.bisetka.id,
+          neighborhood: backendResponse.bisetka.neighborhood,
+          city: backendResponse.bisetka.city,
+          country: backendResponse.bisetka.country,
+          active_users: backendResponse.bisetka.active_users,
+          source: 'ip',
+        });
+        console.log(`🏘️ Connected to Bisetka: ${backendResponse.bisetka.neighborhood}, ${backendResponse.bisetka.city}`);
+      }
+
+      registerDevice(apiConfig.apiURL, backendResponse.token).catch(err =>
+        console.warn('Device registration failed:', err)
+      );
+    } catch (error: any) {
+      if (error?.code === statusCodes.SIGN_IN_CANCELLED) {
+        return; // User cancelled, not an error
+      }
+      console.error('❌ Google Sign In error:', error?.message || error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const signInWithEmail = async (email: string, password: string) => {
     try {
       setIsLoading(true);
@@ -400,6 +466,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isLoading,
         isAuthenticated: !!user,
         signInWithApple,
+        signInWithGoogle,
         signInWithEmail,
         signUpWithEmail,
         signOut,
