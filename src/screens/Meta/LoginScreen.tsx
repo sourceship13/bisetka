@@ -41,7 +41,7 @@ const LoginScreen = ({navigation}: any) => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [showDevUsers, setShowDevUsers] = useState(false);
-  const {signInWithApple, signInWithEmail} = useAuth();
+  const {signInWithApple, signInWithEmail, signInWithGoogle} = useAuth();
 
   // Quick fill dev credentials
   const fillDevCredentials = (userEmail: string) => {
@@ -74,6 +74,17 @@ const LoginScreen = ({navigation}: any) => {
       // Navigation happens automatically when user state changes
     } catch (error: any) {
       BisetkaAlert.error('Sign In Failed', error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    try {
+      setLoading(true);
+      await signInWithGoogle();
+    } catch (error: any) {
+      BisetkaAlert.error('Sign In Failed', error.message || 'Google sign in failed');
     } finally {
       setLoading(false);
     }
@@ -165,6 +176,21 @@ const LoginScreen = ({navigation}: any) => {
               </TouchableOpacity>
             </>
           )}
+
+          <View style={styles.orContainer}>
+            <View style={styles.orLine} />
+            <Text style={styles.orText}>or</Text>
+            <View style={styles.orLine} />
+          </View>
+
+          <TouchableOpacity
+            activeOpacity={0.85}
+            disabled={loading}
+            onPress={handleGoogleSignIn}>
+            <View style={styles.googleButton}>
+              <Text style={styles.googleButtonText}>🔍  Sign in with Google</Text>
+            </View>
+          </TouchableOpacity>
 
           <TouchableOpacity style={styles.forgotPasswordContainer}>
             <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
@@ -317,6 +343,20 @@ const styles = StyleSheet.create({
   },
   appleButtonText: {
     color: colors.text.primary,
+    fontSize: typography.fontSize.md,
+    fontWeight: typography.fontWeight.semibold,
+  },
+  googleButton: {
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    padding: spacing.lg,
+    alignItems: 'center',
+    marginBottom: spacing.lg,
+    borderWidth: 1,
+    borderColor: '#dadce0',
+  },
+  googleButtonText: {
+    color: '#3c4043',
     fontSize: typography.fontSize.md,
     fontWeight: typography.fontWeight.semibold,
   },
