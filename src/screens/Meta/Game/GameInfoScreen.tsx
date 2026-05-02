@@ -8,7 +8,9 @@ import {
   ActivityIndicator,
   Dimensions,
   Platform,
+  Modal,
 } from 'react-native';
+import { useAuth } from '../../../libs/hooks/useAuth';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
@@ -17,6 +19,7 @@ import { RootStackParamList } from '../../../navigation/AppNavigator';
 import { colors } from '../../../theme';
 import apiConfig from '../../../libs/utils/api.utils';
 import tokenService from '../../../services/token.service';
+import { apiService } from '../../../services/api.service';
 import { BACKGROUND_ANIMATION_DURATION } from '@sentry/react-native/dist/js/feedback/FeedbackWidgetManager';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'GameInfo'>;
@@ -58,6 +61,10 @@ const GameInfoScreen: React.FC<Props> = ({ route, navigation }) => {
   const [gameInfo, setGameInfo] = useState<GameInfoData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showPointsModal, setShowPointsModal] = useState(false);
+  const [checkingBalance, setCheckingBalance] = useState(false);
+  const [liveBalance, setLiveBalance] = useState<number | null>(null);
+  const { user } = useAuth();
 
   useEffect(() => {
     fetchGameInfo();
@@ -95,18 +102,45 @@ const GameInfoScreen: React.FC<Props> = ({ route, navigation }) => {
     }
   };
 
-  const handlePlayNow = () => {
+  const handlePlayNow = async () => {
+    // Slots/Blackjack are bet-based — no fixed entry fee to check
+    const skipCheck = gameType === 'slots' || gameType === 'blackjack';
+
+    if (!skipCheck) {
+      const entryCost = gameInfo?.pointAwards?.entryCost || gameInfo?.entryCost || 50;
+      try {
+        setCheckingBalance(true);
+        const freshUser = await apiService.getProfile();
+        const liveBalance = Math.floor((freshUser as any)?.balance || 0);
+        if (liveBalance < entryCost) {
+          setLiveBalance(liveBalance);
+          setShowPointsModal(true);
+          return;
+        }
+      } catch {
+        // Fallback to cached balance if fetch fails
+        const cachedBalance = Math.floor((user as any)?.balance || 0);
+        if (cachedBalance < entryCost) {
+          setLiveBalance(cachedBalance);
+          setShowPointsModal(true);
+          return;
+        }
+      } finally {
+        setCheckingBalance(false);
+      }
+    }
+
     // Solo games - navigate directly without game mode selection
-    if (gameType === 'slots' || gameType === 'blackjack') {
+    if (skipCheck) {
       navigation.navigate(gameType.charAt(0).toUpperCase() + gameType.slice(1) as any, {
         bisetkaId,
         bisetkaName,
       });
       return;
     }
-    
+
     // For other games, navigate to GameMode screen with bisetkaId
-    navigation.navigate('GameMode', { 
+    navigation.navigate('GameMode', {
       gameType: gameType as any,
       bisetkaId,
       bisetkaName,
@@ -281,8 +315,37 @@ const GameInfoScreen: React.FC<Props> = ({ route, navigation }) => {
     );
   }
 
+  const entryCostForModal = gameInfo?.pointAwards?.entryCost || gameInfo?.entryCost || 50;
+  const userBalanceForModal = liveBalance ?? Math.floor((user as any)?.balance || 0);
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      {/* Insufficient Points Modal */}
+      <Modal
+        visible={showPointsModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowPointsModal(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalIcon}>💰</Text>
+            <Text style={styles.modalTitle}>Not Enough Points</Text>
+            <Text style={styles.modalBody}>
+              You need{' '}
+              <Text style={styles.modalHighlight}>{entryCostForModal} points</Text>
+              {' '}to play {gameInfo?.displayName || 'this game'}, but you only have{' '}
+              <Text style={[styles.modalHighlight, styles.modalBalanceLow]}>{userBalanceForModal} points</Text>.
+            </Text>
+            <Text style={styles.modalSub}>Earn more points by playing other games or purchase points to keep going!</Text>
+            <TouchableOpacity
+              style={styles.modalDismiss}
+              onPress={() => setShowPointsModal(false)}>
+              <Text style={styles.modalDismissText}>Got It</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
       {/* Header */}
       <LinearGradient
         colors={gradient || ['#6366f1', '#8b5cf6']}
@@ -359,16 +422,23 @@ const GameInfoScreen: React.FC<Props> = ({ route, navigation }) => {
         <TouchableOpacity
           style={styles.playButton}
           onPress={handlePlayNow}
-          activeOpacity={0.8}>
+          activeOpacity={0.8}
+          disabled={checkingBalance}>
           <LinearGradient
             colors={gradient || ['#6366f1', '#8b5cf6']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.playButtonGradient}>
-            <Text style={styles.playButtonText}>Play Now</Text>
-            <Text style={styles.playButtonSubtext}>
-              Entry: {gameInfo.entryCost || 50} points
-            </Text>
+            {checkingBalance ? (
+              <ActivityIndicator color="#fff" size="small" />
+            ) : (
+              <>
+                <Text style={styles.playButtonText}>Play Now</Text>
+                <Text style={styles.playButtonSubtext}>
+                  Entry: {gameInfo.entryCost || 50} points
+                </Text>
+              </>
+            )}
           </LinearGradient>
         </TouchableOpacity>
       </View>
@@ -426,6 +496,68 @@ const styles = StyleSheet.create({
   backButtonText: {
     color: colors.text.secondary,
     fontSize: 16,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.75)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  modalCard: {
+    backgroundColor: '#1a1a35',
+    borderRadius: 24,
+    padding: 28,
+    alignItems: 'center',
+    width: '100%',
+    maxWidth: 380,
+    borderWidth: 1,
+    borderColor: 'rgba(239,68,68,0.4)',
+  },
+  modalIcon: {
+    fontSize: 56,
+    marginBottom: 12,
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#fff',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  modalBody: {
+    fontSize: 15,
+    color: 'rgba(255,255,255,0.8)',
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 10,
+  },
+  modalHighlight: {
+    fontWeight: '700',
+    color: '#fff',
+  },
+  modalBalanceLow: {
+    color: '#ef4444',
+  },
+  modalSub: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.5)',
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 20,
+  },
+  modalDismiss: {
+    backgroundColor: '#6366f1',
+    borderRadius: 14,
+    paddingHorizontal: 40,
+    paddingVertical: 14,
+    width: '100%',
+    alignItems: 'center',
+  },
+  modalDismissText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
   },
   header: {
     borderRadius:12,
