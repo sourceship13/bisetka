@@ -273,8 +273,11 @@ async function resolveAssetUri(assetPath: string): Promise<string | null> {
       if (assetRef != null) {
         const resolved = Image.resolveAssetSource(assetRef);
         metroUrl = resolved?.uri ?? null;
-      } else {
-        // Fallback for paths not in the map: construct from scriptURL
+      }
+
+      // If Image.resolveAssetSource didn't give us a URL (can happen for non-image
+      // asset types on Android), fall back to constructing from scriptURL.
+      if (!metroUrl) {
         const scriptUrl: string = (NativeModules.SourceCode as any)?.scriptURL ?? '';
         const match = scriptUrl.match(/^(https?:\/\/[^/:]+(?::\d+)?)/);
         const base = match ? match[1] : null;
@@ -289,37 +292,11 @@ async function resolveAssetUri(assetPath: string): Promise<string | null> {
         return null;
       }
 
-      const safeFileName = assetPath.replace(/[\/\\]/g, '_').replace(/ /g, '_');
-      const tempPath = `${RNFS.TemporaryDirectoryPath}ar_${safeFileName}`;
-
-      // Reuse the cached temp file if it already exists — avoids re-downloading
-      // large GLBs (e.g. 26 MB poker_table2.glb) on every Metro reload.
-      // Delete it manually from the device tmp dir if you need a fresh copy.
-      // Also validate size > 1 KB — a 0-byte or truncated file from a previous
-      // failed/interrupted download must not be served as a valid cache hit.
-      if (await RNFS.exists(tempPath)) {
-        const stat = await RNFS.stat(tempPath);
-        if (stat.size > 1024) {
-          return `file://${tempPath}`;
-        }
-        // Stale / corrupt — delete and re-download
-        await RNFS.unlink(tempPath).catch(() => {});
-      }
-
-      try {
-        const dl = RNFS.downloadFile({fromUrl: metroUrl, toFile: tempPath});
-        const res = await dl.promise;
-        // Metro sometimes returns statusCode 0 even on HTTP 200 — accept if
-        // bytesWritten > 0 so a partial/empty file doesn't count as success.
-        const ok = res.statusCode === 200 || (res.statusCode === 0 && res.bytesWritten > 100);
-        if (ok) {
-          return `file://${tempPath}`;
-        }
-      } catch (dlErr) {
-      }
-
-      console.warn('[AR3DOverlay] GLB download failed:', assetPath);
-      return null;
+      // In __DEV__ mode, skip the RNFS download entirely.
+      // Pass the Metro HTTP URL directly — the WebView (mixedContentMode="always" +
+      // allowUniversalAccessFromFileURLs) lets GLTFLoader fetch HTTP from file:// context.
+      console.warn('[AR3DOverlay] resolving', assetPath, '→ Metro direct:', metroUrl);
+      return metroUrl;
     }
 
     // Production: use RN's asset registry first — it knows the exact bundle path
@@ -2274,6 +2251,13 @@ function animate() {
   }
   _stepPhysDice();
   renderer.render(scene, camera);
+  // After the very first frame, tell React Native the canvas is transparent.
+  if (!animate._readySent) {
+    animate._readySent = true;
+    if (window.ReactNativeWebView) {
+      window.ReactNativeWebView.postMessage(JSON.stringify({type:'ar3d_ready'}));
+    }
+  }
 }
 animate();
 
@@ -2513,6 +2497,7 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
   // WKWebView.loadFileURL has no such limit.
   const htmlFileUriKeyRef = useRef(0);
   const [htmlFileUri, setHtmlFileUri] = useState<string | null>(null);
+  const [webviewReady, setWebviewReady] = useState(false);
   useEffect(() => {
     if (!htmlString) { setHtmlFileUri(null); return; }
     // Use a unique filename per session so WKWebView never serves a cached version.
@@ -2522,6 +2507,7 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
     const filePath = `${RNFS.TemporaryDirectoryPath}ar_scene_${sessionId}_${Date.now()}.html`;
     RNFS.writeFile(filePath, htmlString, 'utf8')
       .then(() => {
+        setWebviewReady(false); // hide until new page loads
         setHtmlFileUri(`file://${filePath}`);
       })
       .catch(e => console.warn('[AR3DOverlay] failed to write scene HTML:', e));
@@ -2561,6 +2547,8 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
   // guarantees pieces appear after the module script has run.
   // Retry every 500ms for up to 5s in case the pieces GLB CDN import is still loading.
   const handleLoadEnd = useCallback(() => {
+    // Don't reveal WebView here — Three.js CDN import is still in-flight.
+    // We wait for the ar3d_ready postMessage instead (after first renderer.render).
     const sendScene = () => {
       const msg = JSON.stringify({
         type: 'scene',
@@ -2586,6 +2574,8 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
         onNardiPointTap(data.point);
       } else if (data.type === 'dice_result' && onDiceRolled) {
         onDiceRolled(data.die1, data.die2);
+      } else if (data.type === 'ar3d_ready') {
+        setWebviewReady(true); // Three.js rendered first transparent frame
       } else if (data.type === 'log') {
         console.warn('[AR3D WebView]', data.msg);
       }
@@ -2601,13 +2591,14 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
         key={htmlFileUri} // Unique file URL per session = WebView always remounts with fresh spawnYaw
         ref={webViewRef}
         source={{ uri: htmlFileUri }}
-        style={styles.webview}
+        style={[styles.webview, !webviewReady && styles.webviewHidden]}
         scrollEnabled={false}
         bounces={false}
         originWhitelist={['*']}
         allowFileAccess
         allowFileAccessFromFileURLs
         allowUniversalAccessFromFileURLs
+        mixedContentMode="always"
         allowingReadAccessToURL="file:///"
         onLoadEnd={handleLoadEnd}
         onMessage={handleMessage}
@@ -2630,6 +2621,7 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
 
 const styles = StyleSheet.create({
   webview: { flex: 1, backgroundColor: 'transparent' },
+  webviewHidden: { opacity: 0 },
 });
 
 export default AR3DOverlay;

@@ -675,53 +675,45 @@ const BlotScreen = ({ navigation }: any) => {
     );
   };
 
-  // Show score selection screen if target not chosen
-  if (!targetScore || !gameState) {
-    return (
-      <View style={styles.container}>
-        <Photosphere360Background overlayOpacity={0.85} />
+  // Photosphere360Background and AR3DOverlay are always mounted as siblings
+  // (matching CheckersScreen pattern) so both WebViews start together.
+  // Conditionally mounting AR3DOverlay after the panorama is running causes
+  // Android's compositor to lose the SphereViewer frame when a new hardware
+  // layer is inserted on top of an already-rendering WebView.
+  return (
+    <View style={styles.container}>
+      <Photosphere360Background overlayOpacity={(!targetScore || !gameState) ? 0.85 : (showBlur ? 0.65 : 0.3)} />
+      <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/game_boards/Poker_table.glb" hideCheckerboard boardScale={1.9} tableDist={0.9} boardY={-1.5} boardTiltX={0.35} cardGlbPath="glb/cards/card-template.glb" cards={arCards} />
+      {/* Always mount SyncedYouTubePlayer alongside the other WebViews so all
+          three hardware-accelerated layers are created together at screen open.
+          Adding a new WebView after the others are running kills them on Android. */}
+      <SyncedYouTubePlayer roomId={null} visible={true} />
+      {(!targetScore || !gameState) ? (
+        <View style={[StyleSheet.absoluteFill, {zIndex: 10}]}>
           <SafeAreaView style={styles.safeArea}>
             <View style={styles.scoreSelectionContainer}>
               <Text style={styles.scoreSelectionTitle}>Choose Target Score</Text>
-              <TouchableOpacity
-                style={styles.scoreButton}
-                onPress={() => handleScoreSelection(101)}
-              >
+              <TouchableOpacity style={styles.scoreButton} onPress={() => handleScoreSelection(101)}>
                 <Text style={styles.scoreButtonText}>101 Points</Text>
                 <Text style={styles.scoreButtonSubtext}>Quick Game</Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.scoreButton}
-                onPress={() => handleScoreSelection(201)}
-              >
+              <TouchableOpacity style={styles.scoreButton} onPress={() => handleScoreSelection(201)}>
                 <Text style={styles.scoreButtonText}>201 Points</Text>
                 <Text style={styles.scoreButtonSubtext}>Standard Game</Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.scoreButton}
-                onPress={() => handleScoreSelection(301)}
-              >
+              <TouchableOpacity style={styles.scoreButton} onPress={() => handleScoreSelection(301)}>
                 <Text style={styles.scoreButtonText}>301 Points</Text>
                 <Text style={styles.scoreButtonSubtext}>Long Game</Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.backButton}
-                onPress={() => navigation.goBack()}
-              >
+              <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
                 <Text style={styles.backButtonText}>← Back</Text>
               </TouchableOpacity>
             </View>
           </SafeAreaView>
-      </View>
-    );
-  }
-
-  return (
-    <View style={styles.container}>
-      <Photosphere360Background overlayOpacity={showBlur ? 0.65 : 0.3}>
-        <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/game_boards/Poker_table.glb" hideCheckerboard boardScale={1.9} tableDist={0.9} boardY={-1.5} boardTiltX={0.35} cardGlbPath="glb/cards/card-template.glb" cards={arCards} />
-      </Photosphere360Background>
-      <View style={StyleSheet.absoluteFill} {...pinchResponder.panHandlers} pointerEvents="box-none" />
+        </View>
+      ) : (
+        <>
+          <View style={StyleSheet.absoluteFill} {...pinchResponder.panHandlers} pointerEvents="box-none" />
       <View style={styles.overlay} pointerEvents="box-none">
         <SafeAreaView style={[styles.safeArea,]} onLayout={handleBoardLayout}>
           <View>
@@ -1022,7 +1014,6 @@ const BlotScreen = ({ navigation }: any) => {
         gameType="blot"
         visible={true}
       />
-      <SyncedYouTubePlayer roomId={null} visible={true} />
       {arEnabled && (
         <TouchableOpacity
           style={styles.recenterBtn}
@@ -1032,6 +1023,8 @@ const BlotScreen = ({ navigation }: any) => {
           <Text style={styles.recenterIcon}>⊕</Text>
           <Text style={styles.recenterLabel}>Re-center</Text>
         </TouchableOpacity>
+      )}
+        </>
       )}
     </View>
   );
