@@ -11,6 +11,7 @@ import {
   Image,
   Dimensions,
   ActivityIndicator,
+  Animated,
 } from 'react-native';
 import chatService, { Message } from '../services/chat.service';
 import chatSocketService from '../services/chatSocket.service';
@@ -30,7 +31,8 @@ interface InGameChatProps {
   opponentUsername?: string;
 }
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+const PANEL_WIDTH = Math.min(300, SCREEN_WIDTH * 0.78);
 
 const GIFTS = [
   { emoji: '🍌', label: 'Banana' },
@@ -61,7 +63,39 @@ const InGameChat: React.FC<InGameChatProps> = ({
   const [inputText, setInputText] = useState('');
   const [chatId, setChatId] = useState<string | null>(null);
   const [showGiftPanel, setShowGiftPanel] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [toastMsg, setToastMsg] = useState<{ sender: string; text: string } | null>(null);
   const flatListRef = useRef<FlatList>(null);
+  const slideAnim = useRef(new Animated.Value(-PANEL_WIDTH)).current;
+  const toastAnim = useRef(new Animated.Value(0)).current;
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isOpenRef = useRef(false);
+
+  const showToast = (sender: string, text: string) => {
+    // Cancel any pending hide
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    setToastMsg({ sender, text });
+    toastAnim.setValue(0);
+    Animated.sequence([
+      Animated.timing(toastAnim, { toValue: 1, duration: 220, useNativeDriver: true }),
+      Animated.delay(2800),
+      Animated.timing(toastAnim, { toValue: 0, duration: 300, useNativeDriver: true }),
+    ]).start(() => setToastMsg(null));
+  };
+
+  const toggleChat = () => {
+    const opening = !isOpenRef.current;
+    isOpenRef.current = opening;
+    setIsOpen(opening);
+    if (opening) setUnreadCount(0);
+    Animated.spring(slideAnim, {
+      toValue: opening ? 0 : -PANEL_WIDTH,
+      useNativeDriver: true,
+      bounciness: 0,
+      speed: 16,
+    }).start();
+  };
 
   // ── Voice chat ─────────────────────────────────────────────────────────────
   const {
@@ -127,6 +161,14 @@ const InGameChat: React.FC<InGameChatProps> = ({
       });
       // Scroll to bottom when new message arrives
       setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 50);
+      // Badge + toast when panel is closed
+      if (!isOpenRef.current) {
+        setUnreadCount(prev => prev + 1);
+        const sender = msg.sender_id === currentUserId
+          ? 'You'
+          : (msg.sender_username || opponentUsername || 'Player');
+        showToast(sender, msg.content);
+      }
     };
 
     chatSocketService.onMessage(chatId, handleNew);
@@ -233,6 +275,12 @@ const InGameChat: React.FC<InGameChatProps> = ({
 
   return (
     <View style={styles.root} pointerEvents="box-none">
+      <Animated.View
+        style={[styles.slideWrapper, { transform: [{ translateX: slideAnim }] }]}
+        pointerEvents="box-none"
+      >
+        {/* ── Chat panel ───────────────────────────────────────────── */}
+        <View style={styles.panel} pointerEvents={isOpen ? 'auto' : 'none'}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.container}
@@ -374,6 +422,47 @@ const InGameChat: React.FC<InGameChatProps> = ({
         </View>
 
       </KeyboardAvoidingView>
+        </View>
+
+        {/* ── Chat tab (always visible at left edge) ───────────────── */}
+        <TouchableOpacity
+          style={[styles.chatTab, unreadCount > 0 && !isOpen && styles.chatTabUnread]}
+          onPress={toggleChat}
+          activeOpacity={0.8}
+        >
+          {isOpen ? (
+            <Text style={styles.chatTabClose}>✕</Text>
+          ) : (
+            <>
+              <Text style={styles.chatTabLabel}>CHAT</Text>
+              {unreadCount > 0 && (
+                <View style={styles.chatTabBadge}>
+                  <Text style={styles.chatTabBadgeText}>
+                    {unreadCount > 9 ? '9+' : String(unreadCount)}
+                  </Text>
+                </View>
+              )}
+            </>
+          )}
+        </TouchableOpacity>
+      </Animated.View>
+
+      {/* ── Center-screen message toast ───────────────────────────── */}
+      {toastMsg && (
+        <Animated.View
+          style={[
+            styles.toast,
+            {
+              opacity: toastAnim,
+              transform: [{ scale: toastAnim.interpolate({ inputRange: [0, 1], outputRange: [0.88, 1] }) }],
+            },
+          ]}
+          pointerEvents="none"
+        >
+          <Text style={styles.toastSender}>💬 Chat</Text>
+          <Text style={styles.toastText} numberOfLines={2}>{toastMsg.text}</Text>
+        </Animated.View>
+      )}
     </View>
   );
 };
@@ -381,18 +470,112 @@ const InGameChat: React.FC<InGameChatProps> = ({
 const styles = StyleSheet.create({
   root: {
     position: 'absolute',
-    bottom: 50,
     left: 0,
     right: 0,
+    bottom: 0,
+    top: 0,
     zIndex: 999,
+  },
+  toast: {
+    position: 'absolute',
+    top: SCREEN_HEIGHT / 3,
+    left: 40,
+    right: 40,
+    backgroundColor: 'rgba(0,0,0,0.82)',
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.18)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.5,
+    shadowRadius: 12,
+    elevation: 16,
+    zIndex: 1100,
+  },
+  toastSender: {
+    color: '#F5C518',
+    fontSize: 12,
+    fontWeight: '700',
+    marginBottom: 4,
+    letterSpacing: 0.3,
+  },
+  toastText: {
+    color: '#fff',
+    fontSize: 14,
+    lineHeight: 19,
+  },
+  slideWrapper: {
+    position: 'absolute',
+    left: 0,
+    bottom: 90,
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+  },
+  panel: {
+    width: PANEL_WIDTH,
+    backgroundColor: 'rgba(0,0,12,0.88)',
+    borderTopRightRadius: 16,
+    borderBottomRightRadius: 8,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderLeftWidth: 0,
+    borderColor: 'rgba(255,255,255,0.12)',
+  },
+  chatTab: {
+    width: 28,
+    height: 80,
+    backgroundColor: 'rgba(0,0,0,0.72)',
+    borderTopRightRadius: 10,
+    borderBottomRightRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderLeftWidth: 0,
+    borderColor: 'rgba(255,255,255,0.18)',
+  },
+  chatTabUnread: {
+    backgroundColor: 'rgba(59,130,246,0.8)',
+  },
+  chatTabLabel: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 1.5,
+    transform: [{ rotate: '-90deg' }],
+    width: 56,
+    textAlign: 'center',
+  },
+  chatTabClose: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  chatTabBadge: {
+    position: 'absolute',
+    top: 5,
+    right: 3,
+    backgroundColor: '#ef4444',
+    borderRadius: 8,
+    minWidth: 16,
+    height: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 2,
+  },
+  chatTabBadgeText: {
+    color: '#fff',
+    fontSize: 9,
+    fontWeight: '700',
   },
   container: {
     width: '100%',
   },
   messagesWrapper: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
     paddingBottom: 8,
-    maxHeight: 260,
+    maxHeight: 240,
   },
   messageList: {
     justifyContent: 'flex-start',
@@ -436,7 +619,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.2)',
-    maxWidth: SCREEN_WIDTH - 100,
+    maxWidth: PANEL_WIDTH - 80,
   },
   messageText: {
     color: 'rgba(255,255,255,0.95)',
