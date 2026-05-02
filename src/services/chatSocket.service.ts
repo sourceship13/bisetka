@@ -23,7 +23,7 @@ class ChatSocketService {
       console.log('💬 Connecting to chat socket:', apiConfig.baseURL);
 
       this.socket = io(apiConfig.baseURL, {
-        transports: ['websocket', 'polling'],
+        transports: ['polling', 'websocket'],
         auth: { userId, token },
       });
 
