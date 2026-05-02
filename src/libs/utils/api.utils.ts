@@ -81,8 +81,12 @@ const getLocalURL = () => {
       if (scriptURL && scriptURL.startsWith('http')) {
         const match = scriptURL.match(/^https?:\/\/([^/:]+)/);
         const host = match?.[1];
+        // On Android + adb reverse, Metro loads from "localhost" — the backend
+        // is also reachable on localhost (via adb reverse tcp:3000 tcp:3000).
+        const isAndroidAdbReverse = Platform.OS === 'android' && host === 'localhost';
         // Exclude simulator-only addresses — a physical device will never have these
-        if (host && host !== 'localhost' && host !== '127.0.0.1' && host !== '10.0.2.2') {
+        // (but do allow localhost on Android, which signals adb reverse is active)
+        if (host && (isAndroidAdbReverse || (host !== 'localhost' && host !== '127.0.0.1' && host !== '10.0.2.2'))) {
           cachedLocalURL = `http://${host}:3000`;
           console.log(`📡 Local API URL (auto from Metro): ${cachedLocalURL}`);
           return cachedLocalURL;

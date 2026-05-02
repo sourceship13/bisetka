@@ -61,7 +61,7 @@ class SocketService {
       });
       
       this.socket = io(this.serverUrl, {
-        transports: ['websocket', 'polling'],
+        transports: ['polling', 'websocket'],
         reconnection: true,
         reconnectionAttempts: 5,
         reconnectionDelay: 1000,

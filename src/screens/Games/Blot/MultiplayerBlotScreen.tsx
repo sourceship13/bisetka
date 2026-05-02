@@ -27,7 +27,6 @@ import tokenService from '../../../services/token.service';
 import { v4 as uuidv4 } from 'uuid';
 import { useGameEndRefresh } from '../../../libs/hooks/useGameEndRefresh';
 import CardHandFan from '../../../components/CardHandFan';
-import Card3D from '../../../components/Card3D';
 import InGameChat from '../../../components/InGameChat';
 import GameToolbar from '../../../components/global/GameToolbar';
 import GameToolbarControls from '../../../components/global/GameToolbarControls';
@@ -1232,13 +1231,20 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
 
     let animatedOpacity: any = undefined;
 
+    const suitColor = SUIT_COLOR[(card as any).suit] ?? '#000';
+    const suitIcon  = SUIT_ICON[(card as any).suit]  ?? (card as any).suit;
     const cardContent = (
-      <Card3D
-        suit={(card as any).suit}
-        rank={(card as any).rank}
-        faceDown={false}
-        size={isTrickCard ? 44 : 60}
-      />
+      <View style={isTrickCard ? styles.nativeCardTrick : styles.nativeCard}>
+        <View style={styles.nativeCardCorner}>
+          <Text style={[styles.nativeCardRank, { color: suitColor }]}>{(card as any).rank}</Text>
+          <Text style={[styles.nativeCardSuit, { color: suitColor }]}>{suitIcon}</Text>
+        </View>
+        <Text style={[styles.nativeCardCenter, { color: suitColor }]}>{suitIcon}</Text>
+        <View style={[styles.nativeCardCorner, { transform: [{ rotate: '180deg' }] }]}>
+          <Text style={[styles.nativeCardRank, { color: suitColor }]}>{(card as any).rank}</Text>
+          <Text style={[styles.nativeCardSuit, { color: suitColor }]}>{suitIcon}</Text>
+        </View>
+      </View>
     );
 
     return (
@@ -2061,28 +2067,53 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 16,
   },
-  card: {
-    width: 80,
-    height: 110,
-    backgroundColor: '#fff',
+  nativeCard: {
+    width: 72,
+    height: 100,
+    backgroundColor: '#ffffff',
     borderRadius: 8,
-    borderWidth: 2,
-    borderColor: '#ddd',
+    borderWidth: 1.5,
+    borderColor: '#cccccc',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 6,
+    marginHorizontal: 4,
+    elevation: 4,
+  },
+  nativeCardTrick: {
+    width: 52,
+    height: 72,
+    backgroundColor: '#ffffff',
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: '#cccccc',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 4,
+    paddingHorizontal: 4,
+    elevation: 4,
+  },
+  nativeCardCorner: {
+    alignSelf: 'flex-start',
+    alignItems: 'center',
+  },
+  nativeCardRank: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    lineHeight: 18,
+  },
+  nativeCardSuit: {
+    fontSize: 12,
+    lineHeight: 14,
+  },
+  nativeCardCenter: {
+    fontSize: 28,
+  },
+  card: {
     marginHorizontal: 5,
   },
   trickCard: {
-    width: 90,
-    height: 120,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: '#ddd',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 8,
     marginHorizontal: 0,
   },
   selectedCard: {
