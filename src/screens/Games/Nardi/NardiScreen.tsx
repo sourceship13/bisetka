@@ -287,7 +287,12 @@ const NardiScreen = ({ navigation, route }: any) => {
   const [openingTieMsg, setOpeningTieMsg] = useState<string|null>(null);
   // Prevent our own socket echoes from being applied twice
   const justEndedTurnRef = useRef(false);
-  const sentOpeningRollRef = useRef(false);
+  // Stores the playerId that was embedded in the most recent opening_roll we emitted.
+  // Compared against mv.playerId on receipt to skip our own echo reliably, even when
+  // both players re-roll after a tie and messages arrive out of order.
+  // Using a ref (not a closure-captured variable) avoids the stale-closure problem
+  // that arises because the socket useEffect has an empty dependency array.
+  const pendingOpeningRollPlayerIdRef = useRef<string | null>(null);
   // Counts how many move_piece echoes we should skip (one per emitted move)
   const pendingMyMoveEchoesRef = useRef(0);
   const handleRollDiceRef = useRef<() => void>(() => {});
@@ -566,9 +571,13 @@ const NardiScreen = ({ navigation, route }: any) => {
 
           // ── Opening roll exchange ─────────────────────────────────────────
           if (mv?.type === 'opening_roll') {
-            // Skip the echo of our own opening roll
-            if (sentOpeningRollRef.current) {
-              sentOpeningRollRef.current = false;
+            // Skip our own echo: compare mv.playerId against the ref that was set
+            // synchronously before we emitted.  Using a ref (not a closure variable)
+            // avoids the stale-closure problem — the socket useEffect has [] deps
+            // so any closure-captured `userId` may be stale ('guest') if the session
+            // loaded after first render.
+            if (mv.playerId && mv.playerId === pendingOpeningRollPlayerIdRef.current) {
+              pendingOpeningRollPlayerIdRef.current = null;
               return;
             }
             setOpponentOpeningRoll(mv.die);
@@ -1550,8 +1559,8 @@ const NardiScreen = ({ navigation, route }: any) => {
                     const die = Math.floor(Math.random() * 6) + 1;
                     setMyOpeningRoll(die);
                     if (roomIdRef.current) {
-                      sentOpeningRollRef.current = true;
-                      socketService.makeMove(roomIdRef.current, userId, { type: 'opening_roll', die });
+                      pendingOpeningRollPlayerIdRef.current = userId;
+                      socketService.makeMove(roomIdRef.current, userId, { type: 'opening_roll', die, playerId: userId });
                     }
                   }}
                   style={{ borderRadius: 16, overflow: 'hidden', marginTop: 8 }}>
