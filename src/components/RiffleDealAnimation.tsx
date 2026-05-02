@@ -1,7 +1,17 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Animated, StyleSheet, Text, Dimensions } from 'react-native';
-import Card3D from './Card3D';
 import type { CardTheme } from './global/GameCustomizationModal';
+
+// Lightweight native card-back — no WebView, avoids Android layer limit.
+const CardBack: React.FC<{ size: number }> = ({ size }) => (
+  <View style={[cardBackStyles.card, { width: size, height: Math.floor(size * 1.4) }]}>
+    <View style={cardBackStyles.inner} />
+  </View>
+);
+const cardBackStyles = StyleSheet.create({
+  card:  { backgroundColor: '#1a237e', borderRadius: 6, borderWidth: 1, borderColor: '#7986cb', overflow: 'hidden' },
+  inner: { flex: 1, margin: 4, borderRadius: 4, backgroundColor: '#283593', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
+});
 
 interface RiffleDealAnimationProps {
   visible: boolean;
@@ -334,7 +344,7 @@ export const RiffleDealAnimation: React.FC<RiffleDealAnimationProps> = ({
                   opacity: anim.opacity,
                 },
               ]}>
-                <Card3D suit="spades" rank="A" faceDown={true} size={100} />
+                <CardBack size={100} />
             </Animated.View>
           ))}
         </View>
@@ -360,7 +370,7 @@ export const RiffleDealAnimation: React.FC<RiffleDealAnimationProps> = ({
                   opacity: anim.opacity,
                 },
               ]}>
-              <Card3D suit="spades" rank="A" faceDown={true} size={100} />
+              <CardBack size={100} />
             </Animated.View>
           ))}
         </View>
@@ -388,7 +398,7 @@ export const RiffleDealAnimation: React.FC<RiffleDealAnimationProps> = ({
               opacity: anim.opacity,
             },
           ]}>
-          <Card3D suit="spades" rank="A" faceDown={true} size={100} />
+          <CardBack size={100} />
         </Animated.View>
       ))}
     </View>

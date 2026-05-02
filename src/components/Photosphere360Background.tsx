@@ -105,6 +105,7 @@ export default function Photosphere360Background({
         />
         {overlayOpacity > 0 && (
           <View
+            pointerEvents="none"
             style={[
               StyleSheet.absoluteFill,
               {backgroundColor: `rgba(0,0,0,${overlayOpacity})`},
