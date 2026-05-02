@@ -3480,11 +3480,8 @@ PODS:
   - Turf (4.0.0)
   - ViroKit (1.0):
     - React
-  - ViroReact (2.54.0):
-    - React-Core
-    - React-Fabric
-    - React-FabricComponents
-    - React-RCTFabric
+  - ViroReact (1.0):
+    - React
   - Yoga (0.0.0)
 
 DEPENDENCIES:
@@ -3972,8 +3969,8 @@ SPEC CHECKSUMS:
   Sentry: 7475eb7bf6a41d7505f46341706015ad2d1766b9
   SocketRocket: d4aabe649be1e368d1318fdf28a022d714d65748
   Turf: c9eb11a65d96af58cac523460fd40fec5061b081
-  ViroKit: c9c10b089da06a10bb357079729cd7181161b3f8
-  ViroReact: 5cc9dd9536e38f30ec2f5da1a144ebe6ca31c681
+  ViroKit: 728e2547f4ac693a69fa7652813ec178a361dbd6
+  ViroReact: 0fe7ad200cee750209ef1e767f677a90f4736bf0
   Yoga: 5456bb010373068fc92221140921b09d126b116e
 
 PODFILE CHECKSUM: 8187e9471583ee3d7a2bb284ffbef6cc2ab7f91d
