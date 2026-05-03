@@ -10,11 +10,13 @@ const MAX_SLIDE = 220;
 interface NardiDiceProps {
   onRollComplete?: (die1: number, die2: number) => void;
   enabled?: boolean;
+  singleDie?: boolean;
 }
 
 export const NardiDice: React.FC<NardiDiceProps> = ({
   onRollComplete,
   enabled = true,
+  singleDie = false,
 }) => {
   const [dice1Value, setDice1Value] = useState(1);
   const [dice2Value, setDice2Value] = useState(1);
@@ -23,6 +25,8 @@ export const NardiDice: React.FC<NardiDiceProps> = ({
   const rollCompleteCount = useRef(0);
   const dice1Ref = useRef(1);
   const dice2Ref = useRef(1);
+  const singleDieRef = useRef(singleDie);
+  singleDieRef.current = singleDie;
   // Refs so PanResponder (created once) can always read the latest values
   const isRollingRef = useRef(false);
   const enabledRef = useRef(enabled);
@@ -122,7 +126,8 @@ export const NardiDice: React.FC<NardiDiceProps> = ({
 
   const handleDiceRollComplete = () => {
     rollCompleteCount.current += 1;
-    if (rollCompleteCount.current >= 2) {
+    const needed = singleDieRef.current ? 1 : 2;
+    if (rollCompleteCount.current >= needed) {
       isRollingRef.current = false;
       setIsRolling(false);
       rollCompleteCount.current = 0;
@@ -148,12 +153,14 @@ export const NardiDice: React.FC<NardiDiceProps> = ({
           index={0}
           onRollComplete={handleDiceRollComplete}
         />
-        <Dice3DSimple
-          value={dice2Value}
-          isRolling={isRolling}
-          index={1}
-          onRollComplete={handleDiceRollComplete}
-        />
+        {!singleDie && (
+          <Dice3DSimple
+            value={dice2Value}
+            isRolling={isRolling}
+            index={1}
+            onRollComplete={handleDiceRollComplete}
+          />
+        )}
       </Animated.View>
     </View>
   );
