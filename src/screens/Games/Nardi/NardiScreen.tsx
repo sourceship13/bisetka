@@ -285,6 +285,12 @@ const NardiScreen = ({ navigation, route }: any) => {
   const [myOpeningRoll, setMyOpeningRoll] = useState<number|null>(null);
   const [opponentOpeningRoll, setOpponentOpeningRoll] = useState<number|null>(null);
   const [openingTieMsg, setOpeningTieMsg] = useState<string|null>(null);
+  // Opening roll ceremony (singleplayer)
+  const [spOpeningPhase, setSpOpeningPhase] = useState<'rolling'|'done'>(!isMultiplayer ? 'rolling' : 'done');
+  const [spPlayerRoll, setSpPlayerRoll] = useState<number|null>(null);
+  const [spAiRoll, setSpAiRoll] = useState<number|null>(null);
+  const [spTieMsg, setSpTieMsg] = useState<string|null>(null);
+  const [spDiceEnabled, setSpDiceEnabled] = useState(true);
   // Prevent our own socket echoes from being applied twice
   const justEndedTurnRef = useRef(false);
   // Stores the playerId that was embedded in the most recent opening_roll we emitted.
@@ -475,40 +481,35 @@ const NardiScreen = ({ navigation, route }: any) => {
     };
   }, []);
 
-  useEffect(() => {
-    // Perform opening roll in single-player after a brief delay
-    if (opponentType === 'ai') {
-      setTimeout(() => {
-        performOpeningRoll();
-      }, 500);
-    }
-  }, []);
+  // Opening roll ceremony handler (singleplayer) — called by NardiDice onRollComplete
+  // die1 = player's roll (left die), die2 = AI's roll (right die)
+  const performOpeningRoll = (die1: number, die2: number) => {
+    setSpPlayerRoll(die1);
+    setSpAiRoll(die2);
+    setSpDiceEnabled(false);
 
-  // Opening roll: both players roll, highest goes first
-  const performOpeningRoll = () => {
-    const playerRoll = Math.floor(Math.random() * 6) + 1;
-    const aiRoll = Math.floor(Math.random() * 6) + 1;
-    
-    console.log('🎲 Opening roll - Player (white):', playerRoll, 'AI (black):', aiRoll);
-    
-    if (playerRoll === aiRoll) {
-      // Tie, roll again
-      setTimeout(() => performOpeningRoll(), 1000);
+    if (die1 === die2) {
+      setSpTieMsg(`Tie! Both rolled ${die1}. Swipe again...`);
+      setTimeout(() => {
+        setSpPlayerRoll(null);
+        setSpAiRoll(null);
+        setSpTieMsg(null);
+        setSpDiceEnabled(true);
+      }, 1800);
       return;
     }
-    
-    // Determine starting player and set dice
-    const firstPlayer: PlayerColor = playerRoll > aiRoll ? 'white' : 'black';
-    
-    setGameState(prev => prev ? {
-      ...prev,
-      currentPlayer: firstPlayer,
-      phase: 'rolling',
-      dice: { die1: playerRoll, die2: aiRoll, rolled: true },
-      movesRemaining: playerRoll !== aiRoll ? 2 : 0,
-    } : prev);
-    
-    console.log('✅ Opening roll complete:', firstPlayer, 'goes first with dice', playerRoll, aiRoll);
+
+    const firstPlayer: PlayerColor = die1 > die2 ? 'white' : 'black';
+    setTimeout(() => {
+      setGameState(prev => prev ? {
+        ...prev,
+        currentPlayer: firstPlayer,
+        phase: 'rolling',
+        dice: { die1, die2, rolled: true },
+        movesRemaining: 2,
+      } : prev);
+      setSpOpeningPhase('done');
+    }, 1400);
   };
 
   // ── Multiplayer socket setup ────────────────────────────────────────────
@@ -1742,28 +1743,43 @@ const NardiScreen = ({ navigation, route }: any) => {
           </View>
 
           <View style={{ paddingHorizontal: 16, paddingVertical: 12 }}>
-            {/* Opening Roll Display */}
-            {gameState.phase === 'setup' && (
-              <View style={{ alignItems: 'center', padding: 16, backgroundColor: 'rgba(0,0,0,0.7)', borderRadius: 12 }}>
-                <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600', marginBottom: 8 }}>
-                  🎲 Rolling to decide who goes first...
-                </Text>
+            {/* Opening roll ceremony (singleplayer) — dice in same position as game dice */}
+            {!isMultiplayer && spOpeningPhase === 'rolling' && (
+              <View style={{ gap: 8 }}>
+                <View style={{
+                  backgroundColor: 'rgba(10,10,30,0.75)',
+                  borderRadius: 14,
+                  paddingHorizontal: 16,
+                  paddingVertical: 10,
+                  alignItems: 'center',
+                  gap: 4,
+                }}>
+                  <Text style={{ color: '#fbbf24', fontSize: 16, fontWeight: '800' }}>🎲 Roll for First Move</Text>
+                  <Text style={{ color: 'rgba(255,255,255,0.65)', fontSize: 12, textAlign: 'center' }}>
+                    Left die is yours · Right die is AI's · Highest goes first as 🔴 Red
+                  </Text>
+                  {spPlayerRoll !== null && spAiRoll !== null && (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 2 }}>
+                      <Text style={{ color: '#ef4444', fontSize: 15, fontWeight: '700' }}>You: {spPlayerRoll}</Text>
+                      <Text style={{ color: 'rgba(255,255,255,0.35)', fontSize: 13 }}>vs</Text>
+                      <Text style={{ color: '#6366f1', fontSize: 15, fontWeight: '700' }}>AI: {spAiRoll}</Text>
+                      {spTieMsg !== null ? (
+                        <Text style={{ color: '#fbbf24', fontSize: 13, fontWeight: '600' }}>{spTieMsg}</Text>
+                      ) : (
+                        <Text style={{ color: '#10b981', fontSize: 13, fontWeight: '700' }}>
+                          {spPlayerRoll > spAiRoll ? '🔴 You go first!' : '⚫ AI goes first'}
+                        </Text>
+                      )}
+                    </View>
+                  )}
+                </View>
+                <NardiDice
+                  onRollComplete={performOpeningRoll}
+                  enabled={spDiceEnabled}
+                />
               </View>
             )}
-            
-            {gameState.phase === 'rolling' && gameState.dice.rolled && gameState.movesRemaining > 0 && !opponentType && (
-              <View style={{ alignItems: 'center', padding: 12, backgroundColor: 'rgba(99, 102, 241, 0.2)', borderRadius: 12, marginBottom: 12 }}>
-                <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>
-                  Opening Roll: You rolled {gameState.currentPlayer === 'white' ? gameState.dice.die1 : gameState.dice.die2}, 
-                  AI rolled {gameState.currentPlayer === 'black' ? gameState.dice.die1 : gameState.dice.die2}
-                </Text>
-                <Text style={{ color: '#fbbf24', fontSize: 13, marginTop: 4 }}>
-                  {gameState.currentPlayer === 'white' ? 'You go first!' : 'AI goes first!'}
-                </Text>
-              </View>
-            )}
-            
-            {!arEnabled && gameState.phase === 'rolling' && gameState.currentPlayer === myNardiColor && (
+            {!arEnabled && spOpeningPhase === 'done' && gameState.phase === 'rolling' && gameState.currentPlayer === myNardiColor && (
               <NardiDice
                 onRollComplete={(die1, die2) => {
                   console.log('🎲 Rolled:', die1, die2);
@@ -1888,7 +1904,7 @@ const NardiScreen = ({ navigation, route }: any) => {
         visible={isMultiplayer && mpStatus === 'playing' && !!roomId}
       />
       <SyncedYouTubePlayer roomId={null} visible={true} />
-      {arEnabled && (
+      {arEnabled && spOpeningPhase !== 'rolling' && (
         <TouchableOpacity
           style={styles.recenterBtn}
           onPress={() => arOverlayRef.current?.recenter()}
