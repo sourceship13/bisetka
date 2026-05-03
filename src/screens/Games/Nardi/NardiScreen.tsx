@@ -291,6 +291,9 @@ const NardiScreen = ({ navigation, route }: any) => {
   const [spAiRoll, setSpAiRoll] = useState<number|null>(null);
   const [spTieMsg, setSpTieMsg] = useState<string|null>(null);
   const [spDiceEnabled, setSpDiceEnabled] = useState(true);
+  const [spRollKey, setSpRollKey] = useState(0);
+  // Opening roll key for multiplayer (incremented on each tie to remount NardiDice fresh)
+  const [mpRollKey, setMpRollKey] = useState(0);
   // Prevent our own socket echoes from being applied twice
   const justEndedTurnRef = useRef(false);
   // Stores the playerId that was embedded in the most recent opening_roll we emitted.
@@ -495,6 +498,7 @@ const NardiScreen = ({ navigation, route }: any) => {
         setSpAiRoll(null);
         setSpTieMsg(null);
         setSpDiceEnabled(true);
+        setSpRollKey(k => k + 1); // force NardiDice remount so PanResponder is fresh
       }, 1800);
       return;
     }
@@ -720,6 +724,7 @@ const NardiScreen = ({ navigation, route }: any) => {
         setMyOpeningRoll(null);
         setOpponentOpeningRoll(null);
         setOpeningTieMsg(null);
+        setMpRollKey(k => k + 1); // force NardiDice remount so PanResponder is fresh
       }, 1600);
       return () => clearTimeout(t);
     }
@@ -1447,6 +1452,16 @@ const NardiScreen = ({ navigation, route }: any) => {
                   ...(isMultiplayer && mpStatus === 'playing' ? [{ icon: '✏️', onPress: () => setShowRoomNameModal(true) }] : []),
                 ]}
               />
+              {arEnabled && spOpeningPhase !== 'rolling' && (
+                <TouchableOpacity
+                  style={styles.recenterBtn}
+                  onPress={() => arOverlayRef.current?.recenter()}
+                  hitSlop={{top:8,bottom:8,left:8,right:8}}
+                  activeOpacity={0.7}>
+                  <Text style={styles.recenterIcon}>⊕</Text>
+                  <Text style={styles.recenterLabel}>Re-center</Text>
+                </TouchableOpacity>
+              )}
             </View>
           </View>
 
@@ -1550,24 +1565,20 @@ const NardiScreen = ({ navigation, route }: any) => {
                 </Text>
               )}
 
-              {/* Roll button — only if haven't rolled yet */}
+              {/* NardiDice — swipe to roll (only before rolling) */}
               {myOpeningRoll === null && (
-                <TouchableOpacity
-                  onPress={() => {
-                    const die = Math.floor(Math.random() * 6) + 1;
-                    setMyOpeningRoll(die);
+                <NardiDice
+                  key={mpRollKey}
+                  singleDie
+                  onRollComplete={(die1) => {
+                    setMyOpeningRoll(die1);
                     if (roomIdRef.current) {
                       pendingOpeningRollPlayerIdRef.current = userId;
-                      socketService.makeMove(roomIdRef.current, userId, { type: 'opening_roll', die, playerId: userId });
+                      socketService.makeMove(roomIdRef.current, userId, { type: 'opening_roll', die: die1, playerId: userId });
                     }
                   }}
-                  style={{ borderRadius: 16, overflow: 'hidden', marginTop: 8 }}>
-                  <LinearGradient
-                    colors={['#ef4444', '#dc2626']}
-                    style={{ paddingHorizontal: 48, paddingVertical: 16, alignItems: 'center' }}>
-                    <Text style={{ color: '#fff', fontSize: 18, fontWeight: '800' }}>🎲 Roll</Text>
-                  </LinearGradient>
-                </TouchableOpacity>
+                  enabled={true}
+                />
               )}
 
               {/* Waiting message when we rolled but opponent hasn't */}
@@ -1774,6 +1785,8 @@ const NardiScreen = ({ navigation, route }: any) => {
                   )}
                 </View>
                 <NardiDice
+                  key={spRollKey}
+                  singleDie
                   onRollComplete={performOpeningRoll}
                   enabled={spDiceEnabled}
                 />
@@ -1904,16 +1917,6 @@ const NardiScreen = ({ navigation, route }: any) => {
         visible={isMultiplayer && mpStatus === 'playing' && !!roomId}
       />
       <SyncedYouTubePlayer roomId={null} visible={true} />
-      {arEnabled && spOpeningPhase !== 'rolling' && (
-        <TouchableOpacity
-          style={styles.recenterBtn}
-          onPress={() => arOverlayRef.current?.recenter()}
-          hitSlop={{top:12,bottom:12,left:12,right:12}}
-          activeOpacity={0.7}>
-          <Text style={styles.recenterIcon}>⊕</Text>
-          <Text style={styles.recenterLabel}>Re-center</Text>
-        </TouchableOpacity>
-      )}
       {/* 3D dice overlay — spinning while animating, then shows settled face during moving phase */}
       {!arEnabled && (diceAnimating ? pendingDice : settledDice) && (
         <View
@@ -2269,7 +2272,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#000',
   },
-  recenterBtn: { position:'absolute', bottom:200, alignSelf:'center', left:'50%', transform:[{translateX:-54}], flexDirection:'row', alignItems:'center', gap:6, backgroundColor:'rgba(0,0,0,0.35)', borderWidth:1, borderColor:'rgba(255,255,255,0.25)', borderRadius:24, paddingHorizontal:18, paddingVertical:10 },
+  recenterBtn: { alignSelf: 'center', marginTop: 6, flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(0,0,0,0.35)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)', borderRadius: 24, paddingHorizontal: 18, paddingVertical: 8 },
   recenterIcon: { fontSize:20, color:'#fff' },
   recenterLabel: { fontSize:13, color:'#fff', fontWeight:'600', letterSpacing:0.3 },
 });
