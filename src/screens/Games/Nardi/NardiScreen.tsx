@@ -124,7 +124,7 @@ const NardiScreen = ({ navigation, route }: any) => {
   const [isSpectating, setIsSpectating] = useState(false);
   const opponentType: OpponentType = isMultiplayer ? 'local' : (routeMode === 'ai' ? 'ai' : 'local');
 
-  const [gameState, setGameState] = useState<NardiGameState | null>(null);
+  const [gameState, setGameState] = useState<NardiGameState | null>(() => initializeNardiGame('short'));
   const [showBlur, setShowBlur] = useState(true);
   const [showMusicPlayer, setShowMusicPlayer] = useState(false);
   const [arEnabled, setArEnabled] = useState(true);
@@ -476,9 +476,6 @@ const NardiScreen = ({ navigation, route }: any) => {
   }, []);
 
   useEffect(() => {
-    const initialState = initializeNardiGame('short');
-    setGameState(initialState);
-    
     // Perform opening roll in single-player after a brief delay
     if (opponentType === 'ai') {
       setTimeout(() => {

@@ -2875,10 +2875,10 @@
   resolved "https://registry.npmjs.org/@socket.io/component-emitter/-/component-emitter-3.1.2.tgz"
   integrity sha512-9BCxFwvbGg/RsZK9tjXd8s4UcwR0MWeFQ1XEKIQVVvAGJyINdrqKMcTRyLoK8Rse1GjzLV9cwjWV1olXRWEXVA==
 
-"@sourceship13/react-native-capture360@^1.0.7":
-  version "1.0.8"
-  resolved "https://npm.pkg.github.com/download/@sourceship13/react-native-capture360/1.0.8/64a0e2daada3a3a38181520ab870cb3bd2bbee2f#64a0e2daada3a3a38181520ab870cb3bd2bbee2f"
-  integrity sha512-485jt3Zb9vdhlXo3ykAGzsTZCZ568G4K9wFprZhRsr6JxVa8XmO+42cN5gqdqmli+j18wKCM5+sAs9P4cKN3Ag==
+"@sourceship13/react-native-capture360@1.0.10":
+  version "1.0.10"
+  resolved "https://npm.pkg.github.com/download/@sourceship13/react-native-capture360/1.0.10/1330ff61f1a9d657606cfc6e8f4ae7bf22ce349b#1330ff61f1a9d657606cfc6e8f4ae7bf22ce349b"
+  integrity sha512-bFgtxSJkVa6vSzjyNF5fOa/ihGFQsV/eDzhB/4DNmx4x5EgtV8e0963DsnzmVtSOf3hqmaK/vBznguQcRGnu9g==
 
 "@turf/along@6.5.0":
   version "6.5.0"

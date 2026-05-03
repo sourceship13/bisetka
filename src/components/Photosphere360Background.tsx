@@ -7,10 +7,10 @@
  * Also exports `useSharedAttitude()` so children (e.g. AR3DOverlay) can
  * consume the same gyro subscription without creating a second sensor read.
  */
-import React, {createContext, useContext} from 'react';
+import React, {createContext, useContext, useEffect, useRef} from 'react';
 import {View, StyleSheet, Image, Platform} from 'react-native';
 import RNFS from 'react-native-fs';
-import {SphereViewer, useAttitude} from '@sourceship13/react-native-capture360';
+import {SphereViewer, type SphereViewerHandle, useAttitude} from '@sourceship13/react-native-capture360';
 import AR3DOverlay, {type AR3DOverlayHandle} from './AR3DOverlay';
 
 // ─── Shared attitude context ──────────────────────────────────────────────────
@@ -69,6 +69,15 @@ export default function Photosphere360Background({
   arOverlayRef,
 }: Props) {
   const attitude = useAttitude();
+  const sphereRef = useRef<SphereViewerHandle>(null);
+
+  // Inject gyro updates imperatively — keeps SphereViewer from re-rendering at 25fps
+  // which would starve its useEffect([], []) and prevent the image from ever loading.
+  useEffect(() => {
+    if (gyroEnabled) {
+      sphereRef.current?.updateAttitude(attitude.yaw, attitude.pitch);
+    }
+  }, [attitude, gyroEnabled]);
 
   const panoramaImagePath = React.useMemo(() => {
     const resolved = Image.resolveAssetSource(panoramaSource);
@@ -96,11 +105,10 @@ export default function Photosphere360Background({
     <AttitudeContext.Provider value={attitude}>
       <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
         <SphereViewer
+          ref={sphereRef}
           imagePath={panoramaImagePath}
           placeholderSource={panoramaSource}
           initialPitch={initialPitch}
-          attitude={attitude}
-          gyroEnabled={gyroEnabled}
           heightOffset={heightOffset}
         />
         {overlayOpacity > 0 && (
