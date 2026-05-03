@@ -22,6 +22,7 @@ import {
   mediaDevices,
 } from 'react-native-webrtc';
 import { request, PERMISSIONS, RESULTS } from 'react-native-permissions';
+import InCallManager from 'react-native-incall-manager';
 import { socketService } from '../services/SocketService';
 
 // ─── Public types ─────────────────────────────────────────────────────────────
@@ -108,6 +109,7 @@ export function useVoiceChat(
       pcRef.current = null;
     }
     callActiveRef.current = false;
+    try { InCallManager.stop(); } catch {}
     setCallState('idle');
     setIsMuted(false);
     setIsOpponentMuted(false);
@@ -140,24 +142,55 @@ export function useVoiceChat(
       return;
     }
 
-    // 2. Capture local audio
+    // 2. Start InCallManager BEFORE getUserMedia so Android sets the correct
+    //    audio mode (MODE_IN_COMMUNICATION + speakerphone) before the stream
+    //    is captured. Without this the stream binds to the earpiece route.
+    try {
+      InCallManager.start({ media: 'audio', auto: false, ringback: '' });
+      // setSpeakerphoneOn calls AudioManager.setSpeakerphoneOn() directly.
+      // setForceSpeakerphoneOn keeps it on even if the system tries to override.
+      InCallManager.setSpeakerphoneOn(true);
+      InCallManager.setForceSpeakerphoneOn(true);
+    } catch (err) {
+      console.warn('[VoiceChat] InCallManager start error:', err);
+    }
+
+    // 3. Capture local audio
     let localStream: any;
     try {
       localStream = await mediaDevices.getUserMedia({ audio: true, video: false });
     } catch (err) {
       console.warn('[VoiceChat] getUserMedia failed:', err);
       callActiveRef.current = false;
+      try { InCallManager.stop(); } catch {}
       setCallState('error');
       return;
     }
     if (!callActiveRef.current) {
-      // cleanup was called while we were awaiting
       localStream.getTracks().forEach((t: any) => t.stop());
+      try { InCallManager.stop(); } catch {}
       return;
     }
     localStreamRef.current = localStream;
 
-    // 3. Build PeerConnection
+    // Re-apply speakerphone immediately after getUserMedia — on iOS,
+    // react-native-webrtc activates its own AVAudioSession when the stream
+    // is captured, which resets the audio route set above.
+    const applySpeaker = () => {
+      try {
+        InCallManager.setSpeakerphoneOn(true);
+        InCallManager.setForceSpeakerphoneOn(true);
+      } catch {}
+    };
+    applySpeaker();
+    // iOS needs a second pass after ~500 ms because WebRTC finishes its
+    // AVAudioSession configuration asynchronously after getUserMedia returns.
+    if (Platform.OS === 'ios') {
+      setTimeout(() => { if (callActiveRef.current) applySpeaker(); }, 500);
+      setTimeout(() => { if (callActiveRef.current) applySpeaker(); }, 1500);
+    }
+
+    // 4. Build PeerConnection
     const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
     pcRef.current = pc;
 
@@ -175,11 +208,16 @@ export function useVoiceChat(
       if (!callActiveRef.current) return;
       const state = (pc as any).iceConnectionState as string;
       if (state === 'connected' || state === 'completed') {
-        // Connected — cancel the timeout
+        // Connected — cancel the timeout and re-assert speakerphone because
+        // some Android versions reset audio routing when ICE completes.
         if (connTimeoutRef.current) {
           clearTimeout(connTimeoutRef.current);
           connTimeoutRef.current = null;
         }
+        try {
+          InCallManager.setSpeakerphoneOn(true);
+          InCallManager.setForceSpeakerphoneOn(true);
+        } catch {}
         setCallState('connected');
       } else if (state === 'failed') {
         if (connTimeoutRef.current) {

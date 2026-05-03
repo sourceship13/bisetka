@@ -2145,7 +2145,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - SocketRocket
     - Yoga
-  - react-native-safe-area-context (5.7.0):
+  - react-native-safe-area-context (5.6.2):
     - boost
     - DoubleConversion
     - fast_float
@@ -2163,8 +2163,8 @@ PODS:
     - React-graphics
     - React-ImageManager
     - React-jsi
-    - react-native-safe-area-context/common (= 5.7.0)
-    - react-native-safe-area-context/fabric (= 5.7.0)
+    - react-native-safe-area-context/common (= 5.6.2)
+    - react-native-safe-area-context/fabric (= 5.6.2)
     - React-NativeModulesApple
     - React-RCTFabric
     - React-renderercss
@@ -2175,7 +2175,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - SocketRocket
     - Yoga
-  - react-native-safe-area-context/common (5.7.0):
+  - react-native-safe-area-context/common (5.6.2):
     - boost
     - DoubleConversion
     - fast_float
@@ -2203,7 +2203,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - SocketRocket
     - Yoga
-  - react-native-safe-area-context/fabric (5.7.0):
+  - react-native-safe-area-context/fabric (5.6.2):
     - boost
     - DoubleConversion
     - fast_float
@@ -2820,9 +2820,11 @@ PODS:
     - React-perflogger (= 0.83.1)
     - React-utils (= 0.83.1)
     - SocketRocket
+  - ReactNativeIncallManager (4.2.1):
+    - React-Core
   - RNAppleAuthentication (2.5.1):
     - React-Core
-  - RNBootSplash (7.3.1):
+  - RNBootSplash (7.1.0):
     - boost
     - DoubleConversion
     - fast_float
@@ -2878,7 +2880,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - SocketRocket
     - Yoga
-  - RNDeviceInfo (15.0.2):
+  - RNDeviceInfo (15.0.1):
     - React-Core
   - RNFBAnalytics (23.8.6):
     - boost
@@ -2973,7 +2975,7 @@ PODS:
     - Yoga
   - RNFS (2.20.0):
     - React-Core
-  - RNGestureHandler (2.31.1):
+  - RNGestureHandler (2.30.0):
     - boost
     - DoubleConversion
     - fast_float
@@ -3090,7 +3092,7 @@ PODS:
     - SocketRocket
     - Turf
     - Yoga
-  - RNPermissions (5.5.1):
+  - RNPermissions (5.4.4):
     - boost
     - DoubleConversion
     - fast_float
@@ -3299,7 +3301,7 @@ PODS:
     - Sentry (= 9.5.1)
     - SocketRocket
     - Yoga
-  - RNSVG (15.15.4):
+  - RNSVG (15.15.3):
     - boost
     - DoubleConversion
     - fast_float
@@ -3325,10 +3327,10 @@ PODS:
     - ReactCodegen
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
-    - RNSVG/common (= 15.15.4)
+    - RNSVG/common (= 15.15.3)
     - SocketRocket
     - Yoga
-  - RNSVG/common (15.15.4):
+  - RNSVG/common (15.15.3):
     - boost
     - DoubleConversion
     - fast_float
@@ -3572,6 +3574,7 @@ DEPENDENCIES:
   - ReactAppDependencyProvider (from `build/generated/ios/ReactAppDependencyProvider`)
   - ReactCodegen (from `build/generated/ios/ReactCodegen`)
   - ReactCommon/turbomodule/core (from `../node_modules/react-native/ReactCommon`)
+  - ReactNativeIncallManager (from `../node_modules/react-native-incall-manager`)
   - "RNAppleAuthentication (from `../node_modules/@invertase/react-native-apple-authentication`)"
   - RNBootSplash (from `../node_modules/react-native-bootsplash`)
   - "RNCAsyncStorage (from `../node_modules/@react-native-async-storage/async-storage`)"
@@ -3795,6 +3798,8 @@ EXTERNAL SOURCES:
     :path: build/generated/ios/ReactCodegen
   ReactCommon:
     :path: "../node_modules/react-native/ReactCommon"
+  ReactNativeIncallManager:
+    :path: "../node_modules/react-native-incall-manager"
   RNAppleAuthentication:
     :path: "../node_modules/@invertase/react-native-apple-authentication"
   RNBootSplash:
@@ -3911,7 +3916,7 @@ SPEC CHECKSUMS:
   react-native-geolocation: 95e48fe2687e5a8280103085372fa62c2297c5d6
   react-native-get-random-values: e2acf4070fe4b7325705a05af047449637a27a21
   react-native-netinfo: 57447b5a45c98808f8eae292cf641f3d91d13830
-  react-native-safe-area-context: befb5404eb8a16fdc07fa2bebab3568ecabcbb8a
+  react-native-safe-area-context: c00143b4823773bba23f2f19f85663ae89ceb460
   react-native-webrtc: e8f0ce746353adc2744a2b933645e1aeb41eaa74
   react-native-webview: 8407aaaf6b539b1e38b72fabb55d6885de03beaf
   React-NativeModulesApple: a2c3d2cbec893956a5b3e4060322db2984fff75b
@@ -3947,23 +3952,24 @@ SPEC CHECKSUMS:
   ReactAppDependencyProvider: 0eb286cc274abb059ee601b862ebddac2e681d01
   ReactCodegen: 3d48510bcef445f6403c0004047d4d9cbb915435
   ReactCommon: ac934cb340aee91282ecd6f273a26d24d4c55cae
+  ReactNativeIncallManager: dccd3e7499caa3bb73d3acfedf4fb0360f1a87d5
   RNAppleAuthentication: a89c9804592b38ed4ab11f0aee68d05ba12ad432
-  RNBootSplash: 0be0994fa7c528ed5f03b6f2803d7e86aa18170f
+  RNBootSplash: 51262ea318e6f45b7b75941c9aa2ce0df3782908
   RNCAsyncStorage: 29f0230e1a25f36c20b05f65e2eb8958d6526e82
-  RNDeviceInfo: 4c852998208b60dc192ae3529e5867817719ad1e
+  RNDeviceInfo: 36d7f232bfe7c9b5c494cb7793230424ed32c388
   RNFBAnalytics: 22a87621c46007a00c4e4241bfa293ad93ac1bb7
   RNFBApp: b574c08010a6d3e995e654d03e34e789ebe55a35
   RNFBMessaging: da2d7f511df0368011a126b156f1a7f4be0c1b72
   RNFS: 89de7d7f4c0f6bafa05343c578f61118c8282ed8
-  RNGestureHandler: 713ad51725fe889ff3869d68b577a450605edda2
+  RNGestureHandler: cd4be101cfa17ea6bbd438710caa02e286a84381
   RNGoogleSignin: 15341729e1f79f1b82740393924cae5e429ad176
   RNKeychain: a2c134ab796272c3d605e035ab727591000b30f3
   rnmapbox-maps: 3d1e47317c5ca1763a120120c207825ab3728836
-  RNPermissions: 1fb440bbd97ced458beb8cc121853bf0e50b279d
+  RNPermissions: 1d34df6a0190a946e7448cbd404a6fe58b805453
   RNReanimated: 4e6187f2ba1e30e6ddc7c8fc9f19b2dd2b6b2532
   RNScreens: 7f643ee0fd1407dc5085c7795460bd93da113b8f
   RNSentry: 3698f118417e6780b3aff6709fb81b05e3eba94c
-  RNSVG: 3405336c4507ee0bafb02b08058d57216daa2c50
+  RNSVG: 595abfa0f9ac26d56afcaaedf4e37a00f54cab71
   RNVectorIcons: 791f13226ec4a3fd13062eda9e892159f0981fae
   RNWorklets: 809b16c37950dbcc71adaeee55c9476217a9e449
   Sentry: 7475eb7bf6a41d7505f46341706015ad2d1766b9
