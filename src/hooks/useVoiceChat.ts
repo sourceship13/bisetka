@@ -43,11 +43,22 @@ export interface UseVoiceChatReturn {
 const ICE_SERVERS = [
   { urls: 'stun:stun.l.google.com:19302' },
   { urls: 'stun:stun1.l.google.com:19302' },
-  { urls: 'stun:stun2.l.google.com:19302' },
+  // TURN relay — required for connections across carrier-grade NAT (most mobile scenarios)
+  {
+    urls: [
+      'turn:openrelay.metered.ca:80',
+      'turn:openrelay.metered.ca:443',
+      'turn:openrelay.metered.ca:443?transport=tcp',
+    ],
+    username: 'openrelayproject',
+    credential: 'openrelayproject',
+  },
 ];
 
 /** How long (ms) to wait for a remote offer before we take the caller role. */
 const CALLER_DECISION_DELAY_MS = 1500;
+/** How long (ms) before giving up on a connection that never leaves 'connecting'. */
+const CONNECTION_TIMEOUT_MS = 18000;
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
@@ -65,6 +76,7 @@ export function useVoiceChat(
   const localStreamRef = useRef<any>(null);
   const remoteStreamRef = useRef<any>(null);
   const callerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const connTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const callActiveRef = useRef(false);  // true while a call setup / call is live
 
   // ── Helpers ────────────────────────────────────────────────────────────────
@@ -82,6 +94,10 @@ export function useVoiceChat(
     if (callerTimerRef.current) {
       clearTimeout(callerTimerRef.current);
       callerTimerRef.current = null;
+    }
+    if (connTimeoutRef.current) {
+      clearTimeout(connTimeoutRef.current);
+      connTimeoutRef.current = null;
     }
     detachVoiceListeners();
     localStreamRef.current?.getTracks().forEach((t: any) => t.stop());
@@ -159,11 +175,38 @@ export function useVoiceChat(
       if (!callActiveRef.current) return;
       const state = (pc as any).iceConnectionState as string;
       if (state === 'connected' || state === 'completed') {
+        // Connected — cancel the timeout
+        if (connTimeoutRef.current) {
+          clearTimeout(connTimeoutRef.current);
+          connTimeoutRef.current = null;
+        }
         setCallState('connected');
       } else if (state === 'failed') {
+        if (connTimeoutRef.current) {
+          clearTimeout(connTimeoutRef.current);
+          connTimeoutRef.current = null;
+        }
         setCallState('error');
       } else if (state === 'disconnected') {
         setCallState('connecting');
+      }
+    };
+
+    (pc as any).onconnectionstatechange = () => {
+      if (!callActiveRef.current) return;
+      const state = (pc as any).connectionState as string;
+      if (state === 'connected') {
+        if (connTimeoutRef.current) {
+          clearTimeout(connTimeoutRef.current);
+          connTimeoutRef.current = null;
+        }
+        setCallState('connected');
+      } else if (state === 'failed' || state === 'closed') {
+        if (connTimeoutRef.current) {
+          clearTimeout(connTimeoutRef.current);
+          connTimeoutRef.current = null;
+        }
+        setCallState('error');
       }
     };
 
@@ -238,6 +281,17 @@ export function useVoiceChat(
         setCallState('error');
       }
     }, CALLER_DECISION_DELAY_MS);
+
+    // 6. Connection timeout — if still 'connecting' after 18 s, surface an error.
+    connTimeoutRef.current = setTimeout(() => {
+      connTimeoutRef.current = null;
+      if (!callActiveRef.current) return;
+      const iceState = pcRef.current ? (pcRef.current as any).iceConnectionState : '';
+      if (iceState !== 'connected' && iceState !== 'completed') {
+        console.warn('[VoiceChat] connection timeout — giving up');
+        setCallState('error');
+      }
+    }, CONNECTION_TIMEOUT_MS);
   }, [isActive, roomId, cleanup, detachVoiceListeners]);
 
   // ── hangup ─────────────────────────────────────────────────────────────────

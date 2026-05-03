@@ -353,7 +353,7 @@ const InGameChat: React.FC<InGameChatProps> = ({
 
           {callState === 'error' && (
             <View style={styles.voiceActiveRow}>
-              <Text style={styles.voiceErrorText}>⚠ Mic unavailable</Text>
+              <Text style={styles.voiceErrorText}>⚠ Could not connect</Text>
               <TouchableOpacity style={styles.voiceRetryBtn} onPress={startCall}>
                 <Text style={styles.voiceRetryText}>Retry</Text>
               </TouchableOpacity>
