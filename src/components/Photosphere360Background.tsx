@@ -104,6 +104,12 @@ export default function Photosphere360Background({
   return (
     <AttitudeContext.Provider value={attitude}>
       <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+        {/* Fallback flat image shown when WebGL texture fails to load */}
+        <Image
+          source={panoramaSource}
+          style={StyleSheet.absoluteFill}
+          resizeMode="cover"
+        />
         <SphereViewer
           ref={sphereRef}
           imagePath={panoramaImagePath}
