@@ -5,6 +5,7 @@ import {
   TextInput,
   TouchableOpacity,
   FlatList,
+  ScrollView,
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
@@ -361,27 +362,22 @@ const InGameChat: React.FC<InGameChatProps> = ({
           )}
         </View>
 
-        {/* Gift Panel */}
+        {/* Gift Panel — inline above input, visible when expanded */}
         {showGiftPanel && (
-          <>
-            {/* Tap-outside dismiss */}
-            <TouchableOpacity
-              style={styles.giftDismiss}
-              onPress={() => setShowGiftPanel(false)}
-              activeOpacity={1}
-            />
-            <View style={styles.giftPanel}>
-              {GIFTS.map(g => (
-                <TouchableOpacity
-                  key={g.emoji}
-                  style={styles.giftItem}
-                  onPress={() => handleGift(g)}
-                  activeOpacity={0.7}>
-                  <Text style={styles.giftEmoji}>{g.emoji}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </>
+          <ScrollView
+            style={styles.giftPanel}
+            contentContainerStyle={styles.giftPanelContent}
+            showsVerticalScrollIndicator={false}>
+            {GIFTS.map(g => (
+              <TouchableOpacity
+                key={g.emoji}
+                style={styles.giftItem}
+                onPress={() => handleGift(g)}
+                activeOpacity={0.7}>
+                <Text style={styles.giftEmoji}>{g.emoji}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
         )}
 
         {/* Input Bar */}
@@ -518,7 +514,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,12,0.88)',
     borderTopRightRadius: 16,
     borderBottomRightRadius: 8,
-    overflow: 'hidden',
     borderWidth: 1,
     borderLeftWidth: 0,
     borderColor: 'rgba(255,255,255,0.12)',
@@ -781,24 +776,22 @@ const styles = StyleSheet.create({
     zIndex: 999,
   },
   giftPanel: {
-    position: 'absolute',
-    bottom: 90,
-    right: 16,
-    width: 54,
+    maxHeight: 220,
+    marginHorizontal: 16,
+    marginBottom: 6,
     backgroundColor: 'rgba(10,10,20,0.92)',
-    borderRadius: 18,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.18)',
+  },
+  giftPanelContent: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     paddingVertical: 6,
-    zIndex: 1000,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.5,
-    shadowRadius: 10,
-    elevation: 12,
+    paddingHorizontal: 4,
   },
   giftItem: {
-    width: 54,
+    width: 46,
     height: 46,
     justifyContent: 'center',
     alignItems: 'center',
