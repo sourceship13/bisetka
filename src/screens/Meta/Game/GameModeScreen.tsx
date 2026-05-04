@@ -219,6 +219,7 @@ const GameModeScreen: React.FC<Props> = ({route, navigation}) => {
         navigation.reset(buildReset('Nardi', {
           session: sessionData,
           mode: mode,
+          userId: user?.id || 'guest',
         }));
         break;
       case 'Blot':
