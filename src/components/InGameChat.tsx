@@ -13,7 +13,9 @@ import {
   Dimensions,
   ActivityIndicator,
   Animated,
+  Alert,
 } from 'react-native';
+import { launchImageLibrary } from 'react-native-image-picker';
 import chatService, { Message } from '../services/chat.service';
 import chatSocketService from '../services/chatSocket.service';
 import tokenService from '../services/token.service';
@@ -279,6 +281,33 @@ const InGameChat: React.FC<InGameChatProps> = ({
     }
   };
 
+  const handleSendImage = async () => {
+    if (!chatId) return;
+    launchImageLibrary({ mediaType: 'photo', includeBase64: true, quality: 0.7 }, async response => {
+      if (response.didCancel || response.errorCode) return;
+      const asset = response.assets?.[0];
+      if (!asset?.base64) return;
+
+      const ext = (asset.fileName?.split('.').pop() ?? 'jpg').toLowerCase();
+      try {
+        const { url } = await chatService.uploadChatImage(asset.base64, ext);
+        const { message } = await chatService.postMessage(chatId, '', 'image', url);
+        setMessages(prev => {
+          if (prev.some(m => m.id === message.id)) return prev;
+          return [...prev, message];
+        });
+        setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 50);
+      } catch (err: any) {
+        if (err?.code === 'INSUFFICIENT_POINTS') {
+          Alert.alert('Not enough points', `Sending an image costs 100 points.`);
+        } else {
+          Alert.alert('Error', 'Failed to send image.');
+          console.warn('[InGameChat] image send error:', err);
+        }
+      }
+    });
+  };
+
   const getInitials = (name: string) => {
     const parts = name.split(' ');
     if (parts.length >= 2) {
@@ -312,11 +341,15 @@ const InGameChat: React.FC<InGameChatProps> = ({
         {/* Message Content */}
         <View style={styles.messageContent}>
           <Text style={styles.senderName}>{senderName}</Text>
-          <View style={styles.messageBar}>
-            <Text style={styles.messageText} numberOfLines={2}>
-              {item.content}
-            </Text>
-          </View>
+          {item.type === 'image' && item.media_url ? (
+            <Image source={{ uri: item.media_url }} style={styles.chatImage} resizeMode="cover" />
+          ) : (
+            <View style={styles.messageBar}>
+              <Text style={styles.messageText} numberOfLines={2}>
+                {item.content}
+              </Text>
+            </View>
+          )}
         </View>
       </View>
     );
@@ -443,6 +476,17 @@ const InGameChat: React.FC<InGameChatProps> = ({
               returnKeyType="send"
               maxLength={500}
             />
+
+            {/* Image Button — costs 100 pts */}
+            <TouchableOpacity
+              style={styles.imageBtnWrapper}
+              onPress={handleSendImage}
+              activeOpacity={0.75}>
+              <View style={styles.imageBtn}>
+                <Text style={styles.imageBtnIcon}>🖼</Text>
+              </View>
+              <Text style={styles.imageBtnCost}>100 pts</Text>
+            </TouchableOpacity>
 
             {/* Gift Arrow Button */}
             <TouchableOpacity
@@ -882,6 +926,36 @@ const styles = StyleSheet.create({
     marginLeft: 4,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.2)',
+  },
+  imageBtnWrapper: {
+    alignItems: 'center',
+    marginLeft: 4,
+  },
+  imageBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  imageBtnIcon: {
+    fontSize: 16,
+  },
+  imageBtnCost: {
+    fontSize: 8,
+    color: '#F5C518',
+    fontWeight: '700',
+    marginTop: 2,
+    letterSpacing: 0.2,
+  },
+  chatImage: {
+    width: 160,
+    height: 120,
+    borderRadius: 8,
+    marginTop: 4,
   },
   giftOverlay: {
     position: 'absolute',

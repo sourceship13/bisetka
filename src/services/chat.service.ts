@@ -123,6 +123,20 @@ class ChatService {
     return response.json();
   }
 
+  // Upload a chat image — costs 100 points
+  async uploadChatImage(base64: string, extension = 'jpg'): Promise<{ url: string; newBalance: number }> {
+    const response = await this.authenticatedFetch(`${this.baseUrl}/chat/upload-image`, {
+      method: 'POST',
+      body: JSON.stringify({ base64, extension }),
+    });
+    if (response.status === 402) {
+      const body = await response.json();
+      throw Object.assign(new Error('Insufficient points'), { code: 'INSUFFICIENT_POINTS', required: body.required });
+    }
+    if (!response.ok) throw new Error('Failed to upload image');
+    return response.json();
+  }
+
   // Mark chat as read (DM read receipts)
   async markRead(chatId: string): Promise<void> {
     const response = await this.authenticatedFetch(`${this.baseUrl}/chat/${chatId}/read`, {
