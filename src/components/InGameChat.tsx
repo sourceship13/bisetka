@@ -18,6 +18,7 @@ import chatService, { Message } from '../services/chat.service';
 import chatSocketService from '../services/chatSocket.service';
 import tokenService from '../services/token.service';
 import { useVoiceChat } from '../hooks/useVoiceChat';
+import { socketService } from '../services/SocketService';
 
 interface InGameChatProps {
   /** The game room ID — used as the game session ID to get/create a chat */
@@ -72,6 +73,42 @@ const InGameChat: React.FC<InGameChatProps> = ({
   const toastAnim = useRef(new Animated.Value(0)).current;
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isOpenRef = useRef(false);
+  const [activeGift, setActiveGift] = useState<string | null>(null);
+  const giftOverlayAnim = useRef(new Animated.Value(0)).current;
+  const giftTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showGiftOverlay = (emoji: string) => {
+    if (giftTimer.current) clearTimeout(giftTimer.current);
+    setActiveGift(emoji);
+    giftOverlayAnim.setValue(0);
+    Animated.spring(giftOverlayAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+      bounciness: 14,
+      speed: 8,
+    }).start();
+    giftTimer.current = setTimeout(() => {
+      Animated.timing(giftOverlayAnim, {
+        toValue: 0,
+        duration: 700,
+        useNativeDriver: true,
+      }).start(() => setActiveGift(null));
+    }, 20000);
+  };
+
+  // ── Gift overlay — listen on move_made (proven relay path) ──────────────────
+  useEffect(() => {
+    if (!visible || !roomId) return;
+    const socket = socketService.getSocket();
+    if (!socket) return;
+    const handleMoveMade = (data: { move?: { type?: string; emoji?: string } }) => {
+      if (data?.move?.type === 'gift_overlay' && data.move.emoji) {
+        showGiftOverlay(data.move.emoji);
+      }
+    };
+    socket.on('move_made', handleMoveMade);
+    return () => { socket.off('move_made', handleMoveMade); };
+  }, [visible, roomId]);
 
   const showToast = (sender: string, text: string) => {
     // Cancel any pending hide
@@ -162,6 +199,13 @@ const InGameChat: React.FC<InGameChatProps> = ({
       });
       // Scroll to bottom when new message arrives
       setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 50);
+      // Show gift overlay when the OPPONENT sends a gift (sender already sees it on tap)
+      if (msg.sender_id !== currentUserId) {
+        const giftMatch = GIFTS.find(
+          g => msg.content.startsWith(g.emoji) && msg.content.includes('gifted')
+        );
+        if (giftMatch) showGiftOverlay(giftMatch.emoji);
+      }
       // Badge + toast when panel is closed
       if (!isOpenRef.current) {
         setUnreadCount(prev => prev + 1);
@@ -184,6 +228,12 @@ const InGameChat: React.FC<InGameChatProps> = ({
 
   const handleGift = async (gift: { emoji: string; label: string }) => {
     setShowGiftPanel(false);
+    showGiftOverlay(gift.emoji);
+    // Relay to opponent via make_move → move_made pipeline (proven to work)
+    const socket = socketService.getSocket();
+    if (socket && roomId) {
+      socket.emit('make_move', { roomId, userId: currentUserId, move: { type: 'gift_overlay', emoji: gift.emoji } });
+    }
     const text = `${gift.emoji} gifted a ${gift.label}!`;
     // Single player: no chat room — show locally only
     if (!chatId) {
@@ -442,6 +492,29 @@ const InGameChat: React.FC<InGameChatProps> = ({
           )}
         </TouchableOpacity>
       </Animated.View>
+
+      {/* ── Gift overlay (both players, 20 s) ──────────────────── */}
+      {activeGift && (
+        <Animated.View
+          style={[
+            styles.giftOverlay,
+            {
+              opacity: giftOverlayAnim,
+              transform: [
+                {
+                  scale: giftOverlayAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0.2, 1],
+                  }),
+                },
+              ],
+            },
+          ]}
+          pointerEvents="none"
+        >
+          <Text style={styles.giftOverlayEmoji}>{activeGift}</Text>
+        </Animated.View>
+      )}
 
       {/* ── Center-screen message toast ───────────────────────────── */}
       {toastMsg && (
@@ -809,6 +882,22 @@ const styles = StyleSheet.create({
     marginLeft: 4,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.2)',
+  },
+  giftOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1050,
+  },
+  giftOverlayEmoji: {
+    fontSize: 130,
+    textShadowColor: 'rgba(0,0,0,0.45)',
+    textShadowOffset: { width: 0, height: 4 },
+    textShadowRadius: 12,
   },
   giftBtnIcon: {
     color: '#F5C518',
