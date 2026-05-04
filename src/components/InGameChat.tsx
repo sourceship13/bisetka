@@ -458,6 +458,7 @@ const InGameChat: React.FC<InGameChatProps> = ({
                 onPress={() => handleGift(g)}
                 activeOpacity={0.7}>
                 <Text style={styles.giftEmoji}>{g.emoji}</Text>
+                <Text style={styles.giftCost}>100 pts</Text>
               </TouchableOpacity>
             ))}
           </ScrollView>
@@ -908,13 +909,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   giftItem: {
-    width: 46,
-    height: 46,
+    width: 56,
+    height: 60,
     justifyContent: 'center',
     alignItems: 'center',
   },
   giftEmoji: {
     fontSize: 26,
+  },
+  giftCost: {
+    fontSize: 8,
+    color: '#F5C518',
+    marginTop: 2,
+    fontWeight: '600',
   },
   giftBtn: {
     width: 34,
