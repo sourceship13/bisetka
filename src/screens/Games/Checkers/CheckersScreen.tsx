@@ -597,6 +597,8 @@ const CheckersScreen = ({ navigation, route }: any) => {
         onSquareTap={handleArSquareTap}
         boardGlbPath="glb/checkers/chess_board_v2.glb"
         hideCheckerboard
+        boardFixed
+        boardFixedZoom={0.6}
         boardTiltX={0}
         boardY={-0.35}
         tableDist={0.50}
