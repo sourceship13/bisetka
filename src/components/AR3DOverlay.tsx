@@ -210,6 +210,16 @@ export interface AR3DOverlayProps {
    * Use a smaller value (e.g. 0.45) to bring the board closer to the camera.
    */
   tableDist?: number;
+  /**
+   * When true, the board stays permanently centred on screen regardless of how
+   * the device is moved or rotated.  The sceneGroup is never frozen into world
+   * space; it remains a camera child so it is always in front of the player.
+   * Gyroscope data is still used to animate the 360° background sphere but the
+   * board itself never drifts off-centre.
+   */
+  boardFixed?: boolean;
+  /** Initial zoom level when boardFixed=true. Defaults to 1.5. */
+  boardFixedZoom?: number;
 }
 
 // ─── GLB URI resolver ─────────────────────────────────────────────────────────
@@ -366,6 +376,8 @@ function buildSceneHTML(
   boardColorOverride: string | null = null,
   boardSurfaceImageUri: string | null = null,
   tableDist: number | null = null,
+  boardFixed: boolean = false,
+  boardFixedZoom: number = 1.5,
 ): string {
   const BOARD_URI_JS  = boardUri  ? JSON.stringify(boardUri)  : 'null';
   const PIECES_URI_JS = piecesUri ? JSON.stringify(piecesUri) : 'null';
@@ -386,6 +398,8 @@ function buildSceneHTML(
   const BOARD_TILT_X_JS = boardTiltX.toFixed(4);
   const BOARD_COLOR_OVERRIDE_JS = boardColorOverride ? JSON.stringify(boardColorOverride) : 'null';
   const BOARD_SURFACE_IMAGE_URI_JS = boardSurfaceImageUri ? JSON.stringify(boardSurfaceImageUri) : 'null';
+  const BOARD_FIXED_JS = boardFixed ? 'true' : 'false';
+  const BOARD_FIXED_ZOOM_JS = boardFixedZoom.toFixed(4);
 
   return `<!DOCTYPE html>
 <html>
@@ -438,6 +452,7 @@ import { DRACOLoader } from 'https://esm.sh/three@0.166.1/examples/jsm/loaders/D
 // spawnYaw is the safe fallback so the camera starts aligned with the sceneGroup
 // even if injectJavaScript hasn't fired yet.
 window._att    = window._att || { yaw: ${spawnYaw}, pitch: 0, roll: 0 };
+const BOARD_FIXED = ${BOARD_FIXED_JS};
 window._pieces = window._pieces || [];
 
 // ── Renderer ─────────────────────────────────────────────────────────────────
@@ -504,7 +519,19 @@ const DEG = Math.PI / 180;
 const sceneGroup = new THREE.Group();
 sceneGroup.position.x = 0.0; // shift right in camera space to centre in view
 camera.add(sceneGroup);  // ← camera child: local (0,0,-TABLE_DIST) = always in front
-var _boardZoom = 1.0;  // current uniform scale, updated by RN pinch gesture
+// In boardFixed mode the sceneGroup is never detached from the camera.
+// 1. Tilt the scene forward by 0.60 rad so the board's top surface faces the
+//    camera at the same angle as the original frozen view.
+// 2. After that rotation the board centre (0, BOARD_Y, -TABLE_DIST) projects to
+//    camera-space y = BOARD_Y*cos(0.60) + TABLE_DIST*sin(0.60).  Negate and
+//    apply as a Y offset to the sceneGroup so the board centre hits y=0 in
+//    camera space → screen centre.
+if (BOARD_FIXED) {
+  const _tilt = 1.20;
+  sceneGroup.rotation.x = _tilt;
+  sceneGroup.position.y = -(BOARD_Y * Math.cos(_tilt) + TABLE_DIST * Math.sin(_tilt));
+}
+var _boardZoom = BOARD_FIXED ? ${BOARD_FIXED_ZOOM_JS} : 1.0;  // current uniform scale, updated by RN pinch gesture
 let _frozen = false;
 let _freezeCountdown = 8; // wait 8 frames for live gyro injectJavaScript to arrive
 
@@ -512,6 +539,7 @@ let _freezeCountdown = 8; // wait 8 frames for live gyro injectJavaScript to arr
 const boardGroup = new THREE.Group();
 boardGroup.position.set(0, BOARD_Y, -TABLE_DIST);
 boardGroup.rotation.x = -Math.PI / 2 - ${BOARD_TILT_X_JS};
+boardGroup.scale.setScalar(_boardZoom); // apply initial zoom
 boardGroup.visible = false; // hidden until all GLBs are ready
 sceneGroup.add(boardGroup);
 
@@ -920,6 +948,7 @@ document.addEventListener('touchstart', function(e) {
   }
 }, { passive: true });
 document.addEventListener('touchmove', function(e) {
+  if (BOARD_FIXED) return; // pinch-to-zoom disabled in fixed mode
   if (e.touches.length === 2 && _pinchStartDist > 0) {
     var dx = e.touches[0].clientX - e.touches[1].clientX;
     var dy = e.touches[0].clientY - e.touches[1].clientY;
@@ -2213,15 +2242,23 @@ function animate() {
   requestAnimationFrame(animate);
   t += 0.016;
   camera.rotation.order = 'YXZ';
-  camera.rotation.y = -window._att.yaw   * DEG;
-  camera.rotation.x = -window._att.pitch * DEG - 0.60; // ~34° downward — see full board
-  camera.rotation.z =  window._att.roll  * DEG;
+  if (BOARD_FIXED) {
+    // Board-fixed mode: board is a permanent camera child centred on screen.
+    // Camera rotation doesn't affect camera children's screen position, so we
+    // simply zero it out to keep world-space lighting consistent.
+    camera.rotation.set(0, 0, 0);
+  } else {
+    camera.rotation.y = -window._att.yaw   * DEG;
+    camera.rotation.x = -window._att.pitch * DEG - 0.60; // ~34° downward — see full board
+    camera.rotation.z =  window._att.roll  * DEG;
+  }
 
   // Freeze: detach sceneGroup from camera → world space, preserving world matrix.
   // Must call camera.updateMatrixWorld(true) FIRST — Three.js only computes
   // matrixWorld during renderer.render(), so on early frames it is stale/identity.
   // Also wait _freezeCountdown frames so live gyro injectJavaScript has fired.
-  if (!_frozen) {
+  // When BOARD_FIXED=true the sceneGroup stays a camera child forever — no freeze.
+  if (!BOARD_FIXED && !_frozen) {
     if (_freezeCountdown > 0) {
       _freezeCountdown--;
     } else {
@@ -2299,6 +2336,8 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
   boardColorOverride,
   boardSurfaceImagePath,
   tableDist,
+  boardFixed = false,
+  boardFixedZoom = 1.5,
 }: AR3DOverlayProps, ref: React.Ref<AR3DOverlayHandle>) {
   const attitude = useAttitude();
   const webViewRef = useRef<WebView>(null);
@@ -2487,10 +2526,10 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
       redInt, blackInt, cardUri, cardBackUri,
       localThreePath, localGltfPath, hideCheckerboard, boardScale, boardStyle,
       boardY, boardGlbForceFlat, boardTiltX, boardColorOverride ?? null, boardSurfaceImageUri ?? null,
-      tableDist ?? null,
+      tableDist ?? null, boardFixed, boardFixedZoom,
     );
     return result;
-  }, [fov, boardUri, boardSurfaceImageUri, piecesUri, chessPieceUris, tableUri, spawnYaw, cardUri, cardBackUri, hideCheckerboard, boardScale, boardStyle, boardY, boardGlbForceFlat, boardTiltX, boardColorOverride, tableDist]);
+  }, [fov, boardUri, boardSurfaceImageUri, piecesUri, chessPieceUris, tableUri, spawnYaw, cardUri, cardBackUri, hideCheckerboard, boardScale, boardStyle, boardY, boardGlbForceFlat, boardTiltX, boardColorOverride, tableDist, boardFixed, boardFixedZoom]);
 
   // Write the HTML to a temp file and give WebView a file:// URI.
   // WKWebView.loadHTMLString silently fails on iOS with large strings (>5 MB).

@@ -58,8 +58,8 @@ const SUIT_NAME: Record<string, string> = {
 const SUIT_COLOR: Record<string, string> = {
   hearts: '#e74c3c',
   diamonds: '#e74c3c',
-  clubs: '#ecf0f1',
-  spades: '#ecf0f1',
+  clubs: '#1a1a1a',
+  spades: '#1a1a1a',
 };
 
 const BlotScreen = ({ navigation }: any) => {
@@ -573,7 +573,7 @@ const BlotScreen = ({ navigation }: any) => {
     return (
       <TouchableOpacity
         key={card.id}
-        style={!playable && styles.disabledCard}
+        style={playable ? styles.recommendedCard : styles.disabledCard}
         onPress={playable ? onPress : undefined}
         disabled={!playable}
       >
@@ -683,7 +683,7 @@ const BlotScreen = ({ navigation }: any) => {
   return (
     <View style={styles.container}>
       <Photosphere360Background overlayOpacity={(!targetScore || !gameState) ? 0.85 : (showBlur ? 0.65 : 0.3)} />
-      <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/game_boards/Poker_table.glb" hideCheckerboard boardScale={1.9} tableDist={0.9} boardY={-1.5} boardTiltX={0.35} cardGlbPath="glb/cards/card-template.glb" cards={arCards} />
+      <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/game_boards/Poker_table.glb" hideCheckerboard boardFixed boardFixedZoom={1.0} boardScale={1.9} tableDist={0.9} boardY={-1.5} boardTiltX={0.35} cardGlbPath="glb/cards/card-template.glb" cards={arCards} />
       {/* Always mount SyncedYouTubePlayer alongside the other WebViews so all
           three hardware-accelerated layers are created together at screen open.
           Adding a new WebView after the others are running kills them on Android. */}
@@ -1014,16 +1014,6 @@ const BlotScreen = ({ navigation }: any) => {
         gameType="blot"
         visible={true}
       />
-      {arEnabled && (
-        <TouchableOpacity
-          style={styles.recenterBtn}
-          onPress={() => arOverlayRef.current?.recenter()}
-          hitSlop={{top:12,bottom:12,left:12,right:12}}
-          activeOpacity={0.7}>
-          <Text style={styles.recenterIcon}>⊕</Text>
-          <Text style={styles.recenterLabel}>Re-center</Text>
-        </TouchableOpacity>
-      )}
         </>
       )}
     </View>
@@ -1379,7 +1369,16 @@ const styles = StyleSheet.create({
     backgroundColor: '#E3F2FD',
   },
   disabledCard: {
-    opacity: 0.5,
+    opacity: 0.45,
+  },
+  recommendedCard: {
+    // Green glow/tint to flag cards that are legal to play
+    shadowColor: '#2ecc71',
+    shadowOpacity: 0.95,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 0 },
+    borderRadius: 8,
+    backgroundColor: 'rgba(46, 204, 113, 0.22)',
   },
   cardRank: {
     fontSize: 24,
@@ -1403,9 +1402,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'transparent',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'flex-end',
     paddingHorizontal: 16,
-    paddingBottom: 220,
+    paddingBottom: 20,
   },
   handLabel: {
     fontSize: 16,
