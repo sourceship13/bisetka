@@ -610,6 +610,8 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
           moves={gameState?.possibleMoves || []}
           boardGlbPath="glb/chess/chess-board/source/ui.glb"
           hideCheckerboard={true}
+          boardFixed
+          boardFixedZoom={0.6}
           boardTiltX={0}
           boardY={-0.35}
           tableDist={0.50}

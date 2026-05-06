@@ -522,6 +522,8 @@ const ChessScreen = ({navigation}: any) => {
         onSquareTap={handleSquarePress}
         boardGlbPath={boardConfigs[boardIdx].path}
         hideCheckerboard={true}
+        boardFixed
+        boardFixedZoom={0.6}
         boardTiltX={0}
         boardY={-0.35}
         tableDist={0.50}
