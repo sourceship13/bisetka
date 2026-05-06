@@ -23,7 +23,7 @@ import { useAuth } from '../../../libs/hooks/useAuth';
 import { useAchievements } from '../../../contexts/AchievementContext';
 import { resolveAvatar } from '../../../utils/avatars';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Photosphere360Background from '../../../components/Photosphere360Background';
+import AraratBackground from '../../../components/AraratBackground';
 import AR3DOverlay, {type AR3DOverlayHandle, type ARCard} from '../../../components/AR3DOverlay';
 import GameToolbar from '../../../components/global/GameToolbar';
 import GameToolbarControls from '../../../components/global/GameToolbarControls';
@@ -1100,9 +1100,9 @@ const BaazarBlotScreen = ({ navigation }: any) => {
 
   return (
     <View style={styles.bg} {...(arEnabled ? arPinchResponder.panHandlers : {})}>
-      <Photosphere360Background overlayOpacity={showBlur ? 0.65 : 0.3}>
+      <AraratBackground overlayOpacity={showBlur ? 0.65 : 0.3}>
         <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/game_boards/Poker_table.glb" hideCheckerboard boardFixed boardFixedZoom={1.0} boardScale={1.9} tableDist={0.9} boardY={-1.5} boardTiltX={0} cardGlbPath="glb/cards/card-template.glb" cards={arCards} />
-      </Photosphere360Background>
+      </AraratBackground>
       <View style={styles.overlay} pointerEvents="box-none">
       <SafeAreaView style={styles.safe}>
         <View>
