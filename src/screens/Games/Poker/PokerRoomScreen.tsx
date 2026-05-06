@@ -1300,7 +1300,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
   return (
     <View style={styles.container} {...(arEnabled ? arPinchResponder.panHandlers : {})}>
       <Photosphere360Background overlayOpacity={showBlur ? 0.65 : 0.3}>
-        <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/game_assets/casino_table_level2_textured.glb" hideCheckerboard boardScale={1.9} boardY={-0.91} boardGlbForceFlat boardTiltX={0.55} cardGlbPath="glb/cards/card-template.glb" cards={arCards} arLabels={arLabels} tableDist={0.90} />
+        <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/game_assets/casino_table_level2_textured.glb" hideCheckerboard boardScale={1.9} boardY={-0.91} boardGlbForceFlat boardTiltX={0.55} cardGlbPath="glb/cards/card-template.glb" cards={arCards} arLabels={arLabels} tableDist={0.90} boardFixed boardFixedZoom={0.8} />
       </Photosphere360Background>
       <View style={styles.overlay} pointerEvents="box-none">
       <SafeAreaView style={styles.safeArea}>
@@ -1685,16 +1685,6 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
         visible={true}
       />
       <SyncedYouTubePlayer roomId={null} visible={true} />
-      {arEnabled && (
-        <TouchableOpacity
-          style={styles.recenterBtn}
-          onPress={() => arOverlayRef.current?.recenter()}
-          hitSlop={{top:12,bottom:12,left:12,right:12}}
-          activeOpacity={0.7}>
-          <Text style={styles.recenterIcon}>⊕</Text>
-          <Text style={styles.recenterLabel}>Re-center</Text>
-        </TouchableOpacity>
-      )}
     </View>
   );
 };
