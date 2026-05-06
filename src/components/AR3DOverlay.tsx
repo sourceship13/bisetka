@@ -218,6 +218,8 @@ export interface AR3DOverlayProps {
    * board itself never drifts off-centre.
    */
   boardFixed?: boolean;
+  /** Initial zoom level when boardFixed=true. Defaults to 1.5. */
+  boardFixedZoom?: number;
 }
 
 // ─── GLB URI resolver ─────────────────────────────────────────────────────────
@@ -375,6 +377,7 @@ function buildSceneHTML(
   boardSurfaceImageUri: string | null = null,
   tableDist: number | null = null,
   boardFixed: boolean = false,
+  boardFixedZoom: number = 1.5,
 ): string {
   const BOARD_URI_JS  = boardUri  ? JSON.stringify(boardUri)  : 'null';
   const PIECES_URI_JS = piecesUri ? JSON.stringify(piecesUri) : 'null';
@@ -396,6 +399,7 @@ function buildSceneHTML(
   const BOARD_COLOR_OVERRIDE_JS = boardColorOverride ? JSON.stringify(boardColorOverride) : 'null';
   const BOARD_SURFACE_IMAGE_URI_JS = boardSurfaceImageUri ? JSON.stringify(boardSurfaceImageUri) : 'null';
   const BOARD_FIXED_JS = boardFixed ? 'true' : 'false';
+  const BOARD_FIXED_ZOOM_JS = boardFixedZoom.toFixed(4);
 
   return `<!DOCTYPE html>
 <html>
@@ -527,7 +531,7 @@ if (BOARD_FIXED) {
   sceneGroup.rotation.x = _tilt;
   sceneGroup.position.y = -(BOARD_Y * Math.cos(_tilt) + TABLE_DIST * Math.sin(_tilt));
 }
-var _boardZoom = BOARD_FIXED ? 1.5 : 1.0;  // current uniform scale, updated by RN pinch gesture
+var _boardZoom = BOARD_FIXED ? ${BOARD_FIXED_ZOOM_JS} : 1.0;  // current uniform scale, updated by RN pinch gesture
 let _frozen = false;
 let _freezeCountdown = 8; // wait 8 frames for live gyro injectJavaScript to arrive
 
@@ -2333,6 +2337,7 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
   boardSurfaceImagePath,
   tableDist,
   boardFixed = false,
+  boardFixedZoom = 1.5,
 }: AR3DOverlayProps, ref: React.Ref<AR3DOverlayHandle>) {
   const attitude = useAttitude();
   const webViewRef = useRef<WebView>(null);
@@ -2521,10 +2526,10 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
       redInt, blackInt, cardUri, cardBackUri,
       localThreePath, localGltfPath, hideCheckerboard, boardScale, boardStyle,
       boardY, boardGlbForceFlat, boardTiltX, boardColorOverride ?? null, boardSurfaceImageUri ?? null,
-      tableDist ?? null, boardFixed,
+      tableDist ?? null, boardFixed, boardFixedZoom,
     );
     return result;
-  }, [fov, boardUri, boardSurfaceImageUri, piecesUri, chessPieceUris, tableUri, spawnYaw, cardUri, cardBackUri, hideCheckerboard, boardScale, boardStyle, boardY, boardGlbForceFlat, boardTiltX, boardColorOverride, tableDist, boardFixed]);
+  }, [fov, boardUri, boardSurfaceImageUri, piecesUri, chessPieceUris, tableUri, spawnYaw, cardUri, cardBackUri, hideCheckerboard, boardScale, boardStyle, boardY, boardGlbForceFlat, boardTiltX, boardColorOverride, tableDist, boardFixed, boardFixedZoom]);
 
   // Write the HTML to a temp file and give WebView a file:// URI.
   // WKWebView.loadHTMLString silently fails on iOS with large strings (>5 MB).
