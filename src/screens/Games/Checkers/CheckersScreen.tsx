@@ -814,16 +814,6 @@ const CheckersScreen = ({ navigation, route }: any) => {
         visible={true}
         defaultTrack={{ videoId: '_2kPf5NgVsY', title: 'Chill Mix', playlistId: 'RD_2kPf5NgVsY' }}
       />
-      {arEnabled && (
-        <TouchableOpacity
-          style={styles.recenterBtn}
-          onPress={() => arOverlayRef.current?.recenter()}
-          hitSlop={{top:12,bottom:12,left:12,right:12}}
-          activeOpacity={0.7}>
-          <Text style={styles.recenterIcon}>⊕</Text>
-          <Text style={styles.recenterLabel}>Re-center</Text>
-        </TouchableOpacity>
-      )}
     </View>
   );
 };
