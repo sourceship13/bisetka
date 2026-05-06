@@ -1397,6 +1397,8 @@ const NardiScreen = ({ navigation, route }: any) => {
         visible={arEnabled}
         boardGlbPath="glb/game_boards/Backgammon.glb"
         hideCheckerboard
+        boardFixed
+        boardFixedZoom={1.4}
         boardY={-1.40}
         tableDist={0.50}
         pieces={arPieces}
