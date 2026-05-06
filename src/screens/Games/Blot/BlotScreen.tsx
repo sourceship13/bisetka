@@ -6,7 +6,6 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  ImageBackground,
   Image,
   Dimensions,
   Animated,
@@ -20,7 +19,7 @@ import { useAuth } from '../../../libs/hooks/useAuth';
 import { resolveAvatar } from '../../../utils/avatars';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Photosphere360Background from '../../../components/Photosphere360Background';
+import AraratBackground from '../../../components/AraratBackground';
 import AR3DOverlay, {type AR3DOverlayHandle, type ARCard} from '../../../components/AR3DOverlay';
 import GameToolbar from '../../../components/global/GameToolbar';
 import GameToolbarControls from '../../../components/global/GameToolbarControls';
@@ -675,14 +674,11 @@ const BlotScreen = ({ navigation }: any) => {
     );
   };
 
-  // Photosphere360Background and AR3DOverlay are always mounted as siblings
-  // (matching CheckersScreen pattern) so both WebViews start together.
-  // Conditionally mounting AR3DOverlay after the panorama is running causes
-  // Android's compositor to lose the SphereViewer frame when a new hardware
-  // layer is inserted on top of an already-rendering WebView.
+  // Static ararat4 background image is used instead of the 360 photosphere.
+  // AR3DOverlay is still mounted to preserve the existing layering behavior.
   return (
     <View style={styles.container}>
-      <Photosphere360Background overlayOpacity={(!targetScore || !gameState) ? 0.85 : (showBlur ? 0.65 : 0.3)} />
+      <AraratBackground overlayOpacity={(!targetScore || !gameState) ? 0.85 : (showBlur ? 0.65 : 0.3)} />
       <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/game_boards/Poker_table.glb" hideCheckerboard boardFixed boardFixedZoom={1.0} boardScale={1.9} tableDist={0.9} boardY={-1.5} boardTiltX={0.35} cardGlbPath="glb/cards/card-template.glb" cards={arCards} />
       {/* Always mount SyncedYouTubePlayer alongside the other WebViews so all
           three hardware-accelerated layers are created together at screen open.

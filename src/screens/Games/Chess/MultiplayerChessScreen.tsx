@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Photosphere360Background from '../../../components/Photosphere360Background';
+import AraratBackground from '../../../components/AraratBackground';
 import AR3DOverlay, {type AR3DOverlayHandle, type ARPiece} from '../../../components/AR3DOverlay';
 import SyncedYouTubePlayer from '../../../components/SyncedYouTubePlayer';
 import ReAnimated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
@@ -602,7 +602,7 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
 
   return (
     <View style={styles.container}>
-      <Photosphere360Background overlayOpacity={showBlur ? 0.5 : 0.3}>
+      <AraratBackground overlayOpacity={showBlur ? 0.5 : 0.3}>
         <AR3DOverlay
           ref={arOverlayRef}
           visible={arEnabled}
@@ -632,7 +632,7 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
           }}
           onSquareTap={handleSquarePress}
         />
-      </Photosphere360Background>
+      </AraratBackground>
       <View style={styles.overlay} pointerEvents="box-none">
         <SafeAreaView style={styles.safeArea}>
           <View>

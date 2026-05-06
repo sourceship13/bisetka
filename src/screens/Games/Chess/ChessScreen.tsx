@@ -2,7 +2,7 @@ import React, {useState, useEffect, useRef, useMemo} from 'react';
 import {View, Text, StyleSheet, TouchableOpacity, Alert, Animated, ScrollView, Image, useWindowDimensions} from 'react-native';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Photosphere360Background from '../../../components/Photosphere360Background';
+import AraratBackground from '../../../components/AraratBackground';
 import AR3DOverlay, {type AR3DOverlayHandle, type ARPiece} from '../../../components/AR3DOverlay';
 import ReAnimated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import ExpandableView from '../../../components/global/ExpandableView';
@@ -467,7 +467,7 @@ const ChessScreen = ({navigation}: any) => {
   if (!difficulty || !gameState) {
     return (
       <View style={styles.container}>
-        <Photosphere360Background overlayOpacity={0.5} />
+        <AraratBackground overlayOpacity={0.5} />
           <SafeAreaView style={styles.safeArea}>
             <GameToolbar title="Chess" onBack={() => navigation.goBack()} backgroundColor="transparent" />
 
@@ -513,7 +513,7 @@ const ChessScreen = ({navigation}: any) => {
   return (
     <View style={styles.container}>
       {/* Photosphere always renders — AR3DOverlay WebView is transparent and sits on top */}
-      <Photosphere360Background overlayOpacity={0.4} />
+      <AraratBackground overlayOpacity={0.4} />
       <AR3DOverlay
         ref={arOverlayRef}
         visible={arEnabled}

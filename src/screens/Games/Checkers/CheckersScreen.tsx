@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, ImageBackground, Alert, Animated, ScrollView, Image } from 'react-native';
-import Photosphere360Background from '../../../components/Photosphere360Background';
+import AraratBackground from '../../../components/AraratBackground';
 import AR3DOverlay, { type ARPiece, type AR3DOverlayHandle } from '../../../components/AR3DOverlay';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -543,7 +543,7 @@ const CheckersScreen = ({ navigation, route }: any) => {
   if (isMultiplayer && (mpStatus==='connecting'||mpStatus==='searching'||mpStatus==='waiting')) {
     return (
       <View style={styles.container}>
-        <Photosphere360Background overlayOpacity={0.4} />
+        <AraratBackground overlayOpacity={0.4} />
         <View style={styles.overlay}>
           <SafeAreaView style={styles.safeArea}>
             <GameToolbar title="Checkers" onBack={() => { navigation.goBack(); }} backgroundColor="transparent" />
@@ -588,7 +588,7 @@ const CheckersScreen = ({ navigation, route }: any) => {
   // ── board render ──────────────────────────────────────────────────────────
   return (
     <View style={styles.container}>
-      <Photosphere360Background overlayOpacity={0.5} />
+      <AraratBackground overlayOpacity={0.5} />
       <AR3DOverlay
         ref={arOverlayRef}
         visible={arEnabled}
