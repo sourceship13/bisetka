@@ -200,7 +200,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
     const myIdx = isMultiplayer ? mySeatRef.current : playerIndex;
     // Positions sit on the table felt (felt ≈ ±0.40 X, ±0.32 Y).
     const seatPositions: Record<number, { x: number; y: number; z: number }> = {
-      0: { x:  0.00, y: -0.30, z: 0.004 },  // You — bottom center, on felt
+      0: { x:  0.00, y: -0.62, z: 0.004 },  // You — bottom edge of table (brown rail)
       1: { x:  0.34, y: -0.18, z: 0.004 },  // near right
       2: { x:  0.34, y:  0.10, z: 0.004 },  // far right
       3: { x:  0.00, y:  0.26, z: 0.004 },  // far center — top
