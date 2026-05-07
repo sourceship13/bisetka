@@ -249,13 +249,27 @@ const CheckersScreen = ({ navigation, route }: any) => {
   // The coordinates stay in board-space; AR3DOverlay maps them to 3D world space.
   const arPieces = useMemo<ARPiece[]>(() => {
     // SQUARE_W must match AR3DOverlay: FIELD_HALF_W*2/8 = 0.305*2/8
-    const CHECKER_SZ = (0.305 * 2 / 8) * 0.82;  // 82% of one square
+    // 15% smaller than before (was 0.82); 0.70 leaves a small margin so the
+    // disc sits comfortably inside its dark square.
+    const FIELD_HALF = 0.305;
+    const SQ = (FIELD_HALF * 2) / 8;
+    const CHECKER_SZ = SQ * 0.70;
+    const SURFACE_Z = 0.002;
+    // Pull the leftmost (col 0) and rightmost (col 7) columns inward so the
+    // discs don't overhang the board edge.
+    const EDGE_INSET = SQ * 0.45;
     const result: ARPiece[] = [];
     gameState.board.forEach((row, r) => {
       row.forEach((piece, c) => {
         if (!piece) return;
         // Only dark squares have pieces in checkers
         if ((r + c) % 2 === 0) return;
+        const baseX = -FIELD_HALF + (c + 0.5) * SQ;
+        const baseY = FIELD_HALF - (r + 0.5) * SQ;
+        let posX = baseX;
+        let posY = baseY;
+        if (c === 0) posX = baseX + EDGE_INSET;
+        else if (c === 7) posX = baseX - EDGE_INSET;
         result.push({
           key: `${r}-${c}`,
           row: r,
@@ -264,6 +278,9 @@ const CheckersScreen = ({ navigation, route }: any) => {
           side: piece.color === 'red' ? 'white' : 'black',  // white→red GLB, black→black GLB
           pieceType: 'checker',
           pieceScale: CHECKER_SZ,
+          posX,
+          posY,
+          posZ: SURFACE_Z,
           isKing: piece.type === 'king',
           isSelected:
             gameState.selectedSquare?.row === r &&
