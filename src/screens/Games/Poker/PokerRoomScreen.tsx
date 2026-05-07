@@ -15,7 +15,7 @@ import CardShuffleAnimation from '../../../components/CardShuffleAnimation';
 import RiffleDealAnimation from '../../../components/RiffleDealAnimation';
 import type { CardTheme } from '../../../components/global/GameCustomizationModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import Photosphere360Background from '../../../components/Photosphere360Background';
+import AraratBackground from '../../../components/AraratBackground';
 import AR3DOverlay, {type AR3DOverlayHandle, type ARCard} from '../../../components/AR3DOverlay';
 
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
@@ -1299,9 +1299,9 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
 
   return (
     <View style={styles.container} {...(arEnabled ? arPinchResponder.panHandlers : {})}>
-      <Photosphere360Background overlayOpacity={showBlur ? 0.65 : 0.3}>
+      <AraratBackground overlayOpacity={showBlur ? 0.65 : 0.3}>
         <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/game_assets/casino_table_level2_textured.glb" hideCheckerboard boardScale={1.9} boardY={-0.91} boardGlbForceFlat boardTiltX={0.55} cardGlbPath="glb/cards/card-template.glb" cards={arCards} arLabels={arLabels} tableDist={0.90} boardFixed boardFixedZoom={0.8} />
-      </Photosphere360Background>
+      </AraratBackground>
       <View style={styles.overlay} pointerEvents="box-none">
       <SafeAreaView style={styles.safeArea}>
 
