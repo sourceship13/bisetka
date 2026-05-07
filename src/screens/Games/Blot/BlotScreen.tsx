@@ -732,22 +732,11 @@ const BlotScreen = ({ navigation }: any) => {
             </View>
           </View>
 
-          {gameState.phase === 'playing' && (
+          {gameState.phase === 'playing' && arEnabled && (
             <View style={{ alignItems: 'center', marginTop: 4 }}>
-              <Text style={styles.currentPlayerText}>
-                {gameState.currentPlayer === 0
-                  ? '★ Your Turn (Team 1)'
-                  : `${
-                      gameState.players[gameState.currentPlayer].name
-                    }'s Turn (Team ${
-                      gameState.players[gameState.currentPlayer].team
-                    })`}
+              <Text style={{color:'#00ff88',fontSize:11,textAlign:'center',opacity:0.8}}>
+                3D cards: {arCards.length}
               </Text>
-              {arEnabled && (
-                <Text style={{color:'#00ff88',fontSize:11,textAlign:'center',opacity:0.8,marginTop:-12}}>
-                  3D cards: {arCards.length}
-                </Text>
-              )}
             </View>
           )}
 
@@ -764,7 +753,17 @@ const BlotScreen = ({ navigation }: any) => {
             {gameState.trump && (
               <View style={styles.trumpDisplay}>
                 <Text style={styles.trumpLabel}>Trump</Text>
-                <Text style={styles.trumpSuit}>
+                <Text
+                  style={[
+                    styles.trumpSuit,
+                    {
+                      color:
+                        gameState.trump === 'hearts' ||
+                        gameState.trump === 'diamonds'
+                          ? '#d40000'
+                          : '#000',
+                    },
+                  ]}>
                   {gameState.trump === 'hearts'
                     ? '♥'
                     : gameState.trump === 'diamonds'
@@ -785,6 +784,20 @@ const BlotScreen = ({ navigation }: any) => {
               )}
             </View>
           </View>
+
+          {gameState.phase === 'playing' && (
+            <View pointerEvents="none" style={styles.turnIndicatorWrap}>
+              <Text style={styles.currentPlayerText}>
+                {gameState.currentPlayer === 0
+                  ? '★ Your Turn (Team 1)'
+                  : `${
+                      gameState.players[gameState.currentPlayer].name
+                    }'s Turn (Team ${
+                      gameState.players[gameState.currentPlayer].team
+                    })`}
+              </Text>
+            </View>
+          )}
 
 
 
@@ -1145,9 +1158,11 @@ const styles = StyleSheet.create({
     maxHeight:98,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(26, 92, 63, 0.9)',
+    backgroundColor: '#fff',
     padding: 12,
     borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.15)',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
@@ -1156,11 +1171,19 @@ const styles = StyleSheet.create({
   },
   trumpLabel: {
     fontSize: 12,
-    color: '#fff',
+    color: '#222',
     marginBottom: 4,
   },
   trumpSuit: {
     fontSize: 32,
+  },
+  turnIndicatorWrap: {
+    position: 'absolute',
+    top: 280,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    zIndex: 4,
   },
   playArea: {
     flex: 2,
