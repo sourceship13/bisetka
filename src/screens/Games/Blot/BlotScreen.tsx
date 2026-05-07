@@ -561,7 +561,7 @@ const BlotScreen = ({ navigation }: any) => {
         {/* Center suit */}
         <Text style={[styles.nativeCardCenter, { color: suitColor }]}>{suitIcon}</Text>
         {/* Bottom-right (rotated) */}
-        <View style={[styles.nativeCardCorner, { transform: [{ rotate: '180deg' }] }]}>
+        <View style={[styles.nativeCardCorner, { alignSelf: 'flex-end', transform: [{ rotate: '180deg' }] }]}>
           <Text style={[styles.nativeCardRank, { color: suitColor }]}>{card.rank}</Text>
           <Text style={[styles.nativeCardSuit, { color: suitColor }]}>{suitIcon}</Text>
         </View>
