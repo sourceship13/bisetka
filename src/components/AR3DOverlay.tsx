@@ -1531,9 +1531,26 @@ function clonePiece(piece) {
   // Clone the wrapper group returned by normalizePieceModel (deep clone preserves inner scale)
   const clone = sourceScene.clone(true);
   // Chess pieces need rotation.x = π/2 to cancel boardGroup's -π/2 and stand upright in world.
-  // Disc pieces (bg_checker, checker) should lay FLAT on the board surface — no rotation cancellation needed.
+  // Disc pieces (bg_checker, checker) should lay FLAT on the board surface. The source GLB
+  // for nardi/checkers checkers is roughly dome/ball shaped, so rotation alone can't flatten
+  // it — we squash whichever axis is currently the tallest to ~22% of its size, leaving the
+  // other two axes (the "face" of the disc) untouched. Position/orientation are preserved.
   const isCheckerDisc = piece.pieceType === 'bg_checker' || piece.pieceType === 'checker';
-  clone.rotation.x = isCheckerDisc ? 0 : Math.PI / 2;
+  if (isCheckerDisc) {
+    clone.rotation.x = 0;
+    const _bb = new THREE.Box3().setFromObject(clone);
+    const _sz = _bb.getSize(new THREE.Vector3());
+    const FLAT_RATIO = 0.22;
+    if (_sz.z >= _sz.x && _sz.z >= _sz.y) {
+      clone.scale.z *= FLAT_RATIO;
+    } else if (_sz.y >= _sz.x && _sz.y >= _sz.z) {
+      clone.scale.y *= FLAT_RATIO;
+    } else {
+      clone.scale.x *= FLAT_RATIO;
+    }
+  } else {
+    clone.rotation.x = Math.PI / 2;
+  }
 
   clone.traverse(ch => {
     if (!ch.isMesh) return;
