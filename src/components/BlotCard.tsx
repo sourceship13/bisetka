@@ -64,7 +64,7 @@ export default function BlotCard({ suit, rank, size = 72, faceDown = false }: Pr
       {/* Center suit */}
       <Text style={[styles.center, { color: suitColor, fontSize: centerSuitSize }]}>{suitIcon}</Text>
       {/* Bottom-right (rotated) */}
-      <View style={[styles.corner, { transform: [{ rotate: '180deg' }] }]}>
+      <View style={[styles.corner, styles.cornerBottom, { transform: [{ rotate: '180deg' }] }]}>
         <Text style={[styles.rank, { color: suitColor, fontSize: rankSize, lineHeight: rankSize + 2 }]}>{rank}</Text>
         <Text style={[styles.suit, { color: suitColor, fontSize: cornerSuitSize, lineHeight: cornerSuitSize + 2 }]}>{suitIcon}</Text>
       </View>
@@ -93,6 +93,9 @@ const styles = StyleSheet.create({
   corner: {
     alignSelf: 'flex-start',
     alignItems: 'center',
+  },
+  cornerBottom: {
+    alignSelf: 'flex-end',
   },
   rank: {
     fontWeight: 'bold',

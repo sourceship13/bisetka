@@ -1259,7 +1259,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
           <Text style={[styles.nativeCardSuit, { color: suitColor }]}>{suitIcon}</Text>
         </View>
         <Text style={[styles.nativeCardCenter, { color: suitColor }]}>{suitIcon}</Text>
-        <View style={[styles.nativeCardCorner, { transform: [{ rotate: '180deg' }] }]}>
+        <View style={[styles.nativeCardCorner, { alignSelf: 'flex-end', transform: [{ rotate: '180deg' }] }]}>
           <Text style={[styles.nativeCardRank, { color: suitColor }]}>{(card as any).rank}</Text>
           <Text style={[styles.nativeCardSuit, { color: suitColor }]}>{suitIcon}</Text>
         </View>

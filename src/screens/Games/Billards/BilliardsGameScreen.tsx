@@ -2209,7 +2209,7 @@ const styles = StyleSheet.create({
     width: SCREEN_TABLE_W,
     height: SCREEN_TABLE_H,
     padding: RAIL_WIDTH,
-    backgroundColor: 'rgba(61,36,20,0.20)', // dark walnut wood @ 20% opacity
+    backgroundColor: 'rgba(61,36,20,0.80)', // dark walnut wood @ 20% opacity
     borderRadius: RAIL_WIDTH * 0.6,
     borderWidth: 2,
     borderColor: 'rgba(28,15,6,0.25)',
