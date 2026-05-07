@@ -14,6 +14,8 @@ import {
 import { apiService } from '../../../services/api.service';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Photosphere360Background from '../../../components/Photosphere360Background';
+import AraratBackground from '../../../components/AraratBackground';
+import PoolTable3D from '../../../components/PoolTable3D';
 import AR3DOverlay, {type AR3DOverlayHandle} from '../../../components/AR3DOverlay';
 import GameToolbar from '../../../components/global/GameToolbar';
 import GameToolbarControls from '../../../components/global/GameToolbarControls';
@@ -1910,9 +1912,7 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
 
   return (
     <View style={{flex: 1}}>
-    <Photosphere360Background overlayOpacity={showBlur ? 0.65 : 0.3}>
-      <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/chess/chess-board/source/ui.glb" />
-    </Photosphere360Background>
+    <AraratBackground overlayOpacity={showBlur ? 0.65 : 0.3} />
     <View style={styles.overlay} pointerEvents="box-none">
     <SafeAreaView style={styles.safeArea}>
       <View>
@@ -1961,17 +1961,13 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
       {/* Table */}
       <View style={styles.tableOuter}>
         <View style={styles.tableRail}>
-          <ImageBackground
-            source={require('../../../../assets/pool/table.png')}
+          <View
             style={styles.tableFelt}
-            imageStyle={{
-              width: TABLE_IMG_W-150,
-              height: TABLE_IMG_H-100,
-              left: TABLE_IMG_LEFT+80,
-              top: TABLE_IMG_TOP+50,
-            }}
-            resizeMode="stretch"
             {...panResponder.panHandlers}>
+            {/* 3D pool table model rendered top-down behind the play field */}
+            <View style={{ position: 'absolute', left: 0, top: 0, width: TABLE_WIDTH, height: TABLE_HEIGHT }} pointerEvents="none">
+              <PoolTable3D width={TABLE_WIDTH} height={TABLE_HEIGHT} />
+            </View>
             {/* Pockets */}
             {POCKETS.map((p, i) => (
               <View key={`pocket-${i}`} style={[styles.pocket, {
@@ -2023,7 +2019,7 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
                 />
               </View>
             ))}
-          </ImageBackground>
+          </View>
         </View>
       </View>
 
@@ -2193,16 +2189,6 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
     </SafeAreaView>
     </View>
       <SyncedYouTubePlayer roomId={null} visible={true} />
-      {arEnabled && (
-        <TouchableOpacity
-          style={styles.recenterBtn}
-          onPress={() => arOverlayRef.current?.recenter()}
-          hitSlop={{top:12,bottom:12,left:12,right:12}}
-          activeOpacity={0.7}>
-          <Text style={styles.recenterIcon}>⊕</Text>
-          <Text style={styles.recenterLabel}>Re-center</Text>
-        </TouchableOpacity>
-      )}
     </View>
   );
 };
