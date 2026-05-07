@@ -679,7 +679,7 @@ const BlotScreen = ({ navigation }: any) => {
   // AR3DOverlay is still mounted to preserve the existing layering behavior.
   return (
     <View style={styles.container}>
-      <AraratBackground overlayOpacity={(!targetScore || !gameState) ? 0.85 : (showBlur ? 0.65 : 0.3)} />
+      <AraratBackground  />
       <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/game_boards/Poker_table.glb" hideCheckerboard boardFixed boardFixedZoom={1.0} boardScale={1.9} tableDist={0.9} boardY={-1.5} boardTiltX={0.35} cardGlbPath="glb/cards/card-template.glb" cards={arCards} />
       {/* Always mount SyncedYouTubePlayer alongside the other WebViews so all
           three hardware-accelerated layers are created together at screen open.

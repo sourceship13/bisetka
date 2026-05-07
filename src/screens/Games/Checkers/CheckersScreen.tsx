@@ -605,7 +605,7 @@ const CheckersScreen = ({ navigation, route }: any) => {
   // ── board render ──────────────────────────────────────────────────────────
   return (
     <View style={styles.container}>
-      <AraratBackground overlayOpacity={0.5} />
+      <AraratBackground />
       <AR3DOverlay
         ref={arOverlayRef}
         visible={arEnabled}
@@ -688,15 +688,28 @@ const CheckersScreen = ({ navigation, route }: any) => {
                         onPress={() => handleSquarePress(displayRow, displayCol)}
                         activeOpacity={0.75}
                       >
-                        {piece && (
-                          <View style={[
-                            styles.piece,
-                            piece.color === 'red' ? styles.redPiece : styles.blackPiece,
-                            piece.type === 'king' && styles.kingPiece,
-                          ]}>
-                            {piece.type === 'king' && <Text style={styles.kingText}>♛</Text>}
-                          </View>
-                        )}
+                        {piece && (() => {
+                          // Per-piece horizontal nudges for the top-most red row (row 5).
+                          // Values are fractions of squareSize.
+                          // Top-most red row = row 5. Red pieces in row 5 occupy
+                          // cols 0, 2, 4, 6 (left-to-right). Order index:
+                          //   0 = leftmost (+10%), 1 = 2nd left (+10%),
+                          //   2 = 3rd (-5%), 3 = rightmost (-30%).
+                          const NUDGE_TOP_RED: Record<number, number> = { 0: 0.10, 2: 0.10, 4: -0.05, 6: -0.30 };
+                          const nudgeX = piece.color === 'red' && row === 5 && NUDGE_TOP_RED[col] !== undefined
+                            ? NUDGE_TOP_RED[col] * squareSize
+                            : 0;
+                          return (
+                            <View style={[
+                              styles.piece,
+                              piece.color === 'red' ? styles.redPiece : styles.blackPiece,
+                              piece.type === 'king' && styles.kingPiece,
+                              nudgeX !== 0 && { transform: [{ translateX: nudgeX }] },
+                            ]}>
+                              {piece.type === 'king' && <Text style={styles.kingText}>♛</Text>}
+                            </View>
+                          );
+                        })()}
                         {isPossibleMove && !piece && (
                           <View style={styles.moveIndicator} />
                         )}
