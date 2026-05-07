@@ -15,7 +15,6 @@ import { apiService } from '../../../services/api.service';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Photosphere360Background from '../../../components/Photosphere360Background';
 import AraratBackground from '../../../components/AraratBackground';
-import PoolTable3D from '../../../components/PoolTable3D';
 import AR3DOverlay, {type AR3DOverlayHandle} from '../../../components/AR3DOverlay';
 import GameToolbar from '../../../components/global/GameToolbar';
 import GameToolbarControls from '../../../components/global/GameToolbarControls';
@@ -41,25 +40,14 @@ type Props = NativeStackScreenProps<RootStackParamList, 'BilliardsGame'>;
 
 const {width: SCREEN_WIDTH, height: SCREEN_HEIGHT} = Dimensions.get('window');
 
-// Portrait table: fills the full screen width and available vertical space
-const TABLE_PADDING = 0;
-const RAIL_WIDTH = 0;
-const TABLE_WIDTH = SCREEN_WIDTH;
-// Reserve ~230px for toolbar + power bar + pocketed row + safe-area insets
-const TABLE_HEIGHT = SCREEN_HEIGHT - 230;
+// Portrait table: ~88% of screen width with wooden rail border around the felt.
+const SCREEN_TABLE_W = SCREEN_WIDTH * 0.88;
+const SCREEN_TABLE_H = (SCREEN_HEIGHT - 230) * 0.88;
+const RAIL_WIDTH = Math.round(SCREEN_TABLE_W * 0.06); // ~6% rail thickness
+// Felt (play area). Physics treats TABLE_WIDTH x TABLE_HEIGHT as the cushion box.
+const TABLE_WIDTH = SCREEN_TABLE_W - RAIL_WIDTH * 2;
+const TABLE_HEIGHT = SCREEN_TABLE_H - RAIL_WIDTH * 2;
 
-// table.png is 1024x1536 with the brown wooden rail baked in.
-// Scanning the image reveals the green felt starts at x=235, y=207.
-// We scale the image up so the felt fills TABLE_WIDTH x TABLE_HEIGHT exactly,
-// then offset it so the brown border is cropped off by overflow:hidden.
-const IMG_W = 1024, IMG_H = 1536;
-const IMG_RAIL_X = 235, IMG_RAIL_Y = 207;
-const IMG_FELT_W = IMG_W - IMG_RAIL_X * 2; // 554px
-const IMG_FELT_H = IMG_H - IMG_RAIL_Y * 2; // 1122px
-const TABLE_IMG_W = TABLE_WIDTH  * (IMG_W / IMG_FELT_W);  // scaled image width
-const TABLE_IMG_H = TABLE_HEIGHT * (IMG_H / IMG_FELT_H);  // scaled image height
-const TABLE_IMG_LEFT = -TABLE_WIDTH  * (IMG_RAIL_X / IMG_FELT_W); // left offset
-const TABLE_IMG_TOP  = -TABLE_HEIGHT * (IMG_RAIL_Y / IMG_FELT_H); // top offset
 const BALL_RADIUS = TABLE_WIDTH * 0.042;
 const POCKET_RADIUS = BALL_RADIUS * 1.6; // slightly forgiving for mobile touch controls, close to real proportions
 const POCKET_PADDING = 20; // inset each pocket 20px away from the table edges
@@ -472,7 +460,7 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
   const [balls, setBalls] = useState<Ball[]>(
     variant === '9-ball' ? createRack9Ball() : createRack8Ball(),
   );
-  const [showBlur, setShowBlur] = useState(true);
+  const [showBlur, setShowBlur] = useState(false);
   const [showMusicPlayer, setShowMusicPlayer] = useState(false);
   const [arEnabled, setArEnabled] = useState(true);
   const arOverlayRef = useRef<AR3DOverlayHandle>(null);
@@ -1912,7 +1900,7 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
 
   return (
     <View style={{flex: 1}}>
-    <AraratBackground overlayOpacity={showBlur ? 0.65 : 0.3} />
+    <AraratBackground  />
     <View style={styles.overlay} pointerEvents="box-none">
     <SafeAreaView style={styles.safeArea}>
       <View>
@@ -1924,7 +1912,7 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
         <View>
           <GameToolbarControls
             buttons={[
-              { icon: showBlur ? '🌫️' : '✨', onPress: () => setShowBlur(!showBlur) },
+              // { icon: showBlur ? '🌫️' : '✨', onPress: () => setShowBlur(!showBlur) },
               { icon: showBackground ? '🖼️' : '🔲', onPress: () => setShowBackground(!showBackground) },
               { icon: arEnabled ? '🥽' : '🎮', onPress: () => setArEnabled(!arEnabled) },
               { icon: showMusicPlayer ? '🎵' : '🎶', onPress: () => setShowMusicPlayer(s => !s) },
@@ -1964,16 +1952,22 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
           <View
             style={styles.tableFelt}
             {...panResponder.panHandlers}>
-            {/* 3D pool table model rendered top-down behind the play field */}
-            <View style={{ position: 'absolute', left: 0, top: 0, width: TABLE_WIDTH, height: TABLE_HEIGHT }} pointerEvents="none">
-              <PoolTable3D width={TABLE_WIDTH} height={TABLE_HEIGHT} />
-            </View>
-            {/* Pockets */}
+            {/* Raised cushion edges (inset bumpers) */}
+            <View pointerEvents="none" style={styles.cushionTop} />
+            <View pointerEvents="none" style={styles.cushionBottom} />
+            <View pointerEvents="none" style={styles.cushionLeft} />
+            <View pointerEvents="none" style={styles.cushionRight} />
+            {/* Pockets — recessed dark holes with rim shading */}
             {POCKETS.map((p, i) => (
-              <View key={`pocket-${i}`} style={[styles.pocket, {
-                left: p.x - POCKET_RADIUS,
-                top: p.y - POCKET_RADIUS,
-              }]} />
+              <View
+                key={`pocket-${i}`}
+                pointerEvents="none"
+                style={[styles.pocketRim, {
+                  left: p.x - POCKET_RADIUS - 4,
+                  top: p.y - POCKET_RADIUS - 4,
+                }]}>
+                <View style={styles.pocketHole} />
+              </View>
             ))}
 
             {/* Head string line */}
@@ -2210,11 +2204,20 @@ const styles = StyleSheet.create({
   powerLabel: {color: '#aaa', fontSize: 11, marginRight: 8, width: 40},
   powerTrack: {flex: 1, height: 6, backgroundColor: '#2a2a2a', borderRadius: 3, overflow: 'hidden'},
   powerFill: {height: '100%', borderRadius: 3},
-  tableOuter: {width: '100%'},
+  tableOuter: {width: '100%', alignItems: 'center', marginTop: 6},
   tableRail: {
-    width: TABLE_WIDTH,
-    height: TABLE_HEIGHT,
-    overflow: 'hidden',
+    width: SCREEN_TABLE_W,
+    height: SCREEN_TABLE_H,
+    padding: RAIL_WIDTH,
+    backgroundColor: 'rgba(61,36,20,0.20)', // dark walnut wood @ 20% opacity
+    borderRadius: RAIL_WIDTH * 0.6,
+    borderWidth: 2,
+    borderColor: 'rgba(28,15,6,0.25)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.45,
+    shadowRadius: 8,
+    elevation: 10,
   },
   railPocket: {
     position: 'absolute',
@@ -2230,9 +2233,35 @@ const styles = StyleSheet.create({
     borderRadius: 0,
     position: 'relative',
     overflow: 'hidden',
+    backgroundColor: 'rgba(12,90,44,0.20)', // green felt @ 20% opacity
+    borderWidth: 1,
+    borderColor: 'rgba(10,68,34,0.4)',
   },
   tableFeltImage: {
     borderRadius: 0,
+  },
+  pocketRim: {
+    position: 'absolute',
+    width: (POCKET_RADIUS + 4) * 2,
+    height: (POCKET_RADIUS + 4) * 2,
+    borderRadius: POCKET_RADIUS + 4,
+    backgroundColor: 'rgba(28,15,6,0.55)', // dark wood rim, semi-transparent
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.7,
+    shadowRadius: 2,
+    elevation: 4,
+  },
+  pocketHole: {
+    width: POCKET_RADIUS * 2,
+    height: POCKET_RADIUS * 2,
+    borderRadius: POCKET_RADIUS,
+    backgroundColor: '#000',              // bottomless black hole
+    borderWidth: 1,
+    borderColor: '#2a2a2a',
   },
   pocket: {
     position: 'absolute',
@@ -2241,6 +2270,60 @@ const styles = StyleSheet.create({
     borderRadius: POCKET_RADIUS,
     backgroundColor: '#111',
     zIndex: 10,
+  },
+  // Raised inner cushions (bumpers). Inset by ~POCKET_RADIUS at each end so
+  // they don't visually cover the corner / side pockets.
+  cushionTop: {
+    position: 'absolute',
+    left: POCKET_RADIUS * 1.6,
+    right: POCKET_RADIUS * 1.6,
+    top: 0,
+    height: POCKET_RADIUS * 0.8,
+    backgroundColor: 'rgba(8,60,28,0.55)',
+    borderBottomWidth: 2,
+    borderBottomColor: 'rgba(0,0,0,0.45)',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.18)',
+    zIndex: 6,
+  },
+  cushionBottom: {
+    position: 'absolute',
+    left: POCKET_RADIUS * 1.6,
+    right: POCKET_RADIUS * 1.6,
+    bottom: 0,
+    height: POCKET_RADIUS * 0.8,
+    backgroundColor: 'rgba(8,60,28,0.55)',
+    borderTopWidth: 2,
+    borderTopColor: 'rgba(0,0,0,0.45)',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.18)',
+    zIndex: 6,
+  },
+  cushionLeft: {
+    position: 'absolute',
+    top: POCKET_RADIUS * 1.6,
+    bottom: POCKET_RADIUS * 1.6,
+    left: 0,
+    width: POCKET_RADIUS * 0.8,
+    backgroundColor: 'rgba(8,60,28,0.55)',
+    borderRightWidth: 2,
+    borderRightColor: 'rgba(0,0,0,0.45)',
+    borderLeftWidth: 1,
+    borderLeftColor: 'rgba(255,255,255,0.18)',
+    zIndex: 6,
+  },
+  cushionRight: {
+    position: 'absolute',
+    top: POCKET_RADIUS * 1.6,
+    bottom: POCKET_RADIUS * 1.6,
+    right: 0,
+    width: POCKET_RADIUS * 0.8,
+    backgroundColor: 'rgba(8,60,28,0.55)',
+    borderLeftWidth: 2,
+    borderLeftColor: 'rgba(0,0,0,0.45)',
+    borderRightWidth: 1,
+    borderRightColor: 'rgba(255,255,255,0.18)',
+    zIndex: 6,
   },
   headString: {
     position: 'absolute',

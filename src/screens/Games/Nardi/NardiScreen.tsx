@@ -125,7 +125,7 @@ const NardiScreen = ({ navigation, route }: any) => {
   const opponentType: OpponentType = isMultiplayer ? 'local' : (routeMode === 'ai' ? 'ai' : 'local');
 
   const [gameState, setGameState] = useState<NardiGameState | null>(() => initializeNardiGame('short'));
-  const [showBlur, setShowBlur] = useState(true);
+  const [showBlur, setShowBlur] = useState(false);
   const [showMusicPlayer, setShowMusicPlayer] = useState(false);
   const [arEnabled, setArEnabled] = useState(true);
   const arOverlayRef = useRef<AR3DOverlayHandle>(null);
@@ -1446,7 +1446,6 @@ const NardiScreen = ({ navigation, route }: any) => {
             <View>
               <GameToolbarControls
                 buttons={[
-                  { icon: showBlur ? '🌫️' : '✨', onPress: () => setShowBlur(!showBlur) },
                   { icon: showBackground ? '🖼️' : '🔲', onPress: () => setShowBackground(!showBackground) },
                   { icon: easyMode ? '🎮' : '🎯', onPress: () => setEasyMode(!easyMode), label: easyMode ? 'Easy Mode' : 'Normal Mode' },
                   { icon: arEnabled ? '🥽' : '🎮', onPress: () => setArEnabled(!arEnabled) },

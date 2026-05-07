@@ -104,7 +104,7 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
   const [showCustomization, setShowCustomization] = useState(false);
   const [customTheme, setCustomTheme] = useState<CardTheme | undefined>(undefined);
   const [showBackground, setShowBackground] = useState(true);
-  const [showBlur, setShowBlur] = useState(true);
+  const [showBlur, setShowBlur] = useState(false);
   const toolbarExpanded = useSharedValue(false);
   const chevronStyle = useAnimatedStyle(() => ({
     transform: [{ rotate: withTiming(toolbarExpanded.value ? '180deg' : '0deg', { duration: 250 }) }],
@@ -597,7 +597,6 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
     <ImageBackground
       source={require('../../assets/blot/park-background.png')}
       style={styles.bg}
-      blurRadius={3}
       resizeMode="cover">
       <LinearGradient
         colors={['rgba(15,15,35,0.7)', 'rgba(26,23,66,0.6)']}
@@ -635,7 +634,6 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
     <ImageBackground
       source={require('../../assets/blot/park-background.png')}
       style={styles.bg}
-      blurRadius={3}
       resizeMode="cover">
       <LinearGradient
         colors={['rgba(15,15,35,0.7)', 'rgba(26,23,66,0.6)']}
@@ -667,7 +665,6 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
     <ImageBackground
       source={require('../../assets/blot/park-background.png')}
       style={styles.bg}
-      blurRadius={3}
       resizeMode="cover">
       <LinearGradient
         colors={['rgba(15,15,35,0.7)', 'rgba(26,23,66,0.6)']}
@@ -1035,10 +1032,9 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
         <ImageBackground
           source={require('../../assets/blot/park-background.png')}
           style={styles.bg}
-          blurRadius={showBlur ? 3 : 0}
           resizeMode="cover">
           <LinearGradient
-            colors={showBlur ? ['rgba(15,15,35,0.7)', 'rgba(26,23,66,0.6)'] : ['transparent', 'transparent']}
+            colors={['transparent', 'transparent']}
             style={StyleSheet.absoluteFill}
           />
           <SafeAreaView style={styles.safe}>
@@ -1067,13 +1063,6 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
                     <Text style={styles.editRoomIcon}>🎨</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    onPress={() => setShowBlur(!showBlur)}
-                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                    style={styles.editRoomButton}
-                  >
-                    <Text style={styles.editRoomIcon}>{showBlur ? '🌫️' : '✨'}</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
                     onPress={() => setShowBackground(!showBackground)}
                     hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                     style={styles.editRoomButton}
@@ -1096,10 +1085,9 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
       <ImageBackground
         source={require('../../assets/blot/park-background.png')}
         style={styles.bg}
-        blurRadius={showBlur ? 3 : 0}
         resizeMode="cover">
         <LinearGradient
-          colors={showBlur ? ['rgba(15,15,35,0.7)', 'rgba(26,23,66,0.6)'] : ['transparent', 'transparent']}
+          colors={['transparent', 'transparent']}
           style={StyleSheet.absoluteFill}
         />
         <SafeAreaView style={styles.safe}>
@@ -1129,13 +1117,6 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
                   style={styles.editRoomButton}
                 >
                   <Text style={styles.editRoomIcon}>🎨</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => setShowBlur(!showBlur)}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                  style={styles.editRoomButton}
-                >
-                  <Text style={styles.editRoomIcon}>{showBlur ? '🌫️' : '✨'}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={() => setShowBackground(!showBackground)}

@@ -210,7 +210,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
   const [customTheme, setCustomTheme] = useState<CardTheme | undefined>(undefined);
   const [showBackground, setShowBackground] = useState(true);
   const [arCards, setArCards] = useState<ARCard[]>([]);
-  const [showBlur, setShowBlur] = useState(true);
+  const [showBlur, setShowBlur] = useState(false);
   const [arEnabled, setArEnabled] = useState(true);
   const [showMusicPlayer, setShowMusicPlayer] = useState(false);
   const arOverlayRef = useRef<AR3DOverlayHandle>(null);
@@ -1406,7 +1406,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
             <ImageBackground
               source={customTheme?.boardImage ? { uri: customTheme.boardImage } : require('../../../../assets/blot/card-table.png')}
               style={styles.cardTable}
-              imageStyle={{ borderRadius: 16 }}
+              imageStyle={{ borderRadius: 16, opacity: 0.20 }}
             >
               {/* Card placement placeholders - always visible */}
               <View style={styles.trickArea}>
@@ -1613,7 +1613,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
                 <ImageBackground
                   source={customTheme?.boardImage ? { uri: customTheme.boardImage } : require('../../../../assets/blot/card-table.png')}
                   style={styles.cardTable}
-                  imageStyle={{ borderRadius: 16 }}
+                  imageStyle={{ borderRadius: 16, opacity: 0.20 }}
                 >
                   {/* Card placement placeholders - always visible */}
                   <View style={styles.trickArea}>
@@ -1770,7 +1770,6 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
             <GameToolbarControls
               buttons={[
                 { icon: '🎨', onPress: () => setShowCustomization(true) },
-                { icon: showBlur ? '🌫️' : '✨', onPress: () => setShowBlur(!showBlur) },
                 { icon: showBackground ? '🖼️' : '🔲', onPress: () => setShowBackground(!showBackground) },
                 { icon: '👥', onPress: () => roomInfoRef.current?.open() },
                 { icon: arEnabled ? '🥽' : '🎮', onPress: () => setArEnabled(!arEnabled) },

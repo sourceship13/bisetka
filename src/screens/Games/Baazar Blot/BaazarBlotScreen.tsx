@@ -126,7 +126,7 @@ const BaazarBlotScreen = ({ navigation }: any) => {
   };
 
   const [showBackground, setShowBackground] = useState(true);
-  const [showBlur, setShowBlur] = useState(true);
+  const [showBlur, setShowBlur] = useState(false);
   const [showMusicPlayer, setShowMusicPlayer] = useState(false);
   const [arEnabled, setArEnabled] = useState(true);
   const [arCards, setArCards] = useState<ARCard[]>([]);
@@ -1115,7 +1115,6 @@ const BaazarBlotScreen = ({ navigation }: any) => {
             <GameToolbarControls
               buttons={[
                 { icon: '🎨', onPress: () => setShowCustomization(true) },
-                { icon: showBlur ? '🌫️' : '✨', onPress: () => setShowBlur(!showBlur) },
                 { icon: showBackground ? '🖼️' : '🔲', onPress: () => setShowBackground(!showBackground) },
                 { icon: arEnabled ? '🥽' : '🎮', onPress: () => setArEnabled(!arEnabled) },
                 { icon: showMusicPlayer ? '🎵' : '🎶', onPress: () => setShowMusicPlayer(s => !s) },

@@ -133,7 +133,7 @@ const CheckersScreen = ({ navigation, route }: any) => {
   const [statusMsg,     setStatusMsg]     = useState('');
   const [showCustomization, setShowCustomization] = useState(false);
   const [showMusicPlayer, setShowMusicPlayer] = useState(true);
-  const [showBlur, setShowBlur] = useState(true);
+  const [showBlur, setShowBlur] = useState(false);
   const [showBackground, setShowBackground] = useState(true);
   const [arEnabled, setArEnabled] = useState(true);
   const arOverlayRef = useRef<AR3DOverlayHandle>(null);
@@ -640,7 +640,6 @@ const CheckersScreen = ({ navigation, route }: any) => {
               <GameToolbarControls
                 buttons={[
                   { icon: '🎨', onPress: () => setShowCustomization(true) },
-                  { icon: showBlur ? '🌫️' : '✨', onPress: () => setShowBlur(!showBlur) },
                   { icon: showBackground ? '🖼️' : '🔲', onPress: () => setShowBackground(!showBackground) },
                   { icon: arEnabled ? '🥽' : '🎮', onPress: () => setArEnabled(!arEnabled) },
                   { icon: '👥', onPress: togglePanel },
