@@ -51,6 +51,10 @@ const TABLE_HEIGHT = SCREEN_TABLE_H - RAIL_WIDTH * 2;
 const BALL_RADIUS = TABLE_WIDTH * 0.042;
 const POCKET_RADIUS = BALL_RADIUS * 1.6; // slightly forgiving for mobile touch controls, close to real proportions
 const POCKET_PADDING = 20; // inset each pocket 20px away from the table edges
+// Visible inner cushion thickness. Physics bounces balls off the inside edge
+// of the cushions (not the raw felt edge) so balls collide with the bumpers
+// instead of passing through them.
+const CUSHION_THICKNESS = POCKET_RADIUS * 0.8;
 const CUE_LENGTH = TABLE_WIDTH * 0.65;
 const CUE_THICK = 3;
 const FRICTION = 0.984;
@@ -173,10 +177,18 @@ function physicsStep(balls: Ball[]): { anyMoving: boolean; pocketed: Ball[]; fir
       anyMoving = true;
     }
     const r = BALL_RADIUS;
-    if (ball.pos.x - r < 0) { ball.pos.x = r; ball.vel.x = Math.abs(ball.vel.x) * 0.75; }
-    if (ball.pos.x + r > TABLE_WIDTH) { ball.pos.x = TABLE_WIDTH - r; ball.vel.x = -Math.abs(ball.vel.x) * 0.75; }
-    if (ball.pos.y - r < 0) { ball.pos.y = r; ball.vel.y = Math.abs(ball.vel.y) * 0.75; }
-    if (ball.pos.y + r > TABLE_HEIGHT) { ball.pos.y = TABLE_HEIGHT - r; ball.vel.y = -Math.abs(ball.vel.y) * 0.75; }
+    const c = CUSHION_THICKNESS;
+    const cushionGap = POCKET_RADIUS * 1.6;
+    const inHorizontalCushionSpan = ball.pos.x > cushionGap && ball.pos.x < TABLE_WIDTH - cushionGap;
+    const inVerticalCushionSpan   = ball.pos.y > cushionGap && ball.pos.y < TABLE_HEIGHT - cushionGap;
+    if (inVerticalCushionSpan) {
+      if (ball.pos.x - r < c) { ball.pos.x = c + r; ball.vel.x = Math.abs(ball.vel.x) * 0.75; }
+      if (ball.pos.x + r > TABLE_WIDTH - c) { ball.pos.x = TABLE_WIDTH - c - r; ball.vel.x = -Math.abs(ball.vel.x) * 0.75; }
+    }
+    if (inHorizontalCushionSpan) {
+      if (ball.pos.y - r < c) { ball.pos.y = c + r; ball.vel.y = Math.abs(ball.vel.y) * 0.75; }
+      if (ball.pos.y + r > TABLE_HEIGHT - c) { ball.pos.y = TABLE_HEIGHT - c - r; ball.vel.y = -Math.abs(ball.vel.y) * 0.75; }
+    }
   }
 
   const active = balls.filter(b => !b.pocketed);
@@ -850,10 +862,18 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
 
   const resolveWalls = useCallback((ball: Ball) => {
     const r = BALL_RADIUS;
-    if (ball.pos.x - r < 0) { ball.pos.x = r; ball.vel.x = Math.abs(ball.vel.x) * 0.75; }
-    if (ball.pos.x + r > TABLE_WIDTH) { ball.pos.x = TABLE_WIDTH - r; ball.vel.x = -Math.abs(ball.vel.x) * 0.75; }
-    if (ball.pos.y - r < 0) { ball.pos.y = r; ball.vel.y = Math.abs(ball.vel.y) * 0.75; }
-    if (ball.pos.y + r > TABLE_HEIGHT) { ball.pos.y = TABLE_HEIGHT - r; ball.vel.y = -Math.abs(ball.vel.y) * 0.75; }
+    const c = CUSHION_THICKNESS;
+    const cushionGap = POCKET_RADIUS * 1.6;
+    const inHorizontalCushionSpan = ball.pos.x > cushionGap && ball.pos.x < TABLE_WIDTH - cushionGap;
+    const inVerticalCushionSpan   = ball.pos.y > cushionGap && ball.pos.y < TABLE_HEIGHT - cushionGap;
+    if (inVerticalCushionSpan) {
+      if (ball.pos.x - r < c) { ball.pos.x = c + r; ball.vel.x = Math.abs(ball.vel.x) * 0.75; }
+      if (ball.pos.x + r > TABLE_WIDTH - c) { ball.pos.x = TABLE_WIDTH - c - r; ball.vel.x = -Math.abs(ball.vel.x) * 0.75; }
+    }
+    if (inHorizontalCushionSpan) {
+      if (ball.pos.y - r < c) { ball.pos.y = c + r; ball.vel.y = Math.abs(ball.vel.y) * 0.75; }
+      if (ball.pos.y + r > TABLE_HEIGHT - c) { ball.pos.y = TABLE_HEIGHT - c - r; ball.vel.y = -Math.abs(ball.vel.y) * 0.75; }
+    }
   }, []);
 
   const simulateStep = useCallback(() => {
@@ -2278,7 +2298,7 @@ const styles = StyleSheet.create({
     left: POCKET_RADIUS * 1.6,
     right: POCKET_RADIUS * 1.6,
     top: 0,
-    height: POCKET_RADIUS * 0.8,
+    height: CUSHION_THICKNESS,
     backgroundColor: 'rgba(8,60,28,0.55)',
     borderBottomWidth: 2,
     borderBottomColor: 'rgba(0,0,0,0.45)',
@@ -2291,7 +2311,7 @@ const styles = StyleSheet.create({
     left: POCKET_RADIUS * 1.6,
     right: POCKET_RADIUS * 1.6,
     bottom: 0,
-    height: POCKET_RADIUS * 0.8,
+    height: CUSHION_THICKNESS,
     backgroundColor: 'rgba(8,60,28,0.55)',
     borderTopWidth: 2,
     borderTopColor: 'rgba(0,0,0,0.45)',
@@ -2304,7 +2324,7 @@ const styles = StyleSheet.create({
     top: POCKET_RADIUS * 1.6,
     bottom: POCKET_RADIUS * 1.6,
     left: 0,
-    width: POCKET_RADIUS * 0.8,
+    width: CUSHION_THICKNESS,
     backgroundColor: 'rgba(8,60,28,0.55)',
     borderRightWidth: 2,
     borderRightColor: 'rgba(0,0,0,0.45)',
@@ -2317,7 +2337,7 @@ const styles = StyleSheet.create({
     top: POCKET_RADIUS * 1.6,
     bottom: POCKET_RADIUS * 1.6,
     right: 0,
-    width: POCKET_RADIUS * 0.8,
+    width: CUSHION_THICKNESS,
     backgroundColor: 'rgba(8,60,28,0.55)',
     borderLeftWidth: 2,
     borderLeftColor: 'rgba(0,0,0,0.45)',
