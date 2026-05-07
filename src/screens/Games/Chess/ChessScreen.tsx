@@ -57,7 +57,7 @@ const ChessScreen = ({navigation}: any) => {
   const lastPlayerMoveRef = useRef<{ from: Position; to: Position; piece: string; captured?: string } | null>(null);
   useGameEndRefresh(!!(gameState?.isCheckmate || gameState?.isStalemate), 'chess');
   const [showCustomization, setShowCustomization] = useState(false);
-  const [showBlur, setShowBlur] = useState(true);
+  const [showBlur, setShowBlur] = useState(false);
   const [showMusicPlayer, setShowMusicPlayer] = useState(false);
   const [arEnabled, setArEnabled] = useState(true);
   const [boardIdx, setBoardIdx] = useState(0);
@@ -555,7 +555,6 @@ const ChessScreen = ({navigation}: any) => {
                <GameToolbarControls
                 buttons={[
                   { icon: '🎨', onPress: () => setShowCustomization(true) },
-                  { icon: showBlur ? '🌫️' : '✨', onPress: () => setShowBlur(!showBlur) },
                   { icon: arEnabled ? '🥽' : '🎮', onPress: () => setArEnabled(!arEnabled) },
                   { icon: '🔄', onPress: () => setBoardIdx(i => (i + 1) % boardConfigs.length) },
                   { icon: showMusicPlayer ? '🎵' : '🎶', onPress: () => setShowMusicPlayer(s => !s) },

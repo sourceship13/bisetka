@@ -68,7 +68,7 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
   const { refreshOnGameEnd } = useGameEndRefresh(undefined, 'chess');
   const [mode, setMode] = useState<'menu' | 'matchmaking' | 'private' | 'game'>('menu');
   const [isSpectating, setIsSpectating] = useState(false);
-  const [showBlur, setShowBlur] = useState(true);
+  const [showBlur, setShowBlur] = useState(false);
   const [showCustomization, setShowCustomization] = useState(false);
   const [gameTheme, setGameTheme] = useState<GameTheme>({});
   const [arEnabled, setArEnabled] = useState(true);
@@ -645,7 +645,6 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
               <GameToolbarControls
                 buttons={[
                   { icon: '🎨', onPress: () => setShowCustomization(true) },
-                  { icon: showBlur ? '🌫️' : '✨', onPress: () => setShowBlur(!showBlur) },
                   { icon: '✏️', onPress: () => setShowRoomNameModal(true) },
                   { icon: arEnabled ? '🥽' : '🎮', onPress: () => setArEnabled(!arEnabled) },
                   { icon: showMusicPlayer ? '🎵' : '🎶', onPress: () => setShowMusicPlayer(s => !s) },

@@ -89,7 +89,7 @@ const SlotsScreen = ({ navigation }: any) => {
   // Use user's actual balance - no entry fee, real money gameplay
   const [balance, setBalance] = useState(Math.floor((user as any)?.balance || 0));
   const [betAmount, setBetAmount] = useState(10);
-  const [showBlur, setShowBlur] = useState(true);
+  const [showBlur, setShowBlur] = useState(false);
   const [showMusicPlayer, setShowMusicPlayer] = useState(false);
   const [arEnabled, setArEnabled] = useState(true);
   const arOverlayRef = useRef<AR3DOverlayHandle>(null);
@@ -321,7 +321,6 @@ const SlotsScreen = ({ navigation }: any) => {
           <View>
             <GameToolbarControls
               buttons={[
-                { icon: showBlur ? '🌫️' : '✨', onPress: () => setShowBlur(!showBlur) },
                 { icon: showBackground ? '🖼️' : '🔲', onPress: () => setShowBackground(!showBackground) },
                 { icon: arEnabled ? '🥽' : '🎮', onPress: () => setArEnabled(!arEnabled) },
                 { icon: showMusicPlayer ? '🎵' : '🎶', onPress: () => setShowMusicPlayer(s => !s) },

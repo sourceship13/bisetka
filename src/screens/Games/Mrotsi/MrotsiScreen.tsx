@@ -41,7 +41,7 @@ const MrotsiScreen = ({navigation, route}: any) => {
   const {session, gameType, mode: routeMode} = route.params || {};
   const mode = routeMode ?? session?.mode ?? 'ai'; // fall back to session.mode; default to 'ai' so AI always works
   const [gameState, setGameState] = useState<GameState>(initializeGame(mode));
-  const [showBlur, setShowBlur] = useState(true);
+  const [showBlur, setShowBlur] = useState(false);
   const [showMusicPlayer, setShowMusicPlayer] = useState(false);
   const [arEnabled, setArEnabled] = useState(true);
   const arOverlayRef = useRef<AR3DOverlayHandle>(null);
@@ -537,7 +537,6 @@ const MrotsiScreen = ({navigation, route}: any) => {
           <View>
             <GameToolbarControls
               buttons={[
-                { icon: showBlur ? '🌫️' : '✨', onPress: () => setShowBlur(!showBlur) },
                 { icon: showBackground ? '🖼️' : '🔲', onPress: () => setShowBackground(!showBackground) },
                 { icon: arEnabled ? '🥽' : '🎮', onPress: () => setArEnabled(!arEnabled) },
                 { icon: showMusicPlayer ? '🎵' : '🎶', onPress: () => setShowMusicPlayer(s => !s) },

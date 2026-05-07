@@ -129,7 +129,7 @@ const MultiplayerCheckersScreen = ({navigation, route}: any) => {
   // ── screen mode ────────────────────────────────────────────────────────────
   const [mode, setMode] = useState<'menu' | 'matchmaking' | 'private' | 'game'>('menu');
   const [isSpectating, setIsSpectating] = useState(false);
-  const [showBlur, setShowBlur] = useState(true);
+  const [showBlur, setShowBlur] = useState(false);
   const [showBackground, setShowBackground] = useState(true);
   const [showCustomization, setShowCustomization] = useState(false);
   const [showMusicPlayer, setShowMusicPlayer]     = useState(false);
@@ -585,7 +585,6 @@ const MultiplayerCheckersScreen = ({navigation, route}: any) => {
               <GameToolbarControls
                 buttons={[
                   { icon: '🎨', onPress: () => setShowCustomization(true) },
-                  { icon: showBlur ? '🌫️' : '✨', onPress: () => setShowBlur(!showBlur) },
                   { icon: showBackground ? '🖼️' : '🔲', onPress: () => setShowBackground(!showBackground) },
                   { icon: '✏️', onPress: () => setShowRoomNameModal(true) },
                   { icon: arEnabled ? '🥽' : '🎮', onPress: () => setArEnabled(!arEnabled) },

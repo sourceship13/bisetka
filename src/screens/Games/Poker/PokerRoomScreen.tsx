@@ -123,7 +123,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
 
   // Multiplayer state
   const [tableId, setTableId] = useState<string | null>(null);
-  const [showBlur, setShowBlur] = useState(true);
+  const [showBlur, setShowBlur] = useState(false);
   const [showMusicPlayer, setShowMusicPlayer] = useState(false);
   const [arEnabled, setArEnabled] = useState(true);
   const arOverlayRef = useRef<AR3DOverlayHandle>(null);
@@ -1428,7 +1428,6 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
           <View>
             <GameToolbarControls
               buttons={[
-                { icon: showBlur ? '🌫️' : '✨', onPress: () => setShowBlur(!showBlur) },
                 { icon: showBackground ? '🖼️' : '🔲', onPress: () => setShowBackground(!showBackground) },
                 { icon: arEnabled ? '🥽' : '🎮', onPress: () => setArEnabled(!arEnabled) },
                 { icon: showMusicPlayer ? '🎵' : '🎶', onPress: () => setShowMusicPlayer(s => !s) },
