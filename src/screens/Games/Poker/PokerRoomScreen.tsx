@@ -198,14 +198,14 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
   useEffect(() => {
     if (!arEnabled) { setArCards([]); return; }
     const myIdx = isMultiplayer ? mySeatRef.current : playerIndex;
-    // Positions spread around the table felt. Table felt ≈ ±0.50 X, ±0.38 Y
+    // Positions sit on the table felt (felt ≈ ±0.40 X, ±0.32 Y).
     const seatPositions: Record<number, { x: number; y: number; z: number }> = {
-      0: { x:  0.00, y: -0.76, z: 0.004 },  // You — bottom center
-      1: { x:  0.48, y: -0.22, z: 0.004 },  // near right
-      2: { x:  0.48, y:  0.10, z: 0.004 },  // far right
-      3: { x:  0.00, y:  0.36, z: 0.004 },  // far center — top
-      4: { x: -0.48, y:  0.10, z: 0.004 },  // far left
-      5: { x: -0.48, y: -0.22, z: 0.004 },  // near left
+      0: { x:  0.00, y: -0.30, z: 0.004 },  // You — bottom center, on felt
+      1: { x:  0.34, y: -0.18, z: 0.004 },  // near right
+      2: { x:  0.34, y:  0.10, z: 0.004 },  // far right
+      3: { x:  0.00, y:  0.26, z: 0.004 },  // far center — top
+      4: { x: -0.34, y:  0.10, z: 0.004 },  // far left
+      5: { x: -0.34, y: -0.18, z: 0.004 },  // near left
     };
     const mapped: ARCard[] = [];
     players.forEach((player, seatIdx) => {
@@ -228,7 +228,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
         const spreadX = isMe ? cardOffset * 0.04 : (seatIdx === 3 ? cardOffset * 0.07 : 0);
         const spreadY = isMe ? 0 : (seatIdx === 3 ? 0 : cardOffset * 0.07);
         const cardZ = basePos.z;
-        const cardRotX = isMe ? Math.PI / 2 : 0;  // stand upright facing player
+        const cardRotX = 0;  // all cards lay flat on the table
         const cardRotZ = isMe ? 0 : (seatRotZ[seatIdx] ?? 0);
         mapped.push({
           key: `poker-${seatIdx}-${cardIdx}`,
@@ -260,12 +260,12 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
     if (!arEnabled) { setArLabels([]); return; }
     const myIdx = isMultiplayer ? mySeatRef.current : playerIndex;
     const labelPositions: Record<number, { x: number; y: number; z: number }> = {
-      0: { x:  0.00, y: -0.45, z: 0.004 },
-      1: { x:  0.55, y: -0.25, z: 0.004 },
-      2: { x:  0.55, y:  0.15, z: 0.004 },
-      3: { x:  0.00, y:  0.48, z: 0.004 },
-      4: { x: -0.55, y:  0.15, z: 0.004 },
-      5: { x: -0.55, y: -0.25, z: 0.004 },
+      0: { x:  0.00, y: -0.40, z: 0.004 },
+      1: { x:  0.22, y: -0.30, z: 0.004 },
+      2: { x:  0.22, y:  0.18, z: 0.004 },
+      3: { x:  0.00, y:  0.38, z: 0.004 },
+      4: { x: -0.22, y:  0.18, z: 0.004 },
+      5: { x: -0.22, y: -0.30, z: 0.004 },
     };
     const labels = players
       .map((player, seatIdx) => {
@@ -1421,7 +1421,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
       ) : (
         <View>
           <GameToolbar
-            title={roomName}
+            title={isMultiplayer ? roomName : 'Poker (vs AI)'}
             onBack={() => navigation.goBack()}
             backgroundColor="transparent"
           />
@@ -1678,12 +1678,14 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
 
     </SafeAreaView>
       </View>
-      <InGameChat
-        roomId={tableIdRef.current || ''}
-        currentUserId={userId}
-        gameType="poker"
-        visible={true}
-      />
+      {isMultiplayer && (
+        <InGameChat
+          roomId={tableIdRef.current || ''}
+          currentUserId={userId}
+          gameType="poker"
+          visible={true}
+        />
+      )}
       <SyncedYouTubePlayer roomId={null} visible={true} />
     </View>
   );
