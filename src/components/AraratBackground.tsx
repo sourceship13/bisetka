@@ -11,7 +11,7 @@
 import React from 'react';
 import {ImageBackground, StyleSheet, View} from 'react-native';
 
-const ARARAT_BACKGROUND = require('../../assets/backgrounds/game_backgrounds/street_armo.png');
+const ARARAT_BACKGROUND = require('../../assets/backgrounds/game_backgrounds/street_armo_biseosetlka_3.png');
 
 type Props = {
   /** Opacity of a dark overlay on top of the image (0-1, default 0.3) */
