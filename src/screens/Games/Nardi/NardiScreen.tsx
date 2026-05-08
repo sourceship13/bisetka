@@ -1018,8 +1018,9 @@ const NardiScreen = ({ navigation, route }: any) => {
   }, [gameState?.currentPlayer, gameState?.phase, opponentType]);
 
   // === AUTO-SKIP: If it's the player's turn with moves remaining but no possible moves, auto-end ===
-  // Guard with a ref so that a stale timeout never fires after a new move has been made.
-  const autoSkipGameStateRef = useRef<NardiGameState | null>(null);
+  // Use a content-based identity check (not strict reference equality) so that benign re-renders
+  // don't suppress the skip. When the player is stuck on the bar (cannot re-enter at all) we
+  // skip much faster so the game doesn't feel hung.
   useEffect(() => {
     if (!gameState) return;
     if (gameState.phase !== 'moving') return;
@@ -1028,29 +1029,31 @@ const NardiScreen = ({ navigation, route }: any) => {
     if (gameState.possibleMoves.length > 0) return;
     if (gameState.movesRemaining <= 0) return;
 
-    // Capture the exact state we're acting on
-    autoSkipGameStateRef.current = gameState;
-    console.log('⏭️ No valid moves with', gameState.movesRemaining, 'remaining — auto-ending turn');
+    const stuckOnBar = gameState.bar[myColor] > 0;
+    const delay = stuckOnBar ? 500 : 1200;
+    console.log(
+      stuckOnBar
+        ? '⏭️ Bar checker cannot re-enter — auto-ending turn'
+        : `⏭️ No valid moves with ${gameState.movesRemaining} remaining — auto-ending turn`,
+    );
 
     const t = setTimeout(() => {
       const mc = isMultiplayer ? myMpColorRef.current : 'white';
       setGameState(prev => {
         if (!prev) return prev;
-        // Only switch if state hasn't changed (same player, same phase, still no moves)
-        if (prev !== autoSkipGameStateRef.current) return prev;
+        // Content-based check: only switch if we're still genuinely stuck for the same player.
         if (prev.currentPlayer !== mc || prev.phase !== 'moving') return prev;
         if (prev.possibleMoves.length > 0) return prev;
+        if (prev.movesRemaining <= 0) return prev;
+        if (isMultiplayer && roomIdRef.current) {
+          justEndedTurnRef.current = true;
+          socketService.makeMove(roomIdRef.current, userId, { type: 'end_turn' });
+        }
+        setSelectedPoint(null);
         return switchPlayer(prev);
       });
-      if (isMultiplayer && roomIdRef.current) {
-        justEndedTurnRef.current = true;
-        socketService.makeMove(roomIdRef.current, userId, {type: 'end_turn'});
-      }
-    }, 1500);
-    return () => {
-      clearTimeout(t);
-      autoSkipGameStateRef.current = null;
-    };
+    }, delay);
+    return () => clearTimeout(t);
   // Only re-run when we enter a genuinely new stuck state (player + phase + movesRemaining combo)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gameState?.currentPlayer, gameState?.phase, gameState?.movesRemaining, gameState?.possibleMoves?.length]);
@@ -1068,8 +1071,18 @@ const NardiScreen = ({ navigation, route }: any) => {
       // When there is exactly one valid entry point the destination is revealed on the board;
       // the player still needs a second tap to confirm, preventing accidental auto-moves.
       setSelectedPoint(-1);
+      return;
     }
-    // barMoves.length === 0: all entries blocked, auto-skip effect will end the turn
+
+    // No bar entries possible — end the turn immediately so the game doesn't hang.
+    console.log('🚫 Bar tapped but no valid entries — ending turn now');
+    flashInvalid();
+    setSelectedPoint(null);
+    if (isMultiplayer && roomIdRef.current) {
+      justEndedTurnRef.current = true;
+      socketService.makeMove(roomIdRef.current, userId, { type: 'end_turn' });
+    }
+    setGameState(prev => (prev ? switchPlayer(prev) : prev));
   };
 
   const handleBearOffTrayPress = (player: PlayerColor) => {
@@ -1347,26 +1360,40 @@ const NardiScreen = ({ navigation, route }: any) => {
       );
     }
 
-    // Easy mode: tap-to-move with highlights
+    // Easy mode: tinted green rectangle over the arrow background of any
+    // legal destination, so the player sees exactly where the selected
+    // piece can move.
+    const showDestinationOverlay = isValidDestination || isBarEntryDest;
+    const overlayStyle = {
+      position: 'absolute' as const,
+      left: pos.x - CHECKER_SIZE / 2,
+      width: CHECKER_SIZE,
+      height: TRIANGLE_HEIGHT,
+      ...(pos.isTop ? { top: pos.y } : { top: pos.y - TRIANGLE_HEIGHT }),
+    };
+
     return (
-      <TouchableOpacity
-        key={pointNum}
-        style={[
-          styles.pointStack,
-          positionStyle,
-          isSelected && styles.pointSelected,
-          (isValidDestination || isBarEntryDest) && styles.validDestination,
-          canMove && styles.canMove,
-        ]}
-        onPress={() => handlePointPress(pointIndex)}
-        activeOpacity={0.8}>
-        {children}
-        {checkers === 0 && (isValidDestination || isBarEntryDest) && (
-          <View style={styles.emptyDestinationMarker}>
-            <Text style={styles.emptyDestinationText}>✓</Text>
-          </View>
+      <React.Fragment key={pointNum}>
+        {showDestinationOverlay && (
+          <View pointerEvents="none" style={[styles.destinationOverlay, overlayStyle]} />
         )}
-      </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.pointStack,
+            positionStyle,
+            isSelected && styles.pointSelected,
+            canMove && styles.canMove,
+          ]}
+          onPress={() => handlePointPress(pointIndex)}
+          activeOpacity={0.8}>
+          {children}
+          {checkers === 0 && showDestinationOverlay && (
+            <View style={styles.emptyDestinationMarker}>
+              <Text style={styles.emptyDestinationText}>✓</Text>
+            </View>
+          )}
+        </TouchableOpacity>
+      </React.Fragment>
     );
   };
 
@@ -2103,6 +2130,13 @@ const styles = StyleSheet.create({
     padding: 4,
     borderWidth: 2,
     borderColor: 'rgba(34, 197, 94, 1)',
+  },
+  destinationOverlay: {
+    backgroundColor: 'rgba(34, 197, 94, 0.32)',
+    borderWidth: 2,
+    borderColor: 'rgba(34, 197, 94, 0.85)',
+    borderRadius: 6,
+    zIndex: 5,
   },
   canMove: {
     shadowColor: '#22c55e',
