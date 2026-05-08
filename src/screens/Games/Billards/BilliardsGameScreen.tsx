@@ -153,6 +153,133 @@ const createRack9Ball = (): Ball[] => {
 const dist = (a: Vec2, b: Vec2) => Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2);
 const len = (v: Vec2) => Math.sqrt(v.x * v.x + v.y * v.y);
 
+// ── AI shot selection (ghost-ball aiming) ────────────────────────────────────
+// Distance from segment a→b to point c.
+function segPointDist(a: Vec2, b: Vec2, c: Vec2): number {
+  const abx = b.x - a.x, aby = b.y - a.y;
+  const ab2 = abx * abx + aby * aby;
+  if (ab2 < 1e-6) return dist(a, c);
+  let t = ((c.x - a.x) * abx + (c.y - a.y) * aby) / ab2;
+  t = Math.max(0, Math.min(1, t));
+  const px = a.x + abx * t, py = a.y + aby * t;
+  return Math.sqrt((px - c.x) ** 2 + (py - c.y) ** 2);
+}
+
+/** Returns true if the straight path between a and b is blocked by any
+ *  obstacle ball (other than the explicitly excluded ones). */
+function pathBlocked(a: Vec2, b: Vec2, balls: Ball[], excludeIds: number[]): boolean {
+  for (const ob of balls) {
+    if (ob.pocketed) continue;
+    if (excludeIds.includes(ob.number)) continue;
+    if (segPointDist(a, b, ob.pos) < BALL_RADIUS * 2) return true;
+  }
+  return false;
+}
+
+type AIShot = {
+  vx: number;
+  vy: number;
+  // Debug info kept around in case we want to display it later.
+  target: Ball;
+  pocket: Vec2;
+  cutAngleDeg: number;
+  score: number;
+};
+
+function chooseAIShot(
+  cue: Ball,
+  legalTargets: Ball[],
+  allBalls: Ball[],
+  difficulty: 'easy' | 'medium' | 'hard',
+): AIShot | null {
+  if (!cue || legalTargets.length === 0) return null;
+
+  const candidates: AIShot[] = [];
+  const MAX_CUT_DEG = difficulty === 'hard' ? 78 : difficulty === 'medium' ? 70 : 60;
+
+  for (const target of legalTargets) {
+    for (const pocket of POCKETS) {
+      // Direction from target to pocket and ghost-ball position.
+      const tpx = pocket.x - target.pos.x;
+      const tpy = pocket.y - target.pos.y;
+      const tpLen = Math.sqrt(tpx * tpx + tpy * tpy);
+      if (tpLen < 1e-3) continue;
+      const tpNx = tpx / tpLen, tpNy = tpy / tpLen;
+
+      const ghost: Vec2 = {
+        x: target.pos.x - tpNx * BALL_RADIUS * 2,
+        y: target.pos.y - tpNy * BALL_RADIUS * 2,
+      };
+
+      // Cue → ghost direction.
+      const cgx = ghost.x - cue.pos.x;
+      const cgy = ghost.y - cue.pos.y;
+      const cgLen = Math.sqrt(cgx * cgx + cgy * cgy);
+      if (cgLen < 1e-3) continue;
+      const cgNx = cgx / cgLen, cgNy = cgy / cgLen;
+
+      // Cut angle = angle between cue→ghost and target→pocket directions.
+      const dotCT = cgNx * tpNx + cgNy * tpNy;
+      if (dotCT <= 0) continue; // cue is on the wrong side of the target
+      const cutDeg = (Math.acos(Math.min(1, Math.max(-1, dotCT))) * 180) / Math.PI;
+      if (cutDeg > MAX_CUT_DEG) continue;
+
+      // Reject shots that would clip the target ball before reaching the
+      // ghost position (i.e. cue→ghost passes too close to the target itself).
+      if (segPointDist(cue.pos, ghost, target.pos) < BALL_RADIUS * 1.9) continue;
+
+      // Path obstruction checks.
+      const cueBlocked = pathBlocked(cue.pos, ghost, allBalls, [cue.number, target.number]);
+      const targetBlocked = pathBlocked(target.pos, pocket, allBalls, [target.number]);
+      if (cueBlocked || targetBlocked) continue;
+
+      // Score: prefer small cut angle and short total travel.
+      const totalDist = cgLen + tpLen;
+      const cutScore = 1 - cutDeg / 90; // 1 at straight-on, 0 at 90°
+      const distScore = 1 - Math.min(1, totalDist / (TABLE_WIDTH + TABLE_HEIGHT));
+      const score = cutScore * 1.5 + distScore * 0.5;
+
+      candidates.push({
+        vx: cgNx,
+        vy: cgNy,
+        target,
+        pocket,
+        cutAngleDeg: cutDeg,
+        score,
+      });
+    }
+  }
+
+  if (candidates.length === 0) {
+    // No clean pocket shot — fall back to the closest legal target with a
+    // safe defensive hit so the AI doesn't foul.
+    let nearest = legalTargets[0]!;
+    let best = Infinity;
+    for (const t of legalTargets) {
+      const d = dist(cue.pos, t.pos);
+      if (d < best) { best = d; nearest = t; }
+    }
+    const dx = nearest.pos.x - cue.pos.x;
+    const dy = nearest.pos.y - cue.pos.y;
+    const d = Math.sqrt(dx * dx + dy * dy) || 1;
+    return {
+      vx: dx / d,
+      vy: dy / d,
+      target: nearest,
+      pocket: POCKETS[0]!,
+      cutAngleDeg: 90,
+      score: 0,
+    };
+  }
+
+  candidates.sort((a, b) => b.score - a.score);
+
+  // Easier difficulties pick from a wider top-N to feel more human.
+  const topN = difficulty === 'hard' ? 1 : difficulty === 'medium' ? 3 : 5;
+  const pick = candidates[Math.floor(Math.random() * Math.min(topN, candidates.length))]!;
+  return pick;
+}
+
 // ── Pre-computed shot types ──────────────────────────────────────────────────
 type FrameSnap = { x: number; y: number; p: boolean; r: number };
 
@@ -1256,20 +1383,44 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
           if (d < bestD) { bestD = d; best = t; }
         }
 
-        const dx = best.pos.x - cue.pos.x;
-        const dy = best.pos.y - cue.pos.y;
-        const d = Math.sqrt(dx * dx + dy * dy) || 1;
-        const jitter = difficulty === 'easy' ? 0.3 : difficulty === 'medium' ? 0.15 : 0.05;
-        const speed = difficulty === 'easy' ? 5 : difficulty === 'medium' ? 7 : 10;
+        // Ghost-ball aiming: pick the best target+pocket combo with cut-angle
+        // and obstruction checks. Falls back to a defensive hit on the
+        // closest legal target if no clean pocket shot exists.
+        const shot = chooseAIShot(cue, targets, ballsRef.current, difficulty);
+        if (shot) best = shot.target;
+        const jitter = difficulty === 'easy' ? 0.16 : difficulty === 'medium' ? 0.06 : 0.018;
+
+        // Power scales with shot distance so long shots actually reach.
+        // Hard AI uses higher power for better cut shots; easier AI is softer.
+        let baseSpeed: number;
+        if (shot && shot.score > 0) {
+          const cgDist = dist(cue.pos, shot.target.pos);
+          const tpDist = dist(shot.target.pos, shot.pocket);
+          const totalDist = cgDist + tpDist;
+          const norm = Math.min(1, totalDist / (TABLE_WIDTH * 0.9));
+          // Cut shots need extra power to send the object ball to the pocket.
+          const cutBoost = 1 + (shot.cutAngleDeg / 90) * 0.6;
+          const minP = difficulty === 'easy' ? 5 : difficulty === 'medium' ? 6 : 7;
+          const maxP = difficulty === 'easy' ? 9 : difficulty === 'medium' ? 11 : 13;
+          baseSpeed = (minP + (maxP - minP) * norm) * cutBoost;
+          baseSpeed = Math.min(baseSpeed, maxP * 1.3);
+        } else {
+          // Defensive / no-pocket shot — soft tap.
+          baseSpeed = difficulty === 'easy' ? 4 : difficulty === 'medium' ? 5 : 6;
+        }
 
         // Reset shot tracking for AI shot
         shotPocketedRef.current = [];
         firstHitRef.current = null;
         cueScratchRef.current = false;
 
+        const dirX = shot ? shot.vx : (best.pos.x - cue.pos.x) / (dist(cue.pos, best.pos) || 1);
+        const dirY = shot ? shot.vy : (best.pos.y - cue.pos.y) / (dist(cue.pos, best.pos) || 1);
+
         // Calculate AI shot velocity
-        const aiVelX = (dx / d + (Math.random() - 0.5) * jitter) * speed;
-        const aiVelY = (dy / d + (Math.random() - 0.5) * jitter) * speed;
+        const aiVelX = (dirX + (Math.random() - 0.5) * jitter) * baseSpeed;
+        const aiVelY = (dirY + (Math.random() - 0.5) * jitter) * baseSpeed;
+        const speed = baseSpeed;
 
         // Increment shot count and log AI shot
         shotCountRef.current += 1;
