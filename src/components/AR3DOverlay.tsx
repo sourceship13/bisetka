@@ -227,6 +227,14 @@ export interface AR3DOverlayProps {
    * separate piece GLBs from `chessPieceGlbPaths`.
    */
   boardGlbHasEmbeddedChessPieces?: boolean;
+  /**
+   * When true, the board GLB has 24 checker piece meshes baked in
+   * (e.g. Bisetka_Checkers.glb with nodes `Black_01`..`Black_12`,
+   * `Red_01`..`Red_12` and a `Board` node). AR3DOverlay will extract these
+   * by name and reposition / hide them based on the `pieces` prop instead
+   * of spawning separate piece GLBs.
+   */
+  boardGlbHasEmbeddedCheckersPieces?: boolean;
 }
 
 // ─── GLB URI resolver ─────────────────────────────────────────────────────────
@@ -262,6 +270,7 @@ const GLB_ASSET_MAP: Record<string, any> = {
   'glb/cards/card-template.glb':                require('../../assets/glb/cards/card-template.glb'),
   'glb/checkers/nyu_red_checker.glb':           require('../../assets/glb/checkers/nyu_red_checker.glb'),
   'glb/checkers/nyu_black_checker.glb':         require('../../assets/glb/checkers/nyu_black_checker.glb'),
+  'glb/checkers/Bisetka_Checkers.glb':          require('../../assets/glb/checkers/Bisetka_Checkers.glb'),
 };
 
 /**
@@ -387,6 +396,7 @@ function buildSceneHTML(
   boardFixed: boolean = false,
   boardFixedZoom: number = 1.5,
   boardGlbHasEmbeddedChessPieces: boolean = false,
+  boardGlbHasEmbeddedCheckersPieces: boolean = false,
 ): string {
   const BOARD_URI_JS  = boardUri  ? JSON.stringify(boardUri)  : 'null';
   const PIECES_URI_JS = piecesUri ? JSON.stringify(piecesUri) : 'null';
@@ -410,6 +420,7 @@ function buildSceneHTML(
   const BOARD_FIXED_JS = boardFixed ? 'true' : 'false';
   const BOARD_FIXED_ZOOM_JS = boardFixedZoom.toFixed(4);
   const HAS_EMBEDDED_CHESS_PIECES_JS = boardGlbHasEmbeddedChessPieces ? 'true' : 'false';
+  const HAS_EMBEDDED_CHECKERS_PIECES_JS = boardGlbHasEmbeddedCheckersPieces ? 'true' : 'false';
 
   return `<!DOCTYPE html>
 <html>
@@ -498,6 +509,8 @@ camRim.position.set(0, -1, -3); camera.add(camRim);
 const BOARD_THICKNESS = 0.045;
 const HIDE_CHECKERBOARD = ${HIDE_CHECKERBOARD_JS};
 const HAS_EMBEDDED_CHESS_PIECES = ${HAS_EMBEDDED_CHESS_PIECES_JS};
+const HAS_EMBEDDED_CHECKERS_PIECES = ${HAS_EMBEDDED_CHECKERS_PIECES_JS};
+const HAS_EMBEDDED_PIECES = HAS_EMBEDDED_CHESS_PIECES || HAS_EMBEDDED_CHECKERS_PIECES;
 const BOARD_STYLE = ${BOARD_STYLE_JS};
 const BOARD_HALF   = 0.35 * ${BOARD_SCALE_JS};
 const BOARD_HALF_W = BOARD_HALF;
@@ -904,7 +917,7 @@ function handleTap(clientX, clientY) {
   // ── Embedded chess board: intersect a math-plane at the board's top
   // surface (defined by detected heightAxis), then resolve (row, col) by
   // nearest-square lookup against the extracted (colFs, rowRs).
-  if (HAS_EMBEDDED_CHESS_PIECES && window._embeddedChessReady && window._embeddedChessSquares) {
+  if (HAS_EMBEDDED_PIECES && window._embeddedChessReady && window._embeddedChessSquares) {
     var sq2 = window._embeddedChessSquares;
     var fK2 = sq2.fileAxis.charAt(sq2.fileAxis.length - 1).toLowerCase();
     var rK2 = sq2.rankAxis.charAt(sq2.rankAxis.length - 1).toLowerCase();
@@ -1443,6 +1456,198 @@ if (BOARD_URI) {
       // Re-render any pending move dots now that the per-square table exists.
       if (window._moves && window._moves.length) {
         try { updateDots(window._moves); } catch (e) { _rnLog('[AR3D-HTML] embedded updateDots err: ' + e.message); }
+      }
+    }
+
+    // ── Embedded checker pieces (e.g. Bisetka_Checkers.glb) ──────────────
+    // The board GLB has 24 named disc meshes baked in at the standard checkers
+    // starting position: 12 'Black_NN' nodes (rows 0..2) and 12 'Red_NN'
+    // nodes (rows 5..7). We extract them, snap each to the closest board
+    // square, then drive them per gameState in updatePieces().
+    if (HAS_EMBEDDED_CHECKERS_PIECES) {
+      window._embeddedChessReady = false;
+      window._embeddedChessNodes = [];
+      window._embeddedCheckersMode = true;
+      boardGroup.updateMatrixWorld(true);
+      var ckRe = /^(Black|Red)_(\\d{1,2})$/i;
+      var ckByName = {};
+      model.traverse(function(ch) {
+        var nm = ch.name || '';
+        if (!ckRe.test(nm)) return;
+        if (!ckByName[nm]) ckByName[nm] = [];
+        ckByName[nm].push(ch);
+      });
+      var ckCollect = [];
+      Object.keys(ckByName).forEach(function(nm) {
+        var candidates = ckByName[nm];
+        var pick = null;
+        for (var k = 0; k < candidates.length; k++) {
+          if (candidates[k].isMesh) { pick = candidates[k]; break; }
+        }
+        if (!pick) pick = candidates[0];
+        var mt = nm.match(ckRe);
+        ckCollect.push({ ch: pick, mt: mt, nm: nm });
+      });
+      _rnLog('[AR3D-HTML] checker piece names found: count=' + ckCollect.length + ' names=' + Object.keys(ckByName).sort().join(','));
+      var ckPieces = [];
+      ckCollect.forEach(function(rc) {
+        var ch = rc.ch; var mt = rc.mt; var nm = rc.nm;
+        boardGroup.attach(ch);
+        var col = mt[1].toLowerCase() === 'red' ? 'red' : 'black';
+        ckPieces.push({ node: ch, name: nm, color: col, localX: ch.position.x, localY: ch.position.y, localZ: ch.position.z });
+      });
+      // ── Auto-detect file/rank/height axes (same approach as chess) ─────
+      function ckMeanBy(arr, accessor) {
+        var s = 0; for (var i = 0; i < arr.length; i++) s += accessor(arr[i]);
+        return arr.length ? s / arr.length : 0;
+      }
+      function ckVarBy(arr, accessor) {
+        var m = ckMeanBy(arr, accessor); var s = 0;
+        for (var i = 0; i < arr.length; i++) { var d = accessor(arr[i]) - m; s += d * d; }
+        return arr.length ? s / arr.length : 0;
+      }
+      var ckRedArr   = ckPieces.filter(function(p){return p.color==='red';});
+      var ckBlackArr = ckPieces.filter(function(p){return p.color==='black';});
+      var ckAxes = ['localX','localY','localZ'];
+      var ckSplits = ckAxes.map(function(ax) {
+        return Math.abs(ckMeanBy(ckRedArr, function(p){return p[ax];}) - ckMeanBy(ckBlackArr, function(p){return p[ax];}));
+      });
+      var ckRankIdx = 0;
+      for (var i = 1; i < 3; i++) if (ckSplits[i] > ckSplits[ckRankIdx]) ckRankIdx = i;
+      var ckRankAxis = ckAxes[ckRankIdx];
+      var ckFileIdx = -1, ckFileVar = -1;
+      for (var i2 = 0; i2 < 3; i2++) {
+        if (i2 === ckRankIdx) continue;
+        var v = ckVarBy(ckPieces, function(p){return p[ckAxes[i2]];});
+        if (v > ckFileVar) { ckFileVar = v; ckFileIdx = i2; }
+      }
+      var ckFileAxis = ckAxes[ckFileIdx];
+      var ckHeightIdx = 3 - ckRankIdx - ckFileIdx;
+      var ckHeightAxis = ckAxes[ckHeightIdx];
+      // In the checkers GameState: row 0 = top (black side), row 7 = bottom
+      // (red side). Red sits at rows 5..7 and Black at rows 0..2.
+      // 'red is bottom' → red rank values represent row 7 side.
+      var ckRedRankMean = ckMeanBy(ckRedArr, function(p){return p[ckRankAxis];});
+      var ckRedIsNegativeOnRankAxis = ckRedRankMean < 0;
+      _rnLog('[AR3D-HTML] checkers axes: rank=' + ckRankAxis + ' file=' + ckFileAxis + ' height=' + ckHeightAxis + ' splits=' + JSON.stringify(ckSplits.map(function(x){return Number(x.toFixed(3));})) + ' redNeg=' + ckRedIsNegativeOnRankAxis);
+      // ── Build 8 unique rank values from extracted positions ─────────────
+      // Pieces only occupy rows 0,1,2 (black) and 5,6,7 (red). Rows 3,4 are
+      // empty in the starting position so we have to infer them by even
+      // spacing. Cluster rank values with a tolerance of ~30% of one square.
+      var ckAllRanks = ckPieces.map(function(p){return p[ckRankAxis];}).slice().sort(function(a,b){return a-b;});
+      var ckMinR = ckAllRanks[0], ckMaxR = ckAllRanks[ckAllRanks.length-1];
+      // Rank spread covers rows 0..2 + 5..7 = 6 row positions (5 gaps), so
+      // estimated step per row is (ckMaxR - ckMinR) / 5.
+      var ckStepR = (ckMaxR - ckMinR) / 5;
+      // Origin: if redIsNegative, red's most-extreme rank value = row 7,
+      // and black's most-extreme rank value = row 0.
+      var ckRow0R = ckRedIsNegativeOnRankAxis ? ckMaxR : ckMinR;
+      var ckRow7R = ckRedIsNegativeOnRankAxis ? ckMinR : ckMaxR;
+      var ckRowRs = new Array(8);
+      for (var rIdx = 0; rIdx < 8; rIdx++) {
+        var t = rIdx / 7;  // 0..1
+        ckRowRs[rIdx] = ckRow0R + (ckRow7R - ckRow0R) * t;
+      }
+      // ── Build 8 unique file values ─────────────────────────────────────
+      // Pieces occupy 8 distinct file positions (alternating dark squares)
+      // — we get 4 X values per row × multiple rows; cluster them.
+      var ckAllFiles = ckPieces.map(function(p){return p[ckFileAxis];});
+      var ckFileTol = (Math.max.apply(null, ckAllFiles) - Math.min.apply(null, ckAllFiles)) * 0.04;
+      var ckFileClusters = [];
+      ckAllFiles.slice().sort(function(a,b){return a-b;}).forEach(function(v) {
+        var found = ckFileClusters.find(function(c){ return Math.abs(c.mean - v) < ckFileTol; });
+        if (found) { found.sum += v; found.count += 1; found.mean = found.sum / found.count; }
+        else ckFileClusters.push({ sum: v, count: 1, mean: v });
+      });
+      ckFileClusters.sort(function(a,b){return a.mean - b.mean;});
+      var ckColFs = new Array(8);
+      if (ckFileClusters.length === 8) {
+        for (var c = 0; c < 8; c++) ckColFs[c] = ckFileClusters[c].mean;
+      } else {
+        // Fallback: linear interpolate from min/max.
+        var ckMinF = Math.min.apply(null, ckAllFiles), ckMaxF = Math.max.apply(null, ckAllFiles);
+        for (var c2 = 0; c2 < 8; c2++) ckColFs[c2] = ckMinF + (ckMaxF - ckMinF) * (c2 / 7);
+      }
+      // ── Assign each piece a starting (row, col) by snapping to grid ─────
+      ckPieces.forEach(function(p) {
+        var bestRow = 0, bestRowD = 1e9;
+        for (var r = 0; r < 8; r++) {
+          var d = Math.abs(ckRowRs[r] - p[ckRankAxis]);
+          if (d < bestRowD) { bestRowD = d; bestRow = r; }
+        }
+        var bestCol = 0, bestColD = 1e9;
+        for (var c = 0; c < 8; c++) {
+          var d2 = Math.abs(ckColFs[c] - p[ckFileAxis]);
+          if (d2 < bestColD) { bestColD = d2; bestCol = c; }
+        }
+        p.startRow = bestRow; p.startCol = bestCol;
+      });
+      window._embeddedChessSquares = {
+        colFs: ckColFs,
+        rowRs: ckRowRs,
+        fileAxis: ckFileAxis,
+        rankAxis: ckRankAxis,
+        heightAxis: ckHeightAxis,
+      };
+      try {
+        var hKeyC = ckHeightAxis.charAt(ckHeightAxis.length - 1).toLowerCase();
+        var allHC = ckPieces.map(function(p){ return p['local' + hKeyC.toUpperCase()]; }).sort(function(a,b){return a-b;});
+        var medianHC = allHC.length ? allHC[Math.floor(allHC.length/2)] : 0;
+        window._embeddedChessSquares.boardTopHeight = medianHC;
+      } catch (e) {}
+      window._embeddedChessNodes = ckPieces.map(function(p) {
+        return {
+          node: p.node,
+          name: p.name,
+          // type kept as 'checker' for code-path compatibility; checkers
+          // matching uses color only, ignoring type.
+          type: 'checker',
+          color: p.color,
+          startRow: p.startRow,
+          startCol: p.startCol,
+          origLocalX: p.localX,
+          origLocalY: p.localY,
+          origLocalZ: p.localZ,
+          curRow: p.startRow,
+          curCol: p.startCol,
+          // Cached king visual indicator mesh (a small ring) — created on demand.
+          _kingRing: null,
+        };
+      });
+      window._embeddedChessReady = true;
+      _rnLog('[AR3D-HTML] embedded checkers ready: red=' + ckRedArr.length + ' black=' + ckBlackArr.length + ' colFs=' + JSON.stringify(ckColFs.map(function(x){return Number(x.toFixed(3));})) + ' rowRs=' + JSON.stringify(ckRowRs.map(function(z){return Number(z.toFixed(3));})));
+
+      // ── Embedded hit-plane (same construction as chess block) ─────────
+      try {
+        var _cFileK = ckFileAxis.charAt(ckFileAxis.length - 1).toLowerCase();
+        var _cRankK = ckRankAxis.charAt(ckRankAxis.length - 1).toLowerCase();
+        var _cHeightK = ckHeightAxis.charAt(ckHeightAxis.length - 1).toLowerCase();
+        var _cFileSpan = Math.abs(ckColFs[7] - ckColFs[0]) * (8 / 7);
+        var _cRankSpan = Math.abs(ckRowRs[7] - ckRowRs[0]) * (8 / 7);
+        var _chp = new THREE.Mesh(
+          new THREE.PlaneGeometry(_cFileSpan, _cRankSpan),
+          new THREE.MeshBasicMaterial({ visible: false, side: THREE.DoubleSide })
+        );
+        if (_cHeightK === 'y') _chp.rotation.x = -Math.PI / 2;
+        else if (_cHeightK === 'x') _chp.rotation.y = Math.PI / 2;
+        var _cBT = (window._embeddedChessSquares.boardTopHeight !== undefined)
+          ? window._embeddedChessSquares.boardTopHeight : 0;
+        _chp.position[_cHeightK] = _cBT + 0.001;
+        _chp.position[_cFileK]   = (ckColFs[0] + ckColFs[7]) / 2;
+        _chp.position[_cRankK]   = (ckRowRs[0] + ckRowRs[7]) / 2;
+        boardGroup.add(_chp);
+        window._embeddedHitPlane = _chp;
+        hitPlane.visible = false;
+        _rnLog('[AR3D-HTML] checkers hitPlane: file=' + _cFileSpan.toFixed(2) + ' rank=' + _cRankSpan.toFixed(2) + ' h=' + _cBT.toFixed(3));
+      } catch (e) {
+        _rnLog('[AR3D-HTML] checkers hitPlane err: ' + e.message);
+      }
+
+      if (window._pieces && window._pieces.length) {
+        try { updatePieces(window._pieces); } catch (e) { _rnLog('[AR3D-HTML] checkers updatePieces err: ' + e.message); }
+      }
+      if (window._moves && window._moves.length) {
+        try { updateDots(window._moves); } catch (e) { _rnLog('[AR3D-HTML] checkers updateDots err: ' + e.message); }
       }
     }
 
@@ -2463,6 +2668,122 @@ function updatePieces(pieces) {
     return;
   }
 
+  // ── Embedded checker pieces mode (e.g. Bisetka_Checkers.glb) ────────────
+  // The board GLB has 24 named disc meshes baked in. We move/hide them per
+  // gameState; matching is by COLOR ONLY (kings reuse the same disc and get
+  // a small ring marker on top).
+  if (HAS_EMBEDDED_CHECKERS_PIECES) {
+    if (!window._embeddedChessReady) {
+      window._pieces = pieces;
+      return;
+    }
+    var ckNodes = window._embeddedChessNodes || [];
+    var ckSq = window._embeddedChessSquares;
+    if (!ckNodes.length || !ckSq) {
+      window._pieces = pieces;
+      return;
+    }
+    // 1. Build desired set from gameState (color + isKing only).
+    var ckDesired = [];
+    pieces.forEach(function(p) {
+      if (!p || !p.color) return;
+      if (p.pieceType === 'destination_marker' || p.pieceType === 'stack_badge') return;
+      ckDesired.push({ row: p.row, col: p.col, color: p.color, isKing: !!p.isKing, isSelected: !!p.isSelected, fulfilled: false });
+    });
+    // 2. Reset _used flags.
+    ckNodes.forEach(function(n) { n._used = false; });
+    // First pass: pieces already on their target square stay put.
+    ckDesired.forEach(function(d) {
+      for (var i = 0; i < ckNodes.length; i++) {
+        var n = ckNodes[i];
+        if (n._used) continue;
+        if (n.color === d.color && n.curRow === d.row && n.curCol === d.col) {
+          n._used = true; d.fulfilled = true; d._node = n; break;
+        }
+      }
+    });
+    // Second pass: closest-square greedy assignment for remaining desired.
+    ckDesired.forEach(function(d) {
+      if (d.fulfilled) return;
+      var bestIdx = -1, bestDist = 1e9;
+      for (var i = 0; i < ckNodes.length; i++) {
+        var n = ckNodes[i];
+        if (n._used) continue;
+        if (n.color !== d.color) continue;
+        var dr = (n.curRow == null ? 99 : n.curRow) - d.row;
+        var dc = (n.curCol == null ? 99 : n.curCol) - d.col;
+        var dist = dr*dr + dc*dc;
+        if (dist < bestDist) { bestDist = dist; bestIdx = i; }
+      }
+      if (bestIdx >= 0) {
+        ckNodes[bestIdx]._used = true; d.fulfilled = true; d._node = ckNodes[bestIdx];
+      }
+    });
+    // 3. Apply target positions.
+    var ckFileAxN = ckSq.fileAxis;
+    var ckRankAxN = ckSq.rankAxis;
+    var ckHeightAxN = ckSq.heightAxis;
+    function ckAxKey(axName) { return axName.charAt(axName.length - 1).toLowerCase(); }
+    var ckFileK = ckAxKey(ckFileAxN), ckRankK = ckAxKey(ckRankAxN), ckHeightK = ckAxKey(ckHeightAxN);
+    ckDesired.forEach(function(d) {
+      var n = d._node;
+      if (!n) return;
+      n.curRow = d.row; n.curCol = d.col;
+      n.node.position[ckFileK]   = ckSq.colFs[d.col];
+      n.node.position[ckRankK]   = ckSq.rowRs[d.row];
+      n.node.position[ckHeightK] = n['origLocal' + ckHeightK.toUpperCase()];
+      // Selected lift: nudge upward along height axis by ~half a square.
+      if (d.isSelected) {
+        var lift = Math.abs(ckSq.colFs[1] - ckSq.colFs[0]) * 0.30;
+        n.node.position[ckHeightK] += lift;
+      }
+      n.node.visible = true;
+      // ── King visual: stack a second disc on top by cloning the node.
+      if (d.isKing) {
+        if (!n._kingClone) {
+          try {
+            var clone = n.node.clone(true);
+            clone.name = n.name + '_KingTop';
+            // Match starting height-axis offset like the base disc.
+            clone.position[ckFileK]   = n.node.position[ckFileK];
+            clone.position[ckRankK]   = n.node.position[ckRankK];
+            // Stack: place on top of the base disc by adding a small offset.
+            // Use 1.6× the base height-axis local value as a rough disc thickness.
+            var stackLift = Math.abs(n['origLocal' + ckHeightK.toUpperCase()]) * 1.6;
+            if (stackLift < 0.005) stackLift = 0.012;
+            clone.position[ckHeightK] = n.node.position[ckHeightK] + stackLift;
+            boardGroup.add(clone);
+            n._kingClone = clone;
+            n._kingStackLift = stackLift;
+          } catch (e) { _rnLog('[AR3D-HTML] checker king clone err: ' + e.message); }
+        }
+        if (n._kingClone) {
+          n._kingClone.position[ckFileK]   = n.node.position[ckFileK];
+          n._kingClone.position[ckRankK]   = n.node.position[ckRankK];
+          n._kingClone.position[ckHeightK] = n.node.position[ckHeightK] + (n._kingStackLift || 0.012);
+          n._kingClone.visible = true;
+        }
+      } else if (n._kingClone) {
+        n._kingClone.visible = false;
+      }
+    });
+    // 4. Hide unused (captured) pieces.
+    ckNodes.forEach(function(n) {
+      if (!n._used) {
+        n.node.visible = false;
+        if (n._kingClone) n._kingClone.visible = false;
+        n.curRow = null; n.curCol = null;
+      }
+    });
+    // Clear any stale procedural piece meshes that might be lying around.
+    for (const ckK0 of Object.keys(pieceMeshes)) {
+      boardGroup.remove(pieceMeshes[ckK0]);
+      delete pieceMeshes[ckK0]; delete pieceState[ckK0];
+    }
+    window._pieces = pieces;
+    return;
+  }
+
   // If pieces GLB is still loading, defer
   if (PIECES_URI && !basePieceScene) {
     pendingPiecesUpdate = pieces;
@@ -2581,7 +2902,7 @@ function updateDots(moves) {
   dotMeshes.length = 0;
   // Embedded chess mode: use the per-square (colFs, rowRs) table extracted
   // from the board GLB so dots line up exactly with the real board squares.
-  var embed = (HAS_EMBEDDED_CHESS_PIECES && window._embeddedChessReady) ? window._embeddedChessSquares : null;
+  var embed = (HAS_EMBEDDED_PIECES && window._embeddedChessReady) ? window._embeddedChessSquares : null;
   // Compute the correct dot scale for embedded mode (model units differ).
   var embedDotScale = 1;
   if (embed && embed.colFs && embed.colFs.length >= 2) {
@@ -2835,6 +3156,7 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
   boardFixed = false,
   boardFixedZoom = 1.5,
   boardGlbHasEmbeddedChessPieces = false,
+  boardGlbHasEmbeddedCheckersPieces = false,
 }: AR3DOverlayProps, ref: React.Ref<AR3DOverlayHandle>) {
   const attitude = useAttitude();
   const webViewRef = useRef<WebView>(null);
@@ -3025,9 +3347,10 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
       boardY, boardGlbForceFlat, boardTiltX, boardColorOverride ?? null, boardSurfaceImageUri ?? null,
       tableDist ?? null, boardFixed, boardFixedZoom,
       boardGlbHasEmbeddedChessPieces,
+      boardGlbHasEmbeddedCheckersPieces,
     );
     return result;
-  }, [fov, boardUri, boardSurfaceImageUri, piecesUri, chessPieceUris, tableUri, spawnYaw, cardUri, cardBackUri, hideCheckerboard, boardScale, boardStyle, boardY, boardGlbForceFlat, boardTiltX, boardColorOverride, tableDist, boardFixed, boardFixedZoom, boardGlbHasEmbeddedChessPieces]);
+  }, [fov, boardUri, boardSurfaceImageUri, piecesUri, chessPieceUris, tableUri, spawnYaw, cardUri, cardBackUri, hideCheckerboard, boardScale, boardStyle, boardY, boardGlbForceFlat, boardTiltX, boardColorOverride, tableDist, boardFixed, boardFixedZoom, boardGlbHasEmbeddedChessPieces, boardGlbHasEmbeddedCheckersPieces]);
 
   // Write the HTML to a temp file and give WebView a file:// URI.
   // WKWebView.loadHTMLString silently fails on iOS with large strings (>5 MB).
