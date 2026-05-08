@@ -561,16 +561,13 @@ const MultiplayerCheckersScreen = ({navigation, route}: any) => {
         <AR3DOverlay
           ref={arOverlayRef}
           visible={arEnabled}
-          boardGlbPath="glb/checkers/chess_board_v2.glb"
+          boardGlbPath="glb/checkers/Bisetka_Checkers.glb"
+          boardGlbHasEmbeddedCheckersPieces
           hideCheckerboard
           boardTiltX={0}
           boardY={-0.35}
           tableDist={0.50}
           boardScale={0.8}
-          chessPieceGlbPaths={{
-            white_checker: 'glb/checkers/nyu_red_checker.glb',
-            black_checker: 'glb/checkers/nyu_black_checker.glb',
-          }}
         />
       </AraratBackground>
       <View style={styles.overlay} pointerEvents="box-none">
