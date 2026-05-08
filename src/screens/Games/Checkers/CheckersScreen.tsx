@@ -54,7 +54,9 @@ function initializeBoard(): (Piece | null)[][] {
 }
 
 function freshGame(): GameState {
-  return { board: initializeBoard(), currentPlayer: 'red', selectedSquare: null, possibleMoves: [], isGameOver: false, winner: null };
+  // Black moves first (standard American/English checkers rule).
+  // In AI mode the player controls Black and the CPU controls Red.
+  return { board: initializeBoard(), currentPlayer: 'black', selectedSquare: null, possibleMoves: [], isGameOver: false, winner: null };
 }
 
 function getPossibleMoves(board: (Piece | null)[][], pos: Position): Position[] {
@@ -127,7 +129,8 @@ const CheckersScreen = ({ navigation, route }: any) => {
   const [mpStatus, setMpStatus] = useState<'idle'|'connecting'|'searching'|'waiting'|'playing'|'ended'>('idle');
   const [roomId, setRoomId]     = useState<string|null>(null);
   const [roomCode, setRoomCode] = useState<string|null>(null);
-  // server assigns 'white'|'black'; white→red pieces, black→black pieces
+  // server assigns 'white'|'black'; white→red pieces, black→black pieces.
+  // In AI mode (no socket color), the player controls BLACK and the CPU plays RED.
   const [mySocketColor, setMySocketColor] = useState<'white'|'black'|null>(null);
   const [serverTurn,    setServerTurn]    = useState<'white'|'black'>('white');
   const [statusMsg,     setStatusMsg]     = useState('');
@@ -291,8 +294,12 @@ const CheckersScreen = ({ navigation, route }: any) => {
     return result;
   }, [gameState.board, gameState.selectedSquare]);
 
-  const myPieceColor: PieceColor = mySocketColor === 'black' ? 'black' : 'red';
-  const isMyTurn = isMultiplayer ? serverTurn === mySocketColor : gameState.currentPlayer === 'red';
+  // In multiplayer, white socket → red pieces, black socket → black pieces.
+  // In single-player AI mode the local player is BLACK.
+  const myPieceColor: PieceColor = isMultiplayer
+    ? (mySocketColor === 'black' ? 'black' : 'red')
+    : 'black';
+  const isMyTurn = isMultiplayer ? serverTurn === mySocketColor : gameState.currentPlayer === 'black';
 
   // ── Entry fee & prize logic ──────────────────────────────────────────────
   // Deduct entry fee when game starts (AI mode starts immediately, multiplayer waits for game_started)
@@ -309,8 +316,8 @@ const CheckersScreen = ({ navigation, route }: any) => {
       let didWin = false;
       
       if (mode === 'ai') {
-        // AI mode: red (player) wins
-        didWin = gameState.winner === 'red';
+        // AI mode: black (player) wins
+        didWin = gameState.winner === 'black';
       } else if (isMultiplayer) {
         // Multiplayer: check if our color won
         didWin = gameState.winner === myPieceColor;
@@ -468,21 +475,22 @@ const CheckersScreen = ({ navigation, route }: any) => {
   }, []);
 
   // ── AI turn ──────────────────────────────────────────────────────────────
+  // CPU controls RED; player controls BLACK.
   useEffect(() => {
     if (isMultiplayer || mode !== 'ai') return;
-    if (gameState.currentPlayer !== 'black' || gameState.isGameOver) return;
+    if (gameState.currentPlayer !== 'red' || gameState.isGameOver) return;
     const timer = setTimeout(() => {
       const moves: {from:Position;to:Position}[] = [];
       for (let r=0;r<8;r++) for (let c=0;c<8;c++) {
         const p = gameState.board[r][c];
-        if (p && p.color==='black')
+        if (p && p.color==='red')
           getPossibleMoves(gameState.board,{row:r,col:c}).forEach(m=>moves.push({from:{row:r,col:c},to:m}));
       }
       if (!moves.length) return;
       const mv = moves[Math.floor(Math.random()*moves.length)];
       setGameState(prev => {
         const nb = applyMove(prev.board, mv.from, mv.to);
-        const hasLeft = hasAnyMoves(nb,'red');
+        const hasLeft = hasAnyMoves(nb,'black');
         if (lastPlayerMoveRef.current) {
           moveCountRef.current++;
           aiMoveLogService.logCheckersMove({
@@ -490,14 +498,14 @@ const CheckersScreen = ({ navigation, route }: any) => {
             playerMove: lastPlayerMoveRef.current,
             aiMove: { from: mv.from, to: mv.to, isJump: Math.abs(mv.to.row-mv.from.row)===2 },
             boardStateBefore: prev.board, boardStateAfter: nb,
-            playerPiecesRemaining: nb.flat().filter(p=>p?.color==='red').length,
-            aiPiecesRemaining:     nb.flat().filter(p=>p?.color==='black').length,
+            playerPiecesRemaining: nb.flat().filter(p=>p?.color==='black').length,
+            aiPiecesRemaining:     nb.flat().filter(p=>p?.color==='red').length,
             wasKingMove: prev.board[mv.from.row][mv.from.col]?.type==='king',
           });
           lastPlayerMoveRef.current = null;
         }
-        if (!hasLeft) setTimeout(()=>BisetkaAlert.success('Game Over!','Black wins!'),100);
-        return { ...prev, board:nb, currentPlayer:'red', selectedSquare:null, possibleMoves:[], isGameOver:!hasLeft, winner:!hasLeft?'black':null };
+        if (!hasLeft) setTimeout(()=>BisetkaAlert.success('Game Over!','Red wins!'),100);
+        return { ...prev, board:nb, currentPlayer:'black', selectedSquare:null, possibleMoves:[], isGameOver:!hasLeft, winner:!hasLeft?'red':null };
       });
     }, 500);
     return () => clearTimeout(timer);
@@ -511,7 +519,8 @@ const CheckersScreen = ({ navigation, route }: any) => {
 
     if (gameState.isGameOver) return;
     if (isMultiplayer && (mpStatus !== 'playing' || !isMyTurn)) return;
-    if (mode === 'ai' && gameState.currentPlayer === 'black') return;
+    // In AI mode the CPU controls RED — block taps while it's the CPU's turn.
+    if (mode === 'ai' && gameState.currentPlayer === 'red') return;
 
     const activeColor: PieceColor = isMultiplayer ? myPieceColor : gameState.currentPlayer;
     const piece = gameState.board[row]?.[col];
@@ -600,7 +609,7 @@ const CheckersScreen = ({ navigation, route }: any) => {
   // ── turn label ────────────────────────────────────────────────────────────
   const turnLabel = isMultiplayer
     ? isMyTurn ? `Your Turn (${myPieceColor==='red'?'🔴 Red':'⚫ Black'})` : "Opponent's Turn..."
-    : gameState.currentPlayer==='red' ? 'Your Turn (Red)' : mode==='ai' ? "AI's Turn (Black)" : "Black's Turn";
+    : gameState.currentPlayer==='black' ? 'Your Turn (Black)' : mode==='ai' ? "AI's Turn (Red)" : "Red's Turn";
 
   // ── board render ──────────────────────────────────────────────────────────
   return (
@@ -612,7 +621,8 @@ const CheckersScreen = ({ navigation, route }: any) => {
         pieces={arPieces}
         moves={gameState.possibleMoves}
         onSquareTap={handleArSquareTap}
-        boardGlbPath="glb/checkers/chess_board_v2.glb"
+        boardGlbPath="glb/checkers/Bisetka_Checkers.glb"
+        boardGlbHasEmbeddedCheckersPieces
         hideCheckerboard
         boardFixed
         boardFixedZoom={0.6}
@@ -620,10 +630,6 @@ const CheckersScreen = ({ navigation, route }: any) => {
         boardY={-0.35}
         tableDist={0.50}
         boardScale={0.8}
-        chessPieceGlbPaths={{
-          white_checker: 'glb/checkers/nyu_red_checker.glb',
-          black_checker: 'glb/checkers/nyu_black_checker.glb',
-        }}
       />
       <View style={styles.overlay} pointerEvents="box-none">
         <SafeAreaView style={styles.safeArea} pointerEvents="box-none">
@@ -781,8 +787,8 @@ const CheckersScreen = ({ navigation, route }: any) => {
         <ScrollView style={styles.panelContent}>
           <Text style={styles.panelSectionTitle}>🎮 In Game</Text>
 
-          {/* Player (Red) */}
-          <View style={[styles.panelPlayerRow, (isMultiplayer ? myPieceColor === 'red' : gameState.currentPlayer === 'red') && styles.panelPlayerRowActive]}>
+          {/* Player (uses myPieceColor — black in AI mode, server-assigned in multiplayer) */}
+          <View style={[styles.panelPlayerRow, gameState.currentPlayer === myPieceColor && styles.panelPlayerRowActive]}>
             <View style={styles.panelAvatarClip}>
               {resolveAvatar(user?.avatar_url ?? null) ? (
                 <Image source={resolveAvatar(user?.avatar_url ?? null)!} style={styles.panelAvatar} />
@@ -794,27 +800,27 @@ const CheckersScreen = ({ navigation, route }: any) => {
                 </View>
               )}
             </View>
-            {(isMultiplayer ? myPieceColor === 'red' : gameState.currentPlayer === 'red') && <View style={styles.panelTurnDot} />}
+            {gameState.currentPlayer === myPieceColor && <View style={styles.panelTurnDot} />}
             <View style={styles.panelPlayerInfo}>
               <Text style={styles.panelPlayerName}>{user?.username || 'You'}</Text>
-              <View style={[styles.panelTeamBadge, { backgroundColor: 'rgba(231,76,60,0.3)' }]}>
-                <Text style={styles.panelTeamText}>🔴 Red</Text>
+              <View style={[styles.panelTeamBadge, { backgroundColor: myPieceColor === 'red' ? 'rgba(231,76,60,0.3)' : 'rgba(44,62,80,0.4)' }]}>
+                <Text style={styles.panelTeamText}>{myPieceColor === 'red' ? '🔴 Red' : '⚫ Black'}</Text>
               </View>
             </View>
           </View>
 
-          {/* Opponent (Black) */}
-          <View style={[styles.panelPlayerRow, (isMultiplayer ? myPieceColor === 'black' : gameState.currentPlayer === 'black') && styles.panelPlayerRowActive]}>
+          {/* Opponent (opposite color) */}
+          <View style={[styles.panelPlayerRow, gameState.currentPlayer !== myPieceColor && styles.panelPlayerRowActive]}>
             <View style={styles.panelAvatarClip}>
               <View style={styles.panelAvatarPlaceholder}>
                 <Text style={styles.panelAvatarInitials}>{isMultiplayer ? '👤' : '🤖'}</Text>
               </View>
             </View>
-            {(isMultiplayer ? myPieceColor === 'black' : gameState.currentPlayer === 'black') && <View style={styles.panelTurnDot} />}
+            {gameState.currentPlayer !== myPieceColor && <View style={styles.panelTurnDot} />}
             <View style={styles.panelPlayerInfo}>
               <Text style={styles.panelPlayerName}>{isMultiplayer ? 'Opponent' : 'Computer'}</Text>
-              <View style={[styles.panelTeamBadge, { backgroundColor: 'rgba(44,62,80,0.4)' }]}>
-                <Text style={styles.panelTeamText}>⚫ Black</Text>
+              <View style={[styles.panelTeamBadge, { backgroundColor: myPieceColor === 'red' ? 'rgba(44,62,80,0.4)' : 'rgba(231,76,60,0.3)' }]}>
+                <Text style={styles.panelTeamText}>{myPieceColor === 'red' ? '⚫ Black' : '🔴 Red'}</Text>
               </View>
             </View>
           </View>

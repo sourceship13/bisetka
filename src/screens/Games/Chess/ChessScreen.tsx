@@ -40,8 +40,9 @@ const CHESS_SYMBOLS: Record<string, Record<string, string>> = {
 };
 
 const CHESS_BOARD_CONFIGS = [
-  { label: 'Classic',  path: 'glb/checkers/chess_board_v2.glb' },
-  { label: 'Armenian', path: 'glb/game_boards/armenian_marble_gold_merged.glb' },
+  { label: 'ChessSet', path: 'glb/chess/ChessSet.glb', embeddedPieces: true },
+  { label: 'Classic',  path: 'glb/checkers/chess_board_v2.glb', embeddedPieces: false },
+  { label: 'Armenian', path: 'glb/game_boards/armenian_marble_gold_merged.glb', embeddedPieces: false },
 ];
 
 const ChessScreen = ({navigation}: any) => {
@@ -521,6 +522,7 @@ const ChessScreen = ({navigation}: any) => {
         moves={gameState?.possibleMoves}
         onSquareTap={handleSquarePress}
         boardGlbPath={boardConfigs[boardIdx].path}
+        boardGlbHasEmbeddedChessPieces={!!boardConfigs[boardIdx].embeddedPieces}
         hideCheckerboard={true}
         boardFixed
         boardFixedZoom={0.6}
@@ -528,7 +530,7 @@ const ChessScreen = ({navigation}: any) => {
         boardY={-0.35}
         tableDist={0.50}
         boardScale={0.8}
-        chessPieceGlbPaths={{
+        chessPieceGlbPaths={boardConfigs[boardIdx].embeddedPieces ? undefined : {
           white_pawn:   'glb/chess/pawn.glb',
           white_rook:   'glb/chess/rook.glb',
           white_knight: 'glb/chess/knight.glb',

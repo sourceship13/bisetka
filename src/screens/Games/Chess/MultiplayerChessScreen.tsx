@@ -608,7 +608,8 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
           visible={arEnabled}
           pieces={arPieces}
           moves={gameState?.possibleMoves || []}
-          boardGlbPath="glb/chess/chess-board/source/ui.glb"
+          boardGlbPath="glb/chess/ChessSet.glb"
+          boardGlbHasEmbeddedChessPieces
           hideCheckerboard={true}
           boardFixed
           boardFixedZoom={0.6}
@@ -616,20 +617,6 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
           boardY={-0.35}
           tableDist={0.50}
           boardScale={0.8}
-          chessPieceGlbPaths={{
-            white_pawn:   'glb/chess/pawn.glb',
-            white_rook:   'glb/chess/rook.glb',
-            white_knight: 'glb/chess/knight.glb',
-            white_bishop: 'glb/chess/bishop.glb',
-            white_queen:  'glb/chess/queen.glb',
-            white_king:   'glb/chess/king.glb',
-            black_pawn:   'glb/chess/pawn.glb',
-            black_rook:   'glb/chess/rook.glb',
-            black_knight: 'glb/chess/knight.glb',
-            black_bishop: 'glb/chess/bishop.glb',
-            black_queen:  'glb/chess/queen.glb',
-            black_king:   'glb/chess/king.glb',
-          }}
           onSquareTap={handleSquarePress}
         />
       </AraratBackground>
