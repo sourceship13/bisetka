@@ -14,6 +14,7 @@ import {
 import { apiService } from '../../../services/api.service';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Photosphere360Background from '../../../components/Photosphere360Background';
+import AraratBackground from '../../../components/AraratBackground';
 import AR3DOverlay, {type AR3DOverlayHandle} from '../../../components/AR3DOverlay';
 import GameToolbar from '../../../components/global/GameToolbar';
 import GameToolbarControls from '../../../components/global/GameToolbarControls';
@@ -39,28 +40,21 @@ type Props = NativeStackScreenProps<RootStackParamList, 'BilliardsGame'>;
 
 const {width: SCREEN_WIDTH, height: SCREEN_HEIGHT} = Dimensions.get('window');
 
-// Portrait table: fills the full screen width and available vertical space
-const TABLE_PADDING = 0;
-const RAIL_WIDTH = 0;
-const TABLE_WIDTH = SCREEN_WIDTH;
-// Reserve ~230px for toolbar + power bar + pocketed row + safe-area insets
-const TABLE_HEIGHT = SCREEN_HEIGHT - 230;
+// Portrait table: ~88% of screen width with wooden rail border around the felt.
+const SCREEN_TABLE_W = SCREEN_WIDTH * 0.88;
+const SCREEN_TABLE_H = (SCREEN_HEIGHT - 230) * 0.88;
+const RAIL_WIDTH = Math.round(SCREEN_TABLE_W * 0.06); // ~6% rail thickness
+// Felt (play area). Physics treats TABLE_WIDTH x TABLE_HEIGHT as the cushion box.
+const TABLE_WIDTH = SCREEN_TABLE_W - RAIL_WIDTH * 2;
+const TABLE_HEIGHT = SCREEN_TABLE_H - RAIL_WIDTH * 2;
 
-// table.png is 1024x1536 with the brown wooden rail baked in.
-// Scanning the image reveals the green felt starts at x=235, y=207.
-// We scale the image up so the felt fills TABLE_WIDTH x TABLE_HEIGHT exactly,
-// then offset it so the brown border is cropped off by overflow:hidden.
-const IMG_W = 1024, IMG_H = 1536;
-const IMG_RAIL_X = 235, IMG_RAIL_Y = 207;
-const IMG_FELT_W = IMG_W - IMG_RAIL_X * 2; // 554px
-const IMG_FELT_H = IMG_H - IMG_RAIL_Y * 2; // 1122px
-const TABLE_IMG_W = TABLE_WIDTH  * (IMG_W / IMG_FELT_W);  // scaled image width
-const TABLE_IMG_H = TABLE_HEIGHT * (IMG_H / IMG_FELT_H);  // scaled image height
-const TABLE_IMG_LEFT = -TABLE_WIDTH  * (IMG_RAIL_X / IMG_FELT_W); // left offset
-const TABLE_IMG_TOP  = -TABLE_HEIGHT * (IMG_RAIL_Y / IMG_FELT_H); // top offset
 const BALL_RADIUS = TABLE_WIDTH * 0.042;
 const POCKET_RADIUS = BALL_RADIUS * 1.6; // slightly forgiving for mobile touch controls, close to real proportions
 const POCKET_PADDING = 20; // inset each pocket 20px away from the table edges
+// Visible inner cushion thickness. Physics bounces balls off the inside edge
+// of the cushions (not the raw felt edge) so balls collide with the bumpers
+// instead of passing through them.
+const CUSHION_THICKNESS = POCKET_RADIUS * 0.8;
 const CUE_LENGTH = TABLE_WIDTH * 0.65;
 const CUE_THICK = 3;
 const FRICTION = 0.984;
@@ -159,6 +153,133 @@ const createRack9Ball = (): Ball[] => {
 const dist = (a: Vec2, b: Vec2) => Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2);
 const len = (v: Vec2) => Math.sqrt(v.x * v.x + v.y * v.y);
 
+// ── AI shot selection (ghost-ball aiming) ────────────────────────────────────
+// Distance from segment a→b to point c.
+function segPointDist(a: Vec2, b: Vec2, c: Vec2): number {
+  const abx = b.x - a.x, aby = b.y - a.y;
+  const ab2 = abx * abx + aby * aby;
+  if (ab2 < 1e-6) return dist(a, c);
+  let t = ((c.x - a.x) * abx + (c.y - a.y) * aby) / ab2;
+  t = Math.max(0, Math.min(1, t));
+  const px = a.x + abx * t, py = a.y + aby * t;
+  return Math.sqrt((px - c.x) ** 2 + (py - c.y) ** 2);
+}
+
+/** Returns true if the straight path between a and b is blocked by any
+ *  obstacle ball (other than the explicitly excluded ones). */
+function pathBlocked(a: Vec2, b: Vec2, balls: Ball[], excludeIds: number[]): boolean {
+  for (const ob of balls) {
+    if (ob.pocketed) continue;
+    if (excludeIds.includes(ob.number)) continue;
+    if (segPointDist(a, b, ob.pos) < BALL_RADIUS * 2) return true;
+  }
+  return false;
+}
+
+type AIShot = {
+  vx: number;
+  vy: number;
+  // Debug info kept around in case we want to display it later.
+  target: Ball;
+  pocket: Vec2;
+  cutAngleDeg: number;
+  score: number;
+};
+
+function chooseAIShot(
+  cue: Ball,
+  legalTargets: Ball[],
+  allBalls: Ball[],
+  difficulty: 'easy' | 'medium' | 'hard',
+): AIShot | null {
+  if (!cue || legalTargets.length === 0) return null;
+
+  const candidates: AIShot[] = [];
+  const MAX_CUT_DEG = difficulty === 'hard' ? 78 : difficulty === 'medium' ? 70 : 60;
+
+  for (const target of legalTargets) {
+    for (const pocket of POCKETS) {
+      // Direction from target to pocket and ghost-ball position.
+      const tpx = pocket.x - target.pos.x;
+      const tpy = pocket.y - target.pos.y;
+      const tpLen = Math.sqrt(tpx * tpx + tpy * tpy);
+      if (tpLen < 1e-3) continue;
+      const tpNx = tpx / tpLen, tpNy = tpy / tpLen;
+
+      const ghost: Vec2 = {
+        x: target.pos.x - tpNx * BALL_RADIUS * 2,
+        y: target.pos.y - tpNy * BALL_RADIUS * 2,
+      };
+
+      // Cue → ghost direction.
+      const cgx = ghost.x - cue.pos.x;
+      const cgy = ghost.y - cue.pos.y;
+      const cgLen = Math.sqrt(cgx * cgx + cgy * cgy);
+      if (cgLen < 1e-3) continue;
+      const cgNx = cgx / cgLen, cgNy = cgy / cgLen;
+
+      // Cut angle = angle between cue→ghost and target→pocket directions.
+      const dotCT = cgNx * tpNx + cgNy * tpNy;
+      if (dotCT <= 0) continue; // cue is on the wrong side of the target
+      const cutDeg = (Math.acos(Math.min(1, Math.max(-1, dotCT))) * 180) / Math.PI;
+      if (cutDeg > MAX_CUT_DEG) continue;
+
+      // Reject shots that would clip the target ball before reaching the
+      // ghost position (i.e. cue→ghost passes too close to the target itself).
+      if (segPointDist(cue.pos, ghost, target.pos) < BALL_RADIUS * 1.9) continue;
+
+      // Path obstruction checks.
+      const cueBlocked = pathBlocked(cue.pos, ghost, allBalls, [cue.number, target.number]);
+      const targetBlocked = pathBlocked(target.pos, pocket, allBalls, [target.number]);
+      if (cueBlocked || targetBlocked) continue;
+
+      // Score: prefer small cut angle and short total travel.
+      const totalDist = cgLen + tpLen;
+      const cutScore = 1 - cutDeg / 90; // 1 at straight-on, 0 at 90°
+      const distScore = 1 - Math.min(1, totalDist / (TABLE_WIDTH + TABLE_HEIGHT));
+      const score = cutScore * 1.5 + distScore * 0.5;
+
+      candidates.push({
+        vx: cgNx,
+        vy: cgNy,
+        target,
+        pocket,
+        cutAngleDeg: cutDeg,
+        score,
+      });
+    }
+  }
+
+  if (candidates.length === 0) {
+    // No clean pocket shot — fall back to the closest legal target with a
+    // safe defensive hit so the AI doesn't foul.
+    let nearest = legalTargets[0]!;
+    let best = Infinity;
+    for (const t of legalTargets) {
+      const d = dist(cue.pos, t.pos);
+      if (d < best) { best = d; nearest = t; }
+    }
+    const dx = nearest.pos.x - cue.pos.x;
+    const dy = nearest.pos.y - cue.pos.y;
+    const d = Math.sqrt(dx * dx + dy * dy) || 1;
+    return {
+      vx: dx / d,
+      vy: dy / d,
+      target: nearest,
+      pocket: POCKETS[0]!,
+      cutAngleDeg: 90,
+      score: 0,
+    };
+  }
+
+  candidates.sort((a, b) => b.score - a.score);
+
+  // Easier difficulties pick from a wider top-N to feel more human.
+  const topN = difficulty === 'hard' ? 1 : difficulty === 'medium' ? 3 : 5;
+  const pick = candidates[Math.floor(Math.random() * Math.min(topN, candidates.length))]!;
+  return pick;
+}
+
 // ── Pre-computed shot types ──────────────────────────────────────────────────
 type FrameSnap = { x: number; y: number; p: boolean; r: number };
 
@@ -183,10 +304,18 @@ function physicsStep(balls: Ball[]): { anyMoving: boolean; pocketed: Ball[]; fir
       anyMoving = true;
     }
     const r = BALL_RADIUS;
-    if (ball.pos.x - r < 0) { ball.pos.x = r; ball.vel.x = Math.abs(ball.vel.x) * 0.75; }
-    if (ball.pos.x + r > TABLE_WIDTH) { ball.pos.x = TABLE_WIDTH - r; ball.vel.x = -Math.abs(ball.vel.x) * 0.75; }
-    if (ball.pos.y - r < 0) { ball.pos.y = r; ball.vel.y = Math.abs(ball.vel.y) * 0.75; }
-    if (ball.pos.y + r > TABLE_HEIGHT) { ball.pos.y = TABLE_HEIGHT - r; ball.vel.y = -Math.abs(ball.vel.y) * 0.75; }
+    const c = CUSHION_THICKNESS;
+    const cushionGap = POCKET_RADIUS * 1.6;
+    const inHorizontalCushionSpan = ball.pos.x > cushionGap && ball.pos.x < TABLE_WIDTH - cushionGap;
+    const inVerticalCushionSpan   = ball.pos.y > cushionGap && ball.pos.y < TABLE_HEIGHT - cushionGap;
+    if (inVerticalCushionSpan) {
+      if (ball.pos.x - r < c) { ball.pos.x = c + r; ball.vel.x = Math.abs(ball.vel.x) * 0.75; }
+      if (ball.pos.x + r > TABLE_WIDTH - c) { ball.pos.x = TABLE_WIDTH - c - r; ball.vel.x = -Math.abs(ball.vel.x) * 0.75; }
+    }
+    if (inHorizontalCushionSpan) {
+      if (ball.pos.y - r < c) { ball.pos.y = c + r; ball.vel.y = Math.abs(ball.vel.y) * 0.75; }
+      if (ball.pos.y + r > TABLE_HEIGHT - c) { ball.pos.y = TABLE_HEIGHT - c - r; ball.vel.y = -Math.abs(ball.vel.y) * 0.75; }
+    }
   }
 
   const active = balls.filter(b => !b.pocketed);
@@ -470,7 +599,7 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
   const [balls, setBalls] = useState<Ball[]>(
     variant === '9-ball' ? createRack9Ball() : createRack8Ball(),
   );
-  const [showBlur, setShowBlur] = useState(true);
+  const [showBlur, setShowBlur] = useState(false);
   const [showMusicPlayer, setShowMusicPlayer] = useState(false);
   const [arEnabled, setArEnabled] = useState(true);
   const arOverlayRef = useRef<AR3DOverlayHandle>(null);
@@ -860,10 +989,18 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
 
   const resolveWalls = useCallback((ball: Ball) => {
     const r = BALL_RADIUS;
-    if (ball.pos.x - r < 0) { ball.pos.x = r; ball.vel.x = Math.abs(ball.vel.x) * 0.75; }
-    if (ball.pos.x + r > TABLE_WIDTH) { ball.pos.x = TABLE_WIDTH - r; ball.vel.x = -Math.abs(ball.vel.x) * 0.75; }
-    if (ball.pos.y - r < 0) { ball.pos.y = r; ball.vel.y = Math.abs(ball.vel.y) * 0.75; }
-    if (ball.pos.y + r > TABLE_HEIGHT) { ball.pos.y = TABLE_HEIGHT - r; ball.vel.y = -Math.abs(ball.vel.y) * 0.75; }
+    const c = CUSHION_THICKNESS;
+    const cushionGap = POCKET_RADIUS * 1.6;
+    const inHorizontalCushionSpan = ball.pos.x > cushionGap && ball.pos.x < TABLE_WIDTH - cushionGap;
+    const inVerticalCushionSpan   = ball.pos.y > cushionGap && ball.pos.y < TABLE_HEIGHT - cushionGap;
+    if (inVerticalCushionSpan) {
+      if (ball.pos.x - r < c) { ball.pos.x = c + r; ball.vel.x = Math.abs(ball.vel.x) * 0.75; }
+      if (ball.pos.x + r > TABLE_WIDTH - c) { ball.pos.x = TABLE_WIDTH - c - r; ball.vel.x = -Math.abs(ball.vel.x) * 0.75; }
+    }
+    if (inHorizontalCushionSpan) {
+      if (ball.pos.y - r < c) { ball.pos.y = c + r; ball.vel.y = Math.abs(ball.vel.y) * 0.75; }
+      if (ball.pos.y + r > TABLE_HEIGHT - c) { ball.pos.y = TABLE_HEIGHT - c - r; ball.vel.y = -Math.abs(ball.vel.y) * 0.75; }
+    }
   }, []);
 
   const simulateStep = useCallback(() => {
@@ -1246,20 +1383,44 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
           if (d < bestD) { bestD = d; best = t; }
         }
 
-        const dx = best.pos.x - cue.pos.x;
-        const dy = best.pos.y - cue.pos.y;
-        const d = Math.sqrt(dx * dx + dy * dy) || 1;
-        const jitter = difficulty === 'easy' ? 0.3 : difficulty === 'medium' ? 0.15 : 0.05;
-        const speed = difficulty === 'easy' ? 5 : difficulty === 'medium' ? 7 : 10;
+        // Ghost-ball aiming: pick the best target+pocket combo with cut-angle
+        // and obstruction checks. Falls back to a defensive hit on the
+        // closest legal target if no clean pocket shot exists.
+        const shot = chooseAIShot(cue, targets, ballsRef.current, difficulty);
+        if (shot) best = shot.target;
+        const jitter = difficulty === 'easy' ? 0.16 : difficulty === 'medium' ? 0.06 : 0.018;
+
+        // Power scales with shot distance so long shots actually reach.
+        // Hard AI uses higher power for better cut shots; easier AI is softer.
+        let baseSpeed: number;
+        if (shot && shot.score > 0) {
+          const cgDist = dist(cue.pos, shot.target.pos);
+          const tpDist = dist(shot.target.pos, shot.pocket);
+          const totalDist = cgDist + tpDist;
+          const norm = Math.min(1, totalDist / (TABLE_WIDTH * 0.9));
+          // Cut shots need extra power to send the object ball to the pocket.
+          const cutBoost = 1 + (shot.cutAngleDeg / 90) * 0.6;
+          const minP = difficulty === 'easy' ? 5 : difficulty === 'medium' ? 6 : 7;
+          const maxP = difficulty === 'easy' ? 9 : difficulty === 'medium' ? 11 : 13;
+          baseSpeed = (minP + (maxP - minP) * norm) * cutBoost;
+          baseSpeed = Math.min(baseSpeed, maxP * 1.3);
+        } else {
+          // Defensive / no-pocket shot — soft tap.
+          baseSpeed = difficulty === 'easy' ? 4 : difficulty === 'medium' ? 5 : 6;
+        }
 
         // Reset shot tracking for AI shot
         shotPocketedRef.current = [];
         firstHitRef.current = null;
         cueScratchRef.current = false;
 
+        const dirX = shot ? shot.vx : (best.pos.x - cue.pos.x) / (dist(cue.pos, best.pos) || 1);
+        const dirY = shot ? shot.vy : (best.pos.y - cue.pos.y) / (dist(cue.pos, best.pos) || 1);
+
         // Calculate AI shot velocity
-        const aiVelX = (dx / d + (Math.random() - 0.5) * jitter) * speed;
-        const aiVelY = (dy / d + (Math.random() - 0.5) * jitter) * speed;
+        const aiVelX = (dirX + (Math.random() - 0.5) * jitter) * baseSpeed;
+        const aiVelY = (dirY + (Math.random() - 0.5) * jitter) * baseSpeed;
+        const speed = baseSpeed;
 
         // Increment shot count and log AI shot
         shotCountRef.current += 1;
@@ -1910,9 +2071,7 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
 
   return (
     <View style={{flex: 1}}>
-    <Photosphere360Background overlayOpacity={showBlur ? 0.65 : 0.3}>
-      <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/chess/chess-board/source/ui.glb" />
-    </Photosphere360Background>
+    <AraratBackground  />
     <View style={styles.overlay} pointerEvents="box-none">
     <SafeAreaView style={styles.safeArea}>
       <View>
@@ -1924,7 +2083,7 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
         <View>
           <GameToolbarControls
             buttons={[
-              { icon: showBlur ? '🌫️' : '✨', onPress: () => setShowBlur(!showBlur) },
+              // { icon: showBlur ? '🌫️' : '✨', onPress: () => setShowBlur(!showBlur) },
               { icon: showBackground ? '🖼️' : '🔲', onPress: () => setShowBackground(!showBackground) },
               { icon: arEnabled ? '🥽' : '🎮', onPress: () => setArEnabled(!arEnabled) },
               { icon: showMusicPlayer ? '🎵' : '🎶', onPress: () => setShowMusicPlayer(s => !s) },
@@ -1961,23 +2120,25 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
       {/* Table */}
       <View style={styles.tableOuter}>
         <View style={styles.tableRail}>
-          <ImageBackground
-            source={require('../../../../assets/pool/table.png')}
+          <View
             style={styles.tableFelt}
-            imageStyle={{
-              width: TABLE_IMG_W-150,
-              height: TABLE_IMG_H-100,
-              left: TABLE_IMG_LEFT+80,
-              top: TABLE_IMG_TOP+50,
-            }}
-            resizeMode="stretch"
             {...panResponder.panHandlers}>
-            {/* Pockets */}
+            {/* Raised cushion edges (inset bumpers) */}
+            <View pointerEvents="none" style={styles.cushionTop} />
+            <View pointerEvents="none" style={styles.cushionBottom} />
+            <View pointerEvents="none" style={styles.cushionLeft} />
+            <View pointerEvents="none" style={styles.cushionRight} />
+            {/* Pockets — recessed dark holes with rim shading */}
             {POCKETS.map((p, i) => (
-              <View key={`pocket-${i}`} style={[styles.pocket, {
-                left: p.x - POCKET_RADIUS,
-                top: p.y - POCKET_RADIUS,
-              }]} />
+              <View
+                key={`pocket-${i}`}
+                pointerEvents="none"
+                style={[styles.pocketRim, {
+                  left: p.x - POCKET_RADIUS - 4,
+                  top: p.y - POCKET_RADIUS - 4,
+                }]}>
+                <View style={styles.pocketHole} />
+              </View>
             ))}
 
             {/* Head string line */}
@@ -2023,48 +2184,50 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
                 />
               </View>
             ))}
-          </ImageBackground>
+          </View>
         </View>
       </View>
 
       {/* Pocketed balls (8-ball only shows solids/stripes breakdown; 9-ball shows all) */}
-      {variant === '8-ball' ? (
-        <View style={styles.pocketedRow}>
-          <View style={styles.pocketedGroup}>
-            <Text style={styles.pocketedLabel}>Solids</Text>
-            <View style={styles.miniRow}>
-              {pocketedSolids.map((b, i) => (
-                <DynamicBilliardBall
-                  key={`s-${b.id}-${i}`}
-                  number={b.number as BilliardBallNumber}
-                  size={22}
-                  dimmed={0.85}
-                />
-              ))}
+      {variant === '8-ball' ? (() => {
+        // Show each player's pocketed balls in their own column, regardless
+        // of which side (solid/stripe) they were assigned. Before types are
+        // assigned, default to Solids on the left / Stripes on the right.
+        const youList   = playerType === 'stripe' ? pocketedStripes : pocketedSolids;
+        const aiList    = aiType     === 'stripe' ? pocketedStripes : pocketedSolids;
+        const youLabel  = playerType ? `You (${playerType}s)` : 'Solids';
+        const aiLabel   = aiType     ? `AI (${aiType}s)`     : 'Stripes';
+        return (
+          <View style={styles.pocketedRow}>
+            <View style={styles.pocketedGroup}>
+              <Text style={styles.pocketedLabel}>{youLabel}</Text>
+              <View style={styles.miniRow}>
+                {youList.map((b, i) => (
+                  <DynamicBilliardBall
+                    key={`you-${b.id}-${i}`}
+                    number={b.number as BilliardBallNumber}
+                    size={22}
+                    dimmed={0.85}
+                  />
+                ))}
+              </View>
+            </View>
+            <View style={styles.pocketedGroup}>
+              <Text style={styles.pocketedLabel}>{aiLabel}</Text>
+              <View style={styles.miniRow}>
+                {aiList.map((b, i) => (
+                  <DynamicBilliardBall
+                    key={`ai-${b.id}-${i}`}
+                    number={b.number as BilliardBallNumber}
+                    size={22}
+                    dimmed={0.85}
+                  />
+                ))}
+              </View>
             </View>
           </View>
-          <View style={styles.pocketedGroup}>
-            <Text style={styles.pocketedLabel}>Stripes</Text>
-            <View style={styles.miniRow}>
-              {pocketedStripes.map((b, i) => (
-                <DynamicBilliardBall
-                  key={`st-${b.id}-${i}`}
-                  number={b.number as BilliardBallNumber}
-                  size={22}
-                  dimmed={0.85}
-                />
-              ))}
-              {false && pocketedStripes.map((b, i) => (
-                <View key={`st-dummy-${i}`} style={[styles.miniBall, {backgroundColor: '#fff', overflow: 'hidden'}]}>
-                  <View style={styles.miniNumberCircle}>
-                    <Text style={styles.miniNum}>{b.number}</Text>
-                  </View>
-                </View>
-              ))}
-            </View>
-          </View>
-        </View>
-      ) : (
+        );
+      })() : (
         <View style={styles.pocketedRow}>
           <View style={styles.pocketedGroup}>
             <Text style={styles.pocketedLabel}>Pocketed</Text>
@@ -2193,16 +2356,6 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
     </SafeAreaView>
     </View>
       <SyncedYouTubePlayer roomId={null} visible={true} />
-      {arEnabled && (
-        <TouchableOpacity
-          style={styles.recenterBtn}
-          onPress={() => arOverlayRef.current?.recenter()}
-          hitSlop={{top:12,bottom:12,left:12,right:12}}
-          activeOpacity={0.7}>
-          <Text style={styles.recenterIcon}>⊕</Text>
-          <Text style={styles.recenterLabel}>Re-center</Text>
-        </TouchableOpacity>
-      )}
     </View>
   );
 };
@@ -2224,11 +2377,20 @@ const styles = StyleSheet.create({
   powerLabel: {color: '#aaa', fontSize: 11, marginRight: 8, width: 40},
   powerTrack: {flex: 1, height: 6, backgroundColor: '#2a2a2a', borderRadius: 3, overflow: 'hidden'},
   powerFill: {height: '100%', borderRadius: 3},
-  tableOuter: {width: '100%'},
+  tableOuter: {width: '100%', alignItems: 'center', marginTop: 6},
   tableRail: {
-    width: TABLE_WIDTH,
-    height: TABLE_HEIGHT,
-    overflow: 'hidden',
+    width: SCREEN_TABLE_W,
+    height: SCREEN_TABLE_H,
+    padding: RAIL_WIDTH,
+    backgroundColor: 'rgba(61,36,20,0.80)', // dark walnut wood @ 20% opacity
+    borderRadius: RAIL_WIDTH * 0.6,
+    borderWidth: 2,
+    borderColor: 'rgba(28,15,6,0.25)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.45,
+    shadowRadius: 8,
+    elevation: 10,
   },
   railPocket: {
     position: 'absolute',
@@ -2244,9 +2406,35 @@ const styles = StyleSheet.create({
     borderRadius: 0,
     position: 'relative',
     overflow: 'hidden',
+    backgroundColor: 'rgba(12,90,44,0.20)', // green felt @ 20% opacity
+    borderWidth: 1,
+    borderColor: 'rgba(10,68,34,0.4)',
   },
   tableFeltImage: {
     borderRadius: 0,
+  },
+  pocketRim: {
+    position: 'absolute',
+    width: (POCKET_RADIUS + 4) * 2,
+    height: (POCKET_RADIUS + 4) * 2,
+    borderRadius: POCKET_RADIUS + 4,
+    backgroundColor: 'rgba(28,15,6,0.55)', // dark wood rim, semi-transparent
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.7,
+    shadowRadius: 2,
+    elevation: 4,
+  },
+  pocketHole: {
+    width: POCKET_RADIUS * 2,
+    height: POCKET_RADIUS * 2,
+    borderRadius: POCKET_RADIUS,
+    backgroundColor: '#000',              // bottomless black hole
+    borderWidth: 1,
+    borderColor: '#2a2a2a',
   },
   pocket: {
     position: 'absolute',
@@ -2255,6 +2443,60 @@ const styles = StyleSheet.create({
     borderRadius: POCKET_RADIUS,
     backgroundColor: '#111',
     zIndex: 10,
+  },
+  // Raised inner cushions (bumpers). Inset by ~POCKET_RADIUS at each end so
+  // they don't visually cover the corner / side pockets.
+  cushionTop: {
+    position: 'absolute',
+    left: POCKET_RADIUS * 1.6,
+    right: POCKET_RADIUS * 1.6,
+    top: 0,
+    height: CUSHION_THICKNESS,
+    backgroundColor: 'rgba(8,60,28,0.55)',
+    borderBottomWidth: 2,
+    borderBottomColor: 'rgba(0,0,0,0.45)',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.18)',
+    zIndex: 6,
+  },
+  cushionBottom: {
+    position: 'absolute',
+    left: POCKET_RADIUS * 1.6,
+    right: POCKET_RADIUS * 1.6,
+    bottom: 0,
+    height: CUSHION_THICKNESS,
+    backgroundColor: 'rgba(8,60,28,0.55)',
+    borderTopWidth: 2,
+    borderTopColor: 'rgba(0,0,0,0.45)',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.18)',
+    zIndex: 6,
+  },
+  cushionLeft: {
+    position: 'absolute',
+    top: POCKET_RADIUS * 1.6,
+    bottom: POCKET_RADIUS * 1.6,
+    left: 0,
+    width: CUSHION_THICKNESS,
+    backgroundColor: 'rgba(8,60,28,0.55)',
+    borderRightWidth: 2,
+    borderRightColor: 'rgba(0,0,0,0.45)',
+    borderLeftWidth: 1,
+    borderLeftColor: 'rgba(255,255,255,0.18)',
+    zIndex: 6,
+  },
+  cushionRight: {
+    position: 'absolute',
+    top: POCKET_RADIUS * 1.6,
+    bottom: POCKET_RADIUS * 1.6,
+    right: 0,
+    width: CUSHION_THICKNESS,
+    backgroundColor: 'rgba(8,60,28,0.55)',
+    borderLeftWidth: 2,
+    borderLeftColor: 'rgba(0,0,0,0.45)',
+    borderRightWidth: 1,
+    borderRightColor: 'rgba(255,255,255,0.18)',
+    zIndex: 6,
   },
   headString: {
     position: 'absolute',

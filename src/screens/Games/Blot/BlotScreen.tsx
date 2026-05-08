@@ -6,8 +6,8 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  ImageBackground,
   Image,
+  ImageBackground,
   Dimensions,
   Animated,
   ScrollView,
@@ -20,7 +20,7 @@ import { useAuth } from '../../../libs/hooks/useAuth';
 import { resolveAvatar } from '../../../utils/avatars';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Photosphere360Background from '../../../components/Photosphere360Background';
+import AraratBackground from '../../../components/AraratBackground';
 import AR3DOverlay, {type AR3DOverlayHandle, type ARCard} from '../../../components/AR3DOverlay';
 import GameToolbar from '../../../components/global/GameToolbar';
 import GameToolbarControls from '../../../components/global/GameToolbarControls';
@@ -124,7 +124,7 @@ const BlotScreen = ({ navigation }: any) => {
 
 
   const [arCards, setArCards] = useState<ARCard[]>([]);
-  const [showBlur, setShowBlur] = useState(true);
+  const [showBlur, setShowBlur] = useState(false);
   const [showMusicPlayer, setShowMusicPlayer] = useState(false);
   const [arEnabled, setArEnabled] = useState(true);
   const arOverlayRef = useRef<AR3DOverlayHandle>(null);
@@ -561,7 +561,7 @@ const BlotScreen = ({ navigation }: any) => {
         {/* Center suit */}
         <Text style={[styles.nativeCardCenter, { color: suitColor }]}>{suitIcon}</Text>
         {/* Bottom-right (rotated) */}
-        <View style={[styles.nativeCardCorner, { transform: [{ rotate: '180deg' }] }]}>
+        <View style={[styles.nativeCardCorner, { alignSelf: 'flex-end', transform: [{ rotate: '180deg' }] }]}>
           <Text style={[styles.nativeCardRank, { color: suitColor }]}>{card.rank}</Text>
           <Text style={[styles.nativeCardSuit, { color: suitColor }]}>{suitIcon}</Text>
         </View>
@@ -675,14 +675,11 @@ const BlotScreen = ({ navigation }: any) => {
     );
   };
 
-  // Photosphere360Background and AR3DOverlay are always mounted as siblings
-  // (matching CheckersScreen pattern) so both WebViews start together.
-  // Conditionally mounting AR3DOverlay after the panorama is running causes
-  // Android's compositor to lose the SphereViewer frame when a new hardware
-  // layer is inserted on top of an already-rendering WebView.
+  // Static ararat4 background image is used instead of the 360 photosphere.
+  // AR3DOverlay is still mounted to preserve the existing layering behavior.
   return (
     <View style={styles.container}>
-      <Photosphere360Background overlayOpacity={(!targetScore || !gameState) ? 0.85 : (showBlur ? 0.65 : 0.3)} />
+      <AraratBackground  />
       <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/game_boards/Poker_table.glb" hideCheckerboard boardFixed boardFixedZoom={1.0} boardScale={1.9} tableDist={0.9} boardY={-1.5} boardTiltX={0.35} cardGlbPath="glb/cards/card-template.glb" cards={arCards} />
       {/* Always mount SyncedYouTubePlayer alongside the other WebViews so all
           three hardware-accelerated layers are created together at screen open.
@@ -726,7 +723,6 @@ const BlotScreen = ({ navigation }: any) => {
               <GameToolbarControls
                 buttons={[
                   { icon: '🎨', onPress: () => setShowCustomization(true) },
-                  { icon: showBlur ? '🌫️' : '✨', onPress: () => setShowBlur(!showBlur) },
                   { icon: arEnabled ? '🥽' : '🎮', onPress: () => setArEnabled(!arEnabled) },
                   { icon: showMusicPlayer ? '🎵' : '🎶', onPress: () => setShowMusicPlayer(s => !s) },
                   { icon: '👥', onPress: togglePanel },
@@ -736,22 +732,11 @@ const BlotScreen = ({ navigation }: any) => {
             </View>
           </View>
 
-          {gameState.phase === 'playing' && (
+          {gameState.phase === 'playing' && arEnabled && (
             <View style={{ alignItems: 'center', marginTop: 4 }}>
-              <Text style={styles.currentPlayerText}>
-                {gameState.currentPlayer === 0
-                  ? '★ Your Turn (Team 1)'
-                  : `${
-                      gameState.players[gameState.currentPlayer].name
-                    }'s Turn (Team ${
-                      gameState.players[gameState.currentPlayer].team
-                    })`}
+              <Text style={{color:'#00ff88',fontSize:11,textAlign:'center',opacity:0.8}}>
+                3D cards: {arCards.length}
               </Text>
-              {arEnabled && (
-                <Text style={{color:'#00ff88',fontSize:11,textAlign:'center',opacity:0.8,marginTop:-12}}>
-                  3D cards: {arCards.length}
-                </Text>
-              )}
             </View>
           )}
 
@@ -768,7 +753,17 @@ const BlotScreen = ({ navigation }: any) => {
             {gameState.trump && (
               <View style={styles.trumpDisplay}>
                 <Text style={styles.trumpLabel}>Trump</Text>
-                <Text style={styles.trumpSuit}>
+                <Text
+                  style={[
+                    styles.trumpSuit,
+                    {
+                      color:
+                        gameState.trump === 'hearts' ||
+                        gameState.trump === 'diamonds'
+                          ? '#d40000'
+                          : '#000',
+                    },
+                  ]}>
                   {gameState.trump === 'hearts'
                     ? '♥'
                     : gameState.trump === 'diamonds'
@@ -789,6 +784,20 @@ const BlotScreen = ({ navigation }: any) => {
               )}
             </View>
           </View>
+
+          {gameState.phase === 'playing' && (
+            <View pointerEvents="none" style={styles.turnIndicatorWrap}>
+              <Text style={styles.currentPlayerText}>
+                {gameState.currentPlayer === 0
+                  ? '★ Your Turn (Team 1)'
+                  : `${
+                      gameState.players[gameState.currentPlayer].name
+                    }'s Turn (Team ${
+                      gameState.players[gameState.currentPlayer].team
+                    })`}
+              </Text>
+            </View>
+          )}
 
 
 
@@ -821,7 +830,11 @@ const BlotScreen = ({ navigation }: any) => {
                     { width: TABLE_SIZE, height: TABLE_SIZE },
                   ]}
                 >
-                  <View style={styles.cardTable}>
+                  <ImageBackground
+                    source={customTheme?.boardImage ? { uri: customTheme.boardImage } : require('../../../../assets/blot/card-table.png')}
+                    style={styles.cardTable}
+                    imageStyle={{ borderRadius: 16, opacity: 0.20 }}
+                  >
                       {/* Card placement placeholders */}
                       <View style={styles.trickArea}>
                         <View style={[styles.cardPlaceholder, styles.trickSlotTop]} />
@@ -862,7 +875,7 @@ const BlotScreen = ({ navigation }: any) => {
                             </View>
                           );
                         })()}
-                  </View>
+                  </ImageBackground>
                 </View>
                 )}
 
@@ -1149,9 +1162,11 @@ const styles = StyleSheet.create({
     maxHeight:98,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(26, 92, 63, 0.9)',
+    backgroundColor: '#fff',
     padding: 12,
     borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.15)',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
@@ -1160,11 +1175,19 @@ const styles = StyleSheet.create({
   },
   trumpLabel: {
     fontSize: 12,
-    color: '#fff',
+    color: '#222',
     marginBottom: 4,
   },
   trumpSuit: {
     fontSize: 32,
+  },
+  turnIndicatorWrap: {
+    position: 'absolute',
+    top: 280,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    zIndex: 4,
   },
   playArea: {
     flex: 2,

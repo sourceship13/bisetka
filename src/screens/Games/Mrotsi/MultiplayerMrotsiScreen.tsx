@@ -185,7 +185,7 @@ const MultiplayerMrotsiScreen = ({navigation, route}: any) => {
 
   // UI state machine
   const [screen, setScreen] = useState<'menu' | 'matchmaking' | 'game'>('menu');
-  const [showBlur, setShowBlur] = useState(true);
+  const [showBlur, setShowBlur] = useState(false);
   const [showBackground, setShowBackground] = useState(true);
   const [arEnabled, setArEnabled] = useState(true);
   const [showMusicPlayer, setShowMusicPlayer] = useState(false);
@@ -600,7 +600,6 @@ const MultiplayerMrotsiScreen = ({navigation, route}: any) => {
         <View>
           <GameToolbarControls
             buttons={[
-              { icon: showBlur ? '🌫️' : '✨', onPress: () => setShowBlur(!showBlur) },
               { icon: showBackground ? '🖼️' : '🔲', onPress: () => setShowBackground(!showBackground) },
               { icon: '✏️', onPress: () => setShowRoomNameModal(true) },
               { icon: arEnabled ? '🥽' : '🎮', onPress: () => setArEnabled(!arEnabled) },

@@ -23,12 +23,12 @@ import { useAuth } from '../../../libs/hooks/useAuth';
 import { useAchievements } from '../../../contexts/AchievementContext';
 import { resolveAvatar } from '../../../utils/avatars';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Photosphere360Background from '../../../components/Photosphere360Background';
+import AraratBackground from '../../../components/AraratBackground';
 import AR3DOverlay, {type AR3DOverlayHandle, type ARCard} from '../../../components/AR3DOverlay';
 import GameToolbar from '../../../components/global/GameToolbar';
 import GameToolbarControls from '../../../components/global/GameToolbarControls';
 import { CardType, Suit } from '../../../components/Card';
-import Card3D from '../../../components/Card3D';
+import BlotCard from '../../../components/BlotCard';
 import CardCustomizationModal from '../../../components/global/GameCustomizationModal';
 import CardHandFan from '../../../components/CardHandFan';
 import RiffleDealAnimation from '../../../components/RiffleDealAnimation';
@@ -126,7 +126,7 @@ const BaazarBlotScreen = ({ navigation }: any) => {
   };
 
   const [showBackground, setShowBackground] = useState(true);
-  const [showBlur, setShowBlur] = useState(true);
+  const [showBlur, setShowBlur] = useState(false);
   const [showMusicPlayer, setShowMusicPlayer] = useState(false);
   const [arEnabled, setArEnabled] = useState(true);
   const [arCards, setArCards] = useState<ARCard[]>([]);
@@ -742,7 +742,7 @@ const BaazarBlotScreen = ({ navigation }: any) => {
             cards={myPlayer.hand.filter(c => c && c.suit && c.rank)}
             renderCard={(card, idx) => (
               <View key={`${card.suit}-${card.rank}-${idx}`} style={styles.cardWrapper}>
-                <Card3D suit={card.suit as any} rank={card.rank as any} faceDown={false} size={72} />
+                <BlotCard suit={card.suit as any} rank={card.rank as any} faceDown={false} size={72} />
               </View>
             )}
           />
@@ -878,7 +878,7 @@ const BaazarBlotScreen = ({ navigation }: any) => {
             cards={gameState.players[0].hand.filter(c => c && c.suit && c.rank)}
             renderCard={(card, idx) => (
               <View key={`bid-${card.suit}-${card.rank}-${idx}`} style={styles.cardWrapper}>
-                <Card3D suit={card.suit as any} rank={card.rank as any} faceDown={false} size={72} />
+                <BlotCard suit={card.suit as any} rank={card.rank as any} faceDown={false} size={72} />
               </View>
             )}
           />
@@ -933,7 +933,7 @@ const BaazarBlotScreen = ({ navigation }: any) => {
                         .filter(cardPlay => cardPlay && cardPlay.card && cardPlay.card.suit)
                         .map((cardPlay, idx) => (
                         <View key={idx} style={[styles.trickSlot, positionStyle[cardPlay.playerId] ?? styles.trickSlotTop]}>
-                          <Card3D suit={(cardPlay.card as any).suit} rank={(cardPlay.card as any).rank} faceDown={false} size={44} />
+                          <BlotCard suit={(cardPlay.card as any).suit} rank={(cardPlay.card as any).rank} faceDown={false} size={44} />
                         </View>
                       ))}
                     </View>
@@ -964,7 +964,7 @@ const BaazarBlotScreen = ({ navigation }: any) => {
                         .filter(cardPlay => cardPlay && cardPlay.card && cardPlay.card.suit)
                         .map((cardPlay, idx) => (
                         <View key={idx} style={[styles.trickSlot, positionStyle[cardPlay.playerId] ?? styles.trickSlotTop]}>
-                          <Card3D suit={(cardPlay.card as any).suit} rank={(cardPlay.card as any).rank} faceDown={false} size={44} />
+                          <BlotCard suit={(cardPlay.card as any).suit} rank={(cardPlay.card as any).rank} faceDown={false} size={44} />
                         </View>
                       ))}
                     </View>
@@ -998,7 +998,7 @@ const BaazarBlotScreen = ({ navigation }: any) => {
                   ]}
                   disabled={!canPlay}
                 >
-                  <Card3D suit={card.suit as any} rank={card.rank as any} faceDown={false} size={72} />
+                  <BlotCard suit={card.suit as any} rank={card.rank as any} faceDown={false} size={72} />
                 </TouchableOpacity>
               );
             }}
@@ -1100,9 +1100,9 @@ const BaazarBlotScreen = ({ navigation }: any) => {
 
   return (
     <View style={styles.bg} {...(arEnabled ? arPinchResponder.panHandlers : {})}>
-      <Photosphere360Background overlayOpacity={showBlur ? 0.65 : 0.3}>
+      <AraratBackground>
         <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/game_boards/Poker_table.glb" hideCheckerboard boardFixed boardFixedZoom={1.0} boardScale={1.9} tableDist={0.9} boardY={-1.5} boardTiltX={0} cardGlbPath="glb/cards/card-template.glb" cards={arCards} />
-      </Photosphere360Background>
+      </AraratBackground>
       <View style={styles.overlay} pointerEvents="box-none">
       <SafeAreaView style={styles.safe}>
         <View>
@@ -1115,7 +1115,6 @@ const BaazarBlotScreen = ({ navigation }: any) => {
             <GameToolbarControls
               buttons={[
                 { icon: '🎨', onPress: () => setShowCustomization(true) },
-                { icon: showBlur ? '🌫️' : '✨', onPress: () => setShowBlur(!showBlur) },
                 { icon: showBackground ? '🖼️' : '🔲', onPress: () => setShowBackground(!showBackground) },
                 { icon: arEnabled ? '🥽' : '🎮', onPress: () => setArEnabled(!arEnabled) },
                 { icon: showMusicPlayer ? '🎵' : '🎶', onPress: () => setShowMusicPlayer(s => !s) },

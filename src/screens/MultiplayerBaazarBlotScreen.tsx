@@ -18,7 +18,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { socketService } from '../services/SocketService';
 import tokenService from '../services/token.service';
 import apiService from '../services/api.service';
-import Card3D from '../components/Card3D';
+import BlotCard from '../components/BlotCard';
 import { CardType } from '../components/Card';
 import InGameChat from '../components/InGameChat';
 import GameToolbar from '../components/global/GameToolbar';
@@ -104,7 +104,7 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
   const [showCustomization, setShowCustomization] = useState(false);
   const [customTheme, setCustomTheme] = useState<CardTheme | undefined>(undefined);
   const [showBackground, setShowBackground] = useState(true);
-  const [showBlur, setShowBlur] = useState(true);
+  const [showBlur, setShowBlur] = useState(false);
   const toolbarExpanded = useSharedValue(false);
   const chevronStyle = useAnimatedStyle(() => ({
     transform: [{ rotate: withTiming(toolbarExpanded.value ? '180deg' : '0deg', { duration: 250 }) }],
@@ -597,7 +597,6 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
     <ImageBackground
       source={require('../../assets/blot/park-background.png')}
       style={styles.bg}
-      blurRadius={3}
       resizeMode="cover">
       <LinearGradient
         colors={['rgba(15,15,35,0.7)', 'rgba(26,23,66,0.6)']}
@@ -635,7 +634,6 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
     <ImageBackground
       source={require('../../assets/blot/park-background.png')}
       style={styles.bg}
-      blurRadius={3}
       resizeMode="cover">
       <LinearGradient
         colors={['rgba(15,15,35,0.7)', 'rgba(26,23,66,0.6)']}
@@ -667,7 +665,6 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
     <ImageBackground
       source={require('../../assets/blot/park-background.png')}
       style={styles.bg}
-      blurRadius={3}
       resizeMode="cover">
       <LinearGradient
         colors={['rgba(15,15,35,0.7)', 'rgba(26,23,66,0.6)']}
@@ -813,7 +810,7 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
                 cards={myHand}
                 maxWidth={SW - 32}
                 renderCard={(card, idx) => (
-                  <Card3D
+                  <BlotCard
                     key={`${card.suit}-${card.rank}-${idx}`}
                     suit={(card as any).suit}
                     rank={(card as any).rank}
@@ -933,7 +930,7 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
                         const relativePos = (tc.playerPosition - myPosition + 4) % 4;
                         return (
                           <View key={idx} style={[styles.trickSlot, positionStyle[relativePos] ?? styles.trickSlotTop]}>
-                            <Card3D suit={(tc.card as any).suit} rank={(tc.card as any).rank} faceDown={false} size={44} />
+                            <BlotCard suit={(tc.card as any).suit} rank={(tc.card as any).rank} faceDown={false} size={44} />
                           </View>
                         );
                       })}
@@ -965,7 +962,7 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
                         const relativePos = (tc.playerPosition - myPosition + 4) % 4;
                         return (
                           <View key={idx} style={[styles.trickSlot, positionStyle[relativePos] ?? styles.trickSlotTop]}>
-                            <Card3D suit={(tc.card as any).suit} rank={(tc.card as any).rank} faceDown={false} size={44} />
+                            <BlotCard suit={(tc.card as any).suit} rank={(tc.card as any).rank} faceDown={false} size={44} />
                           </View>
                         );
                       })}
@@ -1009,7 +1006,7 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
                         !isMyTurn ? styles.cardDimmed : styles.cardLegal,
                         selectedCard === card && styles.selectedCard,
                       ]}>
-                      <Card3D suit={(card as any).suit} rank={(card as any).rank} faceDown={false} size={60} />
+                      <BlotCard suit={(card as any).suit} rank={(card as any).rank} faceDown={false} size={60} />
                     </TouchableOpacity>
                   );
                 }}
@@ -1035,10 +1032,9 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
         <ImageBackground
           source={require('../../assets/blot/park-background.png')}
           style={styles.bg}
-          blurRadius={showBlur ? 3 : 0}
           resizeMode="cover">
           <LinearGradient
-            colors={showBlur ? ['rgba(15,15,35,0.7)', 'rgba(26,23,66,0.6)'] : ['transparent', 'transparent']}
+            colors={['transparent', 'transparent']}
             style={StyleSheet.absoluteFill}
           />
           <SafeAreaView style={styles.safe}>
@@ -1067,13 +1063,6 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
                     <Text style={styles.editRoomIcon}>🎨</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    onPress={() => setShowBlur(!showBlur)}
-                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                    style={styles.editRoomButton}
-                  >
-                    <Text style={styles.editRoomIcon}>{showBlur ? '🌫️' : '✨'}</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
                     onPress={() => setShowBackground(!showBackground)}
                     hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                     style={styles.editRoomButton}
@@ -1096,10 +1085,9 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
       <ImageBackground
         source={require('../../assets/blot/park-background.png')}
         style={styles.bg}
-        blurRadius={showBlur ? 3 : 0}
         resizeMode="cover">
         <LinearGradient
-          colors={showBlur ? ['rgba(15,15,35,0.7)', 'rgba(26,23,66,0.6)'] : ['transparent', 'transparent']}
+          colors={['transparent', 'transparent']}
           style={StyleSheet.absoluteFill}
         />
         <SafeAreaView style={styles.safe}>
@@ -1129,13 +1117,6 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
                   style={styles.editRoomButton}
                 >
                   <Text style={styles.editRoomIcon}>🎨</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => setShowBlur(!showBlur)}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                  style={styles.editRoomButton}
-                >
-                  <Text style={styles.editRoomIcon}>{showBlur ? '🌫️' : '✨'}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={() => setShowBackground(!showBackground)}

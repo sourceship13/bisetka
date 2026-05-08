@@ -1519,6 +1519,31 @@ if (_gateNeeded === 0) {
 function clonePiece(piece) {
   const color = piece.color;
   const isKing = piece.isKing;
+  // ── Destination marker (nardi green-tinted destination overlay) ──────────
+  // Flat translucent green disc that lays on the board surface and ignores
+  // depth so it's always visible, even under stacked checkers.
+  if (piece.pieceType === 'destination_marker') {
+    const sz = (piece.pieceScale !== undefined && piece.pieceScale !== null) ? piece.pieceScale : 0.036;
+    // Tall rectangle that covers the column's full triangle strip
+    // (from board edge inward to the triangle tip).
+    const w = sz * 1.1;
+    const h = sz * 7.6;
+    const g = new THREE.PlaneGeometry(w, h);
+    const m = new THREE.MeshBasicMaterial({
+      color: 0x22c55e,
+      transparent: true,
+      opacity: 0.42,
+      side: THREE.DoubleSide,
+      depthTest: false,
+      depthWrite: false,
+    });
+    const mesh = new THREE.Mesh(g, m);
+    mesh.renderOrder = 999;
+    // Geometry is already at the desired size; normMaxDim==pieceScale makes
+    // updatePieces' scale.setScalar(scale/nmd) collapse to 1 (no resize).
+    mesh.userData.normMaxDim = sz;
+    return mesh;
+  }
   const chessKey = piece.side && piece.pieceType ? (piece.side + '_' + piece.pieceType) : null;
   const sourceScene = chessKey ? baseChessPieceScenes[chessKey] : basePieceScene;
   if (!sourceScene) {
@@ -1531,9 +1556,26 @@ function clonePiece(piece) {
   // Clone the wrapper group returned by normalizePieceModel (deep clone preserves inner scale)
   const clone = sourceScene.clone(true);
   // Chess pieces need rotation.x = π/2 to cancel boardGroup's -π/2 and stand upright in world.
-  // Disc pieces (bg_checker, checker) should lay FLAT on the board surface — no rotation cancellation needed.
+  // Disc pieces (bg_checker, checker) should lay FLAT on the board surface. The source GLB
+  // for nardi/checkers checkers is roughly dome/ball shaped, so rotation alone can't flatten
+  // it — we squash whichever axis is currently the tallest to ~22% of its size, leaving the
+  // other two axes (the "face" of the disc) untouched. Position/orientation are preserved.
   const isCheckerDisc = piece.pieceType === 'bg_checker' || piece.pieceType === 'checker';
-  clone.rotation.x = isCheckerDisc ? 0 : Math.PI / 2;
+  if (isCheckerDisc) {
+    clone.rotation.x = 0;
+    const _bb = new THREE.Box3().setFromObject(clone);
+    const _sz = _bb.getSize(new THREE.Vector3());
+    const FLAT_RATIO = 0.22;
+    if (_sz.z >= _sz.x && _sz.z >= _sz.y) {
+      clone.scale.z *= FLAT_RATIO;
+    } else if (_sz.y >= _sz.x && _sz.y >= _sz.z) {
+      clone.scale.y *= FLAT_RATIO;
+    } else {
+      clone.scale.x *= FLAT_RATIO;
+    }
+  } else {
+    clone.rotation.x = Math.PI / 2;
+  }
 
   clone.traverse(ch => {
     if (!ch.isMesh) return;
