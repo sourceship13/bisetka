@@ -275,9 +275,12 @@ const NardiScreen = ({ navigation, route }: any) => {
       destSet.forEach(destIdx => {
         const ptNum = destIdx + 1;
         const isTop = ptNum >= 13;
-        // Center the marker vertically along the column (between board edge and middle)
-        const colMid = (BHW * 0.95) * 0.5;
-        const y = isTop ? colMid : -colMid;
+        // Marker height matches the destination_marker geometry: sz * 7.6 with sz=CD.
+        // Center it so one edge sits at the board rail (BHW*0.95) and it extends
+        // inward toward the triangle tip.
+        const markerHalfH = (CD * 7.6) / 2;
+        const edge = BHW * 0.95;
+        const y = isTop ? (edge - markerHalfH) : -(edge - markerHalfH);
         pieces.push({
           key: `dest-${ptNum}`,
           row: 0, col: 0,

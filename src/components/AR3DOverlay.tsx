@@ -1524,9 +1524,10 @@ function clonePiece(piece) {
   // depth so it's always visible, even under stacked checkers.
   if (piece.pieceType === 'destination_marker') {
     const sz = (piece.pieceScale !== undefined && piece.pieceScale !== null) ? piece.pieceScale : 0.036;
-    // Tall rectangle that covers the column's playing strip (taller than it is wide)
+    // Tall rectangle that covers the column's full triangle strip
+    // (from board edge inward to the triangle tip).
     const w = sz * 1.1;
-    const h = sz * 4.2;
+    const h = sz * 7.6;
     const g = new THREE.PlaneGeometry(w, h);
     const m = new THREE.MeshBasicMaterial({
       color: 0x22c55e,
