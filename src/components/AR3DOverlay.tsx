@@ -1519,6 +1519,30 @@ if (_gateNeeded === 0) {
 function clonePiece(piece) {
   const color = piece.color;
   const isKing = piece.isKing;
+  // ── Destination marker (nardi green-tinted destination overlay) ──────────
+  // Flat translucent green disc that lays on the board surface and ignores
+  // depth so it's always visible, even under stacked checkers.
+  if (piece.pieceType === 'destination_marker') {
+    const sz = (piece.pieceScale !== undefined && piece.pieceScale !== null) ? piece.pieceScale : 0.036;
+    // Tall rectangle that covers the column's playing strip (taller than it is wide)
+    const w = sz * 1.1;
+    const h = sz * 4.2;
+    const g = new THREE.PlaneGeometry(w, h);
+    const m = new THREE.MeshBasicMaterial({
+      color: 0x22c55e,
+      transparent: true,
+      opacity: 0.42,
+      side: THREE.DoubleSide,
+      depthTest: false,
+      depthWrite: false,
+    });
+    const mesh = new THREE.Mesh(g, m);
+    mesh.renderOrder = 999;
+    // Geometry is already at the desired size; normMaxDim==pieceScale makes
+    // updatePieces' scale.setScalar(scale/nmd) collapse to 1 (no resize).
+    mesh.userData.normMaxDim = sz;
+    return mesh;
+  }
   const chessKey = piece.side && piece.pieceType ? (piece.side + '_' + piece.pieceType) : null;
   const sourceScene = chessKey ? baseChessPieceScenes[chessKey] : basePieceScene;
   if (!sourceScene) {

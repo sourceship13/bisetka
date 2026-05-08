@@ -253,8 +253,48 @@ const NardiScreen = ({ navigation, route }: any) => {
       });
     }
 
+    // ── Green destination markers (easy mode) ────────────────────────────────
+    // Render a translucent green rectangle on each legal destination column
+    // so the player sees exactly where the selected piece (or a bar checker)
+    // can move. Mirrors the non-AR overlay rendered by renderPoint().
+    const myColor = isMultiplayer ? myMpColorRef.current : 'white';
+    const isMyTurn = gameState.currentPlayer === myColor && gameState.phase === 'moving';
+    if (isMyTurn) {
+      const destSet = new Set<number>();
+      const barCount = gameState.bar[myColor] || 0;
+      if (barCount > 0) {
+        // Bar entry: always show entry destinations regardless of selection
+        gameState.possibleMoves.forEach(m => {
+          if (m.from === -1 && m.to >= 0 && m.to < 24) destSet.add(m.to);
+        });
+      } else if (selectedPoint !== null && selectedPoint >= 0) {
+        gameState.possibleMoves.forEach(m => {
+          if (m.from === selectedPoint && m.to >= 0 && m.to < 24) destSet.add(m.to);
+        });
+      }
+      destSet.forEach(destIdx => {
+        const ptNum = destIdx + 1;
+        const isTop = ptNum >= 13;
+        // Center the marker vertically along the column (between board edge and middle)
+        const colMid = (BHW * 0.95) * 0.5;
+        const y = isTop ? colMid : -colMid;
+        pieces.push({
+          key: `dest-${ptNum}`,
+          row: 0, col: 0,
+          color: 'red',
+          isKing: false,
+          isSelected: false,
+          pieceType: 'destination_marker',
+          posX: pointX(ptNum),
+          posY: y,
+          posZ: 0.004,
+          pieceScale: CD,
+        });
+      });
+    }
+
     return pieces;
-  }, [gameState, selectedPoint]);
+  }, [gameState, selectedPoint, isMultiplayer]);
   const [showBackground, setShowBackground] = useState(true);
   const [easyMode, setEasyMode] = useState(true); // Easy Mode: tap-to-move (default on for AR); drag-to-move when off
   const toolbarExpanded = useSharedValue(false);
