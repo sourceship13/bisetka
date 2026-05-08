@@ -2189,43 +2189,45 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
       </View>
 
       {/* Pocketed balls (8-ball only shows solids/stripes breakdown; 9-ball shows all) */}
-      {variant === '8-ball' ? (
-        <View style={styles.pocketedRow}>
-          <View style={styles.pocketedGroup}>
-            <Text style={styles.pocketedLabel}>Solids</Text>
-            <View style={styles.miniRow}>
-              {pocketedSolids.map((b, i) => (
-                <DynamicBilliardBall
-                  key={`s-${b.id}-${i}`}
-                  number={b.number as BilliardBallNumber}
-                  size={22}
-                  dimmed={0.85}
-                />
-              ))}
+      {variant === '8-ball' ? (() => {
+        // Show each player's pocketed balls in their own column, regardless
+        // of which side (solid/stripe) they were assigned. Before types are
+        // assigned, default to Solids on the left / Stripes on the right.
+        const youList   = playerType === 'stripe' ? pocketedStripes : pocketedSolids;
+        const aiList    = aiType     === 'stripe' ? pocketedStripes : pocketedSolids;
+        const youLabel  = playerType ? `You (${playerType}s)` : 'Solids';
+        const aiLabel   = aiType     ? `AI (${aiType}s)`     : 'Stripes';
+        return (
+          <View style={styles.pocketedRow}>
+            <View style={styles.pocketedGroup}>
+              <Text style={styles.pocketedLabel}>{youLabel}</Text>
+              <View style={styles.miniRow}>
+                {youList.map((b, i) => (
+                  <DynamicBilliardBall
+                    key={`you-${b.id}-${i}`}
+                    number={b.number as BilliardBallNumber}
+                    size={22}
+                    dimmed={0.85}
+                  />
+                ))}
+              </View>
+            </View>
+            <View style={styles.pocketedGroup}>
+              <Text style={styles.pocketedLabel}>{aiLabel}</Text>
+              <View style={styles.miniRow}>
+                {aiList.map((b, i) => (
+                  <DynamicBilliardBall
+                    key={`ai-${b.id}-${i}`}
+                    number={b.number as BilliardBallNumber}
+                    size={22}
+                    dimmed={0.85}
+                  />
+                ))}
+              </View>
             </View>
           </View>
-          <View style={styles.pocketedGroup}>
-            <Text style={styles.pocketedLabel}>Stripes</Text>
-            <View style={styles.miniRow}>
-              {pocketedStripes.map((b, i) => (
-                <DynamicBilliardBall
-                  key={`st-${b.id}-${i}`}
-                  number={b.number as BilliardBallNumber}
-                  size={22}
-                  dimmed={0.85}
-                />
-              ))}
-              {false && pocketedStripes.map((b, i) => (
-                <View key={`st-dummy-${i}`} style={[styles.miniBall, {backgroundColor: '#fff', overflow: 'hidden'}]}>
-                  <View style={styles.miniNumberCircle}>
-                    <Text style={styles.miniNum}>{b.number}</Text>
-                  </View>
-                </View>
-              ))}
-            </View>
-          </View>
-        </View>
-      ) : (
+        );
+      })() : (
         <View style={styles.pocketedRow}>
           <View style={styles.pocketedGroup}>
             <Text style={styles.pocketedLabel}>Pocketed</Text>
