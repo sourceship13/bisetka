@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import {BisetkaAlert} from '../../../utils/BisetkaAlert';
 import {SafeAreaView} from 'react-native-safe-area-context';
-import Photosphere360Background from '../../../components/Photosphere360Background';
+import AraratBackground from '../../../components/AraratBackground';
 import AR3DOverlay, {type AR3DOverlayHandle} from '../../../components/AR3DOverlay';
 import ReAnimated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import ExpandableView from '../../../components/global/ExpandableView';
@@ -129,7 +129,7 @@ const MultiplayerCheckersScreen = ({navigation, route}: any) => {
   // ── screen mode ────────────────────────────────────────────────────────────
   const [mode, setMode] = useState<'menu' | 'matchmaking' | 'private' | 'game'>('menu');
   const [isSpectating, setIsSpectating] = useState(false);
-  const [showBlur, setShowBlur] = useState(true);
+  const [showBlur, setShowBlur] = useState(false);
   const [showBackground, setShowBackground] = useState(true);
   const [showCustomization, setShowCustomization] = useState(false);
   const [showMusicPlayer, setShowMusicPlayer]     = useState(false);
@@ -557,7 +557,7 @@ const MultiplayerCheckersScreen = ({navigation, route}: any) => {
   // ── main render ────────────────────────────────────────────────────────────
   return (
     <View style={styles.container}>
-      <Photosphere360Background overlayOpacity={showBlur ? 0.5 : 0.3}>
+      <AraratBackground overlayOpacity={showBlur ? 0.5 : 0.3}>
         <AR3DOverlay
           ref={arOverlayRef}
           visible={arEnabled}
@@ -572,7 +572,7 @@ const MultiplayerCheckersScreen = ({navigation, route}: any) => {
             black_checker: 'glb/checkers/nyu_black_checker.glb',
           }}
         />
-      </Photosphere360Background>
+      </AraratBackground>
       <View style={styles.overlay} pointerEvents="box-none">
         <SafeAreaView style={styles.safeArea}>
           <View>
@@ -585,7 +585,6 @@ const MultiplayerCheckersScreen = ({navigation, route}: any) => {
               <GameToolbarControls
                 buttons={[
                   { icon: '🎨', onPress: () => setShowCustomization(true) },
-                  { icon: showBlur ? '🌫️' : '✨', onPress: () => setShowBlur(!showBlur) },
                   { icon: showBackground ? '🖼️' : '🔲', onPress: () => setShowBackground(!showBackground) },
                   { icon: '✏️', onPress: () => setShowRoomNameModal(true) },
                   { icon: arEnabled ? '🥽' : '🎮', onPress: () => setArEnabled(!arEnabled) },

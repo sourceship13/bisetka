@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, ImageBackground, Alert, Animated, ScrollView, Image } from 'react-native';
-import Photosphere360Background from '../../../components/Photosphere360Background';
+import AraratBackground from '../../../components/AraratBackground';
 import AR3DOverlay, { type ARPiece, type AR3DOverlayHandle } from '../../../components/AR3DOverlay';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -133,7 +133,7 @@ const CheckersScreen = ({ navigation, route }: any) => {
   const [statusMsg,     setStatusMsg]     = useState('');
   const [showCustomization, setShowCustomization] = useState(false);
   const [showMusicPlayer, setShowMusicPlayer] = useState(true);
-  const [showBlur, setShowBlur] = useState(true);
+  const [showBlur, setShowBlur] = useState(false);
   const [showBackground, setShowBackground] = useState(true);
   const [arEnabled, setArEnabled] = useState(true);
   const arOverlayRef = useRef<AR3DOverlayHandle>(null);
@@ -249,13 +249,27 @@ const CheckersScreen = ({ navigation, route }: any) => {
   // The coordinates stay in board-space; AR3DOverlay maps them to 3D world space.
   const arPieces = useMemo<ARPiece[]>(() => {
     // SQUARE_W must match AR3DOverlay: FIELD_HALF_W*2/8 = 0.305*2/8
-    const CHECKER_SZ = (0.305 * 2 / 8) * 0.82;  // 82% of one square
+    // 15% smaller than before (was 0.82); 0.70 leaves a small margin so the
+    // disc sits comfortably inside its dark square.
+    const FIELD_HALF = 0.305;
+    const SQ = (FIELD_HALF * 2) / 8;
+    const CHECKER_SZ = SQ * 0.70;
+    const SURFACE_Z = 0.002;
+    // Pull the leftmost (col 0) and rightmost (col 7) columns inward so the
+    // discs don't overhang the board edge.
+    const EDGE_INSET = SQ * 0.45;
     const result: ARPiece[] = [];
     gameState.board.forEach((row, r) => {
       row.forEach((piece, c) => {
         if (!piece) return;
         // Only dark squares have pieces in checkers
         if ((r + c) % 2 === 0) return;
+        const baseX = -FIELD_HALF + (c + 0.5) * SQ;
+        const baseY = FIELD_HALF - (r + 0.5) * SQ;
+        let posX = baseX;
+        let posY = baseY;
+        if (c === 0) posX = baseX + EDGE_INSET;
+        else if (c === 7) posX = baseX - EDGE_INSET;
         result.push({
           key: `${r}-${c}`,
           row: r,
@@ -264,6 +278,9 @@ const CheckersScreen = ({ navigation, route }: any) => {
           side: piece.color === 'red' ? 'white' : 'black',  // white→red GLB, black→black GLB
           pieceType: 'checker',
           pieceScale: CHECKER_SZ,
+          posX,
+          posY,
+          posZ: SURFACE_Z,
           isKing: piece.type === 'king',
           isSelected:
             gameState.selectedSquare?.row === r &&
@@ -543,7 +560,7 @@ const CheckersScreen = ({ navigation, route }: any) => {
   if (isMultiplayer && (mpStatus==='connecting'||mpStatus==='searching'||mpStatus==='waiting')) {
     return (
       <View style={styles.container}>
-        <Photosphere360Background overlayOpacity={0.4} />
+        <AraratBackground overlayOpacity={0.4} />
         <View style={styles.overlay}>
           <SafeAreaView style={styles.safeArea}>
             <GameToolbar title="Checkers" onBack={() => { navigation.goBack(); }} backgroundColor="transparent" />
@@ -588,7 +605,7 @@ const CheckersScreen = ({ navigation, route }: any) => {
   // ── board render ──────────────────────────────────────────────────────────
   return (
     <View style={styles.container}>
-      <Photosphere360Background overlayOpacity={0.5} />
+      <AraratBackground />
       <AR3DOverlay
         ref={arOverlayRef}
         visible={arEnabled}
@@ -623,7 +640,6 @@ const CheckersScreen = ({ navigation, route }: any) => {
               <GameToolbarControls
                 buttons={[
                   { icon: '🎨', onPress: () => setShowCustomization(true) },
-                  { icon: showBlur ? '🌫️' : '✨', onPress: () => setShowBlur(!showBlur) },
                   { icon: showBackground ? '🖼️' : '🔲', onPress: () => setShowBackground(!showBackground) },
                   { icon: arEnabled ? '🥽' : '🎮', onPress: () => setArEnabled(!arEnabled) },
                   { icon: '👥', onPress: togglePanel },
@@ -672,15 +688,28 @@ const CheckersScreen = ({ navigation, route }: any) => {
                         onPress={() => handleSquarePress(displayRow, displayCol)}
                         activeOpacity={0.75}
                       >
-                        {piece && (
-                          <View style={[
-                            styles.piece,
-                            piece.color === 'red' ? styles.redPiece : styles.blackPiece,
-                            piece.type === 'king' && styles.kingPiece,
-                          ]}>
-                            {piece.type === 'king' && <Text style={styles.kingText}>♛</Text>}
-                          </View>
-                        )}
+                        {piece && (() => {
+                          // Per-piece horizontal nudges for the top-most red row (row 5).
+                          // Values are fractions of squareSize.
+                          // Top-most red row = row 5. Red pieces in row 5 occupy
+                          // cols 0, 2, 4, 6 (left-to-right). Order index:
+                          //   0 = leftmost (+10%), 1 = 2nd left (+10%),
+                          //   2 = 3rd (-5%), 3 = rightmost (-30%).
+                          const NUDGE_TOP_RED: Record<number, number> = { 0: 0.10, 2: 0.10, 4: -0.05, 6: -0.30 };
+                          const nudgeX = piece.color === 'red' && row === 5 && NUDGE_TOP_RED[col] !== undefined
+                            ? NUDGE_TOP_RED[col] * squareSize
+                            : 0;
+                          return (
+                            <View style={[
+                              styles.piece,
+                              piece.color === 'red' ? styles.redPiece : styles.blackPiece,
+                              piece.type === 'king' && styles.kingPiece,
+                              nudgeX !== 0 && { transform: [{ translateX: nudgeX }] },
+                            ]}>
+                              {piece.type === 'king' && <Text style={styles.kingText}>♛</Text>}
+                            </View>
+                          );
+                        })()}
                         {isPossibleMove && !piece && (
                           <View style={styles.moveIndicator} />
                         )}

@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Photosphere360Background from '../../../components/Photosphere360Background';
+import AraratBackground from '../../../components/AraratBackground';
 import AR3DOverlay, {type AR3DOverlayHandle, type ARPiece} from '../../../components/AR3DOverlay';
 import SyncedYouTubePlayer from '../../../components/SyncedYouTubePlayer';
 import ReAnimated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
@@ -68,7 +68,7 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
   const { refreshOnGameEnd } = useGameEndRefresh(undefined, 'chess');
   const [mode, setMode] = useState<'menu' | 'matchmaking' | 'private' | 'game'>('menu');
   const [isSpectating, setIsSpectating] = useState(false);
-  const [showBlur, setShowBlur] = useState(true);
+  const [showBlur, setShowBlur] = useState(false);
   const [showCustomization, setShowCustomization] = useState(false);
   const [gameTheme, setGameTheme] = useState<GameTheme>({});
   const [arEnabled, setArEnabled] = useState(true);
@@ -602,7 +602,7 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
 
   return (
     <View style={styles.container}>
-      <Photosphere360Background overlayOpacity={showBlur ? 0.5 : 0.3}>
+      <AraratBackground overlayOpacity={showBlur ? 0.5 : 0.3}>
         <AR3DOverlay
           ref={arOverlayRef}
           visible={arEnabled}
@@ -632,7 +632,7 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
           }}
           onSquareTap={handleSquarePress}
         />
-      </Photosphere360Background>
+      </AraratBackground>
       <View style={styles.overlay} pointerEvents="box-none">
         <SafeAreaView style={styles.safeArea}>
           <View>
@@ -645,7 +645,6 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
               <GameToolbarControls
                 buttons={[
                   { icon: '🎨', onPress: () => setShowCustomization(true) },
-                  { icon: showBlur ? '🌫️' : '✨', onPress: () => setShowBlur(!showBlur) },
                   { icon: '✏️', onPress: () => setShowRoomNameModal(true) },
                   { icon: arEnabled ? '🥽' : '🎮', onPress: () => setArEnabled(!arEnabled) },
                   { icon: showMusicPlayer ? '🎵' : '🎶', onPress: () => setShowMusicPlayer(s => !s) },

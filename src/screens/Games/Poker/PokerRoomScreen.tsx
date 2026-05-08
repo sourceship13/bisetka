@@ -15,7 +15,7 @@ import CardShuffleAnimation from '../../../components/CardShuffleAnimation';
 import RiffleDealAnimation from '../../../components/RiffleDealAnimation';
 import type { CardTheme } from '../../../components/global/GameCustomizationModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import Photosphere360Background from '../../../components/Photosphere360Background';
+import AraratBackground from '../../../components/AraratBackground';
 import AR3DOverlay, {type AR3DOverlayHandle, type ARCard} from '../../../components/AR3DOverlay';
 
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
@@ -123,7 +123,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
 
   // Multiplayer state
   const [tableId, setTableId] = useState<string | null>(null);
-  const [showBlur, setShowBlur] = useState(true);
+  const [showBlur, setShowBlur] = useState(false);
   const [showMusicPlayer, setShowMusicPlayer] = useState(false);
   const [arEnabled, setArEnabled] = useState(true);
   const arOverlayRef = useRef<AR3DOverlayHandle>(null);
@@ -198,14 +198,14 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
   useEffect(() => {
     if (!arEnabled) { setArCards([]); return; }
     const myIdx = isMultiplayer ? mySeatRef.current : playerIndex;
-    // Positions spread around the table felt. Table felt ≈ ±0.50 X, ±0.38 Y
+    // Positions sit on the table felt (felt ≈ ±0.40 X, ±0.32 Y).
     const seatPositions: Record<number, { x: number; y: number; z: number }> = {
-      0: { x:  0.00, y: -0.76, z: 0.004 },  // You — bottom center
-      1: { x:  0.48, y: -0.22, z: 0.004 },  // near right
-      2: { x:  0.48, y:  0.10, z: 0.004 },  // far right
-      3: { x:  0.00, y:  0.36, z: 0.004 },  // far center — top
-      4: { x: -0.48, y:  0.10, z: 0.004 },  // far left
-      5: { x: -0.48, y: -0.22, z: 0.004 },  // near left
+      0: { x:  0.00, y: -0.62, z: 0.004 },  // You — bottom edge of table (brown rail)
+      1: { x:  0.34, y: -0.18, z: 0.004 },  // near right
+      2: { x:  0.34, y:  0.10, z: 0.004 },  // far right
+      3: { x:  0.00, y:  0.62, z: 0.004 },  // far center — top edge of table (mirror of seat 0)
+      4: { x: -0.34, y:  0.10, z: 0.004 },  // far left
+      5: { x: -0.34, y: -0.18, z: 0.004 },  // near left
     };
     const mapped: ARCard[] = [];
     players.forEach((player, seatIdx) => {
@@ -228,7 +228,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
         const spreadX = isMe ? cardOffset * 0.04 : (seatIdx === 3 ? cardOffset * 0.07 : 0);
         const spreadY = isMe ? 0 : (seatIdx === 3 ? 0 : cardOffset * 0.07);
         const cardZ = basePos.z;
-        const cardRotX = isMe ? Math.PI / 2 : 0;  // stand upright facing player
+        const cardRotX = 0;  // all cards lay flat on the table
         const cardRotZ = isMe ? 0 : (seatRotZ[seatIdx] ?? 0);
         mapped.push({
           key: `poker-${seatIdx}-${cardIdx}`,
@@ -260,12 +260,12 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
     if (!arEnabled) { setArLabels([]); return; }
     const myIdx = isMultiplayer ? mySeatRef.current : playerIndex;
     const labelPositions: Record<number, { x: number; y: number; z: number }> = {
-      0: { x:  0.00, y: -0.45, z: 0.004 },
-      1: { x:  0.55, y: -0.25, z: 0.004 },
-      2: { x:  0.55, y:  0.15, z: 0.004 },
-      3: { x:  0.00, y:  0.48, z: 0.004 },
-      4: { x: -0.55, y:  0.15, z: 0.004 },
-      5: { x: -0.55, y: -0.25, z: 0.004 },
+      0: { x:  0.00, y: -0.40, z: 0.004 },
+      1: { x:  0.22, y: -0.30, z: 0.004 },
+      2: { x:  0.22, y:  0.18, z: 0.004 },
+      3: { x:  0.00, y:  0.38, z: 0.004 },
+      4: { x: -0.22, y:  0.18, z: 0.004 },
+      5: { x: -0.22, y: -0.30, z: 0.004 },
     };
     const labels = players
       .map((player, seatIdx) => {
@@ -1299,9 +1299,9 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
 
   return (
     <View style={styles.container} {...(arEnabled ? arPinchResponder.panHandlers : {})}>
-      <Photosphere360Background overlayOpacity={showBlur ? 0.65 : 0.3}>
+      <AraratBackground overlayOpacity={showBlur ? 0.65 : 0.3}>
         <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/game_assets/casino_table_level2_textured.glb" hideCheckerboard boardScale={1.9} boardY={-0.91} boardGlbForceFlat boardTiltX={0.55} cardGlbPath="glb/cards/card-template.glb" cards={arCards} arLabels={arLabels} tableDist={0.90} boardFixed boardFixedZoom={0.8} />
-      </Photosphere360Background>
+      </AraratBackground>
       <View style={styles.overlay} pointerEvents="box-none">
       <SafeAreaView style={styles.safeArea}>
 
@@ -1421,14 +1421,13 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
       ) : (
         <View>
           <GameToolbar
-            title={roomName}
+            title={isMultiplayer ? roomName : 'Poker (vs AI)'}
             onBack={() => navigation.goBack()}
             backgroundColor="transparent"
           />
           <View>
             <GameToolbarControls
               buttons={[
-                { icon: showBlur ? '🌫️' : '✨', onPress: () => setShowBlur(!showBlur) },
                 { icon: showBackground ? '🖼️' : '🔲', onPress: () => setShowBackground(!showBackground) },
                 { icon: arEnabled ? '🥽' : '🎮', onPress: () => setArEnabled(!arEnabled) },
                 { icon: showMusicPlayer ? '🎵' : '🎶', onPress: () => setShowMusicPlayer(s => !s) },
@@ -1678,12 +1677,14 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
 
     </SafeAreaView>
       </View>
-      <InGameChat
-        roomId={tableIdRef.current || ''}
-        currentUserId={userId}
-        gameType="poker"
-        visible={true}
-      />
+      {isMultiplayer && (
+        <InGameChat
+          roomId={tableIdRef.current || ''}
+          currentUserId={userId}
+          gameType="poker"
+          visible={true}
+        />
+      )}
       <SyncedYouTubePlayer roomId={null} visible={true} />
     </View>
   );
