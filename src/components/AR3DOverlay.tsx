@@ -901,6 +901,49 @@ function handleTap(clientX, clientY) {
   const ny = -((clientY - rect.top)  / rect.height) * 2 + 1;
   raycaster.setFromCamera(new THREE.Vector2(nx, ny), camera);
 
+  // ── Embedded chess board: intersect a math-plane at the board's top
+  // surface (defined by detected heightAxis), then resolve (row, col) by
+  // nearest-square lookup against the extracted (colFs, rowRs).
+  if (HAS_EMBEDDED_CHESS_PIECES && window._embeddedChessReady && window._embeddedChessSquares) {
+    var sq2 = window._embeddedChessSquares;
+    var fK2 = sq2.fileAxis.charAt(sq2.fileAxis.length - 1).toLowerCase();
+    var rK2 = sq2.rankAxis.charAt(sq2.rankAxis.length - 1).toLowerCase();
+    var hK2 = sq2.heightAxis.charAt(sq2.heightAxis.length - 1).toLowerCase();
+    // Plane point: board top at file/rank centroid (boardGroup-local), then to world.
+    var pLocal = new THREE.Vector3();
+    pLocal[fK2] = (sq2.colFs[0] + sq2.colFs[7]) / 2;
+    pLocal[rK2] = (sq2.rowRs[0] + sq2.rowRs[7]) / 2;
+    pLocal[hK2] = sq2.boardTopHeight || 0;
+    var pWorld = boardGroup.localToWorld(pLocal.clone());
+    // Plane normal: heightAxis unit vector, rotated by boardGroup's world matrix.
+    var normalLocal = new THREE.Vector3();
+    normalLocal[hK2] = 1;
+    var normalWorld = normalLocal.clone().transformDirection(boardGroup.matrixWorld).normalize();
+    var ePlane = new THREE.Plane().setFromNormalAndCoplanarPoint(normalWorld, pWorld);
+    var hitPt = new THREE.Vector3();
+    if (!raycaster.ray.intersectPlane(ePlane, hitPt)) {
+      _rnLog('[AR3D-HTML] embedded tap: ray missed plane');
+      return;
+    }
+    var elp = boardGroup.worldToLocal(hitPt.clone());
+    var fVal = elp[fK2], rVal = elp[rK2];
+    var bestCol = 0, bestColD = 1e9;
+    for (var ci = 0; ci < 8; ci++) {
+      var dC = Math.abs(sq2.colFs[ci] - fVal);
+      if (dC < bestColD) { bestColD = dC; bestCol = ci; }
+    }
+    var bestRow = 0, bestRowD = 1e9;
+    for (var ri = 0; ri < 8; ri++) {
+      var dR = Math.abs(sq2.rowRs[ri] - rVal);
+      if (dR < bestRowD) { bestRowD = dR; bestRow = ri; }
+    }
+    if (window.ReactNativeWebView) {
+      window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'tap', row: bestRow, col: bestCol }));
+    }
+    _rnLog('[AR3D-HTML] embedded tap -> row=' + bestRow + ' col=' + bestCol + ' (lp ' + fK2 + '=' + fVal.toFixed(2) + ' ' + rK2 + '=' + rVal.toFixed(2) + ')');
+    return;
+  }
+
   const hits = raycaster.intersectObject(hitPlane, false);
   if (!hits.length) return;
   // Convert world hit point → boardGroup local space
@@ -1159,25 +1202,53 @@ if (BOARD_URI) {
       // Collect all piece nodes by name pattern.
       // Dedupe by name: GLTFLoader may produce a parent Group AND a child
       // Mesh with the same name; we only want the outermost match per name.
-      var pieceRe = /^(King|Queen|Bishop|Knight|Rook|Pawn)_([AB])(?:_[LR])?(?:\\.\\d+)?$/;
+      // NOTE: three.js GLTFLoader passes node names through
+      // PropertyBinding.sanitizeNodeName which strips '.', so 'Pawn_A.001'
+      // becomes 'Pawn_A001' at runtime. Accept both forms (and 'Pawn_A_001'
+      // just in case) by making the dot/underscore separator optional.
+      var pieceRe = /^(King|Queen|Bishop|Knight|Rook|Pawn)_([AB])(?:_[LR])?(?:[._]?\\d+)?$/;
       var rawPieces = [];
-      var seenNames = {};
+      // First pass: collect EVERY node whose name matches the regex,
+      // grouped by exact name. We'll then pick exactly one entry per name.
+      var byName = {};
       model.traverse(function(ch) {
         var nm = ch.name || '';
+        if (!pieceRe.test(nm)) return;
+        if (!byName[nm]) byName[nm] = [];
+        byName[nm].push(ch);
+      });
+      var rawCollect = [];
+      Object.keys(byName).forEach(function(nm) {
+        var candidates = byName[nm];
+        // Prefer a Mesh leaf over a Group container (the Group typically just
+        // wraps the visible Mesh; setting position on either works, but the
+        // Mesh has the correct world position baked in).
+        var pick = null;
+        for (var k = 0; k < candidates.length; k++) {
+          if (candidates[k].isMesh) { pick = candidates[k]; break; }
+        }
+        if (!pick) pick = candidates[0];
         var mt = nm.match(pieceRe);
-        if (!mt) return;
-        if (seenNames[nm]) return;  // skip duplicate-named children
-        seenNames[nm] = true;
+        rawCollect.push({ ch: pick, mt: mt, nm: nm });
+        if (candidates.length > 1) {
+          _rnLog('[AR3D-HTML] dedup ' + nm + ' candidates=' + candidates.length + ' picked=' + (pick.isMesh ? 'Mesh' : pick.type));
+        }
+      });
+      _rnLog('[AR3D-HTML] piece names found: count=' + rawCollect.length + ' names=' + Object.keys(byName).sort().join(','));
+      // Re-parent every piece directly under boardGroup so we can drive its
+      // position using simple boardGroup-local coordinates, with no need to
+      // convert through some deep parent's transform. attach() preserves the
+      // current world transform during the re-parent.
+      rawCollect.forEach(function(rc) {
+        var ch = rc.ch; var mt = rc.mt; var nm = rc.nm;
+        boardGroup.attach(ch);
         var typeMap = { King:'king', Queen:'queen', Bishop:'bishop', Knight:'knight', Rook:'rook', Pawn:'pawn' };
         var typ = typeMap[mt[1]];
         var col = mt[2] === 'A' ? 'white' : 'black';
-        // Compute boardGroup-local position (boardGroup.localToWorld then inverse).
-        var worldPos = new THREE.Vector3();
-        ch.getWorldPosition(worldPos);
-        var localPos = boardGroup.worldToLocal(worldPos.clone());
-        rawPieces.push({ node: ch, name: nm, type: typ, color: col, localX: localPos.x, localY: localPos.y, localZ: localPos.z });
+        // After attach, ch.position is in boardGroup-local coordinates.
+        rawPieces.push({ node: ch, name: nm, type: typ, color: col, localX: ch.position.x, localY: ch.position.y, localZ: ch.position.z });
       });
-      _rnLog('[AR3D-HTML] Embedded chess pieces extracted: count=' + rawPieces.length + ' names=' + Object.keys(seenNames).sort().join(','));
+      _rnLog('[AR3D-HTML] Embedded chess pieces extracted: count=' + rawPieces.length + ' names=' + Object.keys(byName).sort().join(','));
       // ── Auto-detect file/rank axes in boardGroup-local space ──────────
       // We can't assume which of x/y/z is the rank axis: it depends on the
       // source model's up-axis convention. Pick the axis whose mean differs
@@ -1298,6 +1369,17 @@ if (BOARD_URI) {
       for (var r = 2; r <= 5; r++) rowRs[r] = r1 + (r - 1) * midStep;
       // Save to window for updatePieces.
       window._embeddedChessSquares = { colFs: colFs, rowRs: rowRs, fileAxis: fileAxis, rankAxis: rankAxis, heightAxis: heightAxis };
+      // boardTopHeight ≈ each piece's height-axis value (pieces sit on top of
+      // the board surface). Use the median piece height for robustness.
+      try {
+        var hKey = heightAxis === 'localX' ? 'localX' : (heightAxis === 'localY' ? 'localY' : 'localZ');
+        var allH = rawPieces.map(function(p){ return p[hKey]; }).sort(function(a,b){return a-b;});
+        var medianH = allH.length ? allH[Math.floor(allH.length/2)] : 0;
+        window._embeddedChessSquares.boardTopHeight = medianH;
+        _rnLog('[AR3D-HTML] boardTopHeight(median piece h)=' + medianH.toFixed(4));
+      } catch (e) {
+        _rnLog('[AR3D-HTML] boardTopHeight calc failed: ' + e.message);
+      }
       window._embeddedChessNodes = rawPieces.map(function(p) {
         return {
           node: p.node,
@@ -1316,9 +1398,51 @@ if (BOARD_URI) {
       });
       window._embeddedChessReady = true;
       _rnLog('[AR3D-HTML] Embedded chess: white=' + byColor.white.length + ' black=' + byColor.black.length + ' colFs=' + JSON.stringify(colFs.map(function(x){return Number(x.toFixed(3));})) + ' rowRs=' + JSON.stringify(rowRs.map(function(z){return Number(z.toFixed(3));})));
+
+      // ── Embedded hit-plane sized to the real board ───────────────────
+      // The default hitPlane is sized for the procedural board (~0.61 m).
+      // The embedded board is in model units (~26 across), in a different
+      // plane orientation (depending on heightAxis). Build a dedicated
+      // plane that lies on the embedded board's top surface and spans its
+      // full square area, so taps raycast onto the right squares.
+      try {
+        var _eFileK = fileAxis.charAt(fileAxis.length - 1).toLowerCase();
+        var _eRankK = rankAxis.charAt(rankAxis.length - 1).toLowerCase();
+        var _eHeightK = heightAxis.charAt(heightAxis.length - 1).toLowerCase();
+        var _eFileSpan = Math.abs(colFs[7] - colFs[0]) * (8 / 7);  // full board width
+        var _eRankSpan = Math.abs(rowRs[7] - rowRs[0]) * (8 / 7);
+        var _ehp = new THREE.Mesh(
+          new THREE.PlaneGeometry(_eFileSpan, _eRankSpan),
+          new THREE.MeshBasicMaterial({ visible: false, side: THREE.DoubleSide })
+        );
+        // PlaneGeometry's face normal is +Z by default. Rotate so its
+        // normal aligns with the heightAxis in boardGroup-local space.
+        if (_eHeightK === 'y') _ehp.rotation.x = -Math.PI / 2;
+        else if (_eHeightK === 'x') _ehp.rotation.y = Math.PI / 2;
+        // (z: no rotation needed)
+        // Position at board top, centered on file/rank means.
+        var _eBT = (window._embeddedChessSquares.boardTopHeight !== undefined)
+          ? window._embeddedChessSquares.boardTopHeight : 0;
+        _ehp.position[_eHeightK] = _eBT + 0.001;
+        _ehp.position[_eFileK]   = (colFs[0] + colFs[7]) / 2;
+        _ehp.position[_eRankK]   = (rowRs[0] + rowRs[7]) / 2;
+        boardGroup.add(_ehp);
+        window._embeddedHitPlane = _ehp;
+        // Also disable the procedural hitPlane in embedded mode so it
+        // can't shadow embedded taps with its (wrong) orientation.
+        hitPlane.visible = false;  // (ignored by raycaster anyway since visible:false; we'll switch object below)
+        _rnLog('[AR3D-HTML] embedded hitPlane: file=' + _eFileSpan.toFixed(2) + ' rank=' + _eRankSpan.toFixed(2) + ' h=' + _eBT.toFixed(3));
+      } catch (e) {
+        _rnLog('[AR3D-HTML] embedded hitPlane err: ' + e.message);
+      }
+
       // Apply any pending pieces update queued before extraction completed.
       if (window._pieces && window._pieces.length) {
         try { updatePieces(window._pieces); } catch (e) { _rnLog('[AR3D-HTML] embedded updatePieces err: ' + e.message); }
+      }
+      // Re-render any pending move dots now that the per-square table exists.
+      if (window._moves && window._moves.length) {
+        try { updateDots(window._moves); } catch (e) { _rnLog('[AR3D-HTML] embedded updateDots err: ' + e.message); }
       }
     }
 
@@ -2256,6 +2380,14 @@ function updatePieces(pieces) {
       if (p.pieceType === 'destination_marker' || p.pieceType === 'stack_badge') return;
       desired.push({ row: p.row, col: p.col, type: p.pieceType, color: p.side, fulfilled: false, isSelected: !!p.isSelected });
     });
+    // Sanity: count desired vs nodes by color/type so we can see whether
+    // the matching has enough nodes available.
+    try {
+      var dCounts = {}, nCounts = {};
+      desired.forEach(function(d){ var k=d.color+'_'+d.type; dCounts[k]=(dCounts[k]||0)+1; });
+      nodes.forEach(function(n){ var k=n.color+'_'+n.type; nCounts[k]=(nCounts[k]||0)+1; });
+      _rnLog('[AR3D-HTML] updatePieces desired=' + JSON.stringify(dCounts) + ' nodes=' + JSON.stringify(nCounts));
+    } catch (e) {}
     // 2. Try to fulfill each desired piece with the closest matching node
     //    (prefer same current square, then closest). Mark used nodes.
     nodes.forEach(function(n) { n._used = false; });
@@ -2298,22 +2430,20 @@ function updatePieces(pieces) {
     var fileK = ck(fileAx), rankK = ck(rankAx), heightK = ck(heightAx);
     desired.forEach(function(d) {
       var n = d._node;
-      if (!n) return;
+      if (!n) {
+        _rnLog('[AR3D-HTML] WARN: no node matched for desired ' + d.color + ' ' + d.type + ' @ (' + d.row + ',' + d.col + ')');
+        return;
+      }
+      var moved = (n.curRow !== d.row) || (n.curCol !== d.col);
+      if (moved) {
+        _rnLog('[AR3D-HTML] move ' + d.color + ' ' + d.type + ' from (' + n.curRow + ',' + n.curCol + ') -> (' + d.row + ',' + d.col + ') node.parent=' + (n.node.parent ? n.node.parent.name||n.node.parent.type : 'null'));
+      }
       n.curRow = d.row; n.curCol = d.col;
-      var tFile = sq.colFs[d.col];
-      var tRank = sq.rowRs[d.row];
-      // Build target boardGroup-local Vector3 with the right axes.
-      var targetLocal = new THREE.Vector3();
-      targetLocal[fileK] = tFile;
-      targetLocal[rankK] = tRank;
-      // Preserve the piece's native height — different piece types may sit
-      // at slightly different base Y in the source model, but staying with
-      // the original keeps the visual exact.
-      targetLocal[heightK] = n['origLocal' + heightK.toUpperCase()];
-      // boardGroup-local -> world -> node parent's local
-      var targetWorld = boardGroup.localToWorld(targetLocal.clone());
-      n.node.parent.worldToLocal(targetWorld);
-      n.node.position.copy(targetWorld);
+      // Pieces were re-parented to boardGroup at extraction time, so we can
+      // set node.position directly in boardGroup-local coordinates.
+      n.node.position[fileK]   = sq.colFs[d.col];
+      n.node.position[rankK]   = sq.rowRs[d.row];
+      n.node.position[heightK] = n['origLocal' + heightK.toUpperCase()];
       n.node.visible = true;
     });
     // 4. Hide unused nodes (captured pieces).
@@ -2449,11 +2579,46 @@ const dotMat    = new THREE.MeshBasicMaterial({ color:0xffffff, transparent:true
 function updateDots(moves) {
   dotMeshes.forEach(d => boardGroup.remove(d));
   dotMeshes.length = 0;
+  // Embedded chess mode: use the per-square (colFs, rowRs) table extracted
+  // from the board GLB so dots line up exactly with the real board squares.
+  var embed = (HAS_EMBEDDED_CHESS_PIECES && window._embeddedChessReady) ? window._embeddedChessSquares : null;
+  // Compute the correct dot scale for embedded mode (model units differ).
+  var embedDotScale = 1;
+  if (embed && embed.colFs && embed.colFs.length >= 2) {
+    var squareSpacing = Math.abs(embed.colFs[1] - embed.colFs[0]);
+    embedDotScale = squareSpacing / SQUARE_W;
+  }
+  if (moves && moves.length) {
+    _rnLog('[AR3D-HTML] updateDots count=' + moves.length + ' embed=' + !!embed + ' scale=' + embedDotScale.toFixed(3) + (embed ? ' h=' + (embed.boardTopHeight||0).toFixed(3) + ' axes=f' + embed.fileAxis + '/r' + embed.rankAxis + '/h' + embed.heightAxis : ''));
+  }
   for (const m of (moves||[])) {
     const d = new THREE.Mesh(dotGeo, dotMat);
-    const loc = boardToLocal(m.row, m.col);
-    // Place dots at same z as hitPlane so visual and tap positions align exactly.
-    d.position.set(loc[0], loc[1], SURFACE_Z);
+    if (embed) {
+      var fileK = embed.fileAxis.charAt(embed.fileAxis.length - 1).toLowerCase();
+      var rankK = embed.rankAxis.charAt(embed.rankAxis.length - 1).toLowerCase();
+      var heightK = embed.heightAxis.charAt(embed.heightAxis.length - 1).toLowerCase();
+      // Build target boardGroup-local position.
+      var tLocal = new THREE.Vector3();
+      tLocal[fileK] = embed.colFs[m.col];
+      tLocal[rankK] = embed.rowRs[m.row];
+      // Place just above the board's top surface in boardGroup-local height.
+      // Lift proportional to model scale (small fraction of square spacing).
+      var lift = embedDotScale * 0.01;
+      tLocal[heightK] = (embed.boardTopHeight !== undefined ? embed.boardTopHeight : 0) + lift;
+      d.position.copy(tLocal);
+      // Re-orient the circle so it lies flat on the board surface (face up
+      // along the height axis, not boardGroup +Z).
+      if (heightK === 'y') {
+        d.rotation.x = -Math.PI / 2;
+      } else if (heightK === 'x') {
+        d.rotation.y = Math.PI / 2;
+      } // heightK === 'z' is the default circle orientation
+      // Scale the dot to match the embedded board's square spacing.
+      d.scale.setScalar(embedDotScale);
+    } else {
+      const loc = boardToLocal(m.row, m.col);
+      d.position.set(loc[0], loc[1], SURFACE_Z);
+    }
     dotMeshes.push(d);
     boardGroup.add(d);
   }
@@ -2479,8 +2644,9 @@ window.handleRNMessage = function(data) {
   if (data.type === 'scene') {
     window._pieces = data.pieces || [];
     window._cards = data.cards || [];
+    window._moves = data.moves || [];
     updatePieces(window._pieces);
-    updateDots(data.moves || []);
+    updateDots(window._moves);
     updateCards(window._cards);
     updateLabels(data.labels || []);
   }
