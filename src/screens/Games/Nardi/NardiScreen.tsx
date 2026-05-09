@@ -48,6 +48,7 @@ import { useAuth } from '../../../libs/hooks/useAuth';
 import { useAchievements } from '../../../contexts/AchievementContext';
 import { v4 as uuidv4 } from 'uuid';
 import SyncedYouTubePlayer from '../../../components/SyncedYouTubePlayer';
+import { playPieceMoveSound } from '../../../utils/nardiSound';
 
 const { width, height } = Dimensions.get('window');
 // Must match getGameBoardSize(false, false, 600, 32) so piece coordinates
@@ -977,6 +978,9 @@ const NardiScreen = ({ navigation, route }: any) => {
     const updated = applyMove(gameState, move);
     console.log('📍 Move:', move.from, '->', move.to, 'movesLeft:', updated.movesRemaining, combined ? '(combined)' : '');
 
+    // Play piece move sound
+    playPieceMoveSound();
+
     // Tint matching die(s) red in AR mode
     if (arEnabled) {
       const isDoubles = gameState.dice.die1 === gameState.dice.die2 && gameState.dice.die1 > 0;
@@ -1074,6 +1078,10 @@ const NardiScreen = ({ navigation, route }: any) => {
     statesSequence.forEach((s, i) => {
       const t = setTimeout(() => {
         setGameState(s);
+        // Play piece-move sound for each AI step (skip index 0 = pre-move state)
+        if (i > 0) {
+          playPieceMoveSound();
+        }
         // Tint the AI's consumed die/dice red (skip index 0 = initial state)
         if (arEnabled && i > 0) {
           const consumed = aiDieValues[i];
