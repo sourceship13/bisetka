@@ -1,719 +1,745 @@
-import React, {useState, useEffect, useRef} from 'react';
-import {View, Text, StyleSheet, TouchableOpacity, Animated, ImageBackground, Dimensions, Alert} from 'react-native';
+/**
+ * Yamb (Ямб / Покер на костях) — solo dice-poker grid-fill game.
+ * 5 d6, up to 3 rolls per turn, 14 categories × 4 columns (Down / Up / Free / Announced).
+ * Game ends when all 56 cells are filled.
+ *
+ * Backend keeps using the legacy 'mrotsi' game-type key so entry-fee, prize, and
+ * room/session services continue to work without migration.
+ */
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Dimensions,
+  Alert,
+  ScrollView,
+  ImageBackground,
+} from 'react-native';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import GameToolbar from '../../../components/global/GameToolbar';
 import GameToolbarControls from '../../../components/global/GameToolbarControls';
-import ReAnimated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
-import ExpandableView from '../../../components/global/ExpandableView';
-import { aiMoveLogService } from '../../../services/aiMoveLog.service';
-import Photosphere360Background from '../../../components/Photosphere360Background';
-import AR3DOverlay, {type AR3DOverlayHandle} from '../../../components/AR3DOverlay';
+
+const MROTSI_BACKGROUND = require('../../../../assets/backgrounds/game_backgrounds/street_armo_bisetka.png');
 import { v4 as uuidv4 } from 'uuid';
 import { useGameEndRefresh } from '../../../libs/hooks/useGameEndRefresh';
 import Dice3DSimple from '../../../components/Games/Dice3DSimple';
 import { apiService } from '../../../services/api.service';
 import { useAuth } from '../../../libs/hooks/useAuth';
 import { useAchievements } from '../../../contexts/AchievementContext';
-import useDeviceType from '../../../hooks/useDeviceType';
-import { getSpacing, getFontSize } from '../../../theme/responsive';
 import SyncedYouTubePlayer from '../../../components/SyncedYouTubePlayer';
 import InGameChat from '../../../components/InGameChat';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-interface GameState {
-  playerDice: number[];
-  opponentDice: number[];
-  playerScore: number;
-  opponentScore: number;
-  currentRound: number;
-  totalRounds: number;
-  playerRolled: boolean;
-  opponentRolled: boolean;
-  gameMode: 'ai' | 'random' | 'private';
-  isGameOver: boolean;
-  winner: string | null;
+// ─── Game model ────────────────────────────────────────────────────────────────
+
+type Category =
+  | 'ones' | 'twos' | 'threes' | 'fours' | 'fives' | 'sixes'
+  | 'max' | 'min'
+  | 'twoPairs' | 'threeOfKind' | 'straight' | 'fullHouse' | 'fourOfKind' | 'yamb';
+
+type Section = 'upper' | 'middle' | 'lower';
+
+type Column = 'down' | 'up' | 'free' | 'announced';
+
+interface CategoryDef {
+  key: Category;
+  label: string;
+  short: string;
+  section: Section;
 }
 
-const MrotsiScreen = ({navigation, route}: any) => {
-  const { isTablet } = useDeviceType();
-  const {session, gameType, mode: routeMode} = route.params || {};
-  const mode = routeMode ?? session?.mode ?? 'ai'; // fall back to session.mode; default to 'ai' so AI always works
-  const [gameState, setGameState] = useState<GameState>(initializeGame(mode));
-  const [showBlur, setShowBlur] = useState(false);
-  const [showMusicPlayer, setShowMusicPlayer] = useState(false);
-  const [arEnabled, setArEnabled] = useState(true);
-  const arOverlayRef = useRef<AR3DOverlayHandle>(null);
-  const [showBackground, setShowBackground] = useState(true);
-  const toolbarExpanded = useSharedValue(false);
-  const chevronStyle = useAnimatedStyle(() => ({
-    transform: [{ rotate: withTiming(toolbarExpanded.value ? '180deg' : '0deg', { duration: 250 }) }],
-  }));
-  const [diceAnimations] = useState(
-    Array(5).fill(0).map(() => new Animated.Value(0))
-  );
-  const [rollingDice, setRollingDice] = useState<number[]>([1, 1, 1, 1, 1]);
-  const [isRolling, setIsRolling] = useState(false);
-  const [opponentRollingDice, setOpponentRollingDice] = useState<number[]>([1, 1, 1, 1, 1]);
-  const [isOpponentRolling, setIsOpponentRolling] = useState(false);
-  const gameIdRef = useRef<string>(uuidv4());
-  const lastPlayerDiceRef = useRef<{ dice: number[]; score: number } | null>(null);
-  const rollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const opponentRollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const { refreshOnGameEnd, isRefreshing: isRefreshingGameEnd } = useGameEndRefresh(undefined, 'mrotsi');
+const CATEGORIES: CategoryDef[] = [
+  { key: 'ones',        label: 'Ones',          short: '1s',     section: 'upper' },
+  { key: 'twos',        label: 'Twos',          short: '2s',     section: 'upper' },
+  { key: 'threes',      label: 'Threes',        short: '3s',     section: 'upper' },
+  { key: 'fours',       label: 'Fours',         short: '4s',     section: 'upper' },
+  { key: 'fives',       label: 'Fives',         short: '5s',     section: 'upper' },
+  { key: 'sixes',       label: 'Sixes',         short: '6s',     section: 'upper' },
+  { key: 'max',         label: 'Max',           short: 'Max',    section: 'middle' },
+  { key: 'min',         label: 'Min',           short: 'Min',    section: 'middle' },
+  { key: 'twoPairs',    label: 'Two Pairs',     short: '2 Pair', section: 'lower' },
+  { key: 'threeOfKind', label: 'Three of Kind', short: '3-Kind', section: 'lower' },
+  { key: 'straight',    label: 'Straight',      short: 'Strt',   section: 'lower' },
+  { key: 'fullHouse',   label: 'Full House',    short: 'Full',   section: 'lower' },
+  { key: 'fourOfKind',  label: 'Poker',         short: '4-Kind', section: 'lower' },
+  { key: 'yamb',        label: 'Yamb',          short: 'Yamb',   section: 'lower' },
+];
 
-  // Entry fee and prize tracking
+const COLUMNS: Column[] = ['down', 'up', 'free', 'announced'];
+const COLUMN_LABEL: Record<Column, string> = {
+  down: '↓',
+  up: '↑',
+  free: 'Free',
+  announced: 'Ann',
+};
+
+type Sheet = Record<Column, Partial<Record<Category, number>>>;
+
+const emptySheet = (): Sheet => ({ down: {}, up: {}, free: {}, announced: {} });
+
+// ─── Scoring helpers ───────────────────────────────────────────────────────────
+
+const sum = (a: number[]) => a.reduce((s, n) => s + n, 0);
+
+function counts(dice: number[]): Record<number, number> {
+  const c: Record<number, number> = {};
+  dice.forEach(d => { c[d] = (c[d] || 0) + 1; });
+  return c;
+}
+
+function scoreFor(cat: Category, dice: number[]): number {
+  if (dice.length !== 5 || dice.some(d => d < 1 || d > 6)) return 0;
+  const c = counts(dice);
+  const total = sum(dice);
+  switch (cat) {
+    case 'ones':   return (c[1] || 0) * 1;
+    case 'twos':   return (c[2] || 0) * 2;
+    case 'threes': return (c[3] || 0) * 3;
+    case 'fours':  return (c[4] || 0) * 4;
+    case 'fives':  return (c[5] || 0) * 5;
+    case 'sixes':  return (c[6] || 0) * 6;
+    case 'max':    return total;
+    case 'min':    return total;
+    case 'twoPairs': {
+      // Two distinct pairs (pair counts as 2 of a kind)
+      const pairs = Object.entries(c).filter(([, n]) => n >= 2).map(([v]) => parseInt(v, 10));
+      if (pairs.length < 2) return 0;
+      // Use the two highest-value pair faces for max score
+      pairs.sort((a, b) => b - a);
+      const [p1, p2] = pairs;
+      return (p1 * 2 + p2 * 2) + 10;
+    }
+    case 'threeOfKind': {
+      const trip = Object.entries(c).find(([, n]) => n >= 3);
+      if (!trip) return 0;
+      return parseInt(trip[0], 10) * 3 + 20;
+    }
+    case 'straight': {
+      const set = new Set(dice);
+      const small = [1, 2, 3, 4, 5].every(v => set.has(v));
+      const large = [2, 3, 4, 5, 6].every(v => set.has(v));
+      if (large) return 45;
+      if (small) return 35;
+      return 0;
+    }
+    case 'fullHouse': {
+      const trip = Object.entries(c).find(([, n]) => n >= 3);
+      if (!trip) return 0;
+      const tripFace = parseInt(trip[0], 10);
+      const pair = Object.entries(c).find(([v, n]) => n >= 2 && parseInt(v, 10) !== tripFace);
+      if (!pair) return 0;
+      return tripFace * 3 + parseInt(pair[0], 10) * 2 + 30;
+    }
+    case 'fourOfKind': {
+      const four = Object.entries(c).find(([, n]) => n >= 4);
+      if (!four) return 0;
+      return parseInt(four[0], 10) * 4 + 40;
+    }
+    case 'yamb': {
+      const yamb = Object.entries(c).find(([, n]) => n >= 5);
+      if (!yamb) return 0;
+      return parseInt(yamb[0], 10) * 5 + 50;
+    }
+  }
+}
+
+// ─── Column-rule helpers ───────────────────────────────────────────────────────
+
+/** Is the (col,cat) cell legal to fill right now given column rules + announcement? */
+function isCellWriteable(
+  col: Column,
+  cat: Category,
+  sheet: Sheet,
+  announced: Category | null,
+): boolean {
+  if (sheet[col][cat] !== undefined) return false;
+  if (col === 'free') return true;
+  if (col === 'announced') return announced === cat;
+  if (col === 'down') {
+    // Lowest-index unfilled row in this column
+    for (const c of CATEGORIES) {
+      if (sheet.down[c.key] === undefined) return c.key === cat;
+    }
+    return false;
+  }
+  if (col === 'up') {
+    for (let i = CATEGORIES.length - 1; i >= 0; i--) {
+      const c = CATEGORIES[i];
+      if (sheet.up[c.key] === undefined) return c.key === cat;
+    }
+    return false;
+  }
+  return false;
+}
+
+function totalsFor(sheet: Sheet): {
+  perColumn: Record<Column, { upper: number; upperBonus: number; middle: number; lower: number; total: number }>;
+  grandTotal: number;
+  filledCells: number;
+} {
+  const perColumn = {} as Record<Column, { upper: number; upperBonus: number; middle: number; lower: number; total: number }>;
+  let filledCells = 0;
+  let grand = 0;
+  for (const col of COLUMNS) {
+    let upper = 0, middle = 0, lower = 0;
+    for (const c of CATEGORIES) {
+      const v = sheet[col][c.key];
+      if (v === undefined) continue;
+      filledCells++;
+      if (c.section === 'upper') upper += v;
+      else if (c.section === 'lower') lower += v;
+    }
+    // Middle: (max - min) * ones — only if all three middle-relevant cells are present
+    const onesV = sheet[col].ones;
+    const maxV = sheet[col].max;
+    const minV = sheet[col].min;
+    if (onesV !== undefined && maxV !== undefined && minV !== undefined) {
+      middle = Math.max(0, (maxV - minV)) * onesV;
+    }
+    const upperBonus = upper >= 60 ? 30 : 0;
+    const colTotal = upper + upperBonus + middle + lower;
+    perColumn[col] = { upper, upperBonus, middle, lower, total: colTotal };
+    grand += colTotal;
+  }
+  return { perColumn, grandTotal: grand, filledCells };
+}
+
+// ─── Dice state ────────────────────────────────────────────────────────────────
+
+const DEFAULT_DICE = [1, 1, 1, 1, 1];
+const DICE_SIZE = Math.floor((SCREEN_WIDTH / 5.6));
+
+interface YambGameState {
+  sheet: Sheet;
+  dice: number[];
+  kept: boolean[];
+  rollsUsed: number;        // 0–3
+  announced: Category | null;
+  rolling: boolean;
+  isGameOver: boolean;
+  finalScore: number;
+}
+
+function freshGame(): YambGameState {
+  return {
+    sheet: emptySheet(),
+    dice: [...DEFAULT_DICE],
+    kept: [false, false, false, false, false],
+    rollsUsed: 0,
+    announced: null,
+    rolling: false,
+    isGameOver: false,
+    finalScore: 0,
+  };
+}
+
+// ─── Component ─────────────────────────────────────────────────────────────────
+
+const MrotsiScreen = ({ navigation, route }: any) => {
+  // route params accepted for navigation compatibility (currently unused — Yamb is solo)
+  void route?.params;
+
+  const [state, setState] = useState<YambGameState>(freshGame());
+  const [showMusicPlayer, setShowMusicPlayer] = useState(false);
+  const [showBackground, setShowBackground] = useState(true);
+  const [pickerVisible, setPickerVisible] = useState(false); // announce picker
+  const gameIdRef = useRef<string>(uuidv4());
+
   const { user, setUser, refreshUser } = useAuth();
   const { showAchievements } = useAchievements();
   const [entryDeducted, setEntryDeducted] = useState(false);
   const [prizeAwarded, setPrizeAwarded] = useState(false);
   const [isFinalizingGame, setIsFinalizingGame] = useState(false);
+  const { refreshOnGameEnd, isRefreshing: isRefreshingGameEnd } =
+    useGameEndRefresh(undefined, 'mrotsi');
 
   const isPostGameSyncing = isFinalizingGame || isRefreshingGameEnd;
 
+  // Mirror balance/state to auth user
   const syncUserBalance = (newBalance: number) => {
-    setUser(currentUser => {
-      if (!currentUser) {
-        return currentUser;
-      }
-
+    setUser(curr => {
+      if (!curr) return curr;
       return {
-        ...currentUser,
+        ...curr,
         balance: newBalance,
-        playerStats: currentUser.playerStats
-          ? {
-              ...currentUser.playerStats,
-              available_points: newBalance,
-            }
-          : currentUser.playerStats,
+        playerStats: curr.playerStats
+          ? { ...curr.playerStats, available_points: newBalance }
+          : curr.playerStats,
       };
     });
   };
 
-  const handleBackPress = () => {
-    if (gameState.isGameOver && isPostGameSyncing) {
-      BisetkaAlert.alert(
-        'Updating Profile',
-        'Finishing your points sync before returning home.'
-      );
-      return;
-    }
+  // ─── Entry fee / prize ──────────────────────────────────────────────────────
 
-    navigation.goBack();
-  };
-
-  // Entry fee deduction handler
   const handleGameStart = async () => {
-    if (entryDeducted) return;
-
-    if (!user?.id) {
-      console.log('⏳ Waiting for authenticated user before deducting Mrotsi entry fee');
-      return;
-    }
-
+    if (entryDeducted || !user?.id) return;
     try {
-      console.log('💰 Deducting mrotsi entry fee...');
-      console.log('   User ID:', user.id);
-      console.log('   Game ID:', gameIdRef.current);
       const result = await apiService.deductEntry('mrotsi', gameIdRef.current);
-      
       if (result.success) {
-        console.log(`✅ Entry deducted: -50 points. Balance: ${result.newBalance}`);
         setEntryDeducted(true);
         syncUserBalance(result.newBalance);
-        refreshUser().catch(console.error);
+        refreshUser().catch(() => {});
       } else {
-        console.error('❌ Insufficient points:', result.error);
-        Alert.alert('Insufficient Points', result.error || 'You need 50 points to play mrotsi.', [
-          { text: 'OK', onPress: () => navigation.goBack() }
+        Alert.alert('Insufficient Points', result.error || 'You need 50 points to play Yamb.', [
+          { text: 'OK', onPress: () => navigation.goBack() },
         ]);
       }
-    } catch (error: any) {
-      console.error('❌ Entry deduction error:', error);
-      console.error('   Error message:', error?.message);
-      console.error('   Error status:', error?.status);
-      console.error('   Full error:', JSON.stringify(error, null, 2));
-      Alert.alert('Error', `Failed to deduct entry fee: ${error?.message || 'Unknown error'}`, [
-        { text: 'OK', onPress: () => navigation.goBack() }
+    } catch (err: any) {
+      Alert.alert('Error', `Failed to deduct entry fee: ${err?.message || 'Unknown error'}`, [
+        { text: 'OK', onPress: () => navigation.goBack() },
       ]);
     }
   };
 
-  // Prize award handler
-  const handleGameEnd = async (didWin: boolean) => {
+  const handleGameEnd = async (finalScore: number) => {
     if (prizeAwarded || !user?.id) return;
-
     try {
       setIsFinalizingGame(true);
+      // "Win" threshold for Yamb solo: 200 pts is a respectable game.
+      const didWin = finalScore >= 200;
       const result = didWin ? 'win' : 'loss';
-      console.log(`🏆 Awarding prize and logging game for ${result}...`);
-      
-      const prizeResult = await apiService.awardPrizeAndLog(
-        'mrotsi',
-        result,
-        'ai',
-        {
-          gameId: gameIdRef.current,
-          playerScore: didWin ? 1 : 0,
-        }
-      );
-      
-      if (prizeResult.success) {
-        console.log(`✅ ${prizeResult.message}`);
+      const prize = await apiService.awardPrizeAndLog('mrotsi', result, 'ai', {
+        gameId: gameIdRef.current,
+        playerScore: finalScore,
+      });
+      if (prize.success) {
         setPrizeAwarded(true);
-        syncUserBalance(prizeResult.newBalance);
-        const unlockedAchievements = prizeResult.unlockedAchievements ?? [];
-        if (unlockedAchievements.length > 0) {
-          showAchievements(unlockedAchievements);
-        }
+        syncUserBalance(prize.newBalance);
+        const unlocked = prize.unlockedAchievements ?? [];
+        if (unlocked.length > 0) showAchievements(unlocked);
         await refreshOnGameEnd();
-        
         if (didWin) {
           setTimeout(() => {
-            Alert.alert('🏆 Victory!', `You won ${prizeResult.prize} points!\n\nNew balance: ${prizeResult.newBalance} points`);
-          }, 2000);
+            Alert.alert(
+              '🏆 Great Game!',
+              `Final score: ${finalScore}\nYou won ${prize.prize} points!\n\nNew balance: ${prize.newBalance}`,
+            );
+          }, 600);
         }
       }
-    } catch (error: any) {
-      console.error('❌ Prize award error:', error);
+    } catch {
+      // swallow — UI already shows final score
     } finally {
       setIsFinalizingGame(false);
     }
   };
 
-  // Entry fee & prize logic
-  // Deduct entry when game starts
   useEffect(() => {
-    if (!entryDeducted && user?.id) {
-      handleGameStart();
-    }
+    if (!entryDeducted && user?.id) handleGameStart();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [entryDeducted, user?.id]);
 
-  // Award prize when game ends
   useEffect(() => {
-    if (gameState.isGameOver && !prizeAwarded) {
-      const didWin = gameState.winner === 'player';
-      handleGameEnd(didWin);
+    if (state.isGameOver && !prizeAwarded) handleGameEnd(state.finalScore);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.isGameOver, prizeAwarded, state.finalScore]);
+
+  // ─── Handlers ───────────────────────────────────────────────────────────────
+
+  const handleBackPress = () => {
+    if (state.isGameOver && isPostGameSyncing) {
+      BisetkaAlert.alert('Updating Profile', 'Finishing your points sync before returning home.');
+      return;
     }
-  }, [gameState.isGameOver, prizeAwarded, gameState.winner]);
+    navigation.goBack();
+  };
 
-  // Cleanup rolling animation on unmount
-  useEffect(() => {
-    return () => {
-      if (rollingIntervalRef.current) {
-        clearInterval(rollingIntervalRef.current);
-      }
-      if (opponentRollingIntervalRef.current) {
-        clearInterval(opponentRollingIntervalRef.current);
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    // AI opponent's turn - use full gameState to avoid stale closures in production builds
-    if (gameState.gameMode === 'ai' && gameState.playerRolled && !gameState.opponentRolled && !gameState.isGameOver) {
-      const currentRound = gameState.currentRound;
-      const delayTimer = setTimeout(() => {
-      animateOpponentDice();
-      }, 2500);
-      const timer = setTimeout(() => {
-        // Calculate AI dice roll inline to avoid stale closure
-        const newDice = [
-          Math.floor(Math.random() * 6) + 1,
-          Math.floor(Math.random() * 6) + 1,
-          Math.floor(Math.random() * 6) + 1,
-          Math.floor(Math.random() * 6) + 1,
-          Math.floor(Math.random() * 6) + 1,
-        ];
-
-        if (opponentRollingIntervalRef.current) {
-          clearInterval(opponentRollingIntervalRef.current);
-          opponentRollingIntervalRef.current = null;
-        }
-        setOpponentRollingDice(newDice);
-        setIsOpponentRolling(false);
-
-        // Calculate score for the dice
-        const counts: {[key: number]: number} = {};
-        newDice.forEach(d => { counts[d] = (counts[d] || 0) + 1; });
-        let aiScore = 0;
-        const values = Object.entries(counts);
-        for (const [value, count] of values) {
-          if (count >= 3) {
-            aiScore += parseInt(value) * count;
-          }
-        }
-        if (aiScore === 0) {
-          aiScore = Math.max(...newDice);
-        }
-
-        setGameState(prevState => {
-          // Double-check we should still make this move
-          if (prevState.opponentRolled || prevState.isGameOver) {
-            return prevState;
-          }
-
-          const newOpponentScore = prevState.opponentScore + aiScore;
-          const newPlayerScore = prevState.playerScore;
-
-          // Log AI move
-          if (lastPlayerDiceRef.current) {
-            const playerDiceData = lastPlayerDiceRef.current;
-            const roundWinner = playerDiceData.score > aiScore ? 'player' : 
-                               playerDiceData.score < aiScore ? 'opponent' : 'tie';
-
-            aiMoveLogService.logMrotsiMove({
-              gameId: gameIdRef.current,
-              roundNumber: currentRound,
-              playerDice: playerDiceData.dice,
-              playerScore: playerDiceData.score,
-              aiDice: newDice,
-              aiScore: aiScore,
-              roundWinner,
-              playerTotalScore: newPlayerScore,
-              aiTotalScore: newOpponentScore,
-            });
-            lastPlayerDiceRef.current = null;
-          }
-
-          return {
-            ...prevState,
-            opponentDice: newDice,
-            opponentScore: newOpponentScore,
-            opponentRolled: true,
-          };
-        });
-      }, 3500);
-      return () => {
-        clearTimeout(delayTimer);
-        clearTimeout(timer);
-        if (opponentRollingIntervalRef.current) {
-          clearInterval(opponentRollingIntervalRef.current);
-          opponentRollingIntervalRef.current = null;
-        }
-        setIsOpponentRolling(false);
-      };
-    }
-  }, [gameState]);
-
-  useEffect(() => {
-    // Check if round is complete (both players rolled)
-    if (gameState.playerRolled && gameState.opponentRolled && !gameState.isGameOver) {
-      if (gameState.currentRound >= gameState.totalRounds) {
-        // Game over
-        const winner = gameState.playerScore > gameState.opponentScore 
-          ? 'player' 
-          : gameState.playerScore < gameState.opponentScore 
-            ? 'opponent' 
-            : 'tie';
-        
-        setGameState(prev => ({
-          ...prev,
-          isGameOver: true,
-          winner: winner,
-        }));
-        
-        setTimeout(() => {
-          if (winner === 'player') {
-            BisetkaAlert.success(
-              'Game Over!',
-              `You Win! ${gameState.playerScore} - ${gameState.opponentScore}`
-            );
-          } else if (winner === 'opponent') {
-            BisetkaAlert.error(
-              'Game Over!',
-              `You Lose! ${gameState.playerScore} - ${gameState.opponentScore}`
-            );
-          } else {
-            BisetkaAlert.alert(
-              'Game Over!',
-              `It's a Tie! ${gameState.playerScore} - ${gameState.opponentScore}`
-            );
-          }
-        }, 500);
-      } else {
-        // Next round
-        setTimeout(() => {
-          setGameState(prev => ({
-            ...prev,
-            currentRound: prev.currentRound + 1,
-            playerRolled: false,
-            opponentRolled: false,
-          }));
-        }, 2000);
-      }
-    }
-  }, [gameState.playerRolled, gameState.opponentRolled]);
-
-  function initializeGame(mode: string): GameState {
-    return {
-      playerDice: [1, 1, 1, 1, 1],
-      opponentDice: [1, 1, 1, 1, 1],
-      playerScore: 0,
-      opponentScore: 0,
-      currentRound: 1,
-      totalRounds: 5,
-      playerRolled: false,
-      opponentRolled: false,
-      gameMode: mode === 'ai' ? 'ai' : mode === 'random' ? 'random' : 'private',
-      isGameOver: false,
-      winner: null,
-    };
-  }
-
-  function rollDice(): number[] {
-    return Array(5).fill(0).map(() => Math.floor(Math.random() * 6) + 1);
-  }
-
-  function calculateScore(dice: number[]): number {
-    const counts = new Map<number, number>();
-    dice.forEach(d => counts.set(d, (counts.get(d) || 0) + 1));
-    
-    // Five of a kind: 100 points
-    if (Array.from(counts.values()).some(c => c === 5)) return 100;
-    
-    // Four of a kind: 50 points
-    if (Array.from(counts.values()).some(c => c === 4)) return 50;
-    
-    // Full house (3 + 2): 40 points
-    const values = Array.from(counts.values()).sort();
-    if (values.length === 2 && values[0] === 2 && values[1] === 3) return 40;
-    
-    // Three of a kind: 30 points
-    if (Array.from(counts.values()).some(c => c === 3)) return 30;
-    
-    // Two pairs: 20 points
-    if (values.filter(v => v === 2).length === 2) return 20;
-    
-    // One pair: 10 points
-    if (Array.from(counts.values()).some(c => c === 2)) return 10;
-    
-    // High dice (sum of all): sum / 10
-    return Math.floor(dice.reduce((a, b) => a + b, 0) / 10);
-  }
-
-  function animateDice() {
-    setIsRolling(true);
-    
-    // Show random dice faces during roll
-    rollingIntervalRef.current = setInterval(() => {
-      setRollingDice([
-        Math.floor(Math.random() * 6) + 1,
-        Math.floor(Math.random() * 6) + 1,
-        Math.floor(Math.random() * 6) + 1,
-        Math.floor(Math.random() * 6) + 1,
-        Math.floor(Math.random() * 6) + 1,
-      ]);
-    }, 80);
-
-    // Animate dice rotation and scale
-    const animations = diceAnimations.map(anim => {
-      return Animated.loop(
-        Animated.sequence([
-          Animated.timing(anim, {
-            toValue: 1,
-            duration: 120,
-            useNativeDriver: true,
-          }),
-          Animated.timing(anim, {
-            toValue: 0,
-            duration: 120,
-            useNativeDriver: true,
-          }),
-        ]),
-        { iterations: 3 }
-      );
-    });
-
-    Animated.stagger(30, animations).start();
-  }
-
-  function animateOpponentDice() {
-    setIsOpponentRolling(true);
-
-    opponentRollingIntervalRef.current = setInterval(() => {
-      setOpponentRollingDice([
-        Math.floor(Math.random() * 6) + 1,
-        Math.floor(Math.random() * 6) + 1,
-        Math.floor(Math.random() * 6) + 1,
-        Math.floor(Math.random() * 6) + 1,
-        Math.floor(Math.random() * 6) + 1,
-      ]);
-    }, 80);
-  }
-
-  function rollPlayerDice() {
-    if (gameState.playerRolled || gameState.isGameOver) return;
-
-    // Roll first so Dice3DSimple receives the final values when isRolling turns true
-    const newDice = rollDice();
-    const score = calculateScore(newDice);
-    setRollingDice(newDice);
-    animateDice();
-    
-    setTimeout(() => {
-      // Stop rolling animation
-      if (rollingIntervalRef.current) {
-        clearInterval(rollingIntervalRef.current);
-        rollingIntervalRef.current = null;
-      }
-      setIsRolling(false);
-      
-      // Capture player dice for AI logging
-      if (gameState.gameMode === 'ai') {
-        lastPlayerDiceRef.current = { dice: newDice, score };
-      }
-      
-      setGameState(prev => ({
-        ...prev,
-        playerDice: newDice,
-        playerScore: prev.playerScore + score,
-        playerRolled: true,
-      }));
-    }, 800);
-  }
-
-  function rollOpponentDice() {
-    if (gameState.opponentRolled || gameState.isGameOver) return;
-
-    const newDice = rollDice();
-    const score = calculateScore(newDice);
-    
-    setGameState(prev => ({
-      ...prev,
-      opponentDice: newDice,
-      opponentScore: prev.opponentScore + score,
-      opponentRolled: true,
+  const rollDice = () => {
+    if (state.rolling || state.rollsUsed >= 3 || state.isGameOver) return;
+    const rolling = state.rollsUsed === 0
+      ? [false, false, false, false, false] // reset keepers on first roll
+      : state.kept.slice();
+    const newDice = state.dice.map((d, i) => (rolling[i] ? d : (Math.floor(Math.random() * 6) + 1)));
+    // After first roll, re-rolled dice are NOT auto-kept; player toggles
+    setState(s => ({
+      ...s,
+      dice: newDice,
+      kept: s.rollsUsed === 0 ? [false, false, false, false, false] : s.kept,
+      rollsUsed: s.rollsUsed + 1,
+      rolling: true,
     }));
-  }
+  };
 
-  function resetGame() {
-    setGameState(initializeGame(gameState.gameMode));
+  // The dice WebView fires a per-die rollComplete; turn off "rolling" after a small grace
+  const rollCompleteCountRef = useRef(0);
+  const onDieRollComplete = () => {
+    rollCompleteCountRef.current += 1;
+    if (rollCompleteCountRef.current >= state.dice.length) {
+      rollCompleteCountRef.current = 0;
+      setState(s => ({ ...s, rolling: false }));
+    }
+  };
+  // Reset the rollComplete counter whenever a new roll starts
+  useEffect(() => {
+    if (state.rolling) rollCompleteCountRef.current = 0;
+  }, [state.rolling]);
+
+  const toggleKeep = (i: number) => {
+    if (state.rolling || state.rollsUsed === 0 || state.isGameOver) return;
+    setState(s => {
+      const k = s.kept.slice();
+      k[i] = !k[i];
+      return { ...s, kept: k };
+    });
+  };
+
+  const announce = (cat: Category) => {
+    if (state.rollsUsed !== 0 || state.announced) return;
+    if (state.sheet.announced[cat] !== undefined) return;
+    setState(s => ({ ...s, announced: cat }));
+    setPickerVisible(false);
+  };
+
+  const writeCell = (col: Column, cat: Category) => {
+    if (state.rolling || state.isGameOver) return;
+    if (state.rollsUsed === 0) return; // must roll at least once
+    if (!isCellWriteable(col, cat, state.sheet, state.announced)) return;
+    const v = scoreFor(cat, state.dice);
+    setState(s => {
+      const nextSheet: Sheet = {
+        ...s.sheet,
+        [col]: { ...s.sheet[col], [cat]: v },
+      };
+      const t = totalsFor(nextSheet);
+      const done = t.filledCells >= CATEGORIES.length * COLUMNS.length;
+      return {
+        ...s,
+        sheet: nextSheet,
+        dice: [...DEFAULT_DICE],
+        kept: [false, false, false, false, false],
+        rollsUsed: 0,
+        announced: null,
+        isGameOver: done,
+        finalScore: done ? t.grandTotal : s.finalScore,
+      };
+    });
+  };
+
+  const resetGame = () => {
+    setState(freshGame());
     gameIdRef.current = uuidv4();
-    lastPlayerDiceRef.current = null;
     setEntryDeducted(false);
     setPrizeAwarded(false);
-  }
+    rollCompleteCountRef.current = 0;
+  };
 
-  function getDiceEmoji(value: number): string {
-    const diceEmojis = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
-    return diceEmojis[value - 1] || '⚀';
-  }
+  // ─── Derived state ──────────────────────────────────────────────────────────
 
-  function getScoreName(dice: number[]): string {
-    const counts = new Map<number, number>();
-    dice.forEach(d => counts.set(d, (counts.get(d) || 0) + 1));
-    
-    if (Array.from(counts.values()).some(c => c === 5)) return 'Five of a Kind!';
-    if (Array.from(counts.values()).some(c => c === 4)) return 'Four of a Kind!';
-    
-    const values = Array.from(counts.values()).sort();
-    if (values.length === 2 && values[0] === 2 && values[1] === 3) return 'Full House!';
-    if (Array.from(counts.values()).some(c => c === 3)) return 'Three of a Kind';
-    if (values.filter(v => v === 2).length === 2) return 'Two Pairs';
-    if (Array.from(counts.values()).some(c => c === 2)) return 'One Pair';
-    
-    return 'High Dice';
-  }
+  const totals = useMemo(() => totalsFor(state.sheet), [state.sheet]);
+
+  const previewByCell = useMemo(() => {
+    // Preview score that *would* be written if this cell is selected now.
+    const map: Record<string, number> = {};
+    if (state.rollsUsed === 0) return map;
+    for (const col of COLUMNS) {
+      for (const c of CATEGORIES) {
+        if (isCellWriteable(col, c.key, state.sheet, state.announced)) {
+          map[`${col}:${c.key}`] = scoreFor(c.key, state.dice);
+        }
+      }
+    }
+    return map;
+  }, [state.dice, state.sheet, state.announced, state.rollsUsed]);
+
+  const rollLabel = state.rollsUsed === 0
+    ? 'Roll #1'
+    : state.rollsUsed === 3
+      ? 'No rolls left'
+      : `Roll ${state.rollsUsed + 1} / 3`;
+
+  const canAnnounce =
+    state.rollsUsed === 0 &&
+    state.announced === null &&
+    Object.keys(state.sheet.announced).length < CATEGORIES.length;
+
+  // ─── Render ─────────────────────────────────────────────────────────────────
 
   return (
     <View style={styles.backgroundImage}>
-      <Photosphere360Background overlayOpacity={showBlur ? 0.5 : 0.3}>
-        <AR3DOverlay
-          ref={arOverlayRef}
-          visible={arEnabled}
-          boardGlbPath="glb/game_boards/rounded_table_panel_v4.glb"
-        />
-      </Photosphere360Background>
-      <View style={styles.overlay} pointerEvents="box-none">
-      <SafeAreaView style={styles.container} pointerEvents="box-none">
-        <View>
-          <GameToolbar
-            title={`Mrotsi${gameState.gameMode === 'ai' ? ' (vs AI)' : ''}`}
-            onBack={handleBackPress}
-            backgroundColor="transparent"
+      <ImageBackground
+        source={MROTSI_BACKGROUND}
+        style={StyleSheet.absoluteFill}
+        resizeMode="cover"
+      >
+        {showBackground && (
+          <View
+            pointerEvents="none"
+            style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.3)' }]}
           />
+        )}
+      </ImageBackground>
+      <View style={styles.overlay} pointerEvents="box-none">
+        <SafeAreaView style={styles.container} pointerEvents="box-none">
           <View>
+            <GameToolbar
+              title="Yamb"
+              onBack={handleBackPress}
+              backgroundColor="transparent"
+            />
             <GameToolbarControls
               buttons={[
-                { icon: showBackground ? '🖼️' : '🔲', onPress: () => setShowBackground(!showBackground) },
-                { icon: arEnabled ? '🥽' : '🎮', onPress: () => setArEnabled(!arEnabled) },
+                { icon: showBackground ? '🖼️' : '🔲', onPress: () => setShowBackground(b => !b) },
                 { icon: showMusicPlayer ? '🎵' : '🎶', onPress: () => setShowMusicPlayer(s => !s) },
                 { icon: '🔄', onPress: resetGame },
               ]}
             />
           </View>
-        </View>
 
-        {/* Score Display */}
-        <View style={styles.scoreContainer}>
-          <Text style={styles.roundText}>Round {gameState.currentRound} of {gameState.totalRounds}</Text>
-          <View style={styles.scoresRow}>
-            <View style={styles.scoreBox}>
-              <Text style={styles.scoreLabel}>You</Text>
-              <Text style={styles.scoreValue}>{gameState.playerScore}</Text>
+          {/* Header strip: total + roll status + announce */}
+          <View style={styles.headerStrip}>
+            <View style={styles.totalBox}>
+              <Text style={styles.totalLabel}>Total</Text>
+              <Text style={styles.totalValue}>{totals.grandTotal}</Text>
             </View>
-            <View style={styles.scoreBox}>
-              <Text style={styles.scoreLabel}>Opponent</Text>
-              <Text style={styles.scoreValue}>{gameState.opponentScore}</Text>
+            <View style={styles.rollStatusBox}>
+              <Text style={styles.rollStatusText}>{rollLabel}</Text>
+              {state.announced && (
+                <Text style={styles.announceBadge}>
+                  📣 {CATEGORIES.find(c => c.key === state.announced)?.short}
+                </Text>
+              )}
             </View>
-          </View>
-        </View>
-
-        {/* Dice display — single central area, one player at a time */}
-        <View style={styles.tableContainer} pointerEvents="box-none">
-          {arEnabled ? (
-            <View style={[styles.woodenTable, styles.woodenTableAR]} pointerEvents="box-none">
-              <View style={styles.centerDiceArea} pointerEvents="box-none">
-                {!gameState.playerRolled || isRolling ? (
-                  /* Phase A: player's turn */
-                  isRolling ? (
-                    <>
-                      <Text style={styles.areaLabel}>You</Text>
-                      <View style={styles.diceRow}>
-                        {rollingDice.map((d, i) => (
-                          <Dice3DSimple key={i} value={d} isRolling={true} index={i} size={Math.floor(SCREEN_WIDTH / 5)} />
-                        ))}
-                      </View>
-                    </>
-                  ) : (
-                    <Text style={styles.rollPromptText}>Tap below to roll your dice 🎲</Text>
-                  )
-                ) : (
-                  /* Phase B: opponent's turn / showing opponent result */
-                  <>
-                    <Text style={styles.areaLabel}>
-                      {isOpponentRolling ? 'Opponent rolling...' : 'Opponent'}
-                    </Text>
-                    <View style={styles.diceRow}>
-                      {(isOpponentRolling ? opponentRollingDice : gameState.opponentDice).map((d, i) => (
-                        <Dice3DSimple key={i} value={d} isRolling={isOpponentRolling} index={i} size={Math.floor(SCREEN_WIDTH / 5)} />
-                      ))}
-                    </View>
-                    {gameState.opponentRolled && !isOpponentRolling && (
-                      <Text style={styles.handNameText}>{getScoreName(gameState.opponentDice)}</Text>
-                    )}
-                  </>
-                )}
-              </View>
-            </View>
-          ) : (
-            <ImageBackground
-              source={require('../../../../assets/blot/card-table.png')}
-              style={styles.woodenTable}
-              imageStyle={styles.woodenTableImage}
-              resizeMode="cover"
-            >
-              <View style={styles.centerDiceArea}>
-                {!gameState.playerRolled || isRolling ? (
-                  isRolling ? (
-                    <>
-                      <Text style={styles.areaLabel}>You</Text>
-                      <View style={styles.diceRow}>
-                        {rollingDice.map((d, i) => (
-                          <Dice3DSimple key={i} value={d} isRolling={true} index={i} size={Math.floor(SCREEN_WIDTH / 5)} />
-                        ))}
-                      </View>
-                    </>
-                  ) : (
-                    <Text style={styles.rollPromptText}>Tap below to roll your dice 🎲</Text>
-                  )
-                ) : (
-                  <>
-                    <Text style={styles.areaLabel}>
-                      {isOpponentRolling ? 'Opponent rolling...' : 'Opponent'}
-                    </Text>
-                    <View style={styles.diceRow}>
-                      {(isOpponentRolling ? opponentRollingDice : gameState.opponentDice).map((d, i) => (
-                        <Dice3DSimple key={i} value={d} isRolling={isOpponentRolling} index={i} size={Math.floor(SCREEN_WIDTH / 5)} />
-                      ))}
-                    </View>
-                    {gameState.opponentRolled && !isOpponentRolling && (
-                      <Text style={styles.handNameText}>{getScoreName(gameState.opponentDice)}</Text>
-                    )}
-                  </>
-                )}
-              </View>
-            </ImageBackground>
-          )}
-        </View>
-
-        {/* Player's rolled dice — compact row beneath the board */}
-        {gameState.playerRolled && !isRolling && (
-          <View style={styles.playerResultRow}>
-            <Text style={styles.playerResultLabel}>You: {getScoreName(gameState.playerDice)}</Text>
-            <View style={styles.playerResultDiceRow}>
-              {gameState.playerDice.map((d, i) => (
-                <Dice3DSimple key={i} value={d} isRolling={false} index={i} size={Math.floor(SCREEN_WIDTH / 8)} />
-              ))}
-            </View>
-          </View>
-        )}
-
-        {/* Action Button */}
-        <View style={styles.actionContainer}>
-          {!gameState.isGameOver ? (
             <TouchableOpacity
+              style={[styles.announceBtn, !canAnnounce && styles.announceBtnDisabled]}
+              onPress={() => canAnnounce && setPickerVisible(true)}
+              disabled={!canAnnounce}
+            >
+              <Text style={styles.announceBtnText}>📣 Announce</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Dice row — 5 dice, tap to keep/release between rolls */}
+          <View style={styles.diceRow} pointerEvents="box-none">
+            {state.dice.map((d, i) => (
+              <TouchableOpacity
+                key={i}
+                onPress={() => toggleKeep(i)}
+                disabled={state.rolling || state.rollsUsed === 0 || state.isGameOver}
+                activeOpacity={0.75}
+                style={[styles.dieWrap, state.kept[i] && styles.dieWrapKept]}
+              >
+                <Dice3DSimple
+                  value={d}
+                  isRolling={state.rolling && !state.kept[i]}
+                  index={i}
+                  size={DICE_SIZE}
+                  onRollComplete={onDieRollComplete}
+                />
+                {state.kept[i] && (
+                  <View style={styles.keepBadge}>
+                    <Text style={styles.keepBadgeText}>HOLD</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <Text style={styles.tipText}>
+            {state.rollsUsed === 0
+              ? 'Tap ROLL to start your turn.'
+              : state.rolling
+                ? '🎲 Rolling…'
+                : state.rollsUsed >= 3
+                  ? 'Pick a cell below to score.'
+                  : 'Tap dice to HOLD, then ROLL or pick a cell.'}
+          </Text>
+
+          {/* Roll button */}
+          <View style={styles.rollBtnWrap}>
+            <TouchableOpacity
+              onPress={rollDice}
+              disabled={state.rolling || state.rollsUsed >= 3 || state.isGameOver}
               style={[
                 styles.rollButton,
-                (gameState.playerRolled || gameState.isGameOver) && styles.rollButtonDisabled
+                (state.rolling || state.rollsUsed >= 3 || state.isGameOver) && styles.rollButtonDisabled,
               ]}
-              onPress={rollPlayerDice}
-              disabled={gameState.playerRolled || gameState.isGameOver}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               <Text style={styles.rollButtonText}>
-                {gameState.playerRolled ? 'Waiting for next round...' : '🎲 Roll Dice!'}
+                🎲 {state.rollsUsed === 0 ? 'ROLL' : state.rollsUsed >= 3 ? 'No rolls left' : 'RE-ROLL'}
               </Text>
             </TouchableOpacity>
-          ) : (
-            <TouchableOpacity
-              style={styles.playAgainButton}
-              onPress={resetGame}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <Text style={styles.playAgainText}>🎮 Play Again</Text>
-            </TouchableOpacity>
-          )}
-        </View>
+          </View>
 
-        {/* Game Over Overlay */}
-        {gameState.isGameOver && (
-          <View style={styles.gameOverOverlay}>
-            <View style={styles.gameOverBanner}>
-              <Text style={styles.gameOverText}>
-                {gameState.winner === 'player' ? '🎉 Victory!' : gameState.winner === 'opponent' ? '😔 Defeat' : '🤝 Tie Game!'}
-              </Text>
-              <Text style={styles.gameOverScore}>
-                {gameState.playerScore} - {gameState.opponentScore}
-              </Text>
-              
-              <View style={styles.gameOverButtons}>
+          {/* Score sheet */}
+          <ScrollView
+            style={styles.sheetScroll}
+            contentContainerStyle={styles.sheetScrollContent}
+            showsVerticalScrollIndicator={false}
+          >
+            {/* Header row */}
+            <View style={styles.sheetRow}>
+              <View style={styles.sheetRowLabel} />
+              {COLUMNS.map(col => (
+                <View key={col} style={styles.sheetCellHeader}>
+                  <Text style={styles.sheetCellHeaderText}>{COLUMN_LABEL[col]}</Text>
+                </View>
+              ))}
+            </View>
+
+            {CATEGORIES.map((cdef, idx) => {
+              const sectionStart =
+                idx === 0 ||
+                CATEGORIES[idx - 1].section !== cdef.section;
+              return (
+                <View key={cdef.key}>
+                  {sectionStart && idx !== 0 && <View style={styles.sectionDivider} />}
+                  <View style={styles.sheetRow}>
+                    <View style={styles.sheetRowLabel}>
+                      <Text style={styles.sheetRowLabelText} numberOfLines={1}>
+                        {cdef.label}
+                      </Text>
+                    </View>
+                    {COLUMNS.map(col => {
+                      const written = state.sheet[col][cdef.key];
+                      const writeable = isCellWriteable(col, cdef.key, state.sheet, state.announced);
+                      const preview = previewByCell[`${col}:${cdef.key}`];
+                      return (
+                        <TouchableOpacity
+                          key={col}
+                          style={[
+                            styles.sheetCell,
+                            written !== undefined && styles.sheetCellFilled,
+                            writeable && styles.sheetCellWriteable,
+                          ]}
+                          onPress={() => writeCell(col, cdef.key)}
+                          disabled={!writeable}
+                          activeOpacity={0.6}
+                        >
+                          <Text
+                            style={[
+                              styles.sheetCellText,
+                              written !== undefined && styles.sheetCellTextFilled,
+                              writeable && preview === 0 && styles.sheetCellTextZero,
+                            ]}
+                          >
+                            {written !== undefined ? written : (writeable ? preview ?? '' : '')}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+              );
+            })}
+
+            {/* Per-column subtotals */}
+            <View style={styles.sectionDivider} />
+            <View style={styles.sheetRow}>
+              <View style={styles.sheetRowLabel}>
+                <Text style={styles.sheetSubLabel}>Upper</Text>
+              </View>
+              {COLUMNS.map(col => (
+                <View key={col} style={styles.sheetCell}>
+                  <Text style={styles.subtotalText}>{totals.perColumn[col].upper}</Text>
+                </View>
+              ))}
+            </View>
+            <View style={styles.sheetRow}>
+              <View style={styles.sheetRowLabel}>
+                <Text style={styles.sheetSubLabel}>+Bonus</Text>
+              </View>
+              {COLUMNS.map(col => (
+                <View key={col} style={styles.sheetCell}>
+                  <Text style={styles.subtotalText}>{totals.perColumn[col].upperBonus}</Text>
+                </View>
+              ))}
+            </View>
+            <View style={styles.sheetRow}>
+              <View style={styles.sheetRowLabel}>
+                <Text style={styles.sheetSubLabel}>Middle</Text>
+              </View>
+              {COLUMNS.map(col => (
+                <View key={col} style={styles.sheetCell}>
+                  <Text style={styles.subtotalText}>{totals.perColumn[col].middle}</Text>
+                </View>
+              ))}
+            </View>
+            <View style={styles.sheetRow}>
+              <View style={styles.sheetRowLabel}>
+                <Text style={styles.sheetSubLabel}>Lower</Text>
+              </View>
+              {COLUMNS.map(col => (
+                <View key={col} style={styles.sheetCell}>
+                  <Text style={styles.subtotalText}>{totals.perColumn[col].lower}</Text>
+                </View>
+              ))}
+            </View>
+            <View style={[styles.sheetRow, styles.sheetTotalRow]}>
+              <View style={styles.sheetRowLabel}>
+                <Text style={styles.sheetTotalLabel}>Total</Text>
+              </View>
+              {COLUMNS.map(col => (
+                <View key={col} style={styles.sheetCell}>
+                  <Text style={styles.sheetTotalCellText}>{totals.perColumn[col].total}</Text>
+                </View>
+              ))}
+            </View>
+          </ScrollView>
+
+          {/* Announce picker modal */}
+          {pickerVisible && (
+            <View style={styles.pickerOverlay}>
+              <View style={styles.pickerCard}>
+                <Text style={styles.pickerTitle}>Announce a category</Text>
+                <ScrollView style={{ maxHeight: 360 }}>
+                  {CATEGORIES.map(c => {
+                    const used = state.sheet.announced[c.key] !== undefined;
+                    return (
+                      <TouchableOpacity
+                        key={c.key}
+                        style={[styles.pickerRow, used && styles.pickerRowUsed]}
+                        disabled={used}
+                        onPress={() => announce(c.key)}
+                      >
+                        <Text style={[styles.pickerRowText, used && styles.pickerRowTextUsed]}>
+                          {c.label}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
                 <TouchableOpacity
-                  style={styles.playAgainButtonModal}
-                  onPress={resetGame}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  style={styles.pickerCancel}
+                  onPress={() => setPickerVisible(false)}
                 >
-                  <Text style={styles.playAgainModalText}>🎮 Play Again</Text>
-                </TouchableOpacity>
-                
-                <TouchableOpacity
-                  style={styles.closeButtonModal}
-                  onPress={handleBackPress}
-                  disabled={isPostGameSyncing}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                >
-                  <Text style={styles.closeModalText}>
-                    {isPostGameSyncing ? 'Syncing...' : '✕ Close'}
-                  </Text>
+                  <Text style={styles.pickerCancelText}>Cancel</Text>
                 </TouchableOpacity>
               </View>
             </View>
-          </View>
-        )}
-      </SafeAreaView>
+          )}
+
+          {/* Game over */}
+          {state.isGameOver && (
+            <View style={styles.gameOverOverlay}>
+              <View style={styles.gameOverBanner}>
+                <Text style={styles.gameOverText}>
+                  {state.finalScore >= 200 ? '🏆 Great Game!' : '🎲 Game Complete'}
+                </Text>
+                <Text style={styles.gameOverScore}>Final Score: {state.finalScore}</Text>
+                <View style={styles.gameOverButtons}>
+                  <TouchableOpacity style={styles.playAgainButtonModal} onPress={resetGame}>
+                    <Text style={styles.playAgainModalText}>🎮 Play Again</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.closeButtonModal}
+                    onPress={handleBackPress}
+                    disabled={isPostGameSyncing}
+                  >
+                    <Text style={styles.closeModalText}>
+                      {isPostGameSyncing ? 'Syncing…' : '✕ Close'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          )}
+        </SafeAreaView>
       </View>
+
       <InGameChat
         roomId={''}
         currentUserId={user?.id ?? ''}
@@ -721,355 +747,219 @@ const MrotsiScreen = ({navigation, route}: any) => {
         visible={true}
       />
       <SyncedYouTubePlayer roomId={null} visible={true} />
-      {arEnabled && (
-        <TouchableOpacity
-          style={styles.recenterBtn}
-          onPress={() => arOverlayRef.current?.recenter()}
-          hitSlop={{top:12,bottom:12,left:12,right:12}}
-          activeOpacity={0.7}>
-          <Text style={styles.recenterIcon}>⊕</Text>
-          <Text style={styles.recenterLabel}>Re-center</Text>
-        </TouchableOpacity>
-      )}
     </View>
   );
 };
 
+// ─── Styles ────────────────────────────────────────────────────────────────────
+
+const CELL_W = Math.floor((SCREEN_WIDTH - 24 - 100) / COLUMNS.length);
+
 const styles = StyleSheet.create({
-  backgroundImage: {
-    flex: 1,
-    width: '100%',
-    height: '100%',
-  },
-  container: {
-    flex: 1,
-    backgroundColor: 'transparent',
-  },
-  overlay: {flex: 1},
-  newGameText: {
-    fontSize: 16,
-    color: '#FFD700',
-    fontWeight: '700',
-    textShadowColor: 'rgba(0, 0, 0, 0.8)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 3,
-  },
-  scoreContainer: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    marginHorizontal: 16,
-    marginTop: 8,
-    borderRadius: 16,
-  },
-  roundText: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: '#FFD700',
-    textAlign: 'center',
-    marginBottom: 12,
-    textShadowColor: 'rgba(0, 0, 0, 0.9)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 4,
-  },
-  scoresRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    gap: 12,
-  },
-  scoreBox: {
-    flex: 1,
-    alignItems: 'center',
-    backgroundColor: 'rgba(139, 69, 19, 0.8)',
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: '#8B4513',
-  },
-  scoreLabel: {
-    fontSize: 14,
-    color: '#FFD700',
-    marginBottom: 4,
-    fontWeight: '600',
-  },
-  scoreValue: {
-    fontSize: 36,
-    fontWeight: 'bold',
-    color: '#FFF',
-    textShadowColor: 'rgba(0, 0, 0, 0.8)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 3,
-  },
-  tableContainer: {
-    flex: 1,
-    marginHorizontal: 16,
-    marginVertical: 20,
-  },
-  woodenTable: {
-    flex: 1,
-    padding: 20,
-    justifyContent: 'space-between',
-  },
-  woodenTableAR: {
-    backgroundColor: 'transparent',
-    borderRadius: 24,
-  },
-  woodenTableImage: {
-    borderRadius: 24,
-  },
-  opponentDiceArea: {
-    alignItems: 'center',
-    paddingVertical: 16,
-  },
-  playerDiceArea: {
-    alignItems: 'center',
-    paddingVertical: 16,
-  },
-  centerDivider: {
-    height: 2,
-    backgroundColor: 'rgba(139, 69, 19, 0.6)',
-    marginVertical: 8,
-  },
-  centerDiceArea: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
-  },
-  rollPromptText: {
-    fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.65)',
-    fontStyle: 'italic',
-    textAlign: 'center',
-    textShadowColor: 'rgba(0, 0, 0, 0.9)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 3,
-  },
-  playerResultRow: {
+  backgroundImage: { flex: 1, width: '100%', height: '100%' },
+  container: { flex: 1, backgroundColor: 'transparent' },
+  overlay: { flex: 1 },
+
+  headerStrip: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginHorizontal: 16,
-    marginBottom: 8,
-    paddingHorizontal: 14,
+    marginHorizontal: 12,
+    marginTop: 6,
+    paddingHorizontal: 12,
     paddingVertical: 8,
-    backgroundColor: 'rgba(0, 0, 0, 0.50)',
     borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 215, 0, 0.3)',
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    gap: 8,
   },
-  playerResultLabel: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#FFD700',
-    marginRight: 10,
-    textShadowColor: 'rgba(0, 0, 0, 0.9)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 2,
+  totalBox: { alignItems: 'center', minWidth: 70 },
+  totalLabel: { color: '#FFD700', fontSize: 11, fontWeight: '700', letterSpacing: 1 },
+  totalValue: { color: '#fff', fontSize: 24, fontWeight: '900' },
+  rollStatusBox: { flex: 1, alignItems: 'center' },
+  rollStatusText: { color: '#fff', fontSize: 14, fontWeight: '700' },
+  announceBadge: { color: '#FFD700', fontSize: 12, marginTop: 2, fontWeight: '700' },
+  announceBtn: {
+    backgroundColor: 'rgba(139,69,19,0.95)',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderWidth: 1.5,
+    borderColor: '#FFD700',
   },
-  playerResultDiceRow: {
-    flexDirection: 'row',
-    gap: 2,
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
-  areaLabel: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#FFD700',
-    marginBottom: 12,
-    textShadowColor: 'rgba(0, 0, 0, 0.9)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 4,
-  },
+  announceBtnDisabled: { opacity: 0.4 },
+  announceBtnText: { color: '#FFD700', fontWeight: '700', fontSize: 12 },
+
   diceRow: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 3,
-    flexWrap: 'wrap',
-  },
-  dice3DContainer: {
-    flexDirection: 'row',
-    gap: 10,
-    justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 20,
-    minHeight: 120,
-  },
-  diceBox: {
-    width: 56,
-    height: 56,
-    backgroundColor: 'rgba(50, 50, 50, 0.9)',
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 3,
-    borderColor: '#555',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.5,
-    shadowRadius: 6,
-    elevation: 8,
-  },
-  diceBoxRevealed: {
-    backgroundColor: 'rgba(139, 0, 0, 0.85)',
-    borderColor: '#DC143C',
-  },
-  playerDiceBox: {
-    backgroundColor: 'rgba(0, 100, 0, 0.85)',
-    borderColor: '#228B22',
-  },
-  diceValue: {
-    fontSize: 36,
-    color: '#FFF',
-  },
-  handNameText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#FFD700',
+    gap: 4,
     marginTop: 8,
+    marginBottom: 4,
+    paddingVertical: 4,
+  },
+  dieWrap: {
+    borderRadius: 10,
+    padding: 2,
+    borderWidth: 2,
+    borderColor: 'transparent',
+    position: 'relative',
+  },
+  dieWrapKept: { borderColor: '#FFD700', backgroundColor: 'rgba(255,215,0,0.1)' },
+  keepBadge: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
+    backgroundColor: '#FFD700',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  keepBadgeText: { color: '#3b1c00', fontSize: 9, fontWeight: '900', letterSpacing: 0.5 },
+
+  tipText: {
+    color: 'rgba(255,255,255,0.85)',
     textAlign: 'center',
-    textShadowColor: 'rgba(0, 0, 0, 0.9)',
+    fontSize: 13,
+    marginTop: 4,
+    marginBottom: 6,
+    textShadowColor: 'rgba(0,0,0,0.85)',
     textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 3,
+    textShadowRadius: 2,
   },
-  actionContainer: {
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-    alignItems: 'center',
-  },
+
+  rollBtnWrap: { alignItems: 'center', marginBottom: 8 },
   rollButton: {
-    backgroundColor: 'rgba(34, 139, 34, 0.95)',
-    paddingHorizontal: 40,
-    paddingVertical: 18,
-    borderRadius: 16,
-    minWidth: 240,
-    borderWidth: 3,
+    backgroundColor: 'rgba(34,139,34,0.95)',
+    paddingHorizontal: 28,
+    paddingVertical: 12,
+    borderRadius: 14,
+    minWidth: 200,
+    borderWidth: 2,
     borderColor: '#228B22',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.5,
-    shadowRadius: 6,
-    elevation: 8,
   },
-  rollButtonDisabled: {
-    backgroundColor: 'rgba(80, 80, 80, 0.8)',
-    borderColor: '#555',
+  rollButtonDisabled: { backgroundColor: 'rgba(80,80,80,0.7)', borderColor: '#555' },
+  rollButtonText: { color: '#fff', fontSize: 16, fontWeight: '800', textAlign: 'center' },
+
+  sheetScroll: { flex: 1, marginHorizontal: 8 },
+  sheetScrollContent: {
+    paddingBottom: 60,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    borderRadius: 12,
+    paddingVertical: 6,
   },
-  rollButtonText: {
-    color: '#FFF',
-    fontSize: 20,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    textShadowColor: 'rgba(0, 0, 0, 0.8)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 3,
+  sheetRow: { flexDirection: 'row', alignItems: 'stretch' },
+  sheetRowLabel: {
+    width: 100,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    justifyContent: 'center',
   },
-  playAgainButton: {
-    backgroundColor: 'rgba(255, 215, 0, 0.95)',
-    paddingHorizontal: 40,
-    paddingVertical: 18,
+  sheetRowLabelText: { color: '#FFD700', fontWeight: '700', fontSize: 13 },
+  sheetSubLabel: { color: '#fff', fontSize: 12, fontStyle: 'italic', opacity: 0.9 },
+  sheetCellHeader: {
+    width: CELL_W,
+    paddingVertical: 6,
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderColor: 'rgba(255,215,0,0.3)',
+  },
+  sheetCellHeaderText: { color: '#FFD700', fontSize: 13, fontWeight: '900' },
+  sheetCell: {
+    width: CELL_W,
+    height: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 0.5,
+    borderColor: 'rgba(255,255,255,0.15)',
+  },
+  sheetCellFilled: { backgroundColor: 'rgba(34,139,34,0.30)' },
+  sheetCellWriteable: { backgroundColor: 'rgba(255,215,0,0.18)' },
+  sheetCellText: { color: 'rgba(255,255,255,0.9)', fontSize: 13, fontWeight: '600' },
+  sheetCellTextFilled: { color: '#fff', fontWeight: '800' },
+  sheetCellTextZero: { color: 'rgba(255,255,255,0.5)' },
+  sectionDivider: {
+    height: 2,
+    backgroundColor: 'rgba(255,215,0,0.4)',
+    marginVertical: 4,
+  },
+  sheetTotalRow: { backgroundColor: 'rgba(139,69,19,0.5)' },
+  sheetTotalLabel: { color: '#FFD700', fontWeight: '900', fontSize: 14 },
+  sheetTotalCellText: { color: '#fff', fontSize: 15, fontWeight: '900' },
+  subtotalText: { color: '#fff', fontSize: 12, fontWeight: '700' },
+
+  pickerOverlay: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'center', alignItems: 'center',
+    zIndex: 100,
+  },
+  pickerCard: {
+    width: SCREEN_WIDTH * 0.82,
+    backgroundColor: 'rgba(40,20,5,0.97)',
     borderRadius: 16,
-    minWidth: 240,
-    borderWidth: 3,
+    padding: 16,
+    borderWidth: 2,
     borderColor: '#FFD700',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.5,
-    shadowRadius: 6,
-    elevation: 8,
   },
-  playAgainText: {
-    color: '#8B4513',
-    fontSize: 20,
-    fontWeight: 'bold',
-    textAlign: 'center',
+  pickerTitle: { color: '#FFD700', fontSize: 18, fontWeight: '900', textAlign: 'center', marginBottom: 12 },
+  pickerRow: {
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderBottomWidth: 1,
+    borderColor: 'rgba(255,215,0,0.2)',
   },
+  pickerRowUsed: { opacity: 0.35 },
+  pickerRowText: { color: '#fff', fontSize: 15, fontWeight: '600' },
+  pickerRowTextUsed: { color: 'rgba(255,255,255,0.5)' },
+  pickerCancel: {
+    marginTop: 12,
+    backgroundColor: 'rgba(220,20,60,0.9)',
+    borderRadius: 10,
+    paddingVertical: 10,
+  },
+  pickerCancelText: { color: '#fff', fontWeight: '900', textAlign: 'center', fontSize: 15 },
+
   gameOverOverlay: {
     position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.75)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.78)',
+    justifyContent: 'center', alignItems: 'center',
+    zIndex: 90,
   },
   gameOverBanner: {
-    backgroundColor: 'rgba(139, 69, 19, 0.95)',
-    padding: 32,
-    borderRadius: 24,
+    backgroundColor: 'rgba(139,69,19,0.97)',
+    padding: 28, borderRadius: 22,
     alignItems: 'center',
-    borderWidth: 4,
-    borderColor: '#FFD700',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.8,
-    shadowRadius: 12,
-    elevation: 16,
+    borderWidth: 3, borderColor: '#FFD700',
     minWidth: SCREEN_WIDTH * 0.7,
   },
-  gameOverText: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#FFD700',
-    marginBottom: 12,
-    textShadowColor: 'rgba(0, 0, 0, 0.9)',
-    textShadowOffset: { width: 2, height: 2 },
-    textShadowRadius: 4,
-  },
-  gameOverScore: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#FFF',
-    textShadowColor: 'rgba(0, 0, 0, 0.8)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 3,
-    marginBottom: 20,
-  },
-  gameOverButtons: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 8,
-  },
+  gameOverText: { fontSize: 26, fontWeight: '900', color: '#FFD700', marginBottom: 10 },
+  gameOverScore: { fontSize: 22, fontWeight: '800', color: '#fff', marginBottom: 18 },
+  gameOverButtons: { flexDirection: 'row', gap: 10 },
   playAgainButtonModal: {
-    backgroundColor: 'rgba(34, 139, 34, 0.95)',
-    paddingHorizontal: 24,
-    paddingVertical: 14,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: '#228B22',
-    flex: 1,
+    backgroundColor: 'rgba(34,139,34,0.95)',
+    paddingHorizontal: 22, paddingVertical: 12,
+    borderRadius: 12, borderWidth: 2, borderColor: '#228B22',
   },
-  playAgainModalText: {
-    color: '#FFF',
-    fontSize: 16,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    textShadowColor: 'rgba(0, 0, 0, 0.8)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 2,
-  },
+  playAgainModalText: { color: '#fff', fontSize: 15, fontWeight: '800' },
   closeButtonModal: {
-    backgroundColor: 'rgba(220, 20, 60, 0.95)',
-    paddingHorizontal: 24,
-    paddingVertical: 14,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: '#DC143C',
-    flex: 1,
+    backgroundColor: 'rgba(220,20,60,0.95)',
+    paddingHorizontal: 22, paddingVertical: 12,
+    borderRadius: 12, borderWidth: 2, borderColor: '#DC143C',
   },
-  closeModalText: {
-    color: '#FFF',
-    fontSize: 16,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    textShadowColor: 'rgba(0, 0, 0, 0.8)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 2,
+  closeModalText: { color: '#fff', fontSize: 15, fontWeight: '800' },
+
+  recenterBtn: {
+    position: 'absolute', bottom: 200, alignSelf: 'center',
+    left: '50%', transform: [{ translateX: -54 }],
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)',
+    borderRadius: 24, paddingHorizontal: 18, paddingVertical: 10,
   },
-  recenterBtn: { position:'absolute', bottom:200, alignSelf:'center', left:'50%', transform:[{translateX:-54}], flexDirection:'row', alignItems:'center', gap:6, backgroundColor:'rgba(0,0,0,0.35)', borderWidth:1, borderColor:'rgba(255,255,255,0.25)', borderRadius:24, paddingHorizontal:18, paddingVertical:10 },
-  recenterIcon: { fontSize:20, color:'#fff' },
-  recenterLabel: { fontSize:13, color:'#fff', fontWeight:'600', letterSpacing:0.3 },
+  recenterIcon: { fontSize: 20, color: '#fff' },
+  recenterLabel: { fontSize: 13, color: '#fff', fontWeight: '600', letterSpacing: 0.3 },
 });
 
 export default MrotsiScreen;

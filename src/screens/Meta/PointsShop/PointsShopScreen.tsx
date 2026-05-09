@@ -18,6 +18,7 @@ import {useAuth} from '../../../libs/hooks/useAuth';
 import apiService from '../../../services/api.service';
 import {ClothingItem, ClothingType, Rarity} from '../../../types/avatar2d';
 import {ALL_CLOTHING_ITEMS} from '../../../data/clothingItems';
+import AssetImage from '../../../components/AssetImage';
 
 const {width} = Dimensions.get('window');
 const CARD_WIDTH = (width - 48) / 2;
@@ -506,10 +507,10 @@ const PointsShopScreen = ({navigation, route}: any) => {
                           disabled={owned || isPurchasing}>
                           <View style={styles.itemContent}>
                             <View style={styles.itemImageWrapper}>
-                              <Image
+                              <AssetImage
                                 source={item.thumbnailUrl || item.imageUrl}
-                                style={styles.itemImage}
-                                resizeMode="contain"
+                                width="100%"
+                                height="100%"
                               />
                             </View>
 

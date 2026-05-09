@@ -297,7 +297,7 @@ const AppNavigator = () => {
               <Stack.Screen name="Store" component={StoreScreen} />
               <Stack.Screen name="FontTest" component={FontTestScreen} />
               <Stack.Screen name="AvatarSelection" component={AvatarSelectionScreen} />
-              <Stack.Screen name="ClothingStore" component={PointsShopScreen} initialParams={{ initialTab: 'clothing' }} />
+              <Stack.Screen name="ClothingStore" component={ClothingStoreScreen} />
               <Stack.Screen name="Wardrobe" component={WardrobeScreen} />
               <Stack.Screen name="Travel" component={TravelScreen} />
               <Stack.Screen name="GlobalView" component={GlobalViewScreen} />
