@@ -178,7 +178,7 @@ const HomeScreen = ({ navigation, route }: any) => {
     country: resolvedBisetka?.country || user?.bisetka?.country || null,
     cacheKey: forceBackgroundReload || resolvedBisetka?.id || user?.bisetka?.id || null,
     promptTemplate: DEFAULT_BISETKA_BACKGROUND_PROMPT,
-    enabled: Boolean(currentCity),
+    enabled: false, // Disabled: skip AI bisetka background generation for now
     forceReload: Boolean(forceBackgroundReload), // Force reload when traveling
   });
 
