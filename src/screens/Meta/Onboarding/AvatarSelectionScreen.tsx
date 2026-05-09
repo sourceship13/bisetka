@@ -5,7 +5,6 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  Image,
   Dimensions,
   ActivityIndicator,
 } from 'react-native';
@@ -13,6 +12,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import { BaseAvatar } from '../../../types/avatar2d';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
+import AssetImage from '../../../components/AssetImage';
+import { ALL_BASE_AVATARS } from '../../../data/clothingItems';
 
 const { width } = Dimensions.get('window');
 const AVATAR_SIZE = (width - 60) / 2;
@@ -89,15 +90,15 @@ export const AvatarSelectionScreen = ({ navigation }: any) => {
       // const response = await apiService.get('/avatar/base-avatars');
       // setAvatars(response.data.avatars);
       
-      // Using mock data for now
+      // Using bundled SVG avatars for now
       setTimeout(() => {
-        setAvatars(MOCK_AVATARS);
+        setAvatars(ALL_BASE_AVATARS);
         setLoading(false);
-      }, 500);
+      }, 200);
     } catch (error: any) {
       console.error('Failed to load avatars:', error);
-      // Still show mock data on error
-      setAvatars(MOCK_AVATARS);
+      // Still show bundled avatars on error
+      setAvatars(ALL_BASE_AVATARS);
       setLoading(false);
     }
   };
@@ -173,10 +174,11 @@ export const AvatarSelectionScreen = ({ navigation }: any) => {
                     ]}
                     onPress={() => setSelectedAvatar(avatar.id)}
                   >
-                    <Image
+                    <AssetImage
                       source={avatar.imageUrl}
+                      width={AVATAR_SIZE - 20}
+                      height={AVATAR_SIZE - 20}
                       style={styles.avatarImage}
-                      resizeMode="contain"
                     />
                     
                     {isSelected && (

@@ -5,7 +5,6 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  Image,
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -13,6 +12,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import BottomTabBar from '../../../components/global/BottomTabBar';
+import AssetImage from '../../../components/AssetImage';
 import { ClothingItem, ClothingType, Rarity } from '../../../types/avatar2d';
 import { ALL_CLOTHING_ITEMS } from '../../../data/clothingItems';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
@@ -31,7 +31,9 @@ const RARITY_LABEL: Record<Rarity, string> = {
 const SECTION_ORDER: ClothingType[] = [
   'hair',
   'top',
+  'jacket',
   'bottom',
+  'shorts',
   'shoes',
   'jewelry',
   'hat',
@@ -40,12 +42,14 @@ const SECTION_ORDER: ClothingType[] = [
 
 const SECTION_META: Record<ClothingType, { label: string; icon: string }> = {
   hair: { label: 'Hair', icon: 'face-woman-shimmer' },
-  top: { label: 'Top', icon: 'tshirt-crew' },
-  bottom: { label: 'Bottom', icon: 'human-handsdown' },
+  top: { label: 'Shirts', icon: 'tshirt-crew' },
+  jacket: { label: 'Jackets', icon: 'hanger' },
+  bottom: { label: 'Pants', icon: 'human-handsdown' },
+  shorts: { label: 'Shorts', icon: 'human-handsup' },
   shoes: { label: 'Shoes', icon: 'shoe-sneaker' },
   jewelry: { label: 'Jewelry', icon: 'diamond-stone' },
-  hat: { label: 'Hat', icon: 'hat-fedora' },
-  other: { label: 'Other', icon: 'tag-outline' },
+  hat: { label: 'Hats', icon: 'hat-fedora' },
+  other: { label: 'Accessories', icon: 'bag-personal' },
 };
 
 const ClothingStoreScreen: React.FC<any> = ({ navigation }) => {
@@ -166,10 +170,10 @@ const ClothingStoreScreen: React.FC<any> = ({ navigation }) => {
         </View>
 
         <View style={styles.imageWrap}>
-          <Image
+          <AssetImage
             source={item.imageUrl}
-            style={styles.itemImg}
-            resizeMode="contain"
+            width="100%"
+            height="100%"
           />
           {!isOwned && (
             <View style={styles.lockOverlay}>
@@ -266,18 +270,18 @@ const ClothingStoreScreen: React.FC<any> = ({ navigation }) => {
               [{user?.username || 'Player Name'}]
             </Text>
             <View style={styles.avatarFrame}>
-              {user?.avatarUrl ? (
-                <Image
-                  source={{ uri: user.avatarUrl }}
-                  style={styles.avatarImg}
-                  resizeMode="contain"
-                />
-              ) : (
-                <View style={styles.avatarPlaceholder}>
-                  <Icon name="account" size={90} color="#fff" />
-                </View>
-              )}
-            </View>
+            {user?.avatarUrl ? (
+              <AssetImage
+                source={user.avatarUrl}
+                width="100%"
+                height="100%"
+              />
+            ) : (
+              <View style={styles.avatarPlaceholder}>
+                <Icon name="account" size={90} color="#fff" />
+              </View>
+            )}
+          </View>
           </View>
 
           {loading ? (
