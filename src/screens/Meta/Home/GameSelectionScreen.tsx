@@ -237,13 +237,9 @@ const GameSelectionScreen = ({ navigation }: any) => {
                 activeOpacity={0.85}
                 onPress={() => handleGamePress(game)}
                 style={styles.playBtnWrap}>
-                <LinearGradient
-                  colors={['#fbbf24', '#f59e0b']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.playBtn}>
+                <View style={styles.playBtn}>
                   <Text style={styles.playBtnText}>PLAY NOW</Text>
-                </LinearGradient>
+                </View>
               </TouchableOpacity>
             </View>
           </View>
@@ -454,8 +450,7 @@ const styles = StyleSheet.create({
   gameCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
-    minHeight: 130,
+    minHeight: 100,
   },
   thumbWrap: {
     width: 110,
@@ -465,6 +460,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.25)',
     alignItems: 'center',
     justifyContent: 'center',
+    margin:10
   },
   thumbImg: {
     width: '100%',
@@ -507,25 +503,27 @@ const styles = StyleSheet.create({
   },
   playBtnWrap: {
     marginLeft: 'auto',
+    marginRight: 12,
     borderRadius: 999,
-    overflow: 'hidden',
     shadowColor: '#f59e0b',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.5,
-    shadowRadius: 6,
-    elevation: 6,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.85,
+    shadowRadius: 12,
+    elevation: 10,
   },
   playBtn: {
-    paddingVertical: 9,
-    paddingHorizontal: 18,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 11,
+    borderRadius: 999,
+    backgroundColor: '#f59e0b',
   },
   playBtnText: {
     color: '#fff',
     fontWeight: '900',
     fontSize: 13,
-    letterSpacing: 0.6,
+    letterSpacing: 1.1,
   },
   comingSoonBadge: {
     position: 'absolute',
