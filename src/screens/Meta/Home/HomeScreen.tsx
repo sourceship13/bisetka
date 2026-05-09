@@ -28,6 +28,8 @@ import {
 import AppVersionFooter from '../../../components/global/AppVersionFooter';
 import OnlinePlayersList from '../../../components/OnlinePlayersList';
 import HomeGlobalChat from '../../../components/global/HomeGlobalChat';
+import BottomTabBar from '../../../components/global/BottomTabBar';
+import LeaderboardPreview from '../../../components/global/LeaderboardPreview';
 import AVATARS, { resolveAvatar } from '../../../utils/avatars';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { socketService } from '../../../services/SocketService';
@@ -512,186 +514,110 @@ const HomeScreen = ({ navigation, route }: any) => {
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
           >
-            {/* Header */}
-            <LinearGradient
-              // colors={['#6366f1', '#8b5cf6']}
-              colors={['rgba(0, 0, 0, 0.6)', 'rgba(0, 0, 0, 0.6)']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.header}
-            >
+            {/* Top Header — "Global Community" + points + globe */}
+            <View style={styles.topHeader}>
               <TouchableOpacity
                 onPress={() => drawerNav.dispatch(DrawerActions.openDrawer())}
-                style={styles.hamburgerBtn}
+                style={styles.topHeaderHamburger}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
-                <Text style={styles.hamburgerText}>☰</Text>
+                <Icon name="menu" size={26} color="#fff" />
               </TouchableOpacity>
-              <View style={[styles.headerContent, { minHeight: 80 }]}>
-                <Text style={styles.welcomeText}>Welcome back,</Text>
-                <Text style={styles.userName}>
-                  {user?.username || 'Player'}! 👋
-                </Text>
-              </View>
-              <TouchableOpacity
-                onPress={() => signOut()}
-                style={styles.logoutBtn}
-              >
-                <Text style={styles.logoutText}>Log Out</Text>
-              </TouchableOpacity>
-            </LinearGradient>
-
-            {/* Avatar + Action Buttons + Points */}
-            <View style={styles.quickRow}>
-              {/* Left 1/3 — Avatar */}
-              <View style={styles.leftCol}>
+              <Text style={styles.topHeaderTitle}>Global Community</Text>
+              <View style={styles.topHeaderRight}>
                 <TouchableOpacity
-                  onPress={() => navigation.navigate('Profile')}
-                  style={[styles.avatarCol, styles.avatarCard]}
+                  onPress={() => navigation.navigate('PointsShop')}
+                  activeOpacity={0.85}
+                  style={styles.pointsPillWrap}
+                >
+                  <View style={styles.pointsPill}>
+                    <Text style={styles.pointsCoin}>🪙</Text>
+                    <Text style={styles.pointsAmount}>
+                      {Math.floor(user?.balance || 0).toLocaleString()}
+                    </Text>
+                    <View style={styles.pointsPlus}>
+                      <Icon name="plus" size={14} color="#fff" />
+                    </View>
+                  </View>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() =>
+                    navigation.navigate('GlobalView', { userId: user?.id })
+                  }
+                  style={styles.globeBtn}
                   activeOpacity={0.85}
                 >
-                  <Image
-                    source={avatarSource || AVATARS[0].source}
-                    style={styles.homeAvatarImg}
-                    resizeMode="contain"
-                  />
+                  <Icon name="earth" size={22} color="#fff" />
                 </TouchableOpacity>
-              </View>
-              {/* Right 2/3 — buttons row + points row */}
-              <View style={styles.rightCol}>
-                {/* Row 1: 2 icon buttons */}
-                <View style={styles.actionBtns}>
-                  <TouchableOpacity
-                    onPress={() =>
-                      navigation.navigate('GlobalView', { userId: user?.id })
-                    }
-                    style={styles.actionBtn}
-                  >
-                    <LinearGradient
-                      colors={[
-                        'rgba(16, 185, 129, 0.7)',
-                        'rgba(52, 211, 153, 0.7)',
-                      ]}
-                      style={styles.actionGrad}
-                    >
-                      <Icon name="earth" size={28} color="#fff" />
-                    </LinearGradient>
-                  </TouchableOpacity>
-
-                  {/* <TouchableOpacity
-                    onPress={() => navigation.navigate('GlobalChat')}
-                    style={styles.actionBtn}
-                  >
-                    <LinearGradient
-                      colors={['rgba(0, 0, 0, 0.6)', 'rgba(0, 0, 0, 0.6)']}
-                      style={styles.actionGrad}
-                    >
-                      <Icon name="forum" size={28} color="#fff" />
-                    </LinearGradient>
-                  </TouchableOpacity> */}
-
-                  <TouchableOpacity
-                    onPress={() => navigation.navigate('Leaderboard')}
-                    style={styles.actionBtn}
-                  >
-                    <LinearGradient
-                      colors={['rgba(0, 0, 0, 0.6)', 'rgba(0, 0, 0, 0.6)']}
-                      style={styles.actionGrad}
-                    >
-                      <Icon name="trophy" size={28} color="#fff" />
-                    </LinearGradient>
-                  </TouchableOpacity>
-
-                  {/* <TouchableOpacity
-                    onPress={() => navigation.navigate('ChatRoomsList')}
-                    style={styles.actionBtn}
-                  >
-                    <LinearGradient
-                      colors={['rgba(0, 0, 0, 0.6)', 'rgba(0, 0, 0, 0.6)']}
-                      style={styles.actionGrad}
-                    >
-                      <Icon name="door-open" size={28} color="#fff" />
-                    </LinearGradient>
-                  </TouchableOpacity> */}
-
-                  <TouchableOpacity
-                    onPress={() => navigation.navigate('Travel')}
-                    style={styles.actionBtn}
-                  >
-                    <LinearGradient
-                      colors={[
-                        'rgba(99, 102, 241, 0.7)',
-                        'rgba(139, 92, 246, 0.7)',
-                      ]}
-                      style={styles.actionGrad}
-                    >
-                      <Icon name="airplane-takeoff" size={28} color="#fff" />
-                    </LinearGradient>
-                  </TouchableOpacity>
-                </View>
-
-                {/* Row 2: Points + Leaderboard + ChatRooms */}
-                <View style={styles.bottomRow}>
-                  <TouchableOpacity
-                    onPress={() => navigation.navigate('PointsShop')}
-                    activeOpacity={0.8}>
-                    <LinearGradient
-                      colors={['rgba(0, 0, 0, 0.6)', 'rgba(0, 0, 0, 0.6)']}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
-                      style={styles.balanceGrad}
-                    >
-                      <Text
-                        style={[
-                          styles.balanceLabel,
-                          iOSUIKit.bodyEmphasizedWhite,
-                        ]}
-                      >
-                        Points 🏆{' '}
-                      </Text>
-                      <Text style={styles.balanceAmount}>
-                        {Math.floor(user?.balance || 0).toLocaleString()}
-                      </Text>
-                    </LinearGradient>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    onPress={() => navigation.navigate('Wardrobe')}
-                    style={styles.placeholderBtn}
-                    activeOpacity={0.85}
-                  >
-                    <LinearGradient
-                      colors={['rgba(0, 0, 0, 0.6)', 'rgba(0, 0, 0, 0.6)']}
-                      style={styles.actionGrad}
-                    >
-                      <Icon name="hanger" size={28} color="#fff" />
-                    </LinearGradient>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    onPress={() => navigation.navigate('ClothingStore')}
-                    style={styles.placeholderBtn}
-                    activeOpacity={0.85}
-                  >
-                    <LinearGradient
-                      colors={['rgba(0, 0, 0, 0.6)', 'rgba(0, 0, 0, 0.6)']}
-                      style={styles.actionGrad}
-                    >
-                      <Icon name="shopping" size={28} color="#fff" />
-                    </LinearGradient>
-                  </TouchableOpacity>
-                </View>
               </View>
             </View>
 
-            {renderNearestBisetkaCard()}
+            {/* Greeting Card with floating avatar */}
+            <View style={styles.greetingWrap}>
+              <TouchableOpacity
+                onPress={() => navigation.navigate('Profile')}
+                style={styles.greetingAvatarWrap}
+                activeOpacity={0.85}
+              >
+                <View style={styles.greetingAvatarRing}>
+                  <Image
+                    source={avatarSource || AVATARS[0].source}
+                    style={styles.greetingAvatarImg}
+                    resizeMode="contain"
+                  />
+                </View>
+              </TouchableOpacity>
 
-            <HomeGlobalChat onOpenFullChat={() => navigation.navigate('GlobalChat')} />
+              <LinearGradient
+                colors={['#6f5cf2', '#3a2f8f']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.greetingCard}
+              >
+                <View style={styles.greetingTextWrap}>
+                  <Text style={styles.greetingHello}>
+                    Hello, {user?.username || 'Player'}!
+                  </Text>
+                  <View style={styles.greetingLocationRow}>
+                    <Icon name="map-marker" size={16} color="#fff" />
+                    <Text style={styles.greetingLocation}>
+                      {currentCity
+                        ? `${currentCity}${
+                            resolvedBisetka?.country ||
+                            user?.bisetka?.country
+                              ? `, ${
+                                  resolvedBisetka?.country ||
+                                  user?.bisetka?.country
+                                }`
+                              : ''
+                          }`
+                        : 'Locating...'}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    onPress={() => navigation.navigate('Travel')}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.changeLocation}>Change Location</Text>
+                  </TouchableOpacity>
+                </View>
+              </LinearGradient>
+            </View>
+
+            {/* Global Chat */}
+            <HomeGlobalChat
+              onOpenFullChat={() => navigation.navigate('GlobalChat')}
+            />
+
+            {/* Leaderboard */}
+            <LeaderboardPreview limit={4} />
 
             {/* Footer */}
             <AppVersionFooter containerStyle={styles.footer} />
           </ScrollView>
         </SafeAreaView>
       </ImageBackground>
+      <BottomTabBar active="Community" />
     </View>
   );
 };
@@ -731,7 +657,135 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 0,
+    paddingBottom: 120,
+  },
+  topHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 12,
+    marginTop: 4,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    backgroundColor: 'rgba(8, 6, 24, 0.78)',
+    borderRadius: 22,
+  },
+  topHeaderHamburger: {
+    paddingRight: 10,
+  },
+  topHeaderTitle: {
+    flex: 1,
+    color: '#fff',
+    fontSize: 22,
+    fontWeight: '800',
+  },
+  topHeaderRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  pointsPillWrap: {
+    borderRadius: 999,
+  },
+  pointsPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: 'rgba(20, 14, 60, 0.95)',
+    borderWidth: 1.5,
+    borderColor: '#7c4dff',
+    gap: 6,
+  },
+  pointsCoin: {
+    fontSize: 16,
+  },
+  pointsAmount: {
+    color: '#fff',
+    fontWeight: '800',
+    fontSize: 14,
+  },
+  pointsPlus: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 2,
+  },
+  globeBtn: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  greetingWrap: {
+    marginHorizontal: 16,
+    marginTop: 50,
+    alignItems: 'center',
+  },
+  greetingAvatarWrap: {
+    position: 'absolute',
+    top: -50,
+    zIndex: 2,
+    alignItems: 'center',
+  },
+  greetingAvatarRing: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#fff',
+    borderWidth: 3,
+    borderColor: '#fff',
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  greetingAvatarImg: {
+    width: 92,
+    height: 92,
+  },
+  greetingCard: {
+    width: '100%',
+    borderRadius: 22,
+    paddingTop: 60,
+    paddingBottom: 18,
+    paddingHorizontal: 18,
+    alignItems: 'center',
+  },
+  greetingTextWrap: {
+    alignItems: 'center',
+  },
+  greetingHello: {
+    color: '#fff',
+    fontSize: 22,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  greetingLocationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 10,
+    gap: 4,
+  },
+  greetingLocation: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  changeLocation: {
+    color: 'rgba(255,255,255,0.85)',
+    fontSize: 12,
+    fontWeight: '500',
+    textDecorationLine: 'underline',
+    marginTop: 4,
   },
   header: {
     flexDirection: 'row',
