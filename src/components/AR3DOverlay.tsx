@@ -653,18 +653,21 @@ function _settleQ(tv) {
   return new THREE.Quaternion().setFromUnitVectors(ns[fi], new THREE.Vector3(0,0,1));
 }
 // ── Borne-off piece pockets ───────────────────────────────────────────────────
-// Placed inside the board's decorative circular medallions (centre of each half).
-// Left  circle (x≈-0.155): black / AI borne-off pieces
-// Right circle (x≈+0.155): white / player borne-off pieces
-// Pieces lie flat (circular face up), stacked along Y inside the circle.
-// 5 discs at 0.026 spacing span 0.104 m — fits inside the ~0.13 m radius circle.
+// Trays sit OUTSIDE the board in the open space above and below it, so the
+// player can clearly see how many checkers each side has borne off.
+//   Top    (y > 0): black / opponent borne-off pieces
+//   Bottom (y < 0): white (red-coloured) / player borne-off pieces
+// Discs lie flat (face up) and stack horizontally along X. Up to 5 are drawn;
+// a count badge to the right shows the true number when there are more.
+const _PKT_OFFSET   = 0.045;          // distance beyond the board edge
+const _PKT_SPACING  = 0.030;          // X-stride between adjacent discs
+const _PKT_ROW_HALF = 2 * _PKT_SPACING; // centre 5 discs around x=0
 const _PKT = {
-  black: { cx: -0.155, cyStart: -0.052, dir:  1 },
-  white: { cx:  0.155, cyStart:  0.052, dir: -1 },
+  black: { cy:  BOARD_HALF_H + _PKT_OFFSET, cxStart: -_PKT_ROW_HALF, dx:  _PKT_SPACING },
+  white: { cy: -BOARD_HALF_H - _PKT_OFFSET, cxStart:  _PKT_ROW_HALF, dx: -_PKT_SPACING },
 };
 const _PKT_DISC_R   = 0.013;
 const _PKT_DISC_H   = 0.007;
-const _PKT_SPACING  = 0.026;  // tight stack to fit inside medallion circle
 const _PKT_MAX_SHOW = 5;      // max discs rendered; badge shows true count
 const _PKT_SZ       = SURFACE_Z + _PKT_DISC_H * 0.5 + 0.001;
 let _pocketMeshes = null;
@@ -674,12 +677,22 @@ function _ensurePockets() {
   _pocketMeshes = {};
   // Shared geometries
   const discGeo = new THREE.CylinderGeometry(_PKT_DISC_R, _PKT_DISC_R, _PKT_DISC_H, 20);
+  // Subtle tray backdrop so the empty zone is visible to the player.
+  const trayMat = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.28 });
   ['white', 'black'].forEach(function(color) {
     const isWhite = color === 'white';
+    const def = _PKT[color];
     const mat = new THREE.MeshStandardMaterial({
       color: isWhite ? 0xcc2828 : 0x1a1a30,
       roughness: 0.55, metalness: 0.12
     });
+    // Tray pad (thin rectangle) sits flush on the table behind the discs.
+    var tray = new THREE.Mesh(
+      new THREE.PlaneGeometry(_PKT_SPACING * (_PKT_MAX_SHOW + 2), _PKT_DISC_R * 2.6),
+      trayMat
+    );
+    tray.position.set(0, def.cy, SURFACE_Z + 0.0005);
+    boardGroup.add(tray);
     var discs = [];
     for (var i = 0; i < _PKT_MAX_SHOW; i++) {
       var m = new THREE.Mesh(discGeo, mat);
@@ -697,7 +710,7 @@ function _ensurePockets() {
     badge.scale.set(0.048, 0.048, 1);
     badge.visible = false;
     boardGroup.add(badge);
-    _pocketMeshes[color] = { discs: discs, badge: badge, badgeCanvas: bc };
+    _pocketMeshes[color] = { discs: discs, badge: badge, badgeCanvas: bc, tray: tray };
   });
 }
 
@@ -708,7 +721,7 @@ function _updatePocket(color, count) {
   var show = Math.min(count, _PKT_MAX_SHOW);
   for (var i = 0; i < _PKT_MAX_SHOW; i++) {
     if (i < show) {
-      pm.discs[i].position.set(def.cx, def.cyStart + def.dir * i * _PKT_SPACING, _PKT_SZ);
+      pm.discs[i].position.set(def.cxStart + def.dx * i, def.cy, _PKT_SZ);
       pm.discs[i].visible = true;
     } else {
       pm.discs[i].visible = false;
@@ -727,10 +740,10 @@ function _updatePocket(color, count) {
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillText(String(count), 36, 37);
     pm.badge.material.map.needsUpdate = true;
-    // Place badge just beyond the last disc
+    // Place badge just past the last visible disc, slightly raised off the surface.
     var lastIdx = Math.min(count - 1, _PKT_MAX_SHOW - 1);
-    var badgeY = def.cyStart + def.dir * (lastIdx * _PKT_SPACING + 0.038);
-    pm.badge.position.set(def.cx, badgeY, _PKT_SZ + 0.035);
+    var badgeX = def.cxStart + def.dx * (lastIdx + 1.2);
+    pm.badge.position.set(badgeX, def.cy, _PKT_SZ + 0.035);
     pm.badge.visible = true;
   } else {
     pm.badge.visible = false;
