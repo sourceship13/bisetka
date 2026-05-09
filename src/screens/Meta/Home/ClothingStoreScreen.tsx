@@ -14,7 +14,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import BottomTabBar from '../../../components/global/BottomTabBar';
 import AssetImage from '../../../components/AssetImage';
 import { ClothingItem, ClothingType, Rarity } from '../../../types/avatar2d';
-import { ALL_CLOTHING_ITEMS } from '../../../data/clothingItems';
+import { ALL_CLOTHING_ITEMS, filterClothingForAvatar, getAvatarBuildById, getAvatarGenderById } from '../../../data/clothingItems';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { useAuth } from '../../../libs/hooks/useAuth';
 
@@ -54,7 +54,12 @@ const SECTION_META: Record<ClothingType, { label: string; icon: string }> = {
 
 const ClothingStoreScreen: React.FC<any> = ({ navigation }) => {
   const { user } = useAuth();
-  const [items] = useState<ClothingItem[]>(ALL_CLOTHING_ITEMS);
+  const [avatarBuild, setAvatarBuild] = useState<string | undefined>(undefined);
+  const [avatarGender, setAvatarGender] = useState<string | undefined>(undefined);
+  const items = useMemo<ClothingItem[]>(
+    () => filterClothingForAvatar(ALL_CLOTHING_ITEMS, avatarGender, avatarBuild) as ClothingItem[],
+    [avatarBuild, avatarGender],
+  );
   const [owned, setOwned] = useState<Set<string>>(new Set());
   const [equipped, setEquipped] = useState<Record<string, string>>({});
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -63,6 +68,10 @@ const ClothingStoreScreen: React.FC<any> = ({ navigation }) => {
   useEffect(() => {
     (async () => {
       try {
+        const selectedAvatarId = await AsyncStorage.getItem('selectedAvatarId');
+        setAvatarBuild(getAvatarBuildById(selectedAvatarId));
+        setAvatarGender(getAvatarGenderById(selectedAvatarId));
+
         const ownedStr = await AsyncStorage.getItem(STORE_OWNED_KEY);
         const defaults = ALL_CLOTHING_ITEMS.filter(i => i.isDefault).map(
           i => i.id,
