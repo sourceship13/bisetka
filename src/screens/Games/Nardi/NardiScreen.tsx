@@ -1035,7 +1035,9 @@ const NardiScreen = ({ navigation, route }: any) => {
     }
 
     // Schedule showing each state with delays (give dice time to land first)
-    let delay = arEnabled ? 1600 : 800; // extra wait in AR so dice finish rolling before pieces move
+    // Slower pacing so the player can clearly see each AI move animate one at a time.
+    let delay = arEnabled ? 2200 : 1400; // initial wait (longer in AR while dice settle)
+    const PER_MOVE_DELAY = 1500; // gap between consecutive AI moves
     statesSequence.forEach((s, i) => {
       const t = setTimeout(() => {
         setGameState(s);
@@ -1045,17 +1047,17 @@ const NardiScreen = ({ navigation, route }: any) => {
         }
       }, delay);
       aiTimeoutsRef.current.push(t);
-      delay += 700;
+      delay += PER_MOVE_DELAY;
     });
 
-    // After all moves, switch to white
+    // After all moves, pause briefly so the final position is visible, then switch to white
     const switchT = setTimeout(() => {
       setGameState(prev => {
         if (!prev || prev.currentPlayer !== 'black') return prev; // AI is black
         console.log('🤖 AI turn complete, switching to white');
         return switchPlayer(prev);
       });
-    }, delay);
+    }, delay + 400);
     aiTimeoutsRef.current.push(switchT);
 
   }, [gameState?.currentPlayer, gameState?.phase, opponentType]);
