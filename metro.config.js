@@ -27,8 +27,18 @@ const config = {
     path.resolve(__dirname),
     ...(hasLocalPhotosphere ? [photospherePath] : []),
   ],
+  transformer: {
+    babelTransformerPath: require.resolve('react-native-svg-transformer'),
+  },
   resolver: {
-    assetExts: [...defaultConfig.resolver.assetExts, 'vrm', 'glb', 'gltf', 'jsraw'],
+    assetExts: [
+      ...defaultConfig.resolver.assetExts.filter(ext => ext !== 'svg'),
+      'vrm',
+      'glb',
+      'gltf',
+      'jsraw',
+    ],
+    sourceExts: [...defaultConfig.resolver.sourceExts, 'svg'],
     nodeModulesPaths: [path.resolve(__dirname, 'node_modules')],
     // IMPORTANT: Never use [] for blockList. metro's getIgnorePattern() calls
     // combine([]) which produces new RegExp("") — matching every path — causing

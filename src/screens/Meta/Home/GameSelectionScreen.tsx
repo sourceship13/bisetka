@@ -6,17 +6,14 @@ import {
   StyleSheet,
   ScrollView,
   StatusBar,
-  Dimensions,
-  ImageBackground,
-  ActivityIndicator,
   Image,
 } from 'react-native';
-import AppVersionFooter from '../../../components/global/AppVersionFooter';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
-import useBisetkaBackground, { DEFAULT_BISETKA_BACKGROUND_PROMPT } from '../../../hooks/useBisetkaBackground';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useAuth } from '../../../libs/hooks/useAuth';
 import bisetkaService, { Bisetka } from '../../../services/bisetka.service';
+import BottomTabBar from '../../../components/global/BottomTabBar';
 
 const buildAccountBisetka = (accountBisetka: {
   id: string;
@@ -35,127 +32,136 @@ const buildAccountBisetka = (accountBisetka: {
   updated_at: '',
 });
 
-const { width } = Dimensions.get('window');
-const CARD_WIDTH = (width - 42) / 2; // 2 columns with gap
+type GameConfig = {
+  id: string;
+  name: string;
+  description: string;
+  icon: any;
+  gradient: [string, string];
+  gameType: string;
+  players: number;
+  entryFee: number;
+  comingSoon?: boolean;
+};
 
-// Game configurations with PushBird-style colors
-const GAMES = [
+const GAMES: GameConfig[] = [
   {
     id: 'blot',
     name: 'Blot',
-    description: 'Classic card game',
+    description: 'Classic Armenian card game',
     icon: require('../../../../assets/game-icons/blot-icon.png'),
-    gradient: ['#6366f1', '#8b5cf6'],
+    gradient: ['#7a6cf5', '#5b4ae0'],
     gameType: 'blot',
-    isImage: true,
+    players: 15,
+    entryFee: 50,
   },
   {
     id: 'baazar-blot',
     name: 'Baazar Blot',
-    description: 'Fast variant',
+    description: 'Fast-paced Blot variant',
     icon: require('../../../../assets/game-icons/baazar-blot-icon.png'),
-    gradient: ['#ec4899', '#f472b6'],
+    gradient: ['#7a6cf5', '#5b4ae0'],
     gameType: 'baazar-blot',
-    isImage: true,
+    players: 15,
+    entryFee: 50,
   },
   {
     id: 'checkers',
     name: 'Checkers',
-    description: 'Quick matches',
+    description: 'Classic jumping game',
     icon: require('../../../../assets/game-icons/checkers-icon.png'),
-    gradient: ['#f59e0b', '#fbbf24'],
+    gradient: ['#7a6cf5', '#5b4ae0'],
     gameType: 'checkers',
-    isImage: true,
+    players: 15,
+    entryFee: 50,
   },
   {
     id: 'chess',
     name: 'Chess',
-    description: 'Strategy',
+    description: 'Strategic board game',
     icon: require('../../../../assets/game-icons/chess-icon.png'),
-    gradient: ['#3b82f6', '#60a5fa'],
+    gradient: ['#7a6cf5', '#5b4ae0'],
     gameType: 'chess',
-    isImage: true,
+    players: 15,
+    entryFee: 50,
   },
   {
     id: 'poker',
     name: 'Poker',
-    description: "Texas Hold'em",
+    description: "Texas Hold'em Poker",
     icon: require('../../../../assets/game-icons/poker-icon.png'),
-    gradient: ['#10b981', '#34d399'],
+    gradient: ['#7a6cf5', '#5b4ae0'],
     gameType: 'poker',
-    isImage: true,
+    players: 15,
+    entryFee: 50,
   },
   {
     id: 'nardi',
     name: 'Nardi',
-    description: 'Backgammon',
+    description: 'Backgammon classic',
     icon: require('../../../../assets/game-icons/nardi-icon.png'),
-    gradient: ['#8b5cf6', '#a78bfa'],
+    gradient: ['#7a6cf5', '#5b4ae0'],
     gameType: 'nardi',
-    isImage: true,
+    players: 15,
+    entryFee: 50,
   },
   {
     id: 'billiards',
     name: '8-Ball',
-    description: 'Pool',
+    description: 'Pool — sink the 8 to win',
     icon: require('../../../../assets/game-icons/8ball-icon.png'),
-    gradient: ['#06b6d4', '#22d3ee'],
+    gradient: ['#7a6cf5', '#5b4ae0'],
     gameType: 'billiards',
-    isImage: true,
+    players: 15,
+    entryFee: 50,
   },
   {
     id: '9-ball',
     name: '9-Ball',
-    description: 'Race to 9',
+    description: 'Race to the 9',
     icon: require('../../../../assets/game-icons/9ball-icon.png'),
-    gradient: ['#f59e0b', '#fbbf24'],
+    gradient: ['#7a6cf5', '#5b4ae0'],
     gameType: '9-ball',
-    isImage: true,
+    players: 15,
+    entryFee: 50,
   },
   {
     id: 'mrotsi',
     name: 'Mrotsi',
-    description: 'Dice game',
+    description: 'Classic dice game',
     icon: require('../../../../assets/game-icons/mrotsi-icon.png'),
-    gradient: ['#14b8a6', '#2dd4bf'],
+    gradient: ['#7a6cf5', '#5b4ae0'],
     gameType: 'mrotsi',
-    isImage: true,
-  },
-  {
-    id: 'slots',
-    name: 'Slots',
-    description: 'Arcade',
-    icon: '🎰',
-    gradient: ['#ef4444', '#f87171'],
-    gameType: 'slots',
-    isImage: false,
+    players: 15,
+    entryFee: 50,
   },
   {
     id: 'blackjack',
     name: 'Blackjack',
-    description: '21 Card Game',
+    description: '21 — beat the dealer',
     icon: require('../../../../assets/game-icons/blackjack-icon.png'),
-    gradient: ['#7c3aed', '#a78bfa'],
+    gradient: ['#7a6cf5', '#5b4ae0'],
     gameType: 'blackjack',
-    isImage: true,
+    players: 15,
+    entryFee: 50,
   },
-] as const;
-
-type GameConfig = (typeof GAMES)[number];
+  {
+    id: 'slots',
+    name: 'Slots',
+    description: 'Spin and win',
+    icon: require('../../../../assets/game-icons/slots-icon.png'),
+    gradient: ['#7a6cf5', '#5b4ae0'],
+    gameType: 'slots',
+    players: 15,
+    entryFee: 50,
+  },
+];
 
 const GameSelectionScreen = ({ navigation }: any) => {
   const { user } = useAuth();
   const [bisetka, setBisetka] = useState<Bisetka | null>(
     user?.bisetka ? buildAccountBisetka(user.bisetka) : null,
   );
-  const [bisetkaLoading, setBisetkaLoading] = useState(!user?.bisetka);
-  const { imageSource: bisetkaBackgroundSource } = useBisetkaBackground({
-    city: bisetka?.city || user?.bisetka?.city || null,
-    neighborhood: bisetka?.neighborhood_name || user?.bisetka?.neighborhood || null,
-    cacheKey: bisetka?.id || user?.bisetka?.id || null,
-    promptTemplate: DEFAULT_BISETKA_BACKGROUND_PROMPT,
-    enabled: Boolean(bisetka?.city || user?.bisetka?.city),
-  });
 
   useEffect(() => {
     let isMounted = true;
@@ -163,31 +169,25 @@ const GameSelectionScreen = ({ navigation }: any) => {
     const loadBisetka = async () => {
       if (user?.bisetka) {
         setBisetka(buildAccountBisetka(user.bisetka));
-        setBisetkaLoading(false);
         return;
       }
 
-      setBisetkaLoading(true);
       const currentBisetka = await bisetkaService.getMyBisetka();
-      const ipResult = currentBisetka ? null : await bisetkaService.getByIpBisetka();
+      const ipResult = currentBisetka
+        ? null
+        : await bisetkaService.getByIpBisetka();
 
-      if (!isMounted) {
-        return;
-      }
-
+      if (!isMounted) return;
       setBisetka(currentBisetka || ipResult?.bisetka || null);
-      setBisetkaLoading(false);
     };
 
     void loadBisetka();
-
     return () => {
       isMounted = false;
     };
   }, [user?.bisetka]);
 
   const handleGamePress = (game: GameConfig) => {
-    // Navigate to GameInfo screen first to show rules and points
     navigation.navigate('GameInfo', {
       gameType: game.gameType,
       gradient: game.gradient as unknown as string[],
@@ -195,36 +195,60 @@ const GameSelectionScreen = ({ navigation }: any) => {
   };
 
   const renderGameCard = (game: GameConfig) => {
-    const isComingSoon: boolean =
-      'comingSoon' in game && (game as any).comingSoon === true;
-
     return (
       <TouchableOpacity
         key={game.id}
-        activeOpacity={0.85}
-        disabled={isComingSoon}
+        activeOpacity={0.9}
+        disabled={game.comingSoon}
         onPress={() => handleGamePress(game)}
-        style={[styles.gameCardWrapper, isComingSoon && styles.cardDisabled]}
-      >
+        style={[styles.gameCardWrapper, game.comingSoon && styles.cardDisabled]}>
         <LinearGradient
-          // colors={game.gradient as unknown as string[]}
-          colors={['rgba(0,0,0,0.5)', 'rgba(0,0,0,0.8)']}
+          colors={game.gradient}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={styles.gameCard}
-        >
-          {(game as any).isImage ? (
-            <Image 
-              source={game.icon} 
-              style={styles.gameIconImage}
-              resizeMode="contain"
+          style={styles.gameCard}>
+          <View style={styles.thumbWrap}>
+            <Image
+              source={game.icon}
+              style={styles.thumbImg}
+              resizeMode="cover"
             />
-          ) : (
-            <Text style={styles.gameIcon}>{game.icon}</Text>
-          )}
-          <Text style={styles.gameName}>{game.name}</Text>
-          <Text style={styles.gameDescription}>{game.description}</Text>
-          {isComingSoon && (
+          </View>
+
+          <View style={styles.cardBody}>
+            <Text style={styles.gameName} numberOfLines={1}>
+              {game.name}
+            </Text>
+            <Text style={styles.gameDescription} numberOfLines={1}>
+              {game.description}
+            </Text>
+
+            <View style={styles.metaRow}>
+              <View style={styles.metaItem}>
+                <Icon name="account-group" size={16} color="#fff" />
+                <Text style={styles.metaText}>{game.players}</Text>
+              </View>
+              <View style={styles.metaItem}>
+                <Text style={styles.coinIcon}>🪙</Text>
+                <Text style={styles.metaText}>{game.entryFee}</Text>
+              </View>
+
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={() => handleGamePress(game)}
+                style={styles.playBtnWrap}>
+                <LinearGradient
+                  colors={['#fbbf24', '#f59e0b']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.playBtn}>
+                  <Text style={styles.playBtnText}>PLAY NOW</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {game.comingSoon && (
             <View style={styles.comingSoonBadge}>
               <Text style={styles.comingSoonText}>Soon</Text>
             </View>
@@ -234,102 +258,76 @@ const GameSelectionScreen = ({ navigation }: any) => {
     );
   };
 
+  const cityLabel = bisetka
+    ? `${bisetka.city}${bisetka.country ? `, ${bisetka.country}` : ''}`
+    : user?.bisetka
+    ? `${user.bisetka.city}, ${user.bisetka.country}`
+    : 'Locating...';
+
+  const activeUsers = bisetka?.active_users || 0;
+
   return (
     <View style={styles.container}>
-      <ImageBackground
-        source={bisetkaBackgroundSource}
-        style={styles.backgroundImage}
-        resizeMode="cover"
-      >
-        <StatusBar
-          barStyle="light-content"
-          backgroundColor="transparent"
-          translucent
-        />
-        <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
-          {/* Header */}
-          <LinearGradient
-            colors={['rgba(0,0,0,0.5)', 'rgba(0,0,0,0.8)']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.header}
-          >
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', marginVertical:20 }}>
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor="transparent"
+        translucent
+      />
+      <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}>
+          {/* Top header card */}
+          <View style={styles.topHeader}>
+            <Text style={styles.topHeaderTitle}>Game Hub</Text>
+            <View style={styles.topHeaderRight}>
               <TouchableOpacity
-                onPress={() => navigation.goBack()}
-                style={styles.backBtn}
-              >
-                <Text style={styles.backText}>←</Text>
-              </TouchableOpacity>
-              <View style={styles.headerContent}>
-                <Text style={styles.headerTitle}>Choose a Game</Text>
-              </View>
-              <View style={styles.placeholder} />
-            </View>
-          </LinearGradient>
-
-          <ScrollView
-            contentContainerStyle={styles.scrollContent}
-            showsVerticalScrollIndicator={false}
-          >
-            {/* Bisetka Location Card */}
-            {bisetkaLoading ? (
-              <View style={styles.bisetkaCardWrapper}>
-                <LinearGradient
-                  colors={['rgba(0,0,0,0.5)', 'rgba(0,0,0,0.8)']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.bisetkaCard}
-                >
-                  <ActivityIndicator size="large" color="#fff" />
-                  <Text style={styles.bisetkaLoadingText}>Finding your Bisetka...</Text>
-                </LinearGradient>
-              </View>
-            ) : bisetka ? (
-              <TouchableOpacity
-                activeOpacity={0.85}
-                onPress={() => navigation.navigate('BisetkaDetail', { bisetkaId: bisetka.id })}
-                style={styles.bisetkaCardWrapper}
-              >
-                <LinearGradient
-                  colors={['rgba(0,0,0,0.5)', 'rgba(0,0,0,0.8)']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.bisetkaCard}
-                >
-                  <View style={styles.bisetkaCardContent}>
-                    <View style={styles.bisetkaIconContainer}>
-                      <Text style={styles.bisetkaCardIcon}>📍</Text>
-                    </View>
-                    <View style={styles.bisetkaCardTextContainer}>
-                      <Text style={styles.bisetkaCardLabel}>NEAREST TO YOU</Text>
-                      <Text style={styles.bisetkaCardTitle}>
-                        {bisetka.neighborhood_name}, {bisetka.city}
-                      </Text>
-                      <Text style={styles.bisetkaCardDescription}>
-                        This is the Bisetka matched from your account or current connection.
-                      </Text>
-                    </View>
-                    <View style={styles.bisetkaCardBadge}>
-                      <Text style={styles.bisetkaCardBadgeText}>
-                        {bisetka.active_users} active
-                      </Text>
-                    </View>
+                onPress={() => navigation.navigate('PointsShop')}
+                activeOpacity={0.85}>
+                <View style={styles.pointsPill}>
+                  <Text style={styles.pointsCoin}>🪙</Text>
+                  <Text style={styles.pointsAmount}>
+                    {Math.floor(user?.balance || 0).toLocaleString()}
+                  </Text>
+                  <View style={styles.pointsPlus}>
+                    <Icon name="plus" size={12} color="#fff" />
                   </View>
-                </LinearGradient>
+                </View>
               </TouchableOpacity>
-            ) : null}
-
-            {/* Games Grid */}
-            <View style={styles.gamesGrid}>
-              {GAMES.map(game => renderGameCard(game))}
+              <TouchableOpacity
+                onPress={() =>
+                  navigation.navigate('GlobalView', { userId: user?.id })
+                }
+                style={styles.globeBtn}
+                activeOpacity={0.85}>
+                <Icon name="earth" size={22} color="#fff" />
+              </TouchableOpacity>
             </View>
+          </View>
 
-            {/* Footer */}
-            <AppVersionFooter containerStyle={styles.footer} />
-          </ScrollView>
-        </SafeAreaView>
-      </ImageBackground>
+          {/* Location row */}
+          <View style={styles.locationRow}>
+            <View style={styles.locationLeft}>
+              <View style={styles.locationTitleRow}>
+                <Icon name="map-marker" size={18} color="#fff" />
+                <Text style={styles.locationTitle}>{cityLabel}</Text>
+              </View>
+              <Text style={styles.locationSub}>
+                {activeUsers} players  •  2 kings
+              </Text>
+            </View>
+            <TouchableOpacity
+              onPress={() => navigation.navigate('Travel')}
+              activeOpacity={0.7}>
+              <Text style={styles.changeLocation}>Change Location</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Game list */}
+          <View style={styles.gamesList}>{GAMES.map(renderGameCard)}</View>
+        </ScrollView>
+      </SafeAreaView>
+      <BottomTabBar active="GameHub" />
     </View>
   );
 };
@@ -337,172 +335,197 @@ const GameSelectionScreen = ({ navigation }: any) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  backgroundImage: {
-    flex: 1,
-    width: '100%',
-    height: '100%',
+    backgroundColor: '#100828',
   },
   safeArea: {
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 20,
-    paddingTop: 16,
+    paddingBottom: 130,
   },
-  header: {
+  topHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
+    marginHorizontal: 12,
+    marginTop: 4,
+    paddingHorizontal: 18,
+    paddingVertical: 18,
+    backgroundColor: 'rgba(40, 22, 96, 0.55)',
+    borderRadius: 22,
   },
-  backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  backText: {
-    color: '#fff',
-    fontSize: 30,
-    fontWeight: '600',
-  },
-  headerContent: {
+  topHeaderTitle: {
     flex: 1,
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
     color: '#fff',
+    fontSize: 22,
+    fontWeight: '800',
   },
-  placeholder: {
-    width: 40,
-  },
-  bisetkaCardWrapper: {
-    marginHorizontal: 16,
-    marginBottom: 16,
-    borderRadius: 20,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  bisetkaCard: {
-
-    minHeight: 120,
-  },
-  bisetkaCardContent: {
+  topHeaderRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding:10
-  },
-  bisetkaIconContainer: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  bisetkaCardIcon: {
-    fontSize: 32,
-  },
-  bisetkaCardTextContainer: {
-    flex: 1,
-  },
-  bisetkaCardLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: 'rgba(255,255,255,0.6)',
-    letterSpacing: 1,
-    marginBottom: 4,
-  },
-  bisetkaCardTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#fff',
-    marginBottom: 4,
-  },
-  bisetkaCardDescription: {
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.7)',
-    lineHeight: 18,
-  },
-  bisetkaCardBadge: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-  },
-  bisetkaCardBadgeText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#fff',
-  },
-  bisetkaLoadingText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: 'rgba(255,255,255,0.8)',
-    marginTop: 12,
-    textAlign: 'center',
-  },
-  gamesGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: 10,
   },
+  pointsPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: 'rgba(20, 14, 60, 0.95)',
+    borderWidth: 1.5,
+    borderColor: '#7c4dff',
+    gap: 6,
+  },
+  pointsCoin: {
+    fontSize: 16,
+  },
+  pointsAmount: {
+    color: '#fff',
+    fontWeight: '800',
+    fontSize: 14,
+  },
+  pointsPlus: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 1.2,
+    borderColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 2,
+  },
+  globeBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.08)',
+  },
+  locationRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    marginHorizontal: 20,
+    marginTop: 18,
+    marginBottom: 14,
+  },
+  locationLeft: {
+    flex: 1,
+  },
+  locationTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  locationTitle: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  locationSub: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 13,
+    fontWeight: '500',
+    marginTop: 4,
+    marginLeft: 22,
+  },
+  changeLocation: {
+    color: 'rgba(255,255,255,0.85)',
+    fontSize: 12,
+    fontWeight: '600',
+    textDecorationLine: 'underline',
+  },
+  gamesList: {
+    paddingHorizontal: 14,
+    gap: 14,
+  },
   gameCardWrapper: {
-    width: CARD_WIDTH,
-    borderRadius: 20,
+    borderRadius: 22,
     overflow: 'hidden',
     shadowColor: '#6366f1',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    elevation: 6,
   },
   cardDisabled: {
     opacity: 0.6,
   },
   gameCard: {
-    padding: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
     minHeight: 130,
+  },
+  thumbWrap: {
+    width: 110,
+    height: 110,
+    borderRadius: 16,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(0,0,0,0.25)',
+    alignItems: 'center',
     justifyContent: 'center',
   },
-  gameIcon: {
-    fontSize: 36,
-    marginBottom: 8,
-    textAlign: 'center',
+  thumbImg: {
+    width: '100%',
+    height: '100%',
   },
-  gameIconImage: {
-    width: 120,
-    height: 120,
-    marginBottom: 8,
-    alignSelf: 'center',
+  cardBody: {
+    flex: 1,
+    marginLeft: 14,
+    justifyContent: 'center',
   },
   gameName: {
-    fontSize: 22,
-    fontWeight: '700',
     color: '#fff',
-    marginBottom: 3,
-    margin: 10,
-    textAlign: 'center',
+    fontSize: 22,
+    fontWeight: '800',
   },
   gameDescription: {
-    fontSize: 18,
     color: 'rgba(255,255,255,0.85)',
-    marginHorizontal: 10,
+    fontSize: 13,
+    fontWeight: '500',
+    marginTop: 4,
+    marginBottom: 14,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+  },
+  metaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  metaText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  coinIcon: {
+    fontSize: 14,
+  },
+  playBtnWrap: {
+    marginLeft: 'auto',
+    borderRadius: 999,
+    overflow: 'hidden',
+    shadowColor: '#f59e0b',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.5,
+    shadowRadius: 6,
+    elevation: 6,
+  },
+  playBtn: {
+    paddingVertical: 9,
+    paddingHorizontal: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  playBtnText: {
+    color: '#fff',
+    fontWeight: '900',
+    fontSize: 13,
+    letterSpacing: 0.6,
   },
   comingSoonBadge: {
     position: 'absolute',
@@ -517,12 +540,6 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: '700',
     color: '#fff',
-  },
-  footer: {
-    marginTop: 20,
-    marginBottom: 0,
-    paddingBottom: 0,
-    alignItems: 'center',
   },
 });
 

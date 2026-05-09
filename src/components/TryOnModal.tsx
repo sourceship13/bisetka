@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity, Image } from 'react-native';
+import AssetImage from './AssetImage';
 import { BaseAvatar, AvatarClothing } from '../types/avatar2d';
 import AvatarPreview from './AvatarPreview';
 
@@ -72,7 +73,7 @@ export const TryOnModal: React.FC<TryOnModalProps> = ({
 
             {/* Item Info */}
             <View style={styles.itemInfo}>
-              <Image source={tryingOnItem.imageUrl} style={styles.itemImage} />
+              <AssetImage source={tryingOnItem.imageUrl} width={styles.itemImage.width as any} height={styles.itemImage.height as any} style={styles.itemImage} />
               <View style={styles.itemDetails}>
                 <Text style={styles.itemName}>{tryingOnItem.name}</Text>
                 <Text style={styles.itemDesc}>{tryingOnItem.description}</Text>

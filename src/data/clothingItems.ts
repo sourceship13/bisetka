@@ -1,394 +1,69 @@
-import { AvatarClothing } from '../types/avatar2d';
+// Old PNG clothing assets have been replaced with the new SVG-based catalog
+// from `bisetka/assets/avatars_new/`. This file just re-exports the new data
+// so all existing imports of `ALL_CLOTHING_ITEMS` keep working.
+import { NEW_CLOTHING_ITEMS, NEW_BASE_AVATARS } from './avatarsNew';
+import { AvatarClothing, BaseAvatar } from '../types/avatar2d';
 
-// Complete list of all 31 clothing items generated
-export const ALL_CLOTHING_ITEMS: AvatarClothing[] = [
-  // === HAIR (3) ===
-  {
-    id: 'hair-curly',
-    name: 'Black Curly Hair',
-    type: 'hair',
-    description: 'Natural black curly afro',
-    price: 0,
-    imageUrl: require('../../assets/clothing/hair/black-curly-afro.png'),
-    rarity: 'common',
-    isDefault: true,
-    gender: 'unisex',
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 'hair-ponytail',
-    name: 'Brown Ponytail',
-    type: 'hair',
-    description: 'Long brown ponytail',
-    price: 0,
-    imageUrl: require('../../assets/clothing/hair/brown-ponytail.png'),
-    rarity: 'common',
-    isDefault: true,
-    gender: 'female',
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 'hair-blonde-bob',
-    name: 'Blonde Bob',
-    type: 'hair',
-    description: 'Short blonde bob cut',
-    price: 299,
-    imageUrl: require('../../assets/clothing/hair/blonde-bob.png'),
-    rarity: 'rare',
-    isDefault: false,
-    gender: 'female',
-    createdAt: new Date().toISOString(),
-  },
+export const ALL_CLOTHING_ITEMS: AvatarClothing[] = NEW_CLOTHING_ITEMS;
+export const ALL_BASE_AVATARS: BaseAvatar[] = NEW_BASE_AVATARS;
 
-  // === TOPS (11) ===
-  // T-Shirts
-  {
-    id: 'top-gray-tee',
-    name: 'Gray T-Shirt',
-    type: 'top',
-    description: 'Basic gray tee',
-    price: 0,
-    imageUrl: require('../../assets/clothing/top/gray-tshirt.png'),
-    rarity: 'common',
-    isDefault: true,
-    gender: 'unisex',
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 'top-black-tee',
-    name: 'Black T-Shirt',
-    type: 'top',
-    description: 'Classic black tee',
-    price: 199,
-    imageUrl: require('../../assets/clothing/top/black-tshirt.png'),
-    rarity: 'common',
-    isDefault: false,
-    gender: 'unisex',
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 'top-red-tee',
-    name: 'Red T-Shirt',
-    type: 'top',
-    description: 'Bold red tee',
-    price: 199,
-    imageUrl: require('../../assets/clothing/top/red-tshirt.png'),
-    rarity: 'common',
-    isDefault: false,
-    gender: 'unisex',
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 'top-blue-tee',
-    name: 'Blue T-Shirt',
-    type: 'top',
-    description: 'Cool blue tee',
-    price: 199,
-    imageUrl: require('../../assets/clothing/top/blue-tshirt.png'),
-    rarity: 'common',
-    isDefault: false,
-    gender: 'unisex',
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 'top-green-tee',
-    name: 'Green T-Shirt',
-    type: 'top',
-    description: 'Fresh green tee',
-    price: 199,
-    imageUrl: require('../../assets/clothing/top/green-tshirt.png'),
-    rarity: 'common',
-    isDefault: false,
-    gender: 'unisex',
-    createdAt: new Date().toISOString(),
-  },
-  
-  // Hoodies
-  {
-    id: 'top-red-hoodie',
-    name: 'Red Hoodie',
-    type: 'top',
-    description: 'Cozy red hoodie',
-    price: 399,
-    imageUrl: require('../../assets/clothing/top/red-hoodie.png'),
-    rarity: 'rare',
-    isDefault: false,
-    gender: 'unisex',
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 'top-black-hoodie',
-    name: 'Black Hoodie',
-    type: 'top',
-    description: 'Classic black hoodie',
-    price: 399,
-    imageUrl: require('../../assets/clothing/top/black-hoodie.png'),
-    rarity: 'rare',
-    isDefault: false,
-    gender: 'unisex',
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 'top-blue-hoodie',
-    name: 'Blue Hoodie',
-    type: 'top',
-    description: 'Cool blue hoodie',
-    price: 399,
-    imageUrl: require('../../assets/clothing/top/blue-hoodie.png'),
-    rarity: 'rare',
-    isDefault: false,
-    gender: 'unisex',
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 'top-gray-hoodie',
-    name: 'Gray Hoodie',
-    type: 'top',
-    description: 'Comfy gray hoodie',
-    price: 399,
-    imageUrl: require('../../assets/clothing/top/gray-hoodie.png'),
-    rarity: 'rare',
-    isDefault: false,
-    gender: 'unisex',
-    createdAt: new Date().toISOString(),
-  },
-  
-  // Other tops
-  {
-    id: 'top-white-polo',
-    name: 'White Polo',
-    type: 'top',
-    description: 'Classic white polo',
-    price: 0,
-    imageUrl: require('../../assets/clothing/top/white-polo.png'),
-    rarity: 'common',
-    isDefault: true,
-    gender: 'unisex',
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 'top-leather-jacket',
-    name: 'Leather Jacket',
-    type: 'top',
-    description: 'Black leather jacket',
-    price: 499,
-    imageUrl: require('../../assets/clothing/top/black-leather-jacket.png'),
-    rarity: 'rare',
-    isDefault: false,
-    gender: 'unisex',
-    createdAt: new Date().toISOString(),
-  },
+/**
+ * Filter clothing items to those compatible with a given avatar build.
+ * - Fat avatars only see items tagged `build === 'fat'`.
+ * - Muscle avatars only see items tagged `build === 'muscle'`.
+ * - All other avatars (slim/athletic/old/standard/undefined) see only items
+ *   that are NOT fat- or muscle-specific.
+ */
+export function filterClothingForBuild(
+  items: AvatarClothing[],
+  build: string | undefined | null,
+): AvatarClothing[] {
+  if (build === 'fat') {
+    return items.filter(i => (i as any).build === 'fat');
+  }
+  if (build === 'muscle') {
+    return items.filter(i => (i as any).build === 'muscle');
+  }
+  return items.filter(i => {
+    const b = (i as any).build;
+    return b !== 'fat' && b !== 'muscle';
+  });
+}
 
-  // === BOTTOMS (9) ===
-  // Jeans
-  {
-    id: 'bottom-blue-jeans',
-    name: 'Blue Jeans',
-    type: 'bottom',
-    description: 'Classic blue denim',
-    price: 0,
-    imageUrl: require('../../assets/clothing/bottom/blue-jeans.png'),
-    rarity: 'common',
-    isDefault: true,
-    gender: 'unisex',
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 'bottom-dark-blue-jeans',
-    name: 'Dark Blue Jeans',
-    type: 'bottom',
-    description: 'Dark blue denim',
-    price: 249,
-    imageUrl: require('../../assets/clothing/bottom/dark-blue-jeans.png'),
-    rarity: 'common',
-    isDefault: false,
-    gender: 'unisex',
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 'bottom-light-blue-jeans',
-    name: 'Light Blue Jeans',
-    type: 'bottom',
-    description: 'Light wash denim',
-    price: 249,
-    imageUrl: require('../../assets/clothing/bottom/light-blue-jeans.png'),
-    rarity: 'common',
-    isDefault: false,
-    gender: 'unisex',
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 'bottom-black-jeans',
-    name: 'Black Jeans',
-    type: 'bottom',
-    description: 'Sleek black denim',
-    price: 299,
-    imageUrl: require('../../assets/clothing/bottom/black-jeans.png'),
-    rarity: 'rare',
-    isDefault: false,
-    gender: 'unisex',
-    createdAt: new Date().toISOString(),
-  },
-  
-  // Other bottoms
-  {
-    id: 'bottom-dress-pants',
-    name: 'Black Dress Pants',
-    type: 'bottom',
-    description: 'Formal black pants',
-    price: 349,
-    imageUrl: require('../../assets/clothing/bottom/black-dress-pants.png'),
-    rarity: 'rare',
-    isDefault: false,
-    gender: 'unisex',
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 'bottom-cargo-shorts',
-    name: 'Cargo Shorts',
-    type: 'bottom',
-    description: 'Khaki cargo shorts',
-    price: 299,
-    imageUrl: require('../../assets/clothing/bottom/khaki-cargo-shorts.png'),
-    rarity: 'rare',
-    isDefault: false,
-    gender: 'unisex',
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 'bottom-gray-joggers',
-    name: 'Gray Joggers',
-    type: 'bottom',
-    description: 'Comfy gray joggers',
-    price: 349,
-    imageUrl: require('../../assets/clothing/bottom/gray-joggers.png'),
-    rarity: 'rare',
-    isDefault: false,
-    gender: 'unisex',
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 'bottom-red-joggers',
-    name: 'Red Joggers',
-    type: 'bottom',
-    description: 'Bold red joggers',
-    price: 349,
-    imageUrl: require('../../assets/clothing/bottom/red-joggers.png'),
-    rarity: 'rare',
-    isDefault: false,
-    gender: 'unisex',
-    createdAt: new Date().toISOString(),
-  },
+/**
+ * Filter clothing items to those matching the avatar's gender.
+ * Items with no gender or `gender === 'unisex'` are shown to everyone.
+ */
+export function filterClothingForGender(
+  items: AvatarClothing[],
+  gender: string | undefined | null,
+): AvatarClothing[] {
+  if (!gender) return items;
+  return items.filter(i => {
+    const g = (i as any).gender;
+    return !g || g === 'unisex' || g === gender;
+  });
+}
 
-  // === SHOES (5) ===
-  {
-    id: 'shoes-white',
-    name: 'White Sneakers',
-    type: 'shoes',
-    description: 'Clean white sneakers',
-    price: 0,
-    imageUrl: require('../../assets/clothing/shoes/white-sneakers.png'),
-    rarity: 'common',
-    isDefault: true,
-    gender: 'unisex',
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 'shoes-black',
-    name: 'Black Sneakers',
-    type: 'shoes',
-    description: 'Classic black sneakers',
-    price: 299,
-    imageUrl: require('../../assets/clothing/shoes/black-sneakers.png'),
-    rarity: 'common',
-    isDefault: false,
-    gender: 'unisex',
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 'shoes-red',
-    name: 'Red Sneakers',
-    type: 'shoes',
-    description: 'Bold red kicks',
-    price: 399,
-    imageUrl: require('../../assets/clothing/shoes/red-sneakers.png'),
-    rarity: 'rare',
-    isDefault: false,
-    gender: 'unisex',
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 'shoes-blue',
-    name: 'Blue Sneakers',
-    type: 'shoes',
-    description: 'Cool blue kicks',
-    price: 399,
-    imageUrl: require('../../assets/clothing/shoes/blue-sneakers.png'),
-    rarity: 'rare',
-    isDefault: false,
-    gender: 'unisex',
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 'shoes-dress',
-    name: 'Black Dress Shoes',
-    type: 'shoes',
-    description: 'Formal dress shoes',
-    price: 399,
-    imageUrl: require('../../assets/clothing/shoes/black-dress-shoes.png'),
-    rarity: 'rare',
-    isDefault: false,
-    gender: 'unisex',
-    createdAt: new Date().toISOString(),
-  },
+/** Apply both gender and build filters in one call. */
+export function filterClothingForAvatar(
+  items: AvatarClothing[],
+  gender: string | undefined | null,
+  build: string | undefined | null,
+): AvatarClothing[] {
+  return filterClothingForBuild(filterClothingForGender(items, gender), build);
+}
 
-  // === JEWELRY (2) ===
-  {
-    id: 'jewelry-gold-chain',
-    name: 'Gold Chain',
-    type: 'jewelry',
-    description: 'Flashy gold chain necklace',
-    price: 799,
-    imageUrl: require('../../assets/clothing/accessory/gold-chain.png'),
-    rarity: 'epic',
-    isDefault: false,
-    gender: 'unisex',
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 'jewelry-sunglasses',
-    name: 'Sunglasses',
-    type: 'jewelry',
-    description: 'Cool black sunglasses',
-    price: 299,
-    imageUrl: require('../../assets/clothing/glasses/black-sunglasses.png'),
-    rarity: 'rare',
-    isDefault: false,
-    gender: 'unisex',
-    createdAt: new Date().toISOString(),
-  },
+/** Resolve a base avatar's build from its id (returns undefined if not found). */
+export function getAvatarBuildById(avatarId: string | null | undefined): string | undefined {
+  if (!avatarId) return undefined;
+  const a = NEW_BASE_AVATARS.find(x => x.id === avatarId);
+  return a ? ((a as any).build as string | undefined) : undefined;
+}
 
-  // === HATS (1) ===
-  {
-    id: 'hat-baseball-cap',
-    name: 'Baseball Cap',
-    type: 'hat',
-    description: 'Black baseball cap',
-    price: 349,
-    imageUrl: require('../../assets/clothing/hat/black-baseball-cap.png'),
-    rarity: 'rare',
-    isDefault: false,
-    gender: 'unisex',
-    createdAt: new Date().toISOString(),
-  },
-
-  // === OTHER (0) ===
-  // Items like skateboards, backpacks, etc. will go here
-];
-
-// Get default (free) items
-export const DEFAULT_CLOTHING = ALL_CLOTHING_ITEMS.filter(item => item.isDefault);
-
-// Get items by type
-export const getItemsByType = (type: string) => 
-  ALL_CLOTHING_ITEMS.filter(item => item.type === type);
+/** Resolve a base avatar's gender from its id (returns undefined if not found). */
+export function getAvatarGenderById(avatarId: string | null | undefined): string | undefined {
+  if (!avatarId) return undefined;
+  const a = NEW_BASE_AVATARS.find(x => x.id === avatarId);
+  return a ? (a.gender as string | undefined) : undefined;
+}
