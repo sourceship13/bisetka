@@ -176,6 +176,51 @@ export const calculatePossibleMoves = (
         }
       }
 
+      // Doubles chain moves: with doubles the player has up to `movesRemaining`
+      // moves all of the same face value, so the same piece can travel
+      // 2, 3, or 4 dice in one tap. Show the destination for every chain
+      // length whose full path through intermediate points is legal.
+      if (
+        dice.die1 === dice.die2 &&
+        dice.die1 > 0 &&
+        movesRemaining >= 2
+      ) {
+        const dieValue = dice.die1;
+        const dir = currentPlayer === 'white' ? -1 : 1;
+        // Try chain lengths 2..movesRemaining (max 4).
+        let curState = state;
+        let curFrom = fromPos;
+        let chainOk = true;
+        for (let n = 2; n <= movesRemaining; n++) {
+          // Walk one more die from curFrom on curState's board.
+          const nextPos = curFrom + dir * dieValue;
+          if (nextPos < 0 || nextPos >= 24) { chainOk = false; break; }
+          if (!isValidMove(curFrom, nextPos, currentPlayer, curState.points, mode)) {
+            chainOk = false;
+            break;
+          }
+          // Simulate this leg so the next leg is validated against the new board.
+          curState = executeMove(curState, {
+            from: curFrom,
+            to: nextPos,
+            checker: currentPlayer,
+          });
+          curFrom = nextPos;
+          // Final destination after n consecutive dice from the original fromPos.
+          const totalTo = currentPlayer === 'white'
+            ? fromPos - n * dieValue
+            : fromPos + n * dieValue;
+          if (totalTo >= 0 && totalTo < 24) {
+            const key = `${fromPos}-${totalTo}`;
+            if (!seen.has(key)) {
+              seen.add(key);
+              moves.push({ from: fromPos, to: totalTo, checker: currentPlayer });
+            }
+          }
+          if (!chainOk) break;
+        }
+      }
+
       // Check for bearing off
       if (canBearOff(state, fromPos)) {
         // White bears off to -1 (below index 0, ptNum 1 edge)

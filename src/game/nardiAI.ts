@@ -187,6 +187,23 @@ function applyMoveForSearch(state: NardiGameState, move: Move): NardiGameState {
     state.movesRemaining >= 2 &&
     Math.abs(move.to - move.from) === state.dice.die1 + state.dice.die2;
 
+  // Doubles chain: a single move may consume 1..movesRemaining dice when the
+  // distance is an exact multiple of the (equal) die face value.
+  let doublesConsume = 1;
+  if (
+    !isCombined &&
+    move.from >= 0 &&
+    move.to >= 0 &&
+    move.to < 24 &&
+    state.dice.die1 === state.dice.die2 &&
+    state.dice.die1 > 0
+  ) {
+    const dist = Math.abs(move.to - move.from);
+    if (dist > 0 && dist % state.dice.die1 === 0) {
+      doublesConsume = Math.min(dist / state.dice.die1, state.movesRemaining);
+    }
+  }
+
   const newDice: Dice = { ...state.dice };
   let movesRemaining: number;
 
@@ -194,17 +211,16 @@ function applyMoveForSearch(state: NardiGameState, move: Move): NardiGameState {
     newDice.die1 = 0;
     newDice.die2 = 0;
     movesRemaining = Math.max(0, state.movesRemaining - 2);
+  } else if (state.dice.die1 === state.dice.die2 && state.dice.die1 > 0) {
+    movesRemaining = Math.max(0, state.movesRemaining - doublesConsume);
+    // Doubles — leave dice face values as-is, movesRemaining drives end-of-turn.
   } else {
     movesRemaining = Math.max(0, state.movesRemaining - 1);
-    if (state.dice.die1 === state.dice.die2 && state.dice.die1 > 0) {
-      // Doubles — leave dice face values as-is, movesRemaining drives end-of-turn.
-    } else {
-      const usedDie = pickUsedDieValue(move, state);
-      if (newDice.die1 === usedDie && newDice.die1 > 0) newDice.die1 = 0;
-      else if (newDice.die2 === usedDie && newDice.die2 > 0) newDice.die2 = 0;
-      else if (newDice.die1 > 0) newDice.die1 = 0;
-      else if (newDice.die2 > 0) newDice.die2 = 0;
-    }
+    const usedDie = pickUsedDieValue(move, state);
+    if (newDice.die1 === usedDie && newDice.die1 > 0) newDice.die1 = 0;
+    else if (newDice.die2 === usedDie && newDice.die2 > 0) newDice.die2 = 0;
+    else if (newDice.die1 > 0) newDice.die1 = 0;
+    else if (newDice.die2 > 0) newDice.die2 = 0;
   }
 
   const next: NardiGameState = {
