@@ -27,6 +27,7 @@ import GameToolbarControls from '../../../../components/global/GameToolbarContro
 import AraratBackground from '../../../../components/AraratBackground';
 import SyncedYouTubePlayer from '../../../../components/SyncedYouTubePlayer';
 import InGameChat from '../../../../components/InGameChat';
+import { playCardFlipSound } from '../../../../utils/nardiSound';
 
 interface Card {
   suit: 'hearts' | 'diamonds' | 'clubs' | 'spades';
@@ -242,6 +243,9 @@ const BlackjackScreen = ({ navigation }: any) => {
       resultMessage: '',
     });
 
+    // Flip sound for each of the 4 dealt cards (player x2, dealer x2)
+    [0, 220, 440, 660].forEach(delay => setTimeout(playCardFlipSound, delay));
+
     // Auto-finish if player has blackjack
     if (playerHand.isBlackjack) {
       setTimeout(() => {
@@ -263,6 +267,8 @@ const BlackjackScreen = ({ navigation }: any) => {
     const newDeck = [...gameState.deck];
     const newCard = newDeck.pop()!;
     const newHand = createHand([...gameState.playerHand.cards, newCard]);
+
+    playCardFlipSound();
 
     setGameState(prev => ({
       ...prev,
@@ -304,6 +310,8 @@ const BlackjackScreen = ({ navigation }: any) => {
     const newHand = createHand([...gameState.playerHand.cards, newCard]);
     const newBet = gameState.currentBet * 2;
 
+    playCardFlipSound();
+
     setGameState(prev => ({
       ...prev,
       playerHand: newHand,
@@ -328,12 +336,19 @@ const BlackjackScreen = ({ navigation }: any) => {
     let newDeck = [...deck];
     let dealer = { ...dealerHand };
 
+    // Reveal dealer's hidden card
+    playCardFlipSound();
+
     // Dealer draws until 17 or higher
+    let drawIdx = 1;
     while (dealer.value < 17 && newDeck.length > 0) {
       const newCard = newDeck.pop()!;
       dealer.cards.push(newCard);
       dealer.value = calculateHandValue(dealer.cards);
       dealer.isBust = dealer.value > 21;
+      // Stagger flip sound for each drawn card
+      setTimeout(playCardFlipSound, drawIdx * 250);
+      drawIdx++;
     }
 
     setGameState(prev => ({
@@ -435,7 +450,7 @@ const BlackjackScreen = ({ navigation }: any) => {
     if (!card) return null;
     return (
       <View key={key || card.id} style={styles.cardWrapper}>
-        <Card3D suit={card.suit as any} rank={card.rank as any} faceDown={faceDown} size={60} />
+        <Card3D suit={card.suit as any} rank={card.rank as any} faceDown={faceDown} size={90} />
       </View>
     );
   };
@@ -455,7 +470,6 @@ const BlackjackScreen = ({ navigation }: any) => {
             <GameToolbarControls
               buttons={[
                 { icon: '🎨', onPress: () => setShowCustomization(true) },
-                { icon: showMusicPlayer ? '🎵' : '🎶', onPress: () => setShowMusicPlayer(s => !s) },
               ]}
             />
           </View>
@@ -513,9 +527,23 @@ const BlackjackScreen = ({ navigation }: any) => {
                 )}
               </View>
               {gameState.playerHand.cards.length > 0 && (
-                <Text style={[styles.handValue, gameState.playerHand.isBust && styles.bustText]}>
-                  You — {gameState.playerHand.value}{gameState.playerHand.isBust ? ' • BUST' : gameState.playerHand.isBlackjack ? ' • BLACKJACK!' : ''}
-                </Text>
+                <View style={styles.playerValueRow}>
+                  <View
+                    style={[
+                      styles.valueBadge,
+                      gameState.playerHand.isBust && styles.valueBadgeBust,
+                      gameState.playerHand.isBlackjack && styles.valueBadgeBlackjack,
+                    ]}>
+                    <Text style={styles.valueBadgeLabel}>YOUR HAND</Text>
+                    <Text style={styles.valueBadgeNumber}>{gameState.playerHand.value}</Text>
+                  </View>
+                  {gameState.playerHand.isBust && (
+                    <Text style={[styles.handValue, styles.bustText]}>BUST</Text>
+                  )}
+                  {gameState.playerHand.isBlackjack && (
+                    <Text style={[styles.handValue, styles.blackjackText]}>BLACKJACK!</Text>
+                  )}
+                </View>
               )}
             </View>
           </LinearGradient>
@@ -665,10 +693,10 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     overflow: 'hidden',
     marginBottom: 24,
-    minHeight: 380,
+    minHeight: 360,
     justifyContent: 'space-between',
-    paddingVertical: 22,
-    paddingHorizontal: 18,
+    paddingVertical: 2,
+    paddingHorizontal: 2,
     borderWidth: 2,
     borderColor: 'rgba(251, 191, 36, 0.45)',
     shadowColor: '#000',
@@ -763,6 +791,55 @@ const styles = StyleSheet.create({
   },
   bustText: {
     color: '#f44',
+  },
+  blackjackText: {
+    color: '#FFD700',
+  },
+  playerValueRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    marginTop: 8,
+    marginBottom: 12,
+  },
+  valueBadge: {
+    minWidth: 110,
+    paddingHorizontal: 18,
+    paddingVertical: 8,
+    borderRadius: 14,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    borderWidth: 2,
+    borderColor: '#FFD700',
+    alignItems: 'center',
+    shadowColor: '#FFD700',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  valueBadgeBust: {
+    borderColor: '#f44',
+    shadowColor: '#f44',
+  },
+  valueBadgeBlackjack: {
+    borderColor: '#FFD700',
+    backgroundColor: 'rgba(255,215,0,0.18)',
+  },
+  valueBadgeLabel: {
+    color: '#FFD700',
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 1.5,
+  },
+  valueBadgeNumber: {
+    color: '#fff',
+    fontSize: 28,
+    fontWeight: '900',
+    lineHeight: 32,
+    textShadowColor: 'rgba(0,0,0,0.8)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
   betDisplay: {
     backgroundColor: 'rgba(255,255,255,0.1)',

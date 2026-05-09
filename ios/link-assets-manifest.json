@@ -570,6 +570,10 @@
       "sha1": "59d102868a3072bf9034efb4b2a41ff6741a297b"
     },
     {
+      "path": "assets/sounds/card_flip.mp3",
+      "sha1": "c8844d91fefdf95d8decbd562df97fd532908231"
+    },
+    {
       "path": "assets/sounds/dice_roll.mp3",
       "sha1": "b6d159ca2f90f831de01da01b2cca4dbee3002e3"
     },

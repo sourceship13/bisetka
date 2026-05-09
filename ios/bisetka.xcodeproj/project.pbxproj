@@ -455,6 +455,8 @@
 		FEF220A755EC45E4AC2D1057 /* Inter_18pt-LightItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = B942C333B10E41DA81E36250 /* Inter_18pt-LightItalic.ttf */; };
 		FF3C68A367FB4044A85958C6 /* PlayfairDisplaySC-BlackItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 2B5851A33D6247CE9AB24075 /* PlayfairDisplaySC-BlackItalic.ttf */; };
 		FFE09CFF9100478FBF3FB468 /* RobotoMono-BoldItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = F033DC7713084399A0BF5BB2 /* RobotoMono-BoldItalic.ttf */; };
+		171CE48B98A14FE6B5BCDAE7 /* card_flip.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = E47368EB639F4BC785DE5C3A /* card_flip.mp3 */; };
+		A409AE44732D4EC4B62CB6B7 /* card_flip.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = E47368EB639F4BC785DE5C3A /* card_flip.mp3 */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -622,6 +624,7 @@
 		FC01DB49CF114D32BD358121 /* Inter_18pt-ThinItalic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Inter_18pt-ThinItalic.ttf"; path = "../assets/fonts/Inter_18pt-ThinItalic.ttf"; sourceTree = "<group>"; };
 		FC3030E946664228B6A0A3F2 /* Inter_28pt-SemiBoldItalic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Inter_28pt-SemiBoldItalic.ttf"; path = "../assets/fonts/Inter_28pt-SemiBoldItalic.ttf"; sourceTree = "<group>"; };
 		FD83D179460F48869D17B5A4 /* Inter_24pt-LightItalic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Inter_24pt-LightItalic.ttf"; path = "../assets/fonts/Inter_24pt-LightItalic.ttf"; sourceTree = "<group>"; };
+		E47368EB639F4BC785DE5C3A /* card_flip.mp3 */ = {isa = PBXFileReference; name = "card_flip.mp3"; path = "../assets/sounds/card_flip.mp3"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -808,6 +811,7 @@
 				600DC68CC47C43F0A0A34B27 /* EBGaramond-Medium.ttf */,
 				4C4C2CC9E336468493DC8362 /* piece_move.wav */,
 				EB8F61AE9FD94BAC9BA7A7D1 /* dice_roll.mp3 */,
+				E47368EB639F4BC785DE5C3A /* card_flip.mp3 */,
 			);
 			name = Resources;
 			sourceTree = "<group>";
@@ -1101,6 +1105,7 @@
 				C1318551F0154F748F1297B8 /* EBGaramond-Medium.ttf in Resources */,
 				AC3650C32B7D4F66B9837ED5 /* piece_move.wav in Resources */,
 				545692375DFD4BEDB7DFA0BD /* dice_roll.mp3 in Resources */,
+				171CE48B98A14FE6B5BCDAE7 /* card_flip.mp3 in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1401,6 +1406,7 @@
 				BB2C3D4E5F6A7B8C9D0E1F2A /* Colors.xcassets in Resources */,
 				A155AC451D514795BBB18CEA /* piece_move.wav in Resources */,
 				E7DD39365D904FE9B199C1F6 /* dice_roll.mp3 in Resources */,
+				A409AE44732D4EC4B62CB6B7 /* card_flip.mp3 in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
