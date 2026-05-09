@@ -71,13 +71,10 @@ const BottomTabBar: React.FC<Props> = ({ active = 'Community' }) => {
                       activeOpacity={0.85}
                       onPress={() => handlePress(tab)}
                       style={styles.centerBtn}>
-                      <LinearGradient
-                        colors={['#fbbf24', '#f59e0b']}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
-                        style={styles.centerCircle}>
+                      <View
+                        style={[styles.centerCircle, { backgroundColor: '#fbbf24' }]}>
                         <Icon name="play" size={32} color="#fff" />
-                      </LinearGradient>
+                      </View>
                     </TouchableOpacity>
                     <Text style={[styles.label, styles.centerLabel]}>
                       {tab.label}

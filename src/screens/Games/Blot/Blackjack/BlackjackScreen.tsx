@@ -12,6 +12,7 @@ import {
   Animated,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import LinearGradient from 'react-native-linear-gradient';
 import { useAuth } from '../../../../libs/hooks/useAuth';
 import { BisetkaAlert } from '../../../../utils/BisetkaAlert';
 import GameToolbar from '../../../../components/global/GameToolbar';
@@ -23,8 +24,7 @@ import { useGameEndRefresh } from '../../../../libs/hooks/useGameEndRefresh';
 import ReAnimated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import ExpandableView from '../../../../components/global/ExpandableView';
 import GameToolbarControls from '../../../../components/global/GameToolbarControls';
-import Photosphere360Background from '../../../../components/Photosphere360Background';
-import AR3DOverlay, {type AR3DOverlayHandle} from '../../../../components/AR3DOverlay';
+import AraratBackground from '../../../../components/AraratBackground';
 import SyncedYouTubePlayer from '../../../../components/SyncedYouTubePlayer';
 import InGameChat from '../../../../components/InGameChat';
 
@@ -59,8 +59,6 @@ const BlackjackScreen = ({ navigation }: any) => {
 
   const [showBlur, setShowBlur] = useState(false);
   const [showMusicPlayer, setShowMusicPlayer] = useState(false);
-  const [arEnabled, setArEnabled] = useState(true);
-  const arOverlayRef = useRef<AR3DOverlayHandle>(null);
   const [showBackground, setShowBackground] = useState(true);
   const toolbarExpanded = useSharedValue(false);
 
@@ -444,9 +442,7 @@ const BlackjackScreen = ({ navigation }: any) => {
 
   return (
     <View style={styles.container}>
-      <Photosphere360Background overlayOpacity={showBlur ? 0.65 : 0.3}>
-        <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/chess/chess-board/source/ui.glb" />
-      </Photosphere360Background>
+      <AraratBackground overlayOpacity={showBlur ? 0.65 : 0.45} />
       <View style={styles.overlay} pointerEvents="box-none">
       <SafeAreaView style={styles.safeArea}>
         <View>
@@ -459,7 +455,6 @@ const BlackjackScreen = ({ navigation }: any) => {
             <GameToolbarControls
               buttons={[
                 { icon: '🎨', onPress: () => setShowCustomization(true) },
-                { icon: arEnabled ? '🥽' : '🎮', onPress: () => setArEnabled(!arEnabled) },
                 { icon: showMusicPlayer ? '🎵' : '🎶', onPress: () => setShowMusicPlayer(s => !s) },
               ]}
             />
@@ -482,24 +477,36 @@ const BlackjackScreen = ({ navigation }: any) => {
             <Text style={styles.balanceAmount}>${gameState.balance}</Text>
           </View>
 
-          {/* Card Table */}
-          <View style={styles.cardTable}>
+          {/* Casino Felt Table */}
+          <LinearGradient
+            colors={['#0d4f2c', '#0a3d22', '#062817']}
+            start={{ x: 0.5, y: 0 }}
+            end={{ x: 0.5, y: 1 }}
+            style={styles.cardTable}>
+            {/* Felt arc legend */}
+            <Text style={styles.feltArcText}>BLACKJACK PAYS 3 TO 2</Text>
+            <Text style={styles.feltSubText}>Dealer must draw to 16 and stand on all 17s</Text>
+
             {/* Dealer Section */}
             <View style={styles.tableSection}>
-              <Text style={styles.sectionTitle}>🎲 Dealer</Text>
+              <Text style={styles.sectionTitle}>🎲 Dealer{gameState.gameStatus !== 'playing' && gameState.dealerHand.cards.length > 0 ? ` — ${gameState.dealerHand.value}` : ''}</Text>
               <View style={styles.handContainer}>
                 {gameState.dealerHand.cards.map((card, idx) =>
                   renderCard(card, gameState.gameStatus === 'playing' && idx > 0, `dealer_${idx}`)
                 )}
               </View>
-              {gameState.gameStatus !== 'playing' && gameState.dealerHand.cards.length > 0 && (
-                <Text style={styles.handValue}>Value: {gameState.dealerHand.value}</Text>
-              )}
             </View>
+
+            {/* Center bet circle */}
+            {gameState.currentBet > 0 && (
+              <View style={styles.betCircle}>
+                <Text style={styles.betCircleAmount}>${gameState.currentBet}</Text>
+                <Text style={styles.betCircleLabel}>BET</Text>
+              </View>
+            )}
 
             {/* Player Section */}
             <View style={styles.tableSection}>
-              <Text style={styles.sectionTitle}>👤 Player</Text>
               <View style={styles.handContainer}>
                 {gameState.playerHand.cards.map((card, idx) =>
                   renderCard(card, false, `player_${idx}`)
@@ -507,18 +514,11 @@ const BlackjackScreen = ({ navigation }: any) => {
               </View>
               {gameState.playerHand.cards.length > 0 && (
                 <Text style={[styles.handValue, gameState.playerHand.isBust && styles.bustText]}>
-                  Value: {gameState.playerHand.value} {gameState.playerHand.isBust ? '(BUST!)' : ''}
+                  You — {gameState.playerHand.value}{gameState.playerHand.isBust ? ' • BUST' : gameState.playerHand.isBlackjack ? ' • BLACKJACK!' : ''}
                 </Text>
               )}
             </View>
-          </View>
-
-          {/* Current Bet */}
-          {gameState.currentBet > 0 && (
-            <View style={styles.betDisplay}>
-              <Text style={styles.betLabel}>Current Bet: ${gameState.currentBet}</Text>
-            </View>
-          )}
+          </LinearGradient>
 
           {/* Game Messages */}
           {gameState.resultMessage && (
@@ -531,22 +531,46 @@ const BlackjackScreen = ({ navigation }: any) => {
           <View style={styles.controls}>
             {gameState.gameStatus === 'betting' && (
               <>
+                <Text style={styles.chipPrompt}>Place your bet</Text>
+                <View style={styles.chipRow}>
+                  {[5, 25, 100, 500].map((chip) => {
+                    const palette: Record<number, [string, string, string]> = {
+                      5:   ['#ef4444', '#b91c1c', '#fff'],
+                      25:  ['#22c55e', '#15803d', '#fff'],
+                      100: ['#1f2937', '#0f172a', '#fbbf24'],
+                      500: ['#a855f7', '#6d28d9', '#fff'],
+                    };
+                    const [c1, c2, txt] = palette[chip];
+                    return (
+                      <TouchableOpacity
+                        key={chip}
+                        activeOpacity={0.85}
+                        onPress={() => setBetAmount(Math.min(gameState.balance, betAmount + chip))}>
+                        <LinearGradient
+                          colors={[c1, c2]}
+                          style={styles.chip}>
+                          <View style={styles.chipInner}>
+                            <Text style={[styles.chipText, { color: txt }]}>${chip}</Text>
+                          </View>
+                        </LinearGradient>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
                 <View style={styles.betControls}>
                   <TouchableOpacity
-                    style={styles.betButton}
-                    onPress={() => setBetAmount(Math.max(10, betAmount - 10))}>
-                    <Text style={styles.betButtonText}>-</Text>
+                    style={styles.clearBtn}
+                    onPress={() => setBetAmount(0)}>
+                    <Text style={styles.clearBtnText}>Clear</Text>
                   </TouchableOpacity>
                   <Text style={styles.betAmount}>${betAmount}</Text>
                   <TouchableOpacity
-                    style={styles.betButton}
-                    onPress={() => setBetAmount(betAmount + 10)}>
-                    <Text style={styles.betButtonText}>+</Text>
+                    style={[styles.dealButton, betAmount <= 0 && styles.dealButtonDisabled]}
+                    disabled={betAmount <= 0}
+                    onPress={handlePlaceBet}>
+                    <Text style={styles.dealButtonText}>DEAL</Text>
                   </TouchableOpacity>
                 </View>
-                <TouchableOpacity style={styles.dealButton} onPress={handlePlaceBet}>
-                  <Text style={styles.dealButtonText}>Deal</Text>
-                </TouchableOpacity>
               </>
             )}
 
@@ -582,16 +606,6 @@ const BlackjackScreen = ({ navigation }: any) => {
         visible={true}
       />
       <SyncedYouTubePlayer roomId={null} visible={true} />
-      {arEnabled && (
-        <TouchableOpacity
-          style={styles.recenterBtn}
-          onPress={() => arOverlayRef.current?.recenter()}
-          hitSlop={{top:12,bottom:12,left:12,right:12}}
-          activeOpacity={0.7}>
-          <Text style={styles.recenterIcon}>⊕</Text>
-          <Text style={styles.recenterLabel}>Re-center</Text>
-        </TouchableOpacity>
-      )}
     </View>
   );
 };
@@ -648,14 +662,71 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   cardTable: {
-    borderRadius: 16,
+    borderRadius: 24,
     overflow: 'hidden',
     marginBottom: 24,
-    minHeight: 320,
+    minHeight: 380,
     justifyContent: 'space-between',
-    paddingVertical: 20,
-    paddingHorizontal: 16,
+    paddingVertical: 22,
+    paddingHorizontal: 18,
+    borderWidth: 2,
+    borderColor: 'rgba(251, 191, 36, 0.45)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.6,
+    shadowRadius: 14,
+    elevation: 10,
   },
+  feltArcText: {
+    color: 'rgba(251, 191, 36, 0.9)',
+    fontSize: 14,
+    fontWeight: '900',
+    letterSpacing: 2.5,
+    textAlign: 'center',
+  },
+  feltSubText: {
+    color: 'rgba(255,255,255,0.45)',
+    fontSize: 10,
+    letterSpacing: 0.6,
+    textAlign: 'center',
+    marginTop: 2,
+    marginBottom: 8,
+  },
+  betCircle: {
+    alignSelf: 'center',
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    borderWidth: 2,
+    borderColor: 'rgba(251, 191, 36, 0.7)',
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  betCircleAmount: { color: '#fbbf24', fontWeight: '900', fontSize: 16 },
+  betCircleLabel: { color: 'rgba(255,255,255,0.6)', fontSize: 9, letterSpacing: 1, marginTop: -2 },
+  chipPrompt: { color: 'rgba(255,255,255,0.85)', fontSize: 13, fontWeight: '700', textAlign: 'center', marginBottom: 10, letterSpacing: 1 },
+  chipRow: { flexDirection: 'row', justifyContent: 'space-around', marginBottom: 16 },
+  chip: {
+    width: 60, height: 60, borderRadius: 30,
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 3,
+    borderColor: 'rgba(255,255,255,0.85)',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.5, shadowRadius: 4, elevation: 6,
+  },
+  chipInner: {
+    width: 44, height: 44, borderRadius: 22,
+    borderWidth: 2, borderColor: 'rgba(255,255,255,0.55)',
+    borderStyle: 'dashed',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  chipText: { fontSize: 13, fontWeight: '900' },
+  clearBtn: {
+    paddingHorizontal: 18, paddingVertical: 12,
+    borderRadius: 10, backgroundColor: 'rgba(239, 68, 68, 0.85)',
+  },
+  clearBtnText: { color: '#fff', fontWeight: '800', fontSize: 13, letterSpacing: 0.6 },
+  dealButtonDisabled: { opacity: 0.4 },
   cardTableImage: {
     borderRadius: 16,
     opacity: 0.92,
