@@ -1,5 +1,5 @@
-import React, {useState} from 'react';
-import {StyleSheet, StatusBar} from 'react-native';
+import React, {useEffect, useRef, useState} from 'react';
+import {StyleSheet, StatusBar, View, ActivityIndicator, Text} from 'react-native';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import GameModeSelector from '../../../components/global/GameModeSelector';
@@ -87,7 +87,7 @@ const formatSuccessMessage = (
 };
 
 const GameModeScreen: React.FC<Props> = ({route, navigation}) => {
-  const {gameType} = route.params;
+  const {gameType, preferredMode} = route.params as any;
   const {user} = useAuth();
   const label = GAME_LABELS[gameType] || {title: 'Game', description: ''};
   
@@ -96,6 +96,9 @@ const GameModeScreen: React.FC<Props> = ({route, navigation}) => {
   const [teamMode, setTeamMode] = useState<TeamMode | null>(null);
   const [showTeamSelector, setShowTeamSelector] = useState(isTeamGame);
   const [allowReplaceAI, setAllowReplaceAI] = useState(false);
+  // When a preferredMode is supplied (from GameInfoScreen), we auto-trigger it
+  // so the user never sees the mode-picker step.
+  const autoModePending = Boolean(preferredMode);
   
   // Only show the "Allow players to join" toggle for games that support AI replacement
   const supportsReplaceAI = ['poker', 'baazar-blot', 'blot'].includes(gameType);
@@ -314,6 +317,35 @@ const GameModeScreen: React.FC<Props> = ({route, navigation}) => {
     setShowTeamSelector(false);
   };
 
+  // Auto-fire the preferredMode coming from GameInfoScreen so the user
+  // never has to pick the mode again. For team games this fires only after
+  // the team has been selected.
+  const autoFiredRef = useRef(false);
+  useEffect(() => {
+    if (!autoModePending) return;
+    if (autoFiredRef.current) return;
+    if (isTeamGame && (showTeamSelector || teamMode === null)) return;
+    autoFiredRef.current = true;
+    if (preferredMode === 'random') {
+      withLoading('random', 'random', async () =>
+        gameSessionsService.createRandomMatch(gameType),
+      );
+    } else if (preferredMode === 'ai') {
+      withLoading('ai', 'ai', async () =>
+        gameSessionsService.createAiMatch(gameType, 'medium', allowReplaceAI),
+      );
+    } else if (preferredMode === 'private') {
+      if (SOCKET_BASED_GAMES.has(gameType)) {
+        navigateToGame('private-create', {});
+      } else {
+        withLoading('private', 'private-create', async () =>
+          gameSessionsService.createPrivateMatch(gameType),
+        );
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoModePending, isTeamGame, showTeamSelector, teamMode]);
+
   const handleBackFromModeSelector = () => {
     if (isTeamGame && teamMode !== null) {
       // Go back to team selector
@@ -334,6 +366,17 @@ const GameModeScreen: React.FC<Props> = ({route, navigation}) => {
           onSelectTeamMode={handleTeamModeSelect}
           onBack={() => navigation.goBack()}
         />
+      ) : autoModePending ? (
+        <View style={styles.autoLoadingWrap}>
+          <ActivityIndicator size="large" color="#fff" />
+          <Text style={styles.autoLoadingText}>
+            {preferredMode === 'ai'
+              ? 'Starting AI match...'
+              : preferredMode === 'private'
+              ? 'Creating private game...'
+              : 'Finding an opponent...'}
+          </Text>
+        </View>
       ) : (
         <GameModeSelector
           title={label.title}
@@ -396,6 +439,19 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: colors.background.primary,
+  },
+  autoLoadingWrap: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+  },
+  autoLoadingText: {
+    marginTop: 16,
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '600',
+    textAlign: 'center',
   },
 });
 

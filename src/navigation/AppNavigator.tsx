@@ -76,8 +76,8 @@ export type RootStackParamList = {
   BilliardsGame: { session: any };
   Slots: undefined;
   Blackjack: undefined;
-  GameMode: { gameType: GameType };
-  GameInfo: { gameType: GameType; gradient?: string[] };
+  GameMode: { gameType: GameType; preferredMode?: 'random' | 'ai' | 'private'; bisetkaId?: string; bisetkaName?: string };
+  GameInfo: { gameType: GameType; gradient?: string[]; bisetkaId?: string; bisetkaName?: string };
   SessionStatus: { gameType: GameType; session: any };
   GlobalChat: undefined;
   DMList: undefined;
