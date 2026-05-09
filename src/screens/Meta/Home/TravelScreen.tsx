@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -18,13 +18,25 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import bisetkaService, { Neighborhood } from '../../../services/bisetka.service';
 import apiService from '../../../services/api.service';
+import bisetkaStorageService from '../../../services/bisetkaStorage.service';
 import { useAuth } from '../../../libs/hooks/useAuth';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { normalizeStateName, getUniqueNormalizedStates } from '../../../utils/stateNormalizer';
 
 type NavigationProp = NativeStackNavigationProp<any>;
 
-const TRAVEL_COST = 100; // Points required to travel
+const TRAVEL_COST = 100;
+
+const COUNTRY_CHIPS: Array<{
+  code: 'all' | 'US' | 'AM' | 'RU';
+  label: string;
+  flag: string;
+}> = [
+  { code: 'all', label: 'All Countries', flag: '🌍' },
+  { code: 'US', label: 'United States', flag: '🇺🇸' },
+  { code: 'AM', label: 'Armenia', flag: '🇦🇲' },
+  { code: 'RU', label: 'Russia', flag: '🇷🇺' },
+];
 
 const formatTravelLocationName = (location: Neighborhood) =>
   `${location.name}, ${location.city}`;
@@ -34,81 +46,31 @@ export default function TravelScreen() {
   const { user, refreshUser } = useAuth();
   const [locations, setLocations] = useState<Neighborhood[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searching, setSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [travelingTo, setTravelingTo] = useState<string | null>(null);
-  const [selectedCountry, setSelectedCountry] = useState<'all' | 'US' | 'RU' | 'AM'>('all');
+  const [selectedCountry, setSelectedCountry] =
+    useState<'all' | 'US' | 'RU' | 'AM'>('all');
   const [selectedState, setSelectedState] = useState<string>('all');
+  const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
 
   useEffect(() => {
     loadLocations();
   }, []);
 
-  // Get unique states/provinces for the selected country (normalized)
-  const availableStates = React.useMemo(() => {
-    if (selectedCountry === 'all') return [];
-    
-    const countryLocations = locations.filter(loc => loc.country === selectedCountry);
-    return getUniqueNormalizedStates(countryLocations);
-  }, [locations, selectedCountry]);
-
-  // Reset state filter when country changes
   useEffect(() => {
     setSelectedState('all');
   }, [selectedCountry]);
 
-  // Normalize all locations once (memoized)
-  const normalizedLocations = useMemo(() => {
-    return locations.map(loc => ({
-      ...loc,
-      normalizedState: normalizeStateName(loc.state, loc.country),
-    }));
-  }, [locations]);
-
-  // Filter logic (optimized with useMemo)
-  const filteredLocations = useMemo(() => {
-    let filtered = normalizedLocations;
-
-    // Apply country filter
-    if (selectedCountry !== 'all') {
-      filtered = filtered.filter((loc) => loc.country === selectedCountry);
-    }
-
-    // Apply state filter (already normalized)
-    if (selectedState !== 'all') {
-      filtered = filtered.filter((loc) => loc.normalizedState === selectedState);
-    }
-
-    // Apply search query
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(
-        (loc) =>
-          loc.name.toLowerCase().includes(query) ||
-          loc.city.toLowerCase().includes(query) ||
-          loc.country.toLowerCase().includes(query) ||
-          loc.normalizedState.toLowerCase().includes(query)
-      );
-    }
-
-    return filtered;
-  }, [normalizedLocations, searchQuery, selectedCountry, selectedState]);
-
   const loadLocations = async () => {
     try {
       setLoading(true);
-      console.log('🔍 [TravelScreen] Loading neighborhoods...');
       const allLocations = await bisetkaService.getAllNeighborhoods();
-      // Deduplicate by id to prevent duplicate React keys
       const seen = new Set<string>();
       const unique = allLocations.filter(loc => {
         if (seen.has(loc.id)) return false;
         seen.add(loc.id);
         return true;
       });
-      console.log('✅ [TravelScreen] Loaded neighborhoods:', unique.length, '(deduped from', allLocations.length, ')');
-      
-      // Sort by country, then city, then name
       const sorted = unique.sort((a, b) => {
         if (a.country !== b.country) return a.country.localeCompare(b.country);
         if (a.city !== b.city) return a.city.localeCompare(b.city);
@@ -116,56 +78,86 @@ export default function TravelScreen() {
       });
       setLocations(sorted);
     } catch (error: any) {
-      console.error('❌ [TravelScreen] Failed to load locations:', error);
-      console.error('Error details:', error.message, error.stack);
-      BisetkaAlert.error('Failed to load locations', error.message || 'Please try again.');
+      BisetkaAlert.error(
+        'Failed to load locations',
+        error.message || 'Please try again.',
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  const handleTravel = async (location: Neighborhood) => {
-    // Check if user has enough points
+  const normalizedLocations = useMemo(
+    () =>
+      locations.map(loc => ({
+        ...loc,
+        normalizedState: normalizeStateName(loc.state, loc.country),
+      })),
+    [locations],
+  );
+
+  const availableStates = useMemo(() => {
+    if (selectedCountry === 'all') return [];
+    const countryLocations = locations.filter(
+      loc => loc.country === selectedCountry,
+    );
+    return getUniqueNormalizedStates(countryLocations);
+  }, [locations, selectedCountry]);
+
+  const filteredLocations = useMemo(() => {
+    let filtered = normalizedLocations;
+    if (selectedCountry !== 'all') {
+      filtered = filtered.filter(loc => loc.country === selectedCountry);
+    }
+    if (selectedState !== 'all') {
+      filtered = filtered.filter(loc => loc.normalizedState === selectedState);
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        loc =>
+          loc.name.toLowerCase().includes(q) ||
+          loc.city.toLowerCase().includes(q) ||
+          loc.country.toLowerCase().includes(q) ||
+          loc.normalizedState.toLowerCase().includes(q),
+      );
+    }
+    return filtered;
+  }, [normalizedLocations, searchQuery, selectedCountry, selectedState]);
+
+  const handleTravel = (location: Neighborhood) => {
     if ((user?.balance || 0) < TRAVEL_COST) {
       BisetkaAlert.error(
-        `Insufficient Points`,
-        `You need ${TRAVEL_COST} points to travel. You have ${user?.balance || 0} points.`
+        'Insufficient Points',
+        `You need ${TRAVEL_COST} points to travel. You have ${user?.balance || 0}.`,
       );
       return;
     }
-
     Alert.alert(
       'Travel to Bisetka',
       `Travel to ${formatTravelLocationName(location)}?\n\nCost: ${TRAVEL_COST} points`,
       [
         { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Travel',
-          onPress: () => confirmTravel(location),
-        },
-      ]
+        { text: 'Travel', onPress: () => confirmTravel(location) },
+      ],
     );
   };
 
   const confirmTravel = async (location: Neighborhood) => {
     try {
       setTravelingTo(location.id);
-      
-      console.log('🚀 Starting travel to:', formatTravelLocationName(location));
-      
-      // Call API to change location and deduct points
-      const response = await apiService.post<{ success: boolean; message?: string; user?: any; bisetka?: any; travel_stats?: any }>('/bisetka/travel', {
-        neighborhood_id: location.id,
-      }, true); // requireAuth
-
-      console.log('✅ Travel response:', response);
+      const response = await apiService.post<{
+        success: boolean;
+        message?: string;
+        bisetka?: any;
+      }>(
+        '/bisetka/travel',
+        { neighborhood_id: location.id },
+        true,
+      );
 
       if (response.success) {
-        // Refresh user data to get updated balance and location
         await refreshUser();
-        
-        // Also update stored bisetka for immediate display
-        const bisetkaStorageService = require('../../../services/bisetkaStorage.service').default;
         if (response.bisetka) {
           await bisetkaStorageService.storeBisetka({
             id: response.bisetka.id,
@@ -175,203 +167,265 @@ export default function TravelScreen() {
             active_users: response.bisetka.active_users || 0,
             source: 'travel',
           });
-          console.log('✅ Stored bisetka after travel:', response.bisetka.neighborhood_name);
         }
-        
         BisetkaAlert.success(
           'Travel Complete!',
-          `You've traveled to ${formatTravelLocationName(location)}. ${TRAVEL_COST} points deducted.`
+          `You've traveled to ${formatTravelLocationName(location)}.`,
         );
-        
-        // Return to Home; its focus effect will refresh the bisetka and background.
         setTimeout(() => {
-          navigation.navigate('Home', { 
-            forceBackgroundReload: Date.now(), // Force background regeneration
+          navigation.navigate('Home', {
+            forceBackgroundReload: Date.now(),
             traveledTo: location.id,
           });
-        }, 1500);
+        }, 1200);
       } else {
         throw new Error(response.message || 'Travel failed');
       }
     } catch (error: any) {
-      console.error('❌ Travel failed:', error);
-      console.error('❌ Error details:', JSON.stringify(error, null, 2));
-      console.error('❌ Error message:', error.message);
-      console.error('❌ Error status:', error.status);
-      console.error('❌ Error code:', error.code);
-      
       BisetkaAlert.error(
         'Travel Failed',
-        error.message || error.error || 'Please try again. Check console for details.'
+        error.message || error.error || 'Please try again.',
       );
     } finally {
       setTravelingTo(null);
     }
   };
 
-  const renderLocationCard = (location: Neighborhood) => {
-    const isCurrentLocation = user?.neighborhood_id === location.id;
-    const isTraveling = travelingTo === location.id;
+  const handleCreateYours = () => {
+    Alert.alert(
+      'Create Your Bisetka',
+      'Creating your own bisetka is coming soon!',
+    );
+  };
 
+  const renderLocationCard = ({ item }: { item: Neighborhood }) => {
+    const isCurrent = user?.neighborhood_id === item.id;
+    const isTraveling = travelingTo === item.id;
     return (
       <TouchableOpacity
-        key={location.id}
-        disabled={isCurrentLocation || isTraveling}
-        onPress={() => handleTravel(location)}
-        style={[
-          styles.locationCard,
-          isCurrentLocation && styles.currentLocationCard,
-        ]}
-        activeOpacity={0.7}>
-        <View style={{flex:1, backgroundColor: isCurrentLocation ? 'rgba(52, 211, 153, 0.7)' : 'rgba(255, 255, 255, 0.05)', borderRadius: 12, padding: 12}}>
-          <View style={styles.locationInfo}>
-            <View style={styles.locationHeader}>
-              <Icon
-                name={isCurrentLocation ? 'map-marker-check' : 'map-marker'}
-                size={24}
-                color="#fff"
-              />
-              <View style={styles.locationTextContainer}>
-                <Text style={styles.locationName}>{formatTravelLocationName(location)}</Text>
-                <Text style={styles.locationCity}>
-                  {location.country}
-                </Text>
-              </View>
+        disabled={isCurrent || isTraveling}
+        onPress={() => handleTravel(item)}
+        activeOpacity={0.85}
+        style={styles.locationCardWrap}>
+        <LinearGradient
+          colors={
+            isCurrent ? ['#22c55e', '#16a34a'] : ['#7a6cf5', '#5b4ae0']
+          }
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.locationCard}>
+          <Icon name="map-marker" size={36} color="#fff" />
+          <View style={styles.locationText}>
+            <Text style={styles.locationName} numberOfLines={1}>
+              {formatTravelLocationName(item)}
+            </Text>
+            <Text style={styles.locationCountry}>{item.country}</Text>
+          </View>
+          {isTraveling ? (
+            <ActivityIndicator color="#fff" style={{ marginRight: 12 }} />
+          ) : isCurrent ? (
+            <View style={styles.currentPill}>
+              <Text style={styles.currentPillText}>Current</Text>
             </View>
-            {location.distance_km !== undefined && (
-              <Text style={styles.locationDistance}>
-                {Math.round(location.distance_km)} km away
-              </Text>
-            )}
-          </View>
-          <View style={[styles.locationAction, {backgroundColor:'red'}]}>
-            {isCurrentLocation ? (
-              <View style={styles.currentBadge}>
-                <Text style={styles.currentBadgeText}>Current</Text>
-              </View>
-            ) : isTraveling ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <View style={styles.travelButton}>
-                <Icon name="airplane-takeoff" size={20} color="#fff" />
-                <Text style={styles.travelCost}>{TRAVEL_COST}</Text>
-              </View>
-            )}
-          </View>
-        </View>
+          ) : (
+            <LinearGradient
+              colors={['#fbbf24', '#f59e0b']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.travelPill}>
+              <Icon name="airplane" size={18} color="#fff" />
+              <Text style={styles.travelPillText}>{TRAVEL_COST}</Text>
+            </LinearGradient>
+          )}
+        </LinearGradient>
       </TouchableOpacity>
     );
   };
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
-      <SafeAreaView style={styles.safeArea} edges={['top']}>
-        {/* Header */}
-        <LinearGradient
-          colors={['rgba(0, 0, 0, 0.8)', 'rgba(0, 0, 0, 0.8)']}
-          style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Icon name="arrow-left" size={28} color="#fff" />
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor="transparent"
+        translucent
+      />
+      <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+        {/* Top header card */}
+        <View style={styles.topHeader}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={styles.backBtn}
+            activeOpacity={0.7}>
+            <Icon name="chevron-left" size={28} color="#fff" />
           </TouchableOpacity>
-          <View style={styles.headerContent}>
-            <Text style={styles.headerTitle}>Travel to Bisetka</Text>
-            <Text style={styles.headerSubtitle}>
-              Cost: {TRAVEL_COST} points per trip
+          <Text style={styles.topHeaderTitle}>Locations</Text>
+          <View style={styles.topHeaderRight}>
+            <TouchableOpacity
+              onPress={() => navigation.navigate('PointsShop')}
+              activeOpacity={0.85}>
+              <View style={styles.pointsPill}>
+                <Text style={styles.pointsCoin}>🪙</Text>
+                <Text style={styles.pointsAmount}>
+                  {Math.floor(user?.balance || 0).toLocaleString()}
+                </Text>
+                <View style={styles.pointsPlus}>
+                  <Icon name="plus" size={12} color="#fff" />
+                </View>
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() =>
+                navigation.navigate('GlobalView', { userId: user?.id })
+              }
+              style={styles.globeBtn}
+              activeOpacity={0.85}>
+              <Icon name="earth" size={22} color="#fff" />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Map / List toggle */}
+        <View style={styles.viewToggleRow}>
+          <TouchableOpacity
+            onPress={() => {
+              setViewMode('map');
+              navigation.navigate('GlobalView', { userId: user?.id });
+            }}
+            activeOpacity={0.85}
+            style={[
+              styles.viewToggle,
+              viewMode === 'map' && styles.viewToggleActive,
+            ]}>
+            <Text
+              style={[
+                styles.viewToggleText,
+                viewMode === 'map' && styles.viewToggleTextActive,
+              ]}>
+              Map view
             </Text>
-          </View>
-          <View style={styles.balanceBadge}>
-            <Icon name="trophy" size={18} color="#fbbf24" />
-            <Text style={styles.balanceText}>{user?.balance || 0}</Text>
-          </View>
-        </LinearGradient>
-
-        {/* Search Bar */}
-        <View style={styles.searchContainer}>
-          <Icon name="magnify" size={24} color="#999" style={styles.searchIcon} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search city or neighborhood..."
-            placeholderTextColor="#999"
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <Icon name="close-circle" size={24} color="#999" />
-            </TouchableOpacity>
-          )}
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => setViewMode('list')}
+            activeOpacity={0.85}
+            style={[
+              styles.viewToggle,
+              viewMode === 'list' && styles.viewToggleActive,
+            ]}>
+            <Text
+              style={[
+                styles.viewToggleText,
+                viewMode === 'list' && styles.viewToggleTextActive,
+              ]}>
+              List view
+            </Text>
+          </TouchableOpacity>
         </View>
 
-        {/* Country Filter Buttons */}
-        <View style={styles.filterContainer}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScrollContent}>
-            <TouchableOpacity
-              style={[styles.filterButton, selectedCountry === 'all' && styles.filterButtonActive]}
-              onPress={() => setSelectedCountry('all')}>
-              <Text style={styles.flagEmoji}>🌍</Text>
-              <Text style={[styles.filterButtonText, selectedCountry === 'all' && styles.filterButtonTextActive]}>
-                All Countries
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.filterButton, selectedCountry === 'US' && styles.filterButtonActive]}
-              onPress={() => setSelectedCountry('US')}>
-              <Text style={styles.flagEmoji}>🇺🇸</Text>
-              <Text style={[styles.filterButtonText, selectedCountry === 'US' && styles.filterButtonTextActive]}>
-                United States
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.filterButton, selectedCountry === 'RU' && styles.filterButtonActive]}
-              onPress={() => setSelectedCountry('RU')}>
-              <Text style={styles.flagEmoji}>🇷🇺</Text>
-              <Text style={[styles.filterButtonText, selectedCountry === 'RU' && styles.filterButtonTextActive]}>
-                Russia
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.filterButton, selectedCountry === 'AM' && styles.filterButtonActive]}
-              onPress={() => setSelectedCountry('AM')}>
-              <Text style={styles.flagEmoji}>🇦🇲</Text>
-              <Text style={[styles.filterButtonText, selectedCountry === 'AM' && styles.filterButtonTextActive]}>
-                Armenia
-              </Text>
-            </TouchableOpacity>
-          </ScrollView>
+        {/* Search + Create Yours */}
+        <View style={styles.searchRow}>
+          <View style={styles.searchBox}>
+            <Icon name="magnify" size={20} color="#9ca3af" />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search lacotion..."
+              placeholderTextColor="#9ca3af"
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+          </View>
+          <TouchableOpacity
+            onPress={handleCreateYours}
+            activeOpacity={0.85}
+            style={styles.createBtnWrap}>
+            <LinearGradient
+              colors={['#fbbf24', '#f59e0b']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.createBtn}>
+              <Text style={styles.createBtnText}>CREATE YOURS</Text>
+            </LinearGradient>
+          </TouchableOpacity>
         </View>
 
-        {/* State/Province Filter (only show when country is selected) */}
-        {selectedCountry !== 'all' && availableStates.length > 0 && (
-          <View style={styles.filterContainer}>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScrollContent}>
+        {/* Country chips */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.chipsRow}>
+          {COUNTRY_CHIPS.map(c => {
+            const active = selectedCountry === c.code;
+            return (
               <TouchableOpacity
-                style={[styles.filterButton, styles.filterButtonSecondary, selectedState === 'all' && styles.filterButtonActive]}
-                onPress={() => setSelectedState('all')}>
-                <Text style={[styles.filterButtonText, styles.filterButtonTextSmall, selectedState === 'all' && styles.filterButtonTextActive]}>
-                  All {selectedCountry === 'US' ? 'States' : 'Regions'}
+                key={c.code}
+                onPress={() => setSelectedCountry(c.code)}
+                activeOpacity={0.85}
+                style={[styles.countryChip, active && styles.countryChipActive]}>
+                <View style={styles.flagBubble}>
+                  <Text style={styles.flagEmoji}>{c.flag}</Text>
+                </View>
+                <Text
+                  style={[
+                    styles.countryChipText,
+                    active && styles.countryChipTextActive,
+                  ]}>
+                  {c.label}
                 </Text>
               </TouchableOpacity>
-              {availableStates.map((state) => (
+            );
+          })}
+        </ScrollView>
+
+        {/* State chips */}
+        {selectedCountry !== 'all' && availableStates.length > 0 && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.chipsRow}>
+            <TouchableOpacity
+              onPress={() => setSelectedState('all')}
+              activeOpacity={0.85}
+              style={[
+                styles.stateChip,
+                selectedState === 'all' && styles.stateChipActive,
+              ]}>
+              <Text
+                style={[
+                  styles.stateChipText,
+                  selectedState === 'all' && styles.stateChipTextActive,
+                ]}>
+                All States
+              </Text>
+            </TouchableOpacity>
+            {availableStates.map(state => {
+              const active = selectedState === state;
+              return (
                 <TouchableOpacity
                   key={state}
-                  style={[styles.filterButton, styles.filterButtonSecondary, selectedState === state && styles.filterButtonActive]}
-                  onPress={() => setSelectedState(state)}>
-                  <Text style={[styles.filterButtonText, styles.filterButtonTextSmall, selectedState === state && styles.filterButtonTextActive]}>
+                  onPress={() => setSelectedState(state)}
+                  activeOpacity={0.85}
+                  style={[
+                    styles.stateChip,
+                    active && styles.stateChipActive,
+                  ]}>
+                  <Text
+                    style={[
+                      styles.stateChipText,
+                      active && styles.stateChipTextActive,
+                    ]}>
                     {state}
                   </Text>
                 </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
+              );
+            })}
+          </ScrollView>
         )}
 
-        {/* Locations List */}
+        {/* List */}
         {loading ? (
           <View style={styles.centerContainer}>
-            <ActivityIndicator size="large" color="#6366f1" />
+            <ActivityIndicator size="large" color="#7c4dff" />
             <Text style={styles.loadingText}>Loading locations...</Text>
           </View>
         ) : filteredLocations.length === 0 ? (
@@ -382,22 +436,14 @@ export default function TravelScreen() {
         ) : (
           <FlatList
             data={filteredLocations}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }) => renderLocationCard(item)}
-            style={styles.scrollView}
-            contentContainerStyle={styles.scrollContent}
+            keyExtractor={item => item.id}
+            renderItem={renderLocationCard}
+            contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
-            removeClippedSubviews={true}
+            removeClippedSubviews
+            initialNumToRender={12}
             maxToRenderPerBatch={20}
-            updateCellsBatchingPeriod={50}
-            initialNumToRender={15}
             windowSize={10}
-            ListHeaderComponent={
-              <Text style={styles.locationCount}>
-                {filteredLocations.length} location{filteredLocations.length !== 1 ? 's' : ''}{' '}
-                available
-              </Text>
-            }
           />
         )}
       </SafeAreaView>
@@ -406,208 +452,273 @@ export default function TravelScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#000',
-  },
-  safeArea: {
-    flex: 1,
-  },
-  header: {
+  container: { flex: 1, backgroundColor: '#100828' },
+  safeArea: { flex: 1 },
+
+  /* Header */
+  topHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+    marginHorizontal: 12,
+    marginTop: 4,
+    paddingHorizontal: 14,
+    paddingVertical: 18,
+    backgroundColor: 'rgba(40, 22, 96, 0.55)',
+    borderRadius: 22,
   },
-  backButton: {
-    padding: 8,
+  backBtn: {
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  headerContent: {
+  topHeaderTitle: {
     flex: 1,
-    marginLeft: 12,
+    color: '#fff',
+    fontSize: 22,
+    fontWeight: '800',
+    marginLeft: 4,
   },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
+  topHeaderRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  pointsPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: 'rgba(20, 14, 60, 0.95)',
+    borderWidth: 1.5,
+    borderColor: '#7c4dff',
+    gap: 6,
+  },
+  pointsCoin: { fontSize: 16 },
+  pointsAmount: { color: '#fff', fontWeight: '800', fontSize: 14 },
+  pointsPlus: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 1.2,
+    borderColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 2,
+  },
+  globeBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.08)',
+  },
+
+  /* View toggle */
+  viewToggleRow: {
+    flexDirection: 'row',
+    alignSelf: 'center',
+    marginTop: 18,
+    borderRadius: 999,
+    overflow: 'hidden',
+    gap: 0,
+  },
+  viewToggle: {
+    paddingHorizontal: 28,
+    paddingVertical: 12,
+    minWidth: 130,
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#7c4dff',
+    backgroundColor: 'transparent',
+  },
+  viewToggleActive: {
+    backgroundColor: '#3a2f8f',
+  },
+  viewToggleText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  viewToggleTextActive: {
     color: '#fff',
   },
-  headerSubtitle: {
-    fontSize: 12,
-    color: '#999',
-    marginTop: 2,
-  },
-  balanceBadge: {
+
+  /* Search row */
+  searchRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(251, 191, 36, 0.2)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    gap: 4,
-  },
-  balanceText: {
-    color: '#fbbf24',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    margin: 16,
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 12,
-    gap: 8,
+    marginTop: 18,
+    gap: 10,
   },
-  searchIcon: {
-    marginRight: 8,
+  searchBox: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    height: 46,
+    borderRadius: 999,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.18)',
+    backgroundColor: 'transparent',
+    gap: 8,
   },
   searchInput: {
     flex: 1,
     color: '#fff',
-    fontSize: 16,
-  },
-  filterContainer: {
-    paddingHorizontal: 16,
-    marginBottom: 12,
-  },
-  filterScrollContent: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  filterButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-    gap: 8,
-  },
-  filterButtonActive: {
-    backgroundColor: '#6366f1',
-    borderColor: '#6366f1',
-  },
-  filterButtonText: {
-    color: '#999',
     fontSize: 14,
-    fontWeight: '600',
+    paddingVertical: 0,
   },
-  filterButtonTextActive: {
+  createBtnWrap: {
+    borderRadius: 999,
+    overflow: 'hidden',
+    shadowColor: '#f59e0b',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.55,
+    shadowRadius: 10,
+    elevation: 8,
+  },
+  createBtn: {
+    paddingHorizontal: 16,
+    height: 46,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  createBtnText: {
     color: '#fff',
-  },
-  filterButtonSecondary: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  filterButtonTextSmall: {
+    fontWeight: '900',
     fontSize: 13,
+    letterSpacing: 0.5,
   },
-  flagEmoji: {
-    fontSize: 20,
+
+  /* Chips */
+  chipsRow: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    gap: 8,
   },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingTop: 0,
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-  },
-  locationCount: {
-    color: '#999',
-    fontSize: 14,
-    marginBottom: 12,
-  },
-  locationCard: {
-    marginBottom: 10,
-    borderRadius: 12,
-  },
-  currentLocationCard: {
-    borderWidth: 2,
-    borderColor: 'rgba(16, 185, 129, 0.5)',
-  },
-  locationGradient: {
+  countryChip: {
     flexDirection: 'row',
-    padding: 16,
     alignItems: 'center',
-    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.18)',
+    backgroundColor: 'transparent',
+    gap: 8,
+    marginRight: 8,
+  },
+  countryChipActive: {
+    backgroundColor: '#d6c9ff',
+    borderColor: '#d6c9ff',
+  },
+  flagBubble: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
     overflow: 'hidden',
   },
-  locationInfo: {
-    flex: 1,
+  flagEmoji: { fontSize: 16 },
+  countryChipText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 14,
   },
-  locationHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  countryChipTextActive: {
+    color: '#1f1450',
+  },
+  stateChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 999,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.18)',
+    backgroundColor: 'transparent',
+    marginRight: 8,
+  },
+  stateChipActive: {
+    backgroundColor: '#d6c9ff',
+    borderColor: '#d6c9ff',
+  },
+  stateChipText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  stateChipTextActive: {
+    color: '#1f1450',
+  },
+
+  /* List */
+  listContent: {
+    paddingHorizontal: 16,
+    paddingTop: 6,
+    paddingBottom: 40,
     gap: 12,
   },
-  locationTextContainer: {
+  locationCardWrap: {
+    borderRadius: 18,
+    overflow: 'hidden',
+  },
+  locationCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    gap: 10,
+  },
+  locationText: {
     flex: 1,
   },
   locationName: {
     color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontSize: 17,
+    fontWeight: '800',
   },
-  locationCity: {
-    color: '#ccc',
-    fontSize: 14,
+  locationCountry: {
+    color: 'rgba(255,255,255,0.85)',
+    fontSize: 13,
     marginTop: 2,
   },
-  locationDistance: {
-    color: '#999',
-    fontSize: 12,
-    marginTop: 4,
-    marginLeft: 36,
-  },
-  locationAction: {
-
-  },
-  currentBadge: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-  },
-  currentBadgeText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  travelButton: {
+  travelPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(99, 102, 241, 0.8)',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 12,
-    gap: 4,
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 999,
   },
-  travelCost: {
+  travelPillText: {
     color: '#fff',
-    fontSize: 14,
-    fontWeight: 'bold',
+    fontWeight: '900',
+    fontSize: 15,
   },
+  currentPill: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+  },
+  currentPillText: {
+    color: '#fff',
+    fontWeight: '800',
+    fontSize: 13,
+  },
+
+  /* Empty / loading */
   centerContainer: {
     flex: 1,
-    justifyContent: 'center',
     alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
   },
-  loadingText: {
-    color: '#999',
-    fontSize: 16,
-    marginTop: 12,
-  },
-  emptyText: {
-    color: '#999',
-    fontSize: 16,
-    marginTop: 12,
-  },
+  loadingText: { color: '#fff', marginTop: 12, fontSize: 14 },
+  emptyText: { color: 'rgba(255,255,255,0.7)', marginTop: 12, fontSize: 16 },
 });
