@@ -829,6 +829,19 @@ const NardiScreen = ({ navigation, route }: any) => {
     return Math.abs(move.to - move.from) === die1 + die2;
   };
 
+  // For doubles only: how many dice this move consumes (1..movesRemaining).
+  // E.g. with double-3 and movesRemaining=4, a tap from 23→11 consumes 4 dice.
+  const doublesChainLength = (state: NardiGameState, move: Move): number => {
+    if (move.from < 0 || move.to < 0 || move.to >= 24) return 1;
+    const { die1, die2 } = state.dice;
+    if (die1 <= 0 || die1 !== die2) return 1;
+    const dist = Math.abs(move.to - move.from);
+    if (dist % die1 !== 0) return 1;
+    const n = dist / die1;
+    if (n < 1) return 1;
+    return Math.min(n, state.movesRemaining);
+  };
+
   // Helper: apply a move to a state and return the updated state
   const applyMove = (state: NardiGameState, move: Move): NardiGameState => {
     const newBoardState = executeMove(state, move);
@@ -841,24 +854,24 @@ const NardiScreen = ({ navigation, route }: any) => {
       newDice.die1 = 0;
       newDice.die2 = 0;
       movesRemaining = Math.max(0, state.movesRemaining - 2);
+    } else if (state.dice.die1 === state.dice.die2 && state.dice.die1 > 0) {
+      // Doubles: a single tap may consume multiple dice if the destination
+      // is `n * dieValue` away (chain move).
+      const nConsumed = doublesChainLength(state, move);
+      movesRemaining = Math.max(0, state.movesRemaining - nConsumed);
+      // Keep dice face values intact — movesRemaining drives end-of-turn.
     } else {
       const usedDie = getUsedDieValue(move, state.currentPlayer, state.dice);
       movesRemaining = Math.max(0, state.movesRemaining - 1);
-      if (state.dice.die1 === state.dice.die2 && state.dice.die1 > 0) {
-        // Doubles: keep the face value in both dice so calculatePossibleMoves
-        // can still detect the doubles case. movesRemaining is the counter.
-        // (no zeroing needed — movesRemaining reaching 0 ends the turn)
+      // Non-doubles: zero out whichever die matches the used value
+      if (newDice.die1 === usedDie && newDice.die1 > 0) {
+        newDice.die1 = 0;
+      } else if (newDice.die2 === usedDie && newDice.die2 > 0) {
+        newDice.die2 = 0;
       } else {
-        // Non-doubles: zero out whichever die matches the used value
-        if (newDice.die1 === usedDie && newDice.die1 > 0) {
-          newDice.die1 = 0;
-        } else if (newDice.die2 === usedDie && newDice.die2 > 0) {
-          newDice.die2 = 0;
-        } else {
-          // Fallback: consume any remaining die (e.g. high-roll bear-off)
-          if (newDice.die1 > 0) newDice.die1 = 0;
-          else if (newDice.die2 > 0) newDice.die2 = 0;
-        }
+        // Fallback: consume any remaining die (e.g. high-roll bear-off)
+        if (newDice.die1 > 0) newDice.die1 = 0;
+        else if (newDice.die2 > 0) newDice.die2 = 0;
       }
     }
 
@@ -989,6 +1002,17 @@ const NardiScreen = ({ navigation, route }: any) => {
         // Both dice consumed in one move — tint both
         arOverlayRef.current?.useDieTint(gameState.dice.die1, updated.movesRemaining + 1, isDoubles);
         arOverlayRef.current?.useDieTint(gameState.dice.die2, updated.movesRemaining, isDoubles);
+      } else if (isDoubles) {
+        // Doubles chain: this single tap may have consumed 1..N dice of the
+        // same face value. Tint one die per consumed die.
+        const nConsumed = doublesChainLength(gameState, move);
+        for (let k = 0; k < nConsumed; k++) {
+          arOverlayRef.current?.useDieTint(
+            gameState.dice.die1,
+            updated.movesRemaining + (nConsumed - 1 - k),
+            true,
+          );
+        }
       } else if (usedDieVal > 0) {
         arOverlayRef.current?.useDieTint(usedDieVal, updated.movesRemaining, isDoubles);
       }
@@ -1073,9 +1097,16 @@ const NardiScreen = ({ navigation, route }: any) => {
       if (!chosen) break;
       console.log('🤖 AI planned move:', chosen.from, '->', chosen.to);
       const combined = isCombinedMove(workingState, chosen);
-      const consumed: number[] = combined
-        ? [workingState.dice.die1, workingState.dice.die2]
-        : [getUsedDieValue(chosen, workingState.currentPlayer, workingState.dice)];
+      let consumed: number[];
+      if (combined) {
+        consumed = [workingState.dice.die1, workingState.dice.die2];
+      } else if (aiIsDoubles) {
+        // Doubles chain: tint one die per dice consumed (1..N).
+        const n = doublesChainLength(workingState, chosen);
+        consumed = Array(n).fill(workingState.dice.die1);
+      } else {
+        consumed = [getUsedDieValue(chosen, workingState.currentPlayer, workingState.dice)];
+      }
       workingState = applyMove(workingState, chosen);
       statesSequence.push(workingState);
       aiDieValues.push(consumed);
