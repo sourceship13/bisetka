@@ -5,41 +5,57 @@ import Sound from 'react-native-sound';
 Sound.setCategory('Ambient', true);
 
 // react-native-sound resolves filenames differently per platform:
-//   iOS  → look up `piece_move.wav` in main bundle (Resources build phase).
+//   iOS  → look up the file in main bundle (Resources build phase).
 //   Android → with MAIN_BUNDLE the lib loads from res/raw if no slash, or
 //             from the assets folder when the filename contains a slash.
-//             react-native-asset placed our wav at assets/custom/piece_move.wav.
-const FILENAME = Platform.OS === 'android' ? 'custom/piece_move.wav' : 'piece_move.wav';
+//   piece_move.wav → react-native-asset placed it under
+//                    android/app/src/main/assets/custom/ (slash form).
+//   dice_roll.mp3 → was copied to android/app/src/main/res/raw/ (no slash).
+const PIECE_MOVE_FILE =
+  Platform.OS === 'android' ? 'custom/piece_move.wav' : 'piece_move.wav';
+const DICE_ROLL_FILE = 'dice_roll.mp3';
 
-let cached: Sound | null = null;
-let loadFailed = false;
+interface CachedSound {
+  snd: Sound | null;
+  failed: boolean;
+}
 
-const ensureLoaded = (cb: (snd: Sound | null) => void) => {
-  if (loadFailed) return cb(null);
-  if (cached && cached.isLoaded()) return cb(cached);
-  const snd = new Sound(FILENAME, Sound.MAIN_BUNDLE, err => {
+const cache: Record<string, CachedSound> = {};
+
+const ensureLoaded = (
+  filename: string,
+  cb: (snd: Sound | null) => void,
+) => {
+  let entry = cache[filename];
+  if (entry?.failed) return cb(null);
+  if (entry?.snd && entry.snd.isLoaded()) return cb(entry.snd);
+  const snd = new Sound(filename, Sound.MAIN_BUNDLE, err => {
     if (err) {
-      console.warn('[nardiSound] failed to load piece_move.wav:', err);
-      loadFailed = true;
+      console.warn(`[nardiSound] failed to load ${filename}:`, err);
+      cache[filename] = { snd: null, failed: true };
       cb(null);
       return;
     }
-    cached = snd;
+    cache[filename] = { snd, failed: false };
     cb(snd);
   });
 };
 
-// Pre-warm so the first move plays without delay.
-ensureLoaded(() => {});
+// Pre-warm both sounds so the first play has no delay.
+ensureLoaded(PIECE_MOVE_FILE, () => {});
+ensureLoaded(DICE_ROLL_FILE, () => {});
 
-export const playPieceMoveSound = () => {
-  ensureLoaded(snd => {
+const playOnce = (filename: string) => {
+  ensureLoaded(filename, snd => {
     if (!snd) return;
-    // Restart from beginning on each play so rapid AI moves still trigger.
+    // Restart from beginning so rapid plays still trigger.
     snd.stop(() => {
       snd.play(success => {
-        if (!success) console.warn('[nardiSound] playback failed');
+        if (!success) console.warn(`[nardiSound] playback failed for ${filename}`);
       });
     });
   });
 };
+
+export const playPieceMoveSound = () => playOnce(PIECE_MOVE_FILE);
+export const playDiceRollSound = () => playOnce(DICE_ROLL_FILE);

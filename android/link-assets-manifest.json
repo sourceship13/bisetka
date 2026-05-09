@@ -570,6 +570,10 @@
       "sha1": "59d102868a3072bf9034efb4b2a41ff6741a297b"
     },
     {
+      "path": "assets/sounds/dice_roll.mp3",
+      "sha1": "b6d159ca2f90f831de01da01b2cca4dbee3002e3"
+    },
+    {
       "path": "assets/sounds/piece_move.wav",
       "sha1": "4ccc95c12217e945efa9fa08f1c30191233b99ac"
     }
