@@ -285,6 +285,7 @@
 		9F6A4786ACAF4AE68C1D2913 /* Inter_18pt-Black.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 91310BB06F6A41BA9F017730 /* Inter_18pt-Black.ttf */; };
 		9FABF6D10B9E465E997A1C66 /* Inter_24pt-BoldItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 31A8725F0C24440FABE9E106 /* Inter_24pt-BoldItalic.ttf */; };
 		A0CC512EEC9542D9A73F256B /* Inter_24pt-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 42510A4DE7984C6493A25566 /* Inter_24pt-Regular.ttf */; };
+		A155AC451D514795BBB18CEA /* piece_move.wav in Resources */ = {isa = PBXBuildFile; fileRef = 4C4C2CC9E336468493DC8362 /* piece_move.wav */; };
 		A180082363F64C2EA0FB3697 /* JetBrainsMono-SemiBoldItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = AEA08F72445847F6B9945147 /* JetBrainsMono-SemiBoldItalic.ttf */; };
 		A31B569EE8D24934B32DE016 /* Fredoka_SemiExpanded-Light.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 7D2CE225C06943F38960338E /* Fredoka_SemiExpanded-Light.ttf */; };
 		A3418B8B5C724974885901F1 /* Fredoka-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 2B2B4C6CC4EF42EE8512CCEA /* Fredoka-SemiBold.ttf */; };
@@ -303,6 +304,7 @@
 		AAC3605B41BB42DDBC472B77 /* Fredoka_Condensed-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 4AA9A71356C84CAD85CEA40E /* Fredoka_Condensed-Bold.ttf */; };
 		ABA54569D92C4B7581186017 /* RobotoMono-ExtraLight.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 6E9088F1BB684C88ABAD0817 /* RobotoMono-ExtraLight.ttf */; };
 		ABE3A04CE403D29D2BD2507F /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */; };
+		AC3650C32B7D4F66B9837ED5 /* piece_move.wav in Resources */ = {isa = PBXBuildFile; fileRef = 4C4C2CC9E336468493DC8362 /* piece_move.wav */; };
 		AC9FE513635849848B87D9AB /* Fredoka-Light.ttf in Resources */ = {isa = PBXBuildFile; fileRef = C1A885A4A89941DBAB130A84 /* Fredoka-Light.ttf */; };
 		ADB6271C9E154A2398F88D49 /* CrimsonText-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = B1E730554B0446D7914CD453 /* CrimsonText-Bold.ttf */; };
 		AEBE04F51B5C4C04BAF66266 /* Inter_18pt-Black.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 91310BB06F6A41BA9F017730 /* Inter_18pt-Black.ttf */; };
@@ -494,6 +496,7 @@
 		44785EB8E49E47508B49533E /* Fredoka_SemiExpanded-SemiBold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Fredoka_SemiExpanded-SemiBold.ttf"; path = "../assets/fonts/Fredoka_SemiExpanded-SemiBold.ttf"; sourceTree = "<group>"; };
 		4AA9A71356C84CAD85CEA40E /* Fredoka_Condensed-Bold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Fredoka_Condensed-Bold.ttf"; path = "../assets/fonts/Fredoka_Condensed-Bold.ttf"; sourceTree = "<group>"; };
 		4BE3C0D0A05E469EBA66BB6B /* Inter_18pt-SemiBold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Inter_18pt-SemiBold.ttf"; path = "../assets/fonts/Inter_18pt-SemiBold.ttf"; sourceTree = "<group>"; };
+		4C4C2CC9E336468493DC8362 /* piece_move.wav */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = piece_move.wav; path = ../assets/sounds/piece_move.wav; sourceTree = "<group>"; };
 		4D05E04E79094D5E9B516EB5 /* Inter_24pt-SemiBold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Inter_24pt-SemiBold.ttf"; path = "../assets/fonts/Inter_24pt-SemiBold.ttf"; sourceTree = "<group>"; };
 		4D4BF0143BA44927B1C12992 /* EBGaramond-ExtraBold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "EBGaramond-ExtraBold.ttf"; path = "../assets/fonts/EBGaramond-ExtraBold.ttf"; sourceTree = "<group>"; };
 		4DA7863C11A14A3287B1C6CC /* EBGaramond-MediumItalic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "EBGaramond-MediumItalic.ttf"; path = "../assets/fonts/EBGaramond-MediumItalic.ttf"; sourceTree = "<group>"; };
@@ -800,6 +803,7 @@
 				2910604EF97045BD8E4E41B3 /* JetBrainsMono-BoldItalic.ttf */,
 				663CC6D3FAB948B59C35ADAA /* Fredoka_Condensed-SemiBold.ttf */,
 				600DC68CC47C43F0A0A34B27 /* EBGaramond-Medium.ttf */,
+				4C4C2CC9E336468493DC8362 /* piece_move.wav */,
 			);
 			name = Resources;
 			sourceTree = "<group>";
@@ -1091,6 +1095,7 @@
 				82D4F2F704774AAD81330FB6 /* JetBrainsMono-BoldItalic.ttf in Resources */,
 				F66EDE3765E844A6B2718C62 /* Fredoka_Condensed-SemiBold.ttf in Resources */,
 				C1318551F0154F748F1297B8 /* EBGaramond-Medium.ttf in Resources */,
+				AC3650C32B7D4F66B9837ED5 /* piece_move.wav in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1389,6 +1394,7 @@
 				DE7D34082F4ABB9C00AEFA99 /* GoogleService-Info.plist in Resources */,
 				AA1B2C3D4E5F6A7B8C9D0E1F /* BootSplash.storyboard in Resources */,
 				BB2C3D4E5F6A7B8C9D0E1F2A /* Colors.xcassets in Resources */,
+				A155AC451D514795BBB18CEA /* piece_move.wav in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
