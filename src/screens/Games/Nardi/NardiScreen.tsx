@@ -48,7 +48,7 @@ import { useAuth } from '../../../libs/hooks/useAuth';
 import { useAchievements } from '../../../contexts/AchievementContext';
 import { v4 as uuidv4 } from 'uuid';
 import SyncedYouTubePlayer from '../../../components/SyncedYouTubePlayer';
-import { playPieceMoveSound } from '../../../utils/nardiSound';
+import { playPieceMoveSound, playDiceRollSound } from '../../../utils/nardiSound';
 import { chooseBestAiSequence } from '../../../game/nardiAI';
 
 const { width, height } = Dimensions.get('window');
@@ -970,6 +970,7 @@ const NardiScreen = ({ navigation, route }: any) => {
     if (isMultiplayer && roomIdRef.current) {
       socketService.makeMove(roomIdRef.current, userId, { type: 'roll_dice', dice: { die1, die2 } });
     }
+    playDiceRollSound();
     arOverlayRef.current?.rollDiceOnBoard(vx, vy, die1, die2);
     // Animate the tray flying off, then commit dice state
     Animated.parallel([
@@ -1064,7 +1065,11 @@ const NardiScreen = ({ navigation, route }: any) => {
       // Random swipe from the opposite side (top of board) heading downward
       const aiVx = (Math.random() - 0.5) * 0.6;
       const aiVy = 0.8 + Math.random() * 0.4; // positive Y = toward player
+      playDiceRollSound();
       arOverlayRef.current?.rollDiceOnBoard(aiVx, aiVy, dice.die1, dice.die2);
+    } else {
+      // Non-AR AI roll: still play the audio cue.
+      playDiceRollSound();
     }
 
     if (currentState.possibleMoves.length === 0) {

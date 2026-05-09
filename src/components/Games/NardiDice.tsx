@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { View, StyleSheet, Dimensions, Text, Animated, PanResponder, Easing } from 'react-native';
 import Dice3DSimple from './Dice3DSimple';
+import { playDiceRollSound } from '../../utils/nardiSound';
 
 const { width } = Dimensions.get('window');
 const DICE_SIZE = Math.floor((width / 6) * 1.15);
@@ -42,6 +43,9 @@ export const NardiDice: React.FC<NardiDiceProps> = ({
   const triggerRollRef = useRef<(vx: number, vy: number) => void>(() => {});
   triggerRollRef.current = (vx: number, vy: number) => {
     if (!enabledRef.current || isRollingRef.current) return;
+
+    // Audio cue for the roll (opening roll + in-game non-AR roll).
+    playDiceRollSound();
 
     const newDie1 = Math.floor(Math.random() * 6) + 1;
     const newDie2 = Math.floor(Math.random() * 6) + 1;
