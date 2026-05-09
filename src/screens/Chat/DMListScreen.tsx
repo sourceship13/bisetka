@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -6,40 +6,63 @@ import {
   FlatList,
   TouchableOpacity,
   ActivityIndicator,
+  TextInput,
+  Image,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import LinearGradient from 'react-native-linear-gradient';
+import { useFocusEffect } from '@react-navigation/native';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import chatService, { Chat } from '../../services/chat.service';
 import { useAuth } from '../../libs/hooks/useAuth';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/AppNavigator';
-import { colors, spacing, typography } from '../../theme';
-import GameToolbar from '../../components/global/GameToolbar';
+import AVATARS, { resolveAvatar } from '../../utils/avatars';
+import BottomTabBar from '../../components/global/BottomTabBar';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'DMList'>;
+
+type FilterTab = 'all' | 'private' | 'group';
+
+const formatTime = (iso?: string): string => {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
+  const hours = d.getHours().toString().padStart(2, '0');
+  const minutes = d.getMinutes().toString().padStart(2, '0');
+  return `${hours}:${minutes}`;
+};
 
 const DMListScreen: React.FC<Props> = ({ navigation }) => {
   const { user } = useAuth();
   const [chats, setChats] = useState<Chat[]>([]);
   const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<FilterTab>('all');
+  const [search, setSearch] = useState('');
 
-  useEffect(() => {
-    loadChats();
-  }, []);
-
-  const loadChats = async () => {
+  const loadChats = useCallback(async () => {
     try {
       setLoading(true);
       const result = await chatService.getChats();
-      // Filter to only show DMs
-      const dms = result.chats.filter(c => c.type === 'direct');
-      setChats(dms);
+      // Exclude global chat from messages list
+      const filtered = result.chats.filter(c => c.type !== 'global');
+      setChats(filtered);
     } catch (error) {
       console.error('Failed to load chats:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadChats();
+  }, [loadChats]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadChats();
+    }, [loadChats]),
+  );
 
   const handleChatPress = (chat: Chat) => {
     navigation.navigate('DMChat', {
@@ -48,162 +71,411 @@ const DMListScreen: React.FC<Props> = ({ navigation }) => {
     });
   };
 
-  const renderChat = ({ item }: { item: Chat }) => (
-    <TouchableOpacity
-      style={styles.chatCard}
-      onPress={() => handleChatPress(item)}
-    >
-      <View style={styles.chatInfo}>
-        <Text style={styles.chatName}>{item.name || 'Direct Message'}</Text>
-        {item.last_message_preview && (
-          <Text style={styles.lastMessage} numberOfLines={1}>
-            {item.last_message_preview}
-          </Text>
-        )}
-      </View>
-      {(item.unread_count ?? 0) > 0 && (
-        <View style={styles.unreadBadge}>
-          <Text style={styles.unreadText}>{item.unread_count}</Text>
-        </View>
-      )}
-    </TouchableOpacity>
-  );
+  const filteredChats = useMemo(() => {
+    let list = chats;
+    if (filter === 'private') list = list.filter(c => c.type === 'direct');
+    if (filter === 'group') list = list.filter(c => c.type === 'room');
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      list = list.filter(c =>
+        (c.name || '').toLowerCase().includes(q) ||
+        (c.last_message_preview || '').toLowerCase().includes(q),
+      );
+    }
+    return list;
+  }, [chats, filter, search]);
 
-  if (loading) {
+  const renderChat = ({ item, index }: { item: Chat; index: number }) => {
+    const isGroup = item.type === 'room';
+    const avatar = resolveAvatar(item.avatar_url) || AVATARS[0].source;
+    const time = formatTime(item.last_message_at);
+    const unread = item.unread_count ?? 0;
+
     return (
-      <SafeAreaView style={styles.container}>
-        <ActivityIndicator size="large" color="#007AFF" />
-      </SafeAreaView>
+      <TouchableOpacity
+        activeOpacity={0.7}
+        style={styles.row}
+        onPress={() => handleChatPress(item)}>
+        <View style={styles.avatarWrap}>
+          <View style={styles.avatarCircle}>
+            <Image source={avatar} style={styles.avatarImg} resizeMode="contain" />
+          </View>
+          {isGroup && (
+            <View style={styles.groupOverlay}>
+              <View style={[styles.avatarCircle, styles.avatarCircleSmall]}>
+                <Image
+                  source={AVATARS[1]?.source || AVATARS[0].source}
+                  style={styles.avatarImg}
+                  resizeMode="contain"
+                />
+              </View>
+              <View style={styles.groupCount}>
+                <Text style={styles.groupCountText}>+3</Text>
+              </View>
+            </View>
+          )}
+          {!isGroup && index === 0 && <View style={styles.onlineDot} />}
+        </View>
+
+        <View style={styles.contentCol}>
+          <Text style={styles.name} numberOfLines={1}>
+            {item.name || 'Direct Message'}
+          </Text>
+          <Text style={styles.preview} numberOfLines={1}>
+            {item.last_message_preview || 'Say hello 👋'}
+          </Text>
+        </View>
+
+        <View style={styles.metaCol}>
+          <Text style={styles.time}>{time || '—'}</Text>
+          {unread > 0 && (
+            <View style={styles.unreadBadge}>
+              <Text style={styles.unreadText}>{unread}</Text>
+            </View>
+          )}
+        </View>
+      </TouchableOpacity>
     );
-  }
+  };
+
+  const TABS: { key: FilterTab; label: string }[] = [
+    { key: 'all', label: 'All' },
+    { key: 'private', label: 'Private chats' },
+    { key: 'group', label: 'Group chats' },
+  ];
 
   return (
-    <SafeAreaView style={styles.container}>
-      <LinearGradient
-        colors={colors.gradients.primary}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={styles.header}
-      >
-        <View style={{margin:10, flexDirection: 'row', alignItems: 'center'}}>
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            style={styles.backButton}
-          >
-            <Text style={styles.backText}>← Back</Text>
-          </TouchableOpacity>
-          <Text style={styles.title}>💬 Messages</Text>
-          <View style={styles.placeholder} />
+    <View style={styles.container}>
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor="transparent"
+        translucent
+      />
+      <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+        {/* Header */}
+        <View style={styles.topHeader}>
+          <Text style={styles.topHeaderTitle}>Messages</Text>
+          <View style={styles.topHeaderRight}>
+            <TouchableOpacity
+              onPress={() => navigation.navigate('PointsShop')}
+              activeOpacity={0.85}>
+              <View style={styles.pointsPill}>
+                <Text style={styles.pointsCoin}>🪙</Text>
+                <Text style={styles.pointsAmount}>
+                  {Math.floor(user?.balance || 0).toLocaleString()}
+                </Text>
+                <View style={styles.pointsPlus}>
+                  <Icon name="plus" size={12} color="#fff" />
+                </View>
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() =>
+                navigation.navigate('GlobalView', { userId: user?.id })
+              }
+              style={styles.globeBtn}
+              activeOpacity={0.85}>
+              <Icon name="earth" size={22} color="#fff" />
+            </TouchableOpacity>
+          </View>
         </View>
-      </LinearGradient>
 
-      {chats.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>No conversations yet</Text>
-          <Text style={styles.emptySubtext}>
-            Start a game and chat with other players
-          </Text>
+        {/* Filter tabs */}
+        <View style={styles.tabsRow}>
+          {TABS.map(tab => {
+            const active = filter === tab.key;
+            return (
+              <TouchableOpacity
+                key={tab.key}
+                activeOpacity={0.85}
+                onPress={() => setFilter(tab.key)}
+                style={[styles.tabBtn, active && styles.tabBtnActive]}>
+                <Text
+                  style={[styles.tabLabel, active && styles.tabLabelActive]}
+                  numberOfLines={1}>
+                  {tab.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
-      ) : (
-        <FlatList
-          data={chats}
-          keyExtractor={item => item.id}
-          renderItem={renderChat}
-          contentContainerStyle={styles.listContent}
-        />
-      )}
-    </SafeAreaView>
+
+        {/* Search */}
+        <View style={styles.searchWrap}>
+          <Icon name="magnify" size={20} color="rgba(255,255,255,0.6)" />
+          <TextInput
+            value={search}
+            onChangeText={setSearch}
+            placeholder="Search..."
+            placeholderTextColor="rgba(255,255,255,0.5)"
+            style={styles.searchInput}
+          />
+        </View>
+
+        {loading ? (
+          <View style={styles.center}>
+            <ActivityIndicator size="large" color="#fff" />
+          </View>
+        ) : filteredChats.length === 0 ? (
+          <View style={styles.center}>
+            <Text style={styles.emptyText}>No conversations yet</Text>
+            <Text style={styles.emptySubtext}>
+              Start a game and chat with other players
+            </Text>
+          </View>
+        ) : (
+          <FlatList
+            data={filteredChats}
+            keyExtractor={item => item.id}
+            renderItem={renderChat}
+            ItemSeparatorComponent={() => <View style={styles.separator} />}
+            contentContainerStyle={styles.listContent}
+            showsVerticalScrollIndicator={false}
+          />
+        )}
+      </SafeAreaView>
+      <BottomTabBar active="Messages" />
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background.primary,
+    backgroundColor: '#100828',
   },
-  header: {
+  safeArea: {
+    flex: 1,
+  },
+  topHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    borderRadius: 12,
+    marginHorizontal: 12,
+    marginTop: 4,
+    paddingHorizontal: 18,
+    paddingVertical: 18,
+    backgroundColor: 'rgba(40, 22, 96, 0.55)',
+    borderRadius: 22,
   },
-  backButton: {
-    padding: spacing.sm,
+  topHeaderTitle: {
     flex: 1,
+    color: '#fff',
+    fontSize: 22,
+    fontWeight: '800',
   },
-  backText: {
-    color: colors.text.primary,
-    fontSize: typography.fontSize.md,
+  topHeaderRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
   },
-  title: {
-    flex: 2,
-    fontSize: typography.fontSize.xl,
-    fontWeight: typography.fontWeight.bold,
-    color: colors.text.primary,
-    textAlign: 'center',
+  pointsPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: 'rgba(20, 14, 60, 0.95)',
+    borderWidth: 1.5,
+    borderColor: '#7c4dff',
+    gap: 6,
   },
-  placeholder: {
+  pointsCoin: { fontSize: 16 },
+  pointsAmount: { color: '#fff', fontWeight: '800', fontSize: 14 },
+  pointsPlus: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 1.2,
+    borderColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 2,
+  },
+  globeBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.08)',
+  },
+  tabsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginHorizontal: 16,
+    marginTop: 18,
+    marginBottom: 10,
+  },
+  tabBtn: {
     flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderRadius: 24,
+    borderWidth: 1.5,
+    borderColor: 'rgba(124, 77, 255, 0.55)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tabBtnActive: {
+    backgroundColor: 'rgba(99, 76, 222, 0.55)',
+    borderColor: '#7c4dff',
+  },
+  tabLabel: {
+    color: 'rgba(255,255,255,0.85)',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  tabLabelActive: {
+    color: '#fff',
+    fontWeight: '700',
+  },
+  searchWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 16,
+    marginTop: 4,
+    marginBottom: 12,
+    paddingHorizontal: 14,
+    borderRadius: 28,
+    borderWidth: 1.2,
+    borderColor: 'rgba(124, 77, 255, 0.5)',
+    backgroundColor: 'rgba(20, 14, 60, 0.55)',
+    gap: 8,
+  },
+  searchInput: {
+    flex: 1,
+    height: 44,
+    color: '#fff',
+    fontSize: 14,
+    padding: 0,
   },
   listContent: {
-    paddingVertical: spacing.sm,
+    paddingBottom: 130,
+    paddingTop: 4,
   },
-  chatCard: {
+  separator: {
+    height: 1,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    marginHorizontal: 16,
+  },
+  row: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.background.card,
-    marginHorizontal: spacing.md,
-    marginVertical: spacing.xs,
-    padding: spacing.lg,
-    borderRadius: 12,
-    shadowColor: colors.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 4,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 12,
   },
-  chatInfo: {
+  avatarWrap: {
+    width: 50,
+    height: 50,
+    position: 'relative',
+  },
+  avatarCircle: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  avatarCircleSmall: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 2,
+    borderColor: '#100828',
+  },
+  avatarImg: {
+    width: '100%',
+    height: '100%',
+  },
+  groupOverlay: {
+    position: 'absolute',
+    top: -4,
+    left: 18,
+  },
+  groupCount: {
+    position: 'absolute',
+    top: -4,
+    right: -8,
+    backgroundColor: '#7c4dff',
+    borderRadius: 10,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    minWidth: 22,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#100828',
+  },
+  groupCountText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  onlineDot: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#22c55e',
+    borderWidth: 2,
+    borderColor: '#100828',
+  },
+  contentCol: {
     flex: 1,
   },
-  chatName: {
-    fontSize: typography.fontSize.md,
-    fontWeight: typography.fontWeight.semibold,
-    color: colors.text.primary,
-    marginBottom: spacing.xs,
+  name: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 4,
   },
-  lastMessage: {
-    fontSize: typography.fontSize.sm,
-    color: colors.text.secondary,
+  preview: {
+    color: 'rgba(255,255,255,0.65)',
+    fontSize: 13,
+  },
+  metaCol: {
+    alignItems: 'flex-end',
+    gap: 6,
+  },
+  time: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 12,
+    fontWeight: '600',
   },
   unreadBadge: {
-    backgroundColor: colors.error.main,
-    borderRadius: 12,
     minWidth: 24,
     height: 24,
+    borderRadius: 12,
+    paddingHorizontal: 6,
+    backgroundColor: 'rgba(124, 77, 255, 0.85)',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: spacing.xs,
   },
   unreadText: {
-    color: colors.text.primary,
-    fontSize: typography.fontSize.xs,
-    fontWeight: typography.fontWeight.bold,
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '800',
   },
-  emptyContainer: {
+  center: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: spacing.huge,
+    paddingHorizontal: 32,
+    paddingBottom: 100,
   },
   emptyText: {
-    fontSize: typography.fontSize.lg,
-    fontWeight: typography.fontWeight.semibold,
-    color: colors.text.secondary,
-    marginBottom: spacing.sm,
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 8,
   },
   emptySubtext: {
-    fontSize: typography.fontSize.sm,
-    color: colors.text.tertiary,
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 14,
     textAlign: 'center',
   },
 });
