@@ -689,9 +689,8 @@ const styles = StyleSheet.create({
   prizeCard: {
     flex: 1,
     borderRadius: 16,
-    paddingVertical: 18,
     alignItems: 'center',
-    minHeight: 130,
+    minHeight: 100,
     justifyContent: 'space-between',
   },
   prizeIcon: { fontSize: 38 },
