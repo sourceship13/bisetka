@@ -40,6 +40,7 @@
 		142A9254B2CD43CA9F7FEDF1 /* JetBrainsMono-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 4E024426499343CF969D9169 /* JetBrainsMono-SemiBold.ttf */; };
 		15E6E0AD9AF446C29FB923E1 /* JetBrainsMono-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 39F125F9F95E46C9A168564C /* JetBrainsMono-Regular.ttf */; };
 		15FD8DD397E54B4596D98E22 /* RobotoMono-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 31166F39FBC54D65847154E2 /* RobotoMono-Bold.ttf */; };
+		171CE48B98A14FE6B5BCDAE7 /* card_flip.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = E47368EB639F4BC785DE5C3A /* card_flip.mp3 */; };
 		180A3FB5332141C285394FD9 /* Cinzel-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 5B5E5A082A8244A3ABCF01AA /* Cinzel-Regular.ttf */; };
 		183DF60A28004DC8983F2F04 /* Inter_24pt-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 42510A4DE7984C6493A25566 /* Inter_24pt-Regular.ttf */; };
 		195B7DC1D39246EC9FCCFD64 /* Inter_18pt-Black.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 91310BB06F6A41BA9F017730 /* Inter_18pt-Black.ttf */; };
@@ -291,6 +292,7 @@
 		A31B569EE8D24934B32DE016 /* Fredoka_SemiExpanded-Light.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 7D2CE225C06943F38960338E /* Fredoka_SemiExpanded-Light.ttf */; };
 		A3418B8B5C724974885901F1 /* Fredoka-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 2B2B4C6CC4EF42EE8512CCEA /* Fredoka-SemiBold.ttf */; };
 		A354C7BD64F0499EADE3B4E3 /* Inter_18pt-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = ACE88FC4642A4578A3EB51B2 /* Inter_18pt-Medium.ttf */; };
+		A409AE44732D4EC4B62CB6B7 /* card_flip.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = E47368EB639F4BC785DE5C3A /* card_flip.mp3 */; };
 		A44CA8DB73DF4583B75E9086 /* Inter_18pt-BlackItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 1EC5C280495942D593DCA29E /* Inter_18pt-BlackItalic.ttf */; };
 		A632A31462504C5BAF8A32BC /* Inter_28pt-ThinItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 7FEF5FBBCF8641C487AD414A /* Inter_28pt-ThinItalic.ttf */; };
 		A763639AF7804A5A8A8E713A /* Fredoka_SemiCondensed-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 95F2B89680EE4761883EA937 /* Fredoka_SemiCondensed-SemiBold.ttf */; };
@@ -455,8 +457,6 @@
 		FEF220A755EC45E4AC2D1057 /* Inter_18pt-LightItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = B942C333B10E41DA81E36250 /* Inter_18pt-LightItalic.ttf */; };
 		FF3C68A367FB4044A85958C6 /* PlayfairDisplaySC-BlackItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 2B5851A33D6247CE9AB24075 /* PlayfairDisplaySC-BlackItalic.ttf */; };
 		FFE09CFF9100478FBF3FB468 /* RobotoMono-BoldItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = F033DC7713084399A0BF5BB2 /* RobotoMono-BoldItalic.ttf */; };
-		171CE48B98A14FE6B5BCDAE7 /* card_flip.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = E47368EB639F4BC785DE5C3A /* card_flip.mp3 */; };
-		A409AE44732D4EC4B62CB6B7 /* card_flip.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = E47368EB639F4BC785DE5C3A /* card_flip.mp3 */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -603,6 +603,7 @@
 		DE7D34032F4ABB9C00AEFA99 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		DE7D34042F4ABB9C00AEFA99 /* GoogleService-Info-Staging.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info-Staging.plist"; sourceTree = "<group>"; };
 		E10A56F5E92D42FD9ED5BD1E /* Inter_28pt-Regular.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Inter_28pt-Regular.ttf"; path = "../assets/fonts/Inter_28pt-Regular.ttf"; sourceTree = "<group>"; };
+		E47368EB639F4BC785DE5C3A /* card_flip.mp3 */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = card_flip.mp3; path = ../assets/sounds/card_flip.mp3; sourceTree = "<group>"; };
 		E97264A03FDC4365BA241636 /* JetBrainsMono-MediumItalic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "JetBrainsMono-MediumItalic.ttf"; path = "../assets/fonts/JetBrainsMono-MediumItalic.ttf"; sourceTree = "<group>"; };
 		EB8F61AE9FD94BAC9BA7A7D1 /* dice_roll.mp3 */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = dice_roll.mp3; path = ../assets/sounds/dice_roll.mp3; sourceTree = "<group>"; };
 		EC60E269600D49D2B29C40BF /* Inter_18pt-BoldItalic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Inter_18pt-BoldItalic.ttf"; path = "../assets/fonts/Inter_18pt-BoldItalic.ttf"; sourceTree = "<group>"; };
@@ -624,7 +625,6 @@
 		FC01DB49CF114D32BD358121 /* Inter_18pt-ThinItalic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Inter_18pt-ThinItalic.ttf"; path = "../assets/fonts/Inter_18pt-ThinItalic.ttf"; sourceTree = "<group>"; };
 		FC3030E946664228B6A0A3F2 /* Inter_28pt-SemiBoldItalic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Inter_28pt-SemiBoldItalic.ttf"; path = "../assets/fonts/Inter_28pt-SemiBoldItalic.ttf"; sourceTree = "<group>"; };
 		FD83D179460F48869D17B5A4 /* Inter_24pt-LightItalic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Inter_24pt-LightItalic.ttf"; path = "../assets/fonts/Inter_24pt-LightItalic.ttf"; sourceTree = "<group>"; };
-		E47368EB639F4BC785DE5C3A /* card_flip.mp3 */ = {isa = PBXFileReference; name = "card_flip.mp3"; path = "../assets/sounds/card_flip.mp3"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -1904,7 +1904,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = org.sera.dev.bisetka.staging;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
-				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "Bisetka Prov Staging Profile";
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "Bisetka Prov Profile Staging";
 				SWIFT_ENABLE_EXPLICIT_MODULES = NO;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;

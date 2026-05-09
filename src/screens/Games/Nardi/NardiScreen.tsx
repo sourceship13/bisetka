@@ -1633,6 +1633,65 @@ const NardiScreen = ({ navigation, route }: any) => {
             </View>
           </View>
 
+          {/* Bear-off trays — visible 2D HUD showing borne-off checkers */}
+          {(() => {
+            const myColor = myNardiColor;
+            const oppColor: PlayerColor = myColor === 'white' ? 'black' : 'white';
+            const myCount = gameState.home[myColor] || 0;
+            const oppCount = gameState.home[oppColor] || 0;
+            const myPieceColor = myColor === 'white' ? '#cc2828' : '#1a1a30';
+            const oppPieceColor = oppColor === 'white' ? '#cc2828' : '#1a1a30';
+            return (
+              <>
+                {/* Opponent / AI tray — top right */}
+                <View pointerEvents="none" style={styles.bearOffTrayTop}>
+                  <Text style={styles.bearOffTrayLabel}>
+                    {isMultiplayer ? 'Opponent' : 'AI'} • {oppCount}/15
+                  </Text>
+                  <View style={styles.bearOffStack}>
+                    {Array.from({ length: Math.min(oppCount, 15) }).map((_, i) => (
+                      <View
+                        key={`opp_${i}`}
+                        style={[
+                          styles.bearOffPiece,
+                          { backgroundColor: oppPieceColor, marginTop: i === 0 ? 0 : -14 },
+                        ]}
+                      />
+                    ))}
+                  </View>
+                </View>
+                {/* Player tray — bottom right */}
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  disabled={!(canPlayerBearOff(myColor) &&
+                    gameState.currentPlayer === myColor &&
+                    gameState.phase === 'moving' &&
+                    gameState.possibleMoves.some(m => m.to === (myColor === 'white' ? -1 : 24)))}
+                  onPress={() => handleBearOffTrayPress(myColor)}
+                  style={[
+                    styles.bearOffTrayBottom,
+                    canPlayerBearOff(myColor) &&
+                      gameState.currentPlayer === myColor &&
+                      gameState.phase === 'moving' &&
+                      styles.bearOffTrayActive,
+                  ]}>
+                  <Text style={styles.bearOffTrayLabel}>You • {myCount}/15</Text>
+                  <View style={styles.bearOffStack}>
+                    {Array.from({ length: Math.min(myCount, 15) }).map((_, i) => (
+                      <View
+                        key={`me_${i}`}
+                        style={[
+                          styles.bearOffPiece,
+                          { backgroundColor: myPieceColor, marginTop: i === 0 ? 0 : -14 },
+                        ]}
+                      />
+                    ))}
+                  </View>
+                </TouchableOpacity>
+              </>
+            );
+          })()}
+
           {/* Matchmaking overlay */}
           {isMultiplayer && mpStatus !== 'playing' && mpStatus !== 'ended' && (
             <View style={{
@@ -2477,6 +2536,65 @@ const styles = StyleSheet.create({
   },
   recenterBtn: { alignSelf: 'center', marginTop: 6, flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(0,0,0,0.35)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)', borderRadius: 24, paddingHorizontal: 18, paddingVertical: 8 },
   recenterIcon: { fontSize:20, color:'#fff' },
+  bearOffTrayTop: {
+    position: 'absolute',
+    top: 110,
+    right: 10,
+    width: 56,
+    minHeight: 80,
+    paddingVertical: 8,
+    paddingHorizontal: 6,
+    borderRadius: 16,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.35)',
+    alignItems: 'center',
+    zIndex: 50,
+  },
+  bearOffTrayBottom: {
+    position: 'absolute',
+    bottom: 140,
+    right: 10,
+    width: 56,
+    minHeight: 80,
+    paddingVertical: 8,
+    paddingHorizontal: 6,
+    borderRadius: 16,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.35)',
+    alignItems: 'center',
+    zIndex: 50,
+  },
+  bearOffTrayActive: {
+    borderColor: '#10b981',
+    backgroundColor: 'rgba(16,185,129,0.22)',
+    shadowColor: '#10b981',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 10,
+    elevation: 8,
+  },
+  bearOffTrayLabel: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '700',
+    marginBottom: 6,
+    letterSpacing: 0.4,
+    textShadowColor: 'rgba(0,0,0,0.8)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  bearOffStack: {
+    alignItems: 'center',
+  },
+  bearOffPiece: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.35)',
+  },
   recenterLabel: { fontSize:13, color:'#fff', fontWeight:'600', letterSpacing:0.3 },
 });
 
