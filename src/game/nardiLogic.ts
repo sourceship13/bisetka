@@ -107,6 +107,41 @@ export const calculatePossibleMoves = (
   // Track (from, to) pairs already added to avoid exact duplicates
   const seen = new Set<string>();
 
+  // For non-doubles with both dice still available, the player may also play
+  // a single piece by the SUM of both dice (provided at least one ordering of
+  // the two dice produces a fully legal path through an intermediate point).
+  const canCombine =
+    movesRemaining >= 2 &&
+    dice.die1 > 0 &&
+    dice.die2 > 0 &&
+    dice.die1 !== dice.die2;
+
+  const isChainLegal = (
+    fromPos: number,
+    dieA: number,
+    dieB: number,
+  ): boolean => {
+    const dir = currentPlayer === 'white' ? -1 : 1;
+    const intermediate = fromPos + dir * dieA;
+    if (intermediate < 0 || intermediate >= 24) return false;
+    if (!isValidMove(fromPos, intermediate, currentPlayer, points, mode)) return false;
+    // Simulate step 1 so we can validate step 2 against the resulting board
+    const after1 = executeMove(state, {
+      from: fromPos,
+      to: intermediate,
+      checker: currentPlayer,
+    });
+    const finalPos = intermediate + dir * dieB;
+    if (finalPos < 0 || finalPos >= 24) return false;
+    return isValidMove(
+      intermediate,
+      finalPos,
+      currentPlayer,
+      after1.points,
+      mode,
+    );
+  };
+
   points.forEach((point, fromPos) => {
     if (point.checkers.length > 0 && point.checkers[point.checkers.length - 1] === currentPlayer) {
       diceValues.forEach(dieValue => {
@@ -122,6 +157,24 @@ export const calculatePossibleMoves = (
           }
         }
       });
+
+      // Combined move using both dice on the same piece (non-doubles only).
+      if (canCombine) {
+        const sum = dice.die1 + dice.die2;
+        const toPos = currentPlayer === 'white' ? fromPos - sum : fromPos + sum;
+        if (toPos >= 0 && toPos < 24) {
+          if (
+            isChainLegal(fromPos, dice.die1, dice.die2) ||
+            isChainLegal(fromPos, dice.die2, dice.die1)
+          ) {
+            const key = `${fromPos}-${toPos}`;
+            if (!seen.has(key)) {
+              seen.add(key);
+              moves.push({ from: fromPos, to: toPos, checker: currentPlayer });
+            }
+          }
+        }
+      }
 
       // Check for bearing off
       if (canBearOff(state, fromPos)) {

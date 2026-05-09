@@ -815,27 +815,48 @@ const NardiScreen = ({ navigation, route }: any) => {
     return Math.abs(move.to - move.from);
   };
 
+  // Detect a combined move that uses BOTH dice on the same piece in one tap.
+  // Only valid for non-doubles when both dice are still available.
+  const isCombinedMove = (state: NardiGameState, move: Move): boolean => {
+    if (move.from < 0) return false;             // bar entry not combined
+    if (move.to < 0 || move.to >= 24) return false; // bear-off not combined
+    const { die1, die2 } = state.dice;
+    if (die1 <= 0 || die2 <= 0) return false;
+    if (die1 === die2) return false;             // doubles handled per-die
+    if (state.movesRemaining < 2) return false;
+    return Math.abs(move.to - move.from) === die1 + die2;
+  };
+
   // Helper: apply a move to a state and return the updated state
   const applyMove = (state: NardiGameState, move: Move): NardiGameState => {
     const newBoardState = executeMove(state, move);
-    const usedDie = getUsedDieValue(move, state.currentPlayer, state.dice);
-    const movesRemaining = Math.max(0, state.movesRemaining - 1);
-
+    const combined = isCombinedMove(state, move);
     let newDice = { ...state.dice };
-    if (state.dice.die1 === state.dice.die2 && state.dice.die1 > 0) {
-      // Doubles: keep the face value in both dice so calculatePossibleMoves
-      // can still detect the doubles case. movesRemaining is the counter.
-      // (no zeroing needed — movesRemaining reaching 0 ends the turn)
+    let movesRemaining: number;
+
+    if (combined) {
+      // Consume both dice in a single move
+      newDice.die1 = 0;
+      newDice.die2 = 0;
+      movesRemaining = Math.max(0, state.movesRemaining - 2);
     } else {
-      // Non-doubles: zero out whichever die matches the used value
-      if (newDice.die1 === usedDie && newDice.die1 > 0) {
-        newDice.die1 = 0;
-      } else if (newDice.die2 === usedDie && newDice.die2 > 0) {
-        newDice.die2 = 0;
+      const usedDie = getUsedDieValue(move, state.currentPlayer, state.dice);
+      movesRemaining = Math.max(0, state.movesRemaining - 1);
+      if (state.dice.die1 === state.dice.die2 && state.dice.die1 > 0) {
+        // Doubles: keep the face value in both dice so calculatePossibleMoves
+        // can still detect the doubles case. movesRemaining is the counter.
+        // (no zeroing needed — movesRemaining reaching 0 ends the turn)
       } else {
-        // Fallback: consume any remaining die (e.g. high-roll bear-off)
-        if (newDice.die1 > 0) newDice.die1 = 0;
-        else if (newDice.die2 > 0) newDice.die2 = 0;
+        // Non-doubles: zero out whichever die matches the used value
+        if (newDice.die1 === usedDie && newDice.die1 > 0) {
+          newDice.die1 = 0;
+        } else if (newDice.die2 === usedDie && newDice.die2 > 0) {
+          newDice.die2 = 0;
+        } else {
+          // Fallback: consume any remaining die (e.g. high-roll bear-off)
+          if (newDice.die1 > 0) newDice.die1 = 0;
+          else if (newDice.die2 > 0) newDice.die2 = 0;
+        }
       }
     }
 
@@ -951,14 +972,21 @@ const NardiScreen = ({ navigation, route }: any) => {
     const myColor = isMultiplayer ? myMpColorRef.current : 'white';
     if (gameState.currentPlayer !== myColor) return;
 
+    const combined = isCombinedMove(gameState, move);
     const usedDieVal = getUsedDieValue(move, gameState.currentPlayer, gameState.dice);
     const updated = applyMove(gameState, move);
-    console.log('📍 Move:', move.from, '->', move.to, 'movesLeft:', updated.movesRemaining);
+    console.log('📍 Move:', move.from, '->', move.to, 'movesLeft:', updated.movesRemaining, combined ? '(combined)' : '');
 
-    // Tint the matching die red in AR mode
-    if (arEnabled && usedDieVal > 0) {
+    // Tint matching die(s) red in AR mode
+    if (arEnabled) {
       const isDoubles = gameState.dice.die1 === gameState.dice.die2 && gameState.dice.die1 > 0;
-      arOverlayRef.current?.useDieTint(usedDieVal, updated.movesRemaining, isDoubles);
+      if (combined) {
+        // Both dice consumed in one move — tint both
+        arOverlayRef.current?.useDieTint(gameState.dice.die1, updated.movesRemaining + 1, isDoubles);
+        arOverlayRef.current?.useDieTint(gameState.dice.die2, updated.movesRemaining, isDoubles);
+      } else if (usedDieVal > 0) {
+        arOverlayRef.current?.useDieTint(usedDieVal, updated.movesRemaining, isDoubles);
+      }
     }
 
     if (isMultiplayer && roomIdRef.current) {
@@ -1021,17 +1049,22 @@ const NardiScreen = ({ navigation, route }: any) => {
 
     // Pre-calculate all AI moves
     const statesSequence: NardiGameState[] = [currentState];
-    const aiDieValues: number[] = [0]; // parallel array; index 0 = no move yet
+    // Parallel array: dice value(s) consumed at each step. For combined moves
+    // both dice are recorded so AR can tint both. Index 0 = initial state.
+    const aiDieValues: number[][] = [[]];
     const aiIsDoubles = dice.die1 === dice.die2;
     let workingState = currentState;
 
     while (workingState.possibleMoves.length > 0 && workingState.movesRemaining > 0) {
       const move = workingState.possibleMoves[Math.floor(Math.random() * workingState.possibleMoves.length)]!;
       console.log('🤖 AI planned move:', move.from, '->', move.to);
-      const aiUsedDie = getUsedDieValue(move, workingState.currentPlayer, workingState.dice);
+      const combined = isCombinedMove(workingState, move);
+      const consumed: number[] = combined
+        ? [workingState.dice.die1, workingState.dice.die2]
+        : [getUsedDieValue(move, workingState.currentPlayer, workingState.dice)];
       workingState = applyMove(workingState, move);
       statesSequence.push(workingState);
-      aiDieValues.push(aiUsedDie);
+      aiDieValues.push(consumed);
     }
 
     // Schedule showing each state with delays (give dice time to land first)
@@ -1041,9 +1074,15 @@ const NardiScreen = ({ navigation, route }: any) => {
     statesSequence.forEach((s, i) => {
       const t = setTimeout(() => {
         setGameState(s);
-        // Tint the AI's consumed die red (skip index 0 = initial state before moves)
-        if (arEnabled && i > 0 && aiDieValues[i] > 0) {
-          arOverlayRef.current?.useDieTint(aiDieValues[i], s.movesRemaining, aiIsDoubles);
+        // Tint the AI's consumed die/dice red (skip index 0 = initial state)
+        if (arEnabled && i > 0) {
+          const consumed = aiDieValues[i];
+          consumed.forEach((dv, k) => {
+            if (dv > 0) {
+              // movesRemaining shown for tint purposes counts down per consumed die
+              arOverlayRef.current?.useDieTint(dv, s.movesRemaining + (consumed.length - 1 - k), aiIsDoubles);
+            }
+          });
         }
       }, delay);
       aiTimeoutsRef.current.push(t);
