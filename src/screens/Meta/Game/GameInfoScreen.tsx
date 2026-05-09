@@ -761,8 +761,6 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     paddingHorizontal: 16,
-    paddingBottom: 24,
-    paddingTop: 12,
     backgroundColor: '#100828',
   },
   playBtnWrap: {
@@ -775,9 +773,11 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
   playBtn: {
-    paddingVertical: 18,
+    marginVertical: 18,
     alignItems: 'center',
     justifyContent: 'center',
+    minHeight: 48,
+    borderRadius:20
   },
   playBtnText: {
     color: '#fff',
