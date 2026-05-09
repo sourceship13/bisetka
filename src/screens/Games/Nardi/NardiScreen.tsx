@@ -2022,9 +2022,37 @@ const NardiScreen = ({ navigation, route }: any) => {
               </Text>
             )}
             {canPlayerBearOff(myNardiColor) && gameState.currentPlayer === myNardiColor && gameState.phase === 'moving' && (
-              <Text style={{ color: '#10b981', fontSize: 13, fontWeight: '600', marginTop: 2 }}>
-                🎯 You can bear off! Tap a checker, then tap your tray.
-              </Text>
+              <>
+                <Text style={{ color: '#10b981', fontSize: 13, fontWeight: '600', marginTop: 2 }}>
+                  🎯 You can bear off! Tap a checker, then Bear Off.
+                </Text>
+                {gameState.possibleMoves.some(m => m.to === (myNardiColor === 'white' ? -1 : 24)) && (
+                  <TouchableOpacity
+                    activeOpacity={0.85}
+                    onPress={() => handleBearOffTrayPress(myNardiColor)}
+                    style={{
+                      marginTop: 8,
+                      alignSelf: 'center',
+                      borderRadius: 999,
+                      overflow: 'hidden',
+                      shadowColor: '#10b981',
+                      shadowOffset: { width: 0, height: 0 },
+                      shadowOpacity: 0.7,
+                      shadowRadius: 10,
+                      elevation: 8,
+                    }}>
+                    <LinearGradient
+                      colors={['#10b981', '#059669']}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={{ paddingHorizontal: 26, paddingVertical: 10 }}>
+                      <Text style={{ color: '#fff', fontWeight: '800', fontSize: 14, letterSpacing: 0.8 }}>
+                        🏁 Bear Off{selectedPoint !== null ? ` (Point ${selectedPoint + 1})` : ''}
+                      </Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                )}
+              </>
             )}
             <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, marginTop: 2 }}>
               First to bear off all 15 checkers wins!
