@@ -518,7 +518,7 @@ const PrizeCard: React.FC<{
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#100828' },
   safeArea: { flex: 1 },
-  scrollContent: { paddingBottom: 120 },
+  scrollContent: { },
 
   /* Header */
   topHeader: {
@@ -760,30 +760,30 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    paddingHorizontal: 16,
-    backgroundColor: '#100828',
+    paddingHorizontal: 24,
+    paddingTop: 0,
+    paddingBottom: 40,
+    backgroundColor: 'transparent',
   },
   playBtnWrap: {
     borderRadius: 999,
-    overflow: 'hidden',
     shadowColor: '#f59e0b',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.6,
-    shadowRadius: 14,
-    elevation: 10,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.85,
+    shadowRadius: 18,
+    elevation: 12,
   },
   playBtn: {
-    marginVertical: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 48,
-    borderRadius:20
+    height: 58,
+    borderRadius: 999,
   },
   playBtnText: {
     color: '#fff',
-    fontWeight: '900',
+    fontWeight: '800',
     fontSize: 17,
-    letterSpacing: 1,
+    letterSpacing: 1.2,
   },
 
   /* Loading / error */
