@@ -753,12 +753,12 @@ const styles = StyleSheet.create({
     height: 92,
   },
   greetingCard: {
+    height: 103,
     width: '100%',
+    marginTop:50,
     borderRadius: 22,
-    paddingTop: 60,
-    paddingBottom: 18,
-    paddingHorizontal: 18,
     alignItems: 'center',
+    opacity: 0.80,
   },
   greetingTextWrap: {
     alignItems: 'center',
