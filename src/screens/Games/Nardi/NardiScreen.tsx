@@ -49,6 +49,7 @@ import { useAchievements } from '../../../contexts/AchievementContext';
 import { v4 as uuidv4 } from 'uuid';
 import SyncedYouTubePlayer from '../../../components/SyncedYouTubePlayer';
 import { playPieceMoveSound } from '../../../utils/nardiSound';
+import { chooseBestAiSequence } from '../../../game/nardiAI';
 
 const { width, height } = Dimensions.get('window');
 // Must match getGameBoardSize(false, false, 600, 32) so piece coordinates
@@ -1059,16 +1060,26 @@ const NardiScreen = ({ navigation, route }: any) => {
     const aiIsDoubles = dice.die1 === dice.die2;
     let workingState = currentState;
 
-    while (workingState.possibleMoves.length > 0 && workingState.movesRemaining > 0) {
-      const move = workingState.possibleMoves[Math.floor(Math.random() * workingState.possibleMoves.length)]!;
-      console.log('🤖 AI planned move:', move.from, '->', move.to);
-      const combined = isCombinedMove(workingState, move);
+    // Heuristic search picks the best sequence of moves for this dice roll.
+    const plannedSequence = chooseBestAiSequence(workingState, 'black');
+    console.log('🤖 AI planned sequence length:', plannedSequence.length);
+
+    for (const move of plannedSequence) {
+      // Safety: if board state somehow drifted, fall back to a legal move.
+      const legal = workingState.possibleMoves.find(
+        p => p.from === move.from && p.to === move.to,
+      );
+      const chosen = legal ?? workingState.possibleMoves[0];
+      if (!chosen) break;
+      console.log('🤖 AI planned move:', chosen.from, '->', chosen.to);
+      const combined = isCombinedMove(workingState, chosen);
       const consumed: number[] = combined
         ? [workingState.dice.die1, workingState.dice.die2]
-        : [getUsedDieValue(move, workingState.currentPlayer, workingState.dice)];
-      workingState = applyMove(workingState, move);
+        : [getUsedDieValue(chosen, workingState.currentPlayer, workingState.dice)];
+      workingState = applyMove(workingState, chosen);
       statesSequence.push(workingState);
       aiDieValues.push(consumed);
+      if (workingState.movesRemaining <= 0 || workingState.possibleMoves.length === 0) break;
     }
 
     // Schedule showing each state with delays (give dice time to land first)
