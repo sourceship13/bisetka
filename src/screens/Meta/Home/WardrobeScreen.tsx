@@ -17,7 +17,7 @@ import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import AvatarPreview from '../../../components/AvatarPreview';
 import TryOnModal from '../../../components/TryOnModal';
 import AssetImage from '../../../components/AssetImage';
-import { ALL_CLOTHING_ITEMS } from '../../../data/clothingItems';
+import { ALL_CLOTHING_ITEMS, filterClothingForAvatar } from '../../../data/clothingItems';
 const DEFAULT_CLOTHING: any[] = [];
 
 const { width, height } = Dimensions.get('window');
@@ -131,7 +131,12 @@ export const WardrobeScreen = ({ navigation }: any) => {
   //   }
   // };
 
-  const categoryItems = inventory.filter((item) => item.type === selectedCategory);
+  const visibleInventory = filterClothingForAvatar(
+    inventory,
+    baseAvatar?.gender,
+    (baseAvatar as any)?.build,
+  );
+  const categoryItems = visibleInventory.filter((item) => item.type === selectedCategory);
   const currentlyEquipped = equipped[selectedCategory];
 
   if (loading) {
