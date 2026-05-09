@@ -1468,6 +1468,7 @@ const NardiScreen = ({ navigation, route }: any) => {
             isSelected && styles.pointSelected,
             canMove && styles.canMove,
           ]}
+          hitSlop={{ top: 12, bottom: 12, left: 8, right: 8 }}
           onPress={() => handlePointPress(pointIndex)}
           activeOpacity={0.8}>
           {children}
@@ -1799,7 +1800,7 @@ const NardiScreen = ({ navigation, route }: any) => {
 
                 // Easy mode: tap to select bar
                 return (
-                  <TouchableOpacity style={barContainerStyle} activeOpacity={0.7} onPress={handleBarPress}>
+                  <TouchableOpacity style={barContainerStyle} activeOpacity={0.7} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} onPress={handleBarPress}>
                     {gameState.bar.white > 0 && (
                       <View style={{
                         alignItems: 'center',
