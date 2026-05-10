@@ -529,7 +529,7 @@ const ChessScreen = ({navigation}: any) => {
         boardGlbHasEmbeddedChessPieces={!!boardConfigs[boardIdx].embeddedPieces}
         hideCheckerboard={true}
         boardFixed
-        boardFixedZoom={0.6}
+        boardFixedZoom={0.75}
         boardTiltX={0}
         boardY={-0.35}
         tableDist={0.50}
