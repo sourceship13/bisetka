@@ -1,5 +1,6 @@
 import React, { useCallback, useRef, useState } from 'react';
 import {
+  Image,
   Keyboard,
   ScrollView,
   StyleSheet,
@@ -9,13 +10,14 @@ import {
   View,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { BlurView } from '@react-native-community/blur';
+import { Platform } from 'react-native';
 import { BisetkaAlert } from '../../utils/BisetkaAlert';
 import chatService from '../../services/chat.service';
-import apiService from '../../services/api.service';
 import useDeviceType from '../../hooks/useDeviceType';
-import { getSpacing, getFontSize } from '../../theme/responsive';
+import { useAuth } from '../../libs/hooks/useAuth';
+import { resolveAvatar } from '../../utils/avatars';
 
 type HomeGlobalChatProps = {
   onOpenFullChat: () => void;
@@ -23,8 +25,11 @@ type HomeGlobalChatProps = {
 };
 
 type RecentMessage = {
+  sender_id?: string;
   username?: string;
   sender_username?: string;
+  sender_avatar?: string;
+  avatar_url?: string;
   content?: string;
   message?: string;
 };
@@ -34,8 +39,8 @@ const HomeGlobalChat = ({
   initialExpanded = true,
 }: HomeGlobalChatProps) => {
   const { isTablet } = useDeviceType();
+  const { user } = useAuth();
   const [recentMessages, setRecentMessages] = useState<RecentMessage[]>([]);
-  // On tablets, always expanded. On phones, controlled state
   const [chatExpanded, setChatExpanded] = useState(isTablet ? true : initialExpanded);
   const [chatId, setChatId] = useState<string | null>(null);
   const [newMessage, setNewMessage] = useState('');
@@ -43,10 +48,7 @@ const HomeGlobalChat = ({
   const chatScrollRef = useRef<ScrollView>(null);
 
   const ensureChatId = useCallback(async (): Promise<string | null> => {
-    if (chatId) {
-      return chatId;
-    }
-
+    if (chatId) return chatId;
     try {
       const result = await chatService.getGlobalChat();
       setChatId(result.chatId);
@@ -68,24 +70,16 @@ const HomeGlobalChat = ({
       try {
         const limit = expanded ? 50 : 3;
         const currentChatId = await ensureChatId();
-
         if (!currentChatId) {
           setRecentMessages([]);
           return;
         }
-
         const response = await chatService.getMessages(currentChatId, limit);
-
         if (response.messages) {
           setRecentMessages(response.messages);
-
-          if (expanded) {
-            scrollToBottom();
-          }
-
+          if (expanded) scrollToBottom();
           return;
         }
-
         setRecentMessages([]);
       } catch {
         setRecentMessages([]);
@@ -103,7 +97,6 @@ const HomeGlobalChat = ({
       fetchRecentMessages(chatExpanded).catch(err =>
         console.warn('Failed to fetch chat messages:', err),
       );
-
       if (!chatId) {
         loadGlobalChat().catch(err =>
           console.warn('Failed to load chat ID:', err),
@@ -113,10 +106,7 @@ const HomeGlobalChat = ({
   );
 
   const handleSendMessage = useCallback(async () => {
-    if (!newMessage.trim() || !chatId || sendingMessage) {
-      return;
-    }
-
+    if (!newMessage.trim() || !chatId || sendingMessage) return;
     try {
       setSendingMessage(true);
       await chatService.postMessage(chatId, newMessage.trim());
@@ -136,72 +126,110 @@ const HomeGlobalChat = ({
   }, [chatExpanded, chatId, fetchRecentMessages, newMessage, scrollToBottom, sendingMessage]);
 
   const toggleChatExpanded = useCallback(() => {
-    // On tablets, chat is always expanded - don't allow collapse
     if (isTablet) return;
-    
     const nextExpanded = !chatExpanded;
     setChatExpanded(nextExpanded);
-
     if (nextExpanded && !chatId) {
       loadGlobalChat().catch(err => console.warn('Failed to load chat ID:', err));
     }
-
     fetchRecentMessages(nextExpanded).catch(err =>
       console.warn('Failed to fetch chat messages:', err),
     );
   }, [isTablet, chatExpanded, chatId, fetchRecentMessages, loadGlobalChat]);
 
+  const myAvatar = resolveAvatar(user?.avatar_url);
+
+  const renderAvatar = (avatarUrl: string | null | undefined) => {
+    const src = resolveAvatar(avatarUrl);
+    if (src) {
+      return <Image source={src} style={styles.avatarImage} resizeMode="contain" />;
+    }
+    return (
+      <View style={styles.avatarFallback}>
+        <Icon name="account" size={22} color="#cbd5e1" />
+      </View>
+    );
+  };
+
   return (
     <View style={styles.globalChatContainer}>
       <View
         style={[styles.globalChatCard, chatExpanded && styles.globalChatCardExpanded]}>
+        <BlurView
+          style={StyleSheet.absoluteFill}
+          blurType={Platform.OS === 'ios' ? 'ultraThinMaterialDark' : 'dark'}
+          blurAmount={Platform.OS === 'ios' ? 24 : 18}
+          reducedTransparencyFallbackColor="rgba(20, 9, 27, 0.45)"
+        />
+        <View pointerEvents="none" style={styles.glassTint} />
+        {/* Header */}
         <View style={styles.globalChatHeader}>
           <View style={styles.globalChatTitleRow}>
-            <Icon name="earth" size={20} color="#10b981" />
             <Text style={styles.globalChatTitle}>Global Chat</Text>
             <View style={styles.liveBadge}>
-              <View style={styles.liveDot} />
+              <Icon name="broadcast" size={12} color="#fff" />
               <Text style={styles.liveText}>LIVE</Text>
             </View>
           </View>
 
           <View style={styles.headerActions}>
-            {/* Only show collapse button on phones */}
             {!isTablet && (
-              <TouchableOpacity onPress={toggleChatExpanded} style={styles.expandButton}>
+              <TouchableOpacity onPress={toggleChatExpanded} style={styles.iconBtn}>
                 <Icon
                   name={chatExpanded ? 'chevron-down' : 'chevron-up'}
-                  size={24}
-                  color="#94a3b8"
+                  size={22}
+                  color="#cbd5e1"
                 />
               </TouchableOpacity>
             )}
-
-            <TouchableOpacity onPress={onOpenFullChat} style={styles.expandButton}>
-              <Icon name="arrow-expand" size={18} color="#94a3b8" />
+            <TouchableOpacity onPress={onOpenFullChat} style={styles.iconBtn}>
+              <Icon name="arrow-expand" size={20} color="#cbd5e1" />
             </TouchableOpacity>
           </View>
         </View>
 
+        {/* Messages */}
         <ScrollView
           ref={chatScrollRef}
           style={[styles.chatPreview, chatExpanded && styles.chatPreviewExpanded]}
           contentContainerStyle={styles.chatScrollContent}
-          showsVerticalScrollIndicator
+          showsVerticalScrollIndicator={false}
           onContentSizeChange={scrollToBottom}>
           {recentMessages.length > 0 ? (
-            <>
-              {recentMessages.map((msg, idx) => (
-                <View key={`${msg.sender_username || msg.username || 'anon'}-${idx}`} style={styles.messagePreview}>
-                  <Text style={styles.messageUsername} numberOfLines={1}>
-                    {msg.sender_username || msg.username || 'Anonymous'}
-                  </Text>
-                  <Text style={styles.messageText}>{msg.content || msg.message}</Text>
+            recentMessages.map((msg, idx) => {
+              const isMe = !!user?.id && msg.sender_id === user.id;
+              const username = msg.sender_username || msg.username || (isMe ? 'Me' : 'Anonymous');
+              const text = msg.content || msg.message || '';
+              const avatarUrl = isMe ? user?.avatar_url : (msg.sender_avatar || msg.avatar_url);
+
+              if (isMe) {
+                return (
+                  <View key={`m-${idx}`} style={styles.rowMe}>
+                    <View style={styles.bubbleColMe}>
+                      <View style={[styles.bubble, styles.bubbleMe]}>
+                        <Text style={styles.bubbleTextMe}>{text}</Text>
+                      </View>
+                      <Text style={styles.usernameLabelMe}>Me</Text>
+                    </View>
+                    <View style={styles.avatarWrap}>{renderAvatar(avatarUrl)}</View>
+                  </View>
+                );
+              }
+
+              return (
+                <View key={`m-${idx}`} style={styles.rowOther}>
+                  <View style={styles.avatarWrap}>{renderAvatar(avatarUrl)}</View>
+                  <View style={styles.bubbleColOther}>
+                    <View style={[styles.bubble, styles.bubbleOther]}>
+                      <Text style={styles.bubbleTextOther}>{text}</Text>
+                    </View>
+                    <Text style={styles.usernameLabel}>{username}</Text>
+                  </View>
                 </View>
-              ))}
-            </>
+              );
+            })
           ) : (
-            <View>
+            <View style={styles.emptyWrap}>
               <Text style={styles.chatPreviewText}>💬 Players chatting worldwide...</Text>
               <Text style={styles.chatHint}>
                 {chatExpanded ? 'No messages yet. Be the first!' : 'Tap to expand'}
@@ -210,12 +238,13 @@ const HomeGlobalChat = ({
           )}
         </ScrollView>
 
+        {/* Input */}
         {chatExpanded && (
           <View style={styles.messageInputContainer}>
             <TextInput
               style={styles.messageInput}
-              placeholder="Type a message..."
-              placeholderTextColor="#64748b"
+              placeholder="Start typing..."
+              placeholderTextColor="rgba(203, 213, 225, 0.55)"
               value={newMessage}
               onChangeText={setNewMessage}
               multiline
@@ -223,17 +252,18 @@ const HomeGlobalChat = ({
               returnKeyType="send"
               onSubmitEditing={handleSendMessage}
             />
+            <TouchableOpacity style={styles.inputIconBtn} activeOpacity={0.7}>
+              <Icon name="paperclip" size={22} color="#e2e8f0" />
+            </TouchableOpacity>
             <TouchableOpacity
               onPress={handleSendMessage}
               disabled={!newMessage.trim() || sendingMessage}
-              style={[
-                styles.sendButton,
-                (!newMessage.trim() || sendingMessage) && styles.sendButtonDisabled,
-              ]}>
+              style={styles.inputIconBtn}
+              activeOpacity={0.7}>
               <Icon
-                name={sendingMessage ? 'loading' : 'send'}
-                size={20}
-                color="#fff"
+                name="send-outline"
+                size={24}
+                color={!newMessage.trim() || sendingMessage ? 'rgba(226,232,240,0.4)' : '#fff'}
               />
             </TouchableOpacity>
           </View>
@@ -241,7 +271,7 @@ const HomeGlobalChat = ({
 
         {!chatExpanded && (
           <View style={styles.chatQuickActions}>
-            <Icon name="message-text" size={16} color="#64748b" />
+            <Icon name="message-text" size={16} color="#94a3b8" />
             <Text style={styles.quickActionText}>
               Send a message • See who's online • Make friends
             </Text>
@@ -252,33 +282,39 @@ const HomeGlobalChat = ({
   );
 };
 
+const AVATAR_SIZE = 34;
+
 const styles = StyleSheet.create({
   globalChatContainer: {
-    marginBottom: 12,
+    marginBottom: 8,
   },
   globalChatCard: {
-    backgroundColor:'rgba(30, 41, 59, 0.8)',
-    borderRadius: 12,
-    padding: 16,
-    paddingHorizontal: 16,
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    margin:20,
-
+    backgroundColor: 'transparent',
+    borderRadius: 22,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.14)',
+    marginHorizontal: 12,
+    marginVertical: 6,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.35,
+    shadowRadius: 18,
+    elevation: 10,
+  },
+  glassTint: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
   },
   globalChatCardExpanded: {
-    minHeight: 300,
-  },
-  headerActions: {
-    flexDirection: 'row',
-    gap: 8,
+    minHeight: 260,
   },
   globalChatHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 12,
+    marginBottom: 8,
   },
   globalChatTitleRow: {
     flexDirection: 'row',
@@ -286,82 +322,150 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   globalChatTitle: {
-    fontSize: 17,
-    fontWeight: '700',
+    fontSize: 18,
+    fontWeight: '800',
     color: '#fff',
+    letterSpacing: 0.2,
   },
   liveBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    gap: 4,
-  },
-  liveDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
     backgroundColor: '#ef4444',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 999,
+    gap: 3,
   },
   liveText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#10b981',
-    letterSpacing: 0.5,
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#fff',
+    letterSpacing: 0.6,
   },
-  expandButton: {
-    width: 32,
-    height: 32,
+  headerActions: {
+    flexDirection: 'row',
+    gap: 4,
+  },
+  iconBtn: {
+    width: 28,
+    height: 28,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 16,
+    borderRadius: 14,
   },
+
   chatPreview: {
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 12,
+    marginBottom: 8,
     minHeight: 60,
-    maxHeight: 120,
+    maxHeight: 130,
   },
   chatPreviewExpanded: {
-    maxHeight: 250,
+    maxHeight: 220,
     flex: 1,
   },
   chatScrollContent: {
     flexGrow: 1,
+    paddingVertical: 2,
   },
-  messagePreview: {
-    marginBottom: 12,
-    paddingBottom: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+
+  // Message rows
+  rowOther: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 8,
+    gap: 8,
   },
-  messageUsername: {
+  rowMe: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'flex-end',
+    marginBottom: 8,
+    gap: 8,
+  },
+  avatarWrap: {
+    width: AVATAR_SIZE,
+    height: AVATAR_SIZE,
+    borderRadius: AVATAR_SIZE / 2,
+    backgroundColor: 'rgba(120, 110, 140, 0.45)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  avatarImage: {
+    width: AVATAR_SIZE,
+    height: AVATAR_SIZE,
+  },
+  avatarFallback: {
+    width: AVATAR_SIZE,
+    height: AVATAR_SIZE,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bubbleColOther: {
+    flex: 1,
+    alignItems: 'flex-start',
+  },
+  bubbleColMe: {
+    flex: 1,
+    alignItems: 'flex-end',
+  },
+  bubble: {
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 22,
+    maxWidth: '100%',
+  },
+  bubbleOther: {
+    backgroundColor: 'rgba(15, 10, 25, 0.85)',
+    borderTopLeftRadius: 6,
+  },
+  bubbleMe: {
+    backgroundColor: '#d8c8ff',
+    borderTopRightRadius: 6,
+  },
+  bubbleTextOther: {
     fontSize: 13,
-    fontWeight: '600',
-    color: '#10b981',
-    marginBottom: 2,
-  },
-  messageText: {
-    fontSize: 13,
-    color: '#cbd5e1',
+    color: '#fff',
     lineHeight: 18,
   },
+  bubbleTextMe: {
+    fontSize: 13,
+    color: '#1a1430',
+    lineHeight: 18,
+    fontWeight: '500',
+  },
+  usernameLabel: {
+    marginTop: 2,
+    marginLeft: 10,
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#9aa9d6',
+  },
+  usernameLabelMe: {
+    marginTop: 2,
+    marginRight: 10,
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#fff',
+  },
+
+  emptyWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 18,
+  },
   chatPreviewText: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#e2e8f0',
     marginBottom: 4,
   },
   chatHint: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#94a3b8',
     fontStyle: 'italic',
-    marginTop: 4,
+    marginTop: 2,
   },
+
   chatQuickActions: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -369,38 +473,33 @@ const styles = StyleSheet.create({
   },
   quickActionText: {
     fontSize: 12,
-    color: '#64748b',
+    color: '#94a3b8',
     flex: 1,
   },
+
   messageInputContainer: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    borderRadius: 12,
-    padding: 8,
-    gap: 8,
+    alignItems: 'center',
+    backgroundColor: 'rgba(15, 10, 25, 0.85)',
+    borderRadius: 26,
+    paddingLeft: 16,
+    paddingRight: 4,
+    paddingVertical: 2,
+    gap: 2,
   },
   messageInput: {
     flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
     color: '#fff',
     fontSize: 14,
-    maxHeight: 100,
+    paddingVertical: 8,
+    maxHeight: 80,
   },
-  sendButton: {
-    width: 40,
-    height: 40,
+  inputIconBtn: {
+    width: 34,
+    height: 34,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#10b981',
-    borderRadius: 20,
-  },
-  sendButtonDisabled: {
-    backgroundColor: '#334155',
-    opacity: 0.5,
+    borderRadius: 17,
   },
 });
 

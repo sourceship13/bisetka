@@ -5,9 +5,10 @@ import {
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import LinearGradient from 'react-native-linear-gradient';
+import { BlurView } from '@react-native-community/blur';
 import apiConfig from '../../libs/utils/api.utils';
 
 interface LeaderboardEntry {
@@ -61,6 +62,13 @@ const LeaderboardPreview: React.FC<{ limit?: number }> = ({ limit = 4 }) => {
         activeOpacity={0.8}
         onPress={() => navigation.navigate('Leaderboard')}
         style={styles.card}>
+        <BlurView
+          style={StyleSheet.absoluteFill}
+          blurType={Platform.OS === 'ios' ? 'ultraThinMaterialDark' : 'dark'}
+          blurAmount={Platform.OS === 'ios' ? 24 : 18}
+          reducedTransparencyFallbackColor="rgba(20, 9, 27, 0.45)"
+        />
+        <View pointerEvents="none" style={styles.glassTint} />
         <View style={styles.headerRow}>
           <Text style={styles.title}>Leaderboard 🏆</Text>
         </View>
@@ -106,74 +114,86 @@ const LeaderboardPreview: React.FC<{ limit?: number }> = ({ limit = 4 }) => {
 
 const styles = StyleSheet.create({
   container: {
-    marginHorizontal: 16,
-    marginTop: 12,
+    marginHorizontal: 12,
+    marginTop: 8,
   },
   card: {
-    backgroundColor: 'rgba(8, 6, 24, 0.78)',
-    borderRadius: 24,
-    padding: 16,
+    backgroundColor: 'transparent',
+    borderRadius: 22,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.14)',
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.35,
+    shadowRadius: 18,
+    elevation: 10,
+  },
+  glassTint: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
   },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 8,
   },
   title: {
     color: '#fff',
-    fontSize: 20,
+    fontSize: 17,
     fontWeight: '800',
   },
   loadingWrap: {
-    paddingVertical: 24,
+    paddingVertical: 16,
     alignItems: 'center',
   },
   emptyText: {
     color: 'rgba(255,255,255,0.7)',
     textAlign: 'center',
-    paddingVertical: 16,
+    paddingVertical: 12,
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    borderRadius: 14,
-    marginBottom: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+    marginBottom: 6,
   },
   rank: {
     color: '#fff',
-    fontSize: 28,
+    fontSize: 22,
     fontWeight: '800',
-    width: 36,
+    width: 28,
     textAlign: 'center',
   },
   rowInfo: {
     flex: 1,
-    marginLeft: 8,
+    marginLeft: 6,
   },
   name: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '700',
   },
   subInfo: {
     color: 'rgba(255,255,255,0.85)',
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '600',
-    marginTop: 2,
+    marginTop: 1,
   },
   scoreCol: {
     alignItems: 'flex-end',
   },
   score: {
     color: '#fff',
-    fontSize: 22,
+    fontSize: 17,
     fontWeight: '800',
   },
   scoreLabel: {
     color: 'rgba(255,255,255,0.85)',
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '700',
   },
 });
