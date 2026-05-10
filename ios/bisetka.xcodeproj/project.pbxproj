@@ -23,6 +23,7 @@
 		0A9D975F4B8D406B9DCEE5AC /* Inter_24pt-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 69FF74B9F9D14815B79A2101 /* Inter_24pt-Italic.ttf */; };
 		0B36DA377E6F4FE5A0DC6A18 /* Inter_24pt-LightItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = FD83D179460F48869D17B5A4 /* Inter_24pt-LightItalic.ttf */; };
 		0BBB8E8C751B4349BDAD7544 /* Fredoka_Condensed-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 663CC6D3FAB948B59C35ADAA /* Fredoka_Condensed-SemiBold.ttf */; };
+		0BCF98F727F64A8A9ED84BC1 /* card_riffle_shuffle.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = A83978EED0E44C73BCE00440 /* card_riffle_shuffle.mp3 */; };
 		0CF462EEF183412693D2B572 /* Inter_28pt-LightItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = ADFE1334724B48D68BFE62F1 /* Inter_28pt-LightItalic.ttf */; };
 		0CF69AC819F24D829BB86754 /* Fredoka-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 9A128F0831DA42EB8545C0E5 /* Fredoka-Regular.ttf */; };
 		0D028277A8FB4B58B424F34B /* EBGaramond-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 6D3AB70D5E9B421A84343D78 /* EBGaramond-Regular.ttf */; };
@@ -235,6 +236,7 @@
 		804920F40B24430293170BDA /* Inter_24pt-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 4D05E04E79094D5E9B516EB5 /* Inter_24pt-SemiBold.ttf */; };
 		8051E7C994BC4FE6AC06E311 /* RobotoMono-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 9674F97426E94061A9BBD0AA /* RobotoMono-Italic.ttf */; };
 		805FF2D5A3EB499885C4D8B1 /* Inter_24pt-Thin.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 85C320B9CA4D42B9BD85A6AE /* Inter_24pt-Thin.ttf */; };
+		8076BE06CA9E4BBAADAC72AD /* card_riffle_shuffle.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = A83978EED0E44C73BCE00440 /* card_riffle_shuffle.mp3 */; };
 		80895633BD4F1701B018B417 /* libPods-bisetka.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D5BD356EF1A8FBABF7961F81 /* libPods-bisetka.a */; };
 		813B734B725F4558A2DC207F /* Inter_18pt-BlackItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 1EC5C280495942D593DCA29E /* Inter_18pt-BlackItalic.ttf */; };
 		81908D44ECC0400EB9BA068B /* EBGaramond-MediumItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 4DA7863C11A14A3287B1C6CC /* EBGaramond-MediumItalic.ttf */; };
@@ -457,8 +459,6 @@
 		FEF220A755EC45E4AC2D1057 /* Inter_18pt-LightItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = B942C333B10E41DA81E36250 /* Inter_18pt-LightItalic.ttf */; };
 		FF3C68A367FB4044A85958C6 /* PlayfairDisplaySC-BlackItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 2B5851A33D6247CE9AB24075 /* PlayfairDisplaySC-BlackItalic.ttf */; };
 		FFE09CFF9100478FBF3FB468 /* RobotoMono-BoldItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = F033DC7713084399A0BF5BB2 /* RobotoMono-BoldItalic.ttf */; };
-		0BCF98F727F64A8A9ED84BC1 /* card_riffle_shuffle.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = A83978EED0E44C73BCE00440 /* card_riffle_shuffle.mp3 */; };
-		8076BE06CA9E4BBAADAC72AD /* card_riffle_shuffle.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = A83978EED0E44C73BCE00440 /* card_riffle_shuffle.mp3 */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -569,6 +569,7 @@
 		9EC2DF36B7824B7D99817C68 /* Inter_18pt-SemiBoldItalic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Inter_18pt-SemiBoldItalic.ttf"; path = "../assets/fonts/Inter_18pt-SemiBoldItalic.ttf"; sourceTree = "<group>"; };
 		A1361B797F7148DEBC68E599 /* Fredoka_Expanded-Bold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Fredoka_Expanded-Bold.ttf"; path = "../assets/fonts/Fredoka_Expanded-Bold.ttf"; sourceTree = "<group>"; };
 		A5F3B61A4E9B4F23A15050AE /* RobotoMono-ExtraLightItalic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "RobotoMono-ExtraLightItalic.ttf"; path = "../assets/fonts/RobotoMono-ExtraLightItalic.ttf"; sourceTree = "<group>"; };
+		A83978EED0E44C73BCE00440 /* card_riffle_shuffle.mp3 */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = card_riffle_shuffle.mp3; path = ../assets/sounds/card_riffle_shuffle.mp3; sourceTree = "<group>"; };
 		A8E299ABFE9E4311ABA99CA2 /* Inter_24pt-ExtraLightItalic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Inter_24pt-ExtraLightItalic.ttf"; path = "../assets/fonts/Inter_24pt-ExtraLightItalic.ttf"; sourceTree = "<group>"; };
 		A9C547B7C98641BC9F3A66CA /* PlayfairDisplaySC-Bold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "PlayfairDisplaySC-Bold.ttf"; path = "../assets/fonts/PlayfairDisplaySC-Bold.ttf"; sourceTree = "<group>"; };
 		AB51FE2D9EF543808FF681FB /* Inter_24pt-SemiBoldItalic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Inter_24pt-SemiBoldItalic.ttf"; path = "../assets/fonts/Inter_24pt-SemiBoldItalic.ttf"; sourceTree = "<group>"; };
@@ -627,7 +628,6 @@
 		FC01DB49CF114D32BD358121 /* Inter_18pt-ThinItalic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Inter_18pt-ThinItalic.ttf"; path = "../assets/fonts/Inter_18pt-ThinItalic.ttf"; sourceTree = "<group>"; };
 		FC3030E946664228B6A0A3F2 /* Inter_28pt-SemiBoldItalic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Inter_28pt-SemiBoldItalic.ttf"; path = "../assets/fonts/Inter_28pt-SemiBoldItalic.ttf"; sourceTree = "<group>"; };
 		FD83D179460F48869D17B5A4 /* Inter_24pt-LightItalic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Inter_24pt-LightItalic.ttf"; path = "../assets/fonts/Inter_24pt-LightItalic.ttf"; sourceTree = "<group>"; };
-		A83978EED0E44C73BCE00440 /* card_riffle_shuffle.mp3 */ = {isa = PBXFileReference; name = "card_riffle_shuffle.mp3"; path = "../assets/sounds/card_riffle_shuffle.mp3"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
