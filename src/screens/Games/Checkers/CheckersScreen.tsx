@@ -764,9 +764,6 @@ const CheckersScreen = ({ navigation, route }: any) => {
                 <Text style={styles.playAgainText}>Play Again</Text>
               </TouchableOpacity>
             )}
-            <TouchableOpacity style={[styles.playAgainButton,{backgroundColor:'#7f8c8d',marginTop:8}]} onPress={()=>navigation.goBack()}>
-              <Text style={styles.playAgainText}>Back to Menu</Text>
-            </TouchableOpacity>
           </View>
         </View>
       )}
