@@ -629,7 +629,15 @@ const ChessScreen = ({navigation}: any) => {
                   ? 'Only kings remain. This is a draw.'
                   : "It's a Draw!"}
             </Text>
-            <TouchableOpacity style={styles.playAgainButton} onPress={resetGame} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+            <TouchableOpacity
+              style={styles.playAgainButton}
+              onPress={() => {
+                navigation.replace('GameInfo', {
+                  gameType: 'chess',
+                  preferredMode: 'ai',
+                });
+              }}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
               <Text style={styles.playAgainText}>Play Again</Text>
             </TouchableOpacity>
           </View>
