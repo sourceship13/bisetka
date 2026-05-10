@@ -23,6 +23,7 @@ import {
 import GameThemeCustomizer from '../../../components/global/GameThemeCustomizer';
 import type { GameTheme } from '../../../components/global/GameThemeCustomizer';
 import { aiMoveLogService } from '../../../services/aiMoveLog.service';
+import { playPieceMoveSound } from '../../../utils/nardiSound';
 import { v4 as uuidv4 } from 'uuid';
 import { useGameEndRefresh } from '../../../libs/hooks/useGameEndRefresh';
 import { apiService } from '../../../services/api.service';
@@ -308,6 +309,7 @@ const ChessScreen = ({navigation}: any) => {
             if (!prevState) return prevState;
             
             const newBoard = makeMove(prevState.board, { from: computerMove.from, to: computerMove.to });
+            playPieceMoveSound();
             const nextPlayer = 'white';
 
             const isCheck = isKingInCheck(newBoard, nextPlayer);
@@ -422,6 +424,7 @@ const ChessScreen = ({navigation}: any) => {
     };
 
     const newBoard = makeMove(gameState.board, { from, to });
+    playPieceMoveSound();
     const nextPlayer = gameState.currentPlayer === 'white' ? 'black' : 'white';
 
     const isCheck = isKingInCheck(newBoard, nextPlayer);

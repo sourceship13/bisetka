@@ -18,6 +18,7 @@ import InGameChat from '../../../components/InGameChat';
 import SyncedYouTubePlayer from '../../../components/SyncedYouTubePlayer';
 import { apiService } from '../../../services/api.service';
 import { useAuth } from '../../../libs/hooks/useAuth';
+import { playPieceMoveSound } from '../../../utils/nardiSound';
 import { useAchievements } from '../../../contexts/AchievementContext';
 import { resolveAvatar } from '../../../utils/avatars';
 import useDeviceType from '../../../hooks/useDeviceType';
@@ -396,6 +397,7 @@ const CheckersScreen = ({ navigation, route }: any) => {
               selectedSquare: null,
               possibleMoves: [],
             }));
+            playPieceMoveSound();
           }
           setServerTurn(data.currentTurn ?? 'white');
         });
@@ -490,6 +492,7 @@ const CheckersScreen = ({ navigation, route }: any) => {
       const mv = moves[Math.floor(Math.random()*moves.length)];
       setGameState(prev => {
         const nb = applyMove(prev.board, mv.from, mv.to);
+        playPieceMoveSound();
         const hasLeft = hasAnyMoves(nb,'black');
         if (lastPlayerMoveRef.current) {
           moveCountRef.current++;
@@ -539,10 +542,12 @@ const CheckersScreen = ({ navigation, route }: any) => {
       if (isMultiplayer && roomId) {
         // Optimistic: apply locally, server confirms via move_made
         setGameState(prev => ({ ...prev, board: applyMove(prev.board,sel,{row,col}), selectedSquare:null, possibleMoves:[] }));
+        playPieceMoveSound();
         socketService.makeMove(roomId, userId, { from: sel, to: {row,col} });
       } else {
         if (mode==='ai') lastPlayerMoveRef.current = { from:sel, to:{row,col} };
         const nb = applyMove(gameState.board, sel, {row,col});
+        playPieceMoveSound();
         const next: PieceColor = gameState.currentPlayer==='red'?'black':'red';
         const hasLeft = hasAnyMoves(nb, next);
         const winner: PieceColor|null = !hasLeft ? gameState.currentPlayer : null;
