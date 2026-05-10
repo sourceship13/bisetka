@@ -651,11 +651,11 @@ const CheckersScreen = ({ navigation, route }: any) => {
             <View>
               <GameToolbarControls
                 buttons={[
-                  { icon: '🎨', onPress: () => setShowCustomization(true) },
-                  { icon: showBackground ? '🖼️' : '🔲', onPress: () => setShowBackground(!showBackground) },
-                  { icon: arEnabled ? '🥽' : '🎮', onPress: () => setArEnabled(!arEnabled) },
+                  // { icon: '🎨', onPress: () => setShowCustomization(true) },
+                  // { icon: showBackground ? '🖼️' : '🔲', onPress: () => setShowBackground(!showBackground) },
+                  // { icon: arEnabled ? '🥽' : '🎮', onPress: () => setArEnabled(!arEnabled) },
                   { icon: '👥', onPress: togglePanel },
-                  { icon: showMusicPlayer ? '🎵' : '🎶', onPress: () => setShowMusicPlayer(s => !s) },
+                  // { icon: showMusicPlayer ? '🎵' : '🎶', onPress: () => setShowMusicPlayer(s => !s) },
                   { icon: '🚪', onPress: toggleLeave },
                 ]}
               />
