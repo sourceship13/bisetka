@@ -1573,7 +1573,7 @@ const NardiScreen = ({ navigation, route }: any) => {
         boardGlbPath="glb/game_boards/Backgammon.glb"
         hideCheckerboard
         boardFixed
-        boardFixedZoom={1.4}
+        boardFixedZoom={1.78}
         boardY={-1.40}
         tableDist={0.50}
         pieces={arPieces}
@@ -1621,7 +1621,6 @@ const NardiScreen = ({ navigation, route }: any) => {
             <View>
               <GameToolbarControls
                 buttons={[
-                  { icon: showBackground ? '🖼️' : '🔲', onPress: () => setShowBackground(!showBackground) },
                   { icon: easyMode ? '🎮' : '🎯', onPress: () => setEasyMode(!easyMode), label: easyMode ? 'Easy Mode' : 'Normal Mode' },
                   { icon: arEnabled ? '🥽' : '🎮', onPress: () => setArEnabled(!arEnabled) },
                   { icon: showMusicPlayer ? '🎵' : '🎶', onPress: () => setShowMusicPlayer(s => !s) },
