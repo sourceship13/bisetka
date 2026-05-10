@@ -1661,7 +1661,7 @@ const NardiScreen = ({ navigation, route }: any) => {
                         key={`opp_${i}`}
                         style={[
                           styles.bearOffPiece,
-                          { backgroundColor: oppPieceColor, marginTop: i === 0 ? 0 : -14 },
+                          { backgroundColor: oppPieceColor, marginLeft: i === 0 ? 0 : -14 },
                         ]}
                       />
                     ))}
@@ -1689,7 +1689,7 @@ const NardiScreen = ({ navigation, route }: any) => {
                         key={`me_${i}`}
                         style={[
                           styles.bearOffPiece,
-                          { backgroundColor: myPieceColor, marginTop: i === 0 ? 0 : -14 },
+                          { backgroundColor: myPieceColor, marginLeft: i === 0 ? 0 : -14 },
                         ]}
                       />
                     ))}
@@ -2545,32 +2545,38 @@ const styles = StyleSheet.create({
   recenterIcon: { fontSize:20, color:'#fff' },
   bearOffTrayTop: {
     position: 'absolute',
-    top: 200,
-    right: 10,
-    width: 84,
-    minHeight: 80,
-    paddingVertical: 8,
-    paddingHorizontal: 6,
+    top: 110,
+    left: 16,
+    right: 16,
+    height: 56,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
     borderRadius: 16,
     backgroundColor: 'rgba(0,0,0,0.55)',
     borderWidth: 1.5,
     borderColor: 'rgba(255,255,255,0.35)',
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'flex-start',
+    overflow: 'hidden',
     zIndex: 50,
   },
   bearOffTrayBottom: {
     position: 'absolute',
-    bottom: 140,
-    right: 10,
-    width: 84,
-    minHeight: 80,
-    paddingVertical: 8,
-    paddingHorizontal: 6,
+    bottom: 110,
+    left: 16,
+    right: 16,
+    height: 56,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
     borderRadius: 16,
     backgroundColor: 'rgba(0,0,0,0.55)',
     borderWidth: 1.5,
     borderColor: 'rgba(255,255,255,0.35)',
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'flex-start',
+    overflow: 'hidden',
     zIndex: 50,
   },
   bearOffTrayActive: {
@@ -2584,16 +2590,19 @@ const styles = StyleSheet.create({
   },
   bearOffTrayLabel: {
     color: '#fff',
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '700',
-    marginBottom: 6,
+    marginRight: 10,
     letterSpacing: 0.4,
     textShadowColor: 'rgba(0,0,0,0.8)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
   },
   bearOffStack: {
+    flexDirection: 'row',
     alignItems: 'center',
+    flexShrink: 1,
+    flex: 1,
   },
   bearOffPiece: {
     width: 26,
