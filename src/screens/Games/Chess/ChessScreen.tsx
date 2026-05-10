@@ -352,7 +352,8 @@ const ChessScreen = ({navigation}: any) => {
             };
           });
         }
-      }, 500);
+      // Slow down AI so the player can clearly see which piece moved (1800-2500ms)
+      }, 1800 + Math.floor(Math.random() * 700));
       return () => clearTimeout(timer);
     }
   }, [gameState]);

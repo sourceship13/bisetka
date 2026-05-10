@@ -510,7 +510,8 @@ const CheckersScreen = ({ navigation, route }: any) => {
         if (!hasLeft) setTimeout(()=>BisetkaAlert.success('Game Over!','Red wins!'),100);
         return { ...prev, board:nb, currentPlayer:'black', selectedSquare:null, possibleMoves:[], isGameOver:!hasLeft, winner:!hasLeft?'red':null };
       });
-    }, 500);
+    // Slow down AI so the player can clearly see which piece moved (1800-2500ms)
+    }, 1800 + Math.floor(Math.random() * 700));
     return () => clearTimeout(timer);
   }, [gameState.currentPlayer, gameState.isGameOver]);
 
