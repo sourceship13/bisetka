@@ -1640,8 +1640,9 @@ const NardiScreen = ({ navigation, route }: any) => {
             </View>
           </View>
 
-          {/* Bear-off trays — visible 2D HUD showing borne-off checkers */}
-          {(() => {
+          {/* Bear-off trays — visible 2D HUD showing borne-off checkers.
+              Hidden during opening-roll so they don't overlap the dice. */}
+          {spOpeningPhase === 'done' && mpOpeningPhase !== 'rolling' && (() => {
             const myColor = myNardiColor;
             const oppColor: PlayerColor = myColor === 'white' ? 'black' : 'white';
             const myCount = gameState.home[myColor] || 0;
@@ -2559,7 +2560,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'flex-start',
     overflow: 'hidden',
-    zIndex: 50,
+    zIndex: 1,
   },
   bearOffTrayBottom: {
     position: 'absolute',
@@ -2577,7 +2578,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'flex-start',
     overflow: 'hidden',
-    zIndex: 50,
+    zIndex: 1,
   },
   bearOffTrayActive: {
     borderColor: '#10b981',
