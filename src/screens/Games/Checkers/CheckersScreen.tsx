@@ -745,12 +745,21 @@ const CheckersScreen = ({ navigation, route }: any) => {
                 : gameState.winner==='red' ? 'Red Wins! 🎉' : 'Black Wins!'}
             </Text>
             {!isMultiplayer && (
-              <TouchableOpacity style={styles.playAgainButton} onPress={() => { 
-                setGameState(freshGame()); 
-                gameIdRef.current=uuidv4(); 
-                moveCountRef.current=0; 
-                setEntryDeducted(false); 
-                setPrizeAwarded(false); 
+              <TouchableOpacity style={styles.playAgainButton} onPress={() => {
+                navigation.replace('GameInfo', {
+                  gameType: 'checkers',
+                  preferredMode: 'ai',
+                });
+              }}>
+                <Text style={styles.playAgainText}>Play Again</Text>
+              </TouchableOpacity>
+            )}
+            {isMultiplayer && (
+              <TouchableOpacity style={styles.playAgainButton} onPress={() => {
+                navigation.replace('GameInfo', {
+                  gameType: 'checkers',
+                  preferredMode: 'random',
+                });
               }}>
                 <Text style={styles.playAgainText}>Play Again</Text>
               </TouchableOpacity>
