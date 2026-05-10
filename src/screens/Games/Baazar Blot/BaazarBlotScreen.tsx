@@ -33,6 +33,7 @@ import CardCustomizationModal from '../../../components/global/GameCustomization
 import CardHandFan from '../../../components/CardHandFan';
 import RiffleDealAnimation from '../../../components/RiffleDealAnimation';
 import type { CardTheme } from '../../../components/global/GameCustomizationModal';
+import { playCardFlipSound } from '../../../utils/nardiSound';
 import {
   BaazarGameState,
   BidLevel,
@@ -427,6 +428,7 @@ const BaazarBlotScreen = ({ navigation }: any) => {
     card: CardType,
     originalHands: { team: 1 | 2; hand: CardType[] }[],
   ): BaazarGameState => {
+    playCardFlipSound();
     const newPlayers = prev.players.map(p => {
       // Clean up hand for all players to remove any undefined cards
       const cleanHand = p.hand.filter(c => c && c.suit && c.rank);

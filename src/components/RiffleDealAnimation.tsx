@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Animated, StyleSheet, Text, Dimensions } from 'react-native';
 import type { CardTheme } from './global/GameCustomizationModal';
+import { playCardRiffleShuffleSound } from '../utils/nardiSound';
 
 // Lightweight native card-back — no WebView, avoids Android layer limit.
 const CardBack: React.FC<{ size: number }> = ({ size }) => (
@@ -94,6 +95,7 @@ export const RiffleDealAnimation: React.FC<RiffleDealAnimationProps> = ({
   useEffect(() => {
     if (visible && !isPlaying) {
       setIsPlaying(true);
+      playCardRiffleShuffleSound();
       playRiffleDealAnimation();
     }
   }, [visible, isPlaying]);
