@@ -46,6 +46,11 @@ const CHESS_BOARD_CONFIGS = [
   { label: 'Armenian', path: 'glb/game_boards/armenian_marble_gold_merged.glb', embeddedPieces: false },
 ];
 
+// Number of consecutive unresolved checks before the game is declared a draw
+// (perpetual check). Mirrors real chess rules where a perpetually-checked
+// position cannot produce a winner.
+const CHECK_DRAW_THRESHOLD = 5;
+
 const ChessScreen = ({navigation}: any) => {
   const { width, height } = useWindowDimensions();
   const boardSize = Math.min(width, height - 200);
@@ -56,6 +61,11 @@ const ChessScreen = ({navigation}: any) => {
   const [gameState, setGameState] = useState<ChessGameState | null>(null);
   const gameIdRef = useRef<string | null>(null);
   const moveCountRef = useRef(0);
+  // Counts consecutive checks delivered without a checkmate. After CHECK_DRAW_THRESHOLD
+  // unresolved checks the game is auto-declared a draw (perpetual check) and the
+  // player's entry fee is refunded. This handles real-chess situations where
+  // the position can't be won (e.g. perpetual-check stalemates).
+  const checkCountRef = useRef(0);
   const lastPlayerMoveRef = useRef<{ from: Position; to: Position; piece: string; captured?: string } | null>(null);
   useGameEndRefresh(!!(gameState?.isCheckmate || gameState?.isStalemate), 'chess');
   const [showCustomization, setShowCustomization] = useState(false);
@@ -313,9 +323,21 @@ const ChessScreen = ({navigation}: any) => {
             const nextPlayer = 'white';
 
             const isCheck = isKingInCheck(newBoard, nextPlayer);
-            const isCheckMate = isCheckmate(newBoard, nextPlayer);
-            const drawReason = getDrawReason(newBoard, nextPlayer);
-            const isStaleMate = drawReason !== null;
+            let isCheckMate = isCheckmate(newBoard, nextPlayer);
+            let drawReason = getDrawReason(newBoard, nextPlayer);
+            let isStaleMate = drawReason !== null;
+
+            // Perpetual-check draw — same rule applied on AI moves
+            if (isCheck && !isCheckMate) {
+              checkCountRef.current += 1;
+              if (checkCountRef.current >= CHECK_DRAW_THRESHOLD) {
+                drawReason = 'perpetual-check';
+                isStaleMate = true;
+                isCheckMate = false;
+              }
+            } else if (!isCheck) {
+              checkCountRef.current = 0;
+            }
 
             // Log AI move after state update
             if (gameIdRef.current && lastPlayerMoveRef.current) {
@@ -363,6 +385,7 @@ const ChessScreen = ({navigation}: any) => {
     setGameState(initializeChessGame(selectedDifficulty));
     gameIdRef.current = uuidv4();
     moveCountRef.current = 0;
+    checkCountRef.current = 0;
     lastPlayerMoveRef.current = null;
   };
 
@@ -429,9 +452,23 @@ const ChessScreen = ({navigation}: any) => {
     const nextPlayer = gameState.currentPlayer === 'white' ? 'black' : 'white';
 
     const isCheck = isKingInCheck(newBoard, nextPlayer);
-    const isCheckMate = isCheckmate(newBoard, nextPlayer);
-    const drawReason = getDrawReason(newBoard, nextPlayer);
-    const isStaleMate = drawReason !== null;
+    let isCheckMate = isCheckmate(newBoard, nextPlayer);
+    let drawReason = getDrawReason(newBoard, nextPlayer);
+    let isStaleMate = drawReason !== null;
+
+    // Track perpetual check: if we've delivered too many checks without converting,
+    // declare a draw (real-chess threefold-repetition / perpetual-check rule).
+    if (isCheck && !isCheckMate) {
+      checkCountRef.current += 1;
+      if (checkCountRef.current >= CHECK_DRAW_THRESHOLD) {
+        drawReason = 'perpetual-check';
+        isStaleMate = true;
+        isCheckMate = false;
+      }
+    } else if (!isCheck) {
+      // Reset streak when the position is no longer a check
+      checkCountRef.current = 0;
+    }
 
     setGameState({
       ...gameState,
@@ -450,8 +487,11 @@ const ChessScreen = ({navigation}: any) => {
       BisetkaAlert.success('Checkmate!', `${gameState.currentPlayer === 'white' ? 'White' : 'Black'} wins!`);
     } else if (isStaleMate) {
       BisetkaAlert.alert(
-        drawReason === 'insufficient-material' ? 'Draw!' : 'Stalemate!',
-        drawReason === 'insufficient-material' ? 'Only the two kings remain. The game is a draw.' : 'Game is a draw.'
+        drawReason === 'insufficient-material' ? 'Draw!' :
+        drawReason === 'perpetual-check' ? 'Draw — Perpetual Check!' : 'Stalemate!',
+        drawReason === 'insufficient-material' ? 'Only the two kings remain. The game is a draw.' :
+        drawReason === 'perpetual-check' ? `Neither side could break the check after ${CHECK_DRAW_THRESHOLD} attempts. Entry fee will be refunded.` :
+        'Game is a draw.'
       );
     } else if (isCheck) {
       BisetkaAlert.warning('Check!', `${nextPlayer === 'white' ? 'White' : 'Black'} is in check.`);
@@ -463,6 +503,7 @@ const ChessScreen = ({navigation}: any) => {
     setGameState(null);
     gameIdRef.current = null;
     moveCountRef.current = 0;
+    checkCountRef.current = 0;
     lastPlayerMoveRef.current = null;
     setEntryDeducted(false);
     setPrizeAwarded(false);
@@ -620,14 +661,22 @@ const ChessScreen = ({navigation}: any) => {
         <View style={styles.gameOverOverlay}>
           <View style={styles.gameOverBox}>
             <Text style={styles.gameOverTitle}>
-              {gameState.isCheckmate ? 'Checkmate!' : gameState.drawReason === 'insufficient-material' ? 'Draw!' : 'Stalemate!'}
+              {gameState.isCheckmate
+                ? 'Checkmate!'
+                : gameState.drawReason === 'insufficient-material'
+                  ? 'Draw!'
+                  : gameState.drawReason === 'perpetual-check'
+                    ? 'Draw — Perpetual Check'
+                    : 'Stalemate!'}
             </Text>
             <Text style={styles.gameOverText}>
               {gameState.isCheckmate
                 ? gameState.currentPlayer === 'black' ? 'You Win!' : 'Computer Wins!'
                 : gameState.drawReason === 'insufficient-material'
                   ? 'Only kings remain. This is a draw.'
-                  : "It's a Draw!"}
+                  : gameState.drawReason === 'perpetual-check'
+                    ? `Neither side could break the check after ${CHECK_DRAW_THRESHOLD} attempts.\nEntry fee refunded.`
+                    : "It's a Draw!"}
             </Text>
             <TouchableOpacity
               style={styles.playAgainButton}

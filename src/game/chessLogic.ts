@@ -1,7 +1,7 @@
 export type PieceType = 'pawn' | 'knight' | 'bishop' | 'rook' | 'queen' | 'king';
 export type PieceColor = 'white' | 'black';
 export type Difficulty = 'easy' | 'medium' | 'hard';
-export type ChessDrawReason = 'stalemate' | 'insufficient-material';
+export type ChessDrawReason = 'stalemate' | 'insufficient-material' | 'perpetual-check';
 
 export interface ChessPiece {
   type: PieceType;
