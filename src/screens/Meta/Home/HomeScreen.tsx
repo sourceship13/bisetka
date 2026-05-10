@@ -568,10 +568,7 @@ const HomeScreen = ({ navigation, route }: any) => {
                 </View>
               </TouchableOpacity>
 
-              <LinearGradient
-                colors={['#6f5cf2', '#3a2f8f']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
+              <View
                 style={styles.greetingCard}
               >
                 <View style={styles.greetingTextWrap}>
@@ -601,7 +598,7 @@ const HomeScreen = ({ navigation, route }: any) => {
                     <Text style={styles.changeLocation}>Change Location</Text>
                   </TouchableOpacity>
                 </View>
-              </LinearGradient>
+              </View>
             </View>
 
             {/* Global Chat */}
@@ -657,25 +654,25 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 120,
+    paddingBottom: 110,
   },
   topHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     marginHorizontal: 12,
     marginTop: 4,
-    paddingHorizontal: 14,
-    paddingVertical: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     backgroundColor: 'rgba(8, 6, 24, 0.78)',
-    borderRadius: 22,
+    borderRadius: 18,
   },
   topHeaderHamburger: {
-    paddingRight: 10,
+    paddingRight: 8,
   },
   topHeaderTitle: {
     flex: 1,
     color: '#fff',
-    fontSize: 22,
+    fontSize: 18,
     fontWeight: '800',
   },
   topHeaderRight: {
@@ -722,70 +719,73 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   greetingWrap: {
-    marginHorizontal: 16,
-    marginTop: 50,
+    marginHorizontal: 12,
+    marginTop: 38,
     alignItems: 'center',
   },
   greetingAvatarWrap: {
     position: 'absolute',
-    top: -50,
+    top: -34,
     zIndex: 2,
     alignItems: 'center',
   },
   greetingAvatarRing: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+    width: 70,
+    height: 70,
+    borderRadius: 35,
     backgroundColor: '#fff',
-    borderWidth: 3,
+    borderWidth: 2.5,
     borderColor: '#fff',
     overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    shadowRadius: 6,
+    elevation: 6,
   },
   greetingAvatarImg: {
-    width: 92,
-    height: 92,
+    width: 64,
+    height: 64,
   },
   greetingCard: {
-    height: 103,
+    paddingVertical: 12,
+    paddingTop: 38,
     width: '100%',
-    marginTop:50,
-    borderRadius: 22,
+    marginTop: 0,
+    borderRadius: 18,
     alignItems: 'center',
-    opacity: 0.80,
+    opacity: 0.85,
+    backgroundColor: '#3a2f8f',
+    
   },
   greetingTextWrap: {
     alignItems: 'center',
   },
   greetingHello: {
     color: '#fff',
-    fontSize: 22,
+    fontSize: 17,
     fontWeight: '800',
     textAlign: 'center',
   },
   greetingLocationRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 10,
+    marginTop: 4,
     gap: 4,
   },
   greetingLocation: {
     color: '#fff',
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '600',
   },
   changeLocation: {
     color: 'rgba(255,255,255,0.85)',
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '500',
     textDecorationLine: 'underline',
-    marginTop: 4,
+    marginTop: 2,
   },
   header: {
     flexDirection: 'row',
