@@ -669,10 +669,11 @@ const BlotScreen = ({ navigation }: any) => {
         <Text style={styles.gameEndScore}>
           Team 1: {gameState.gameScore.team1} — Team 2: {gameState.gameScore.team2}
         </Text>
-        <TouchableOpacity style={styles.newGameButton} onPress={() => { 
-          setTargetScore(null); // Reset to score selection
-          setGameState(null);
-          boardReadyRef.current = false;
+        <TouchableOpacity style={styles.newGameButton} onPress={() => {
+          navigation.replace('GameInfo', {
+            gameType: 'blot',
+            preferredMode: 'ai',
+          });
         }}>
           <Text style={styles.newGameButtonText}>New Game</Text>
         </TouchableOpacity>

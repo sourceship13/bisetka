@@ -706,7 +706,12 @@ const BaazarBlotScreen = ({ navigation }: any) => {
     setPendingBidSuit(null);
   }, []);
 
-  const handleNewGame = useCallback(() => setGameState(null), []);
+  const handleNewGame = useCallback(() => {
+    navigation.replace('GameInfo', {
+      gameType: 'baazar-blot',
+      preferredMode: 'ai',
+    });
+  }, [navigation]);
 
   const suitColor = (s: Suit | null) => (s ? SUIT_COLOR[s] : '#fff');
   const playerName = (id: number) => gameState?.players[id]?.name ?? `P${id}`;

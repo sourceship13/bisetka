@@ -77,13 +77,13 @@ const GAME_MODE_OPTIONS: Array<{
 ];
 
 const GameInfoScreen: React.FC<Props> = ({ route, navigation }) => {
-  const { gameType, gradient, bisetkaId, bisetkaName } = route.params;
+  const { gameType, gradient, bisetkaId, bisetkaName, preferredMode } = route.params;
   const { user } = useAuth();
   const [gameInfo, setGameInfo] = useState<GameInfoData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showRulesDetailed, setShowRulesDetailed] = useState(false);
-  const [selectedMode, setSelectedMode] = useState<GameMode>('random');
+  const [selectedMode, setSelectedMode] = useState<GameMode>(preferredMode ?? 'random');
   const [bisetka, setBisetka] = useState<Bisetka | null>(null);
   const [showPointsModal, setShowPointsModal] = useState(false);
   const [liveBalance, setLiveBalance] = useState<number | null>(null);
