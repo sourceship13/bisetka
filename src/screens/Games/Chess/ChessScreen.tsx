@@ -560,10 +560,10 @@ const ChessScreen = ({navigation}: any) => {
             <View>
                <GameToolbarControls
                 buttons={[
-                  { icon: '🎨', onPress: () => setShowCustomization(true) },
-                  { icon: arEnabled ? '🥽' : '🎮', onPress: () => setArEnabled(!arEnabled) },
-                  { icon: '🔄', onPress: () => setBoardIdx(i => (i + 1) % boardConfigs.length) },
-                  { icon: showMusicPlayer ? '🎵' : '🎶', onPress: () => setShowMusicPlayer(s => !s) },
+                  // { icon: '🎨', onPress: () => setShowCustomization(true) },
+                  // { icon: arEnabled ? '🥽' : '🎮', onPress: () => setArEnabled(!arEnabled) },
+                  // { icon: '🔄', onPress: () => setBoardIdx(i => (i + 1) % boardConfigs.length) },
+                  // { icon: showMusicPlayer ? '🎵' : '🎶', onPress: () => setShowMusicPlayer(s => !s) },
                   { icon: '👥', onPress: togglePanel },
                   { icon: '🚪', onPress: toggleLeave },
                 ]}
