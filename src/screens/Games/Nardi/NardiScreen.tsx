@@ -1232,27 +1232,35 @@ const NardiScreen = ({ navigation, route }: any) => {
     // White bears off to -1 (below index 0); Black bears off to 24 (above index 23)
     const bearOffTarget = player === 'white' ? -1 : 24;
 
-    if (selectedPoint !== null) {
-      const selectedBearOffMove = gameState.possibleMoves.find(
-        m => m.from === selectedPoint && m.to === bearOffTarget,
-      );
-
-      if (selectedBearOffMove) {
-        console.log('✅ Bearing off from selected point to tray:', selectedBearOffMove);
-        handleMove(selectedBearOffMove);
-      } else {
-        console.log('❌ Selected point cannot bear off with current dice');
-      }
-
-      setSelectedPoint(null);
+    const bearOffMoves = gameState.possibleMoves.filter(m => m.to === bearOffTarget);
+    if (bearOffMoves.length === 0) {
+      console.log('❌ No bear-off moves available for current dice');
+      flashInvalid();
       return;
     }
 
-    const bearOffMoves = gameState.possibleMoves.filter(m => m.to === bearOffTarget);
-    if (bearOffMoves.length === 1) {
-      console.log('✅ Auto-bearing off only available checker:', bearOffMoves[0]);
-      handleMove(bearOffMoves[0]);
+    // Prefer the user's selected piece if it can bear off
+    if (selectedPoint !== null) {
+      const selectedBearOffMove = bearOffMoves.find(m => m.from === selectedPoint);
+      if (selectedBearOffMove) {
+        console.log('✅ Bearing off from selected point to tray:', selectedBearOffMove);
+        handleMove(selectedBearOffMove);
+        setSelectedPoint(null);
+        return;
+      }
+      console.log('ℹ️ Selected point cannot bear off — falling back to optimal bear-off');
     }
+
+    // No (usable) selection — pick the optimal bear-off move per Nardi rules:
+    // white = highest-index piece (furthest from exit edge),
+    // black = lowest-index piece (furthest from exit edge).
+    let chosen = bearOffMoves[0];
+    for (const m of bearOffMoves) {
+      if (player === 'white' ? m.from > chosen.from : m.from < chosen.from) chosen = m;
+    }
+    console.log('✅ Auto-bearing off optimal piece:', chosen);
+    handleMove(chosen);
+    setSelectedPoint(null);
   };
 
   const handlePointPress = (pointIndex: number) => {
