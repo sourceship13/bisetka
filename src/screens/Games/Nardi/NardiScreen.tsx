@@ -403,13 +403,13 @@ const NardiScreen = ({ navigation, route }: any) => {
   }, [arEnabled, gameState?.phase, gameState?.currentPlayer]);
 
   // Sync borne-off piece counts to AR pocket visualization
+  // Disabled: the 2D HUD trays ("You • N/15" / "AI • N/15") are the single
+  // source of borne-off display. The 3D pocket pieces were duplicating that
+  // same information on the board, so we keep the AR pockets empty.
   useEffect(() => {
-    if (!arEnabled || !gameState) return;
-    arOverlayRef.current?.updateBorneOff(
-      gameState.home.white,
-      gameState.home.black
-    );
-  }, [arEnabled, gameState?.home.white, gameState?.home.black]);
+    if (!arEnabled) return;
+    arOverlayRef.current?.updateBorneOff(0, 0);
+  }, [arEnabled]);
 
   // Entry fee and prize tracking
   const { user, refreshUser } = useAuth();
