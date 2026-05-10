@@ -42,6 +42,7 @@ import {
 } from '../../../game/blotLogic';
 import SyncedYouTubePlayer from '../../../components/SyncedYouTubePlayer';
 import InGameChat from '../../../components/InGameChat';
+import { playCardFlipSound } from '../../../utils/nardiSound';
 
 const SUIT_ICON: Record<string, string> = {
   hearts: '♥',
@@ -512,6 +513,8 @@ const BlotScreen = ({ navigation }: any) => {
       isPlayingCardRef.current = true;
       setTimeout(() => { isPlayingCardRef.current = false; }, 800);
     }
+
+    playCardFlipSound();
 
     setGameState(prev => {
       if (prev.phase !== 'playing') return prev;

@@ -574,6 +574,10 @@
       "sha1": "c8844d91fefdf95d8decbd562df97fd532908231"
     },
     {
+      "path": "assets/sounds/card_riffle_shuffle.mp3",
+      "sha1": "4878fdbc272211934e1f74b51382113ebdfe0490"
+    },
+    {
       "path": "assets/sounds/dice_roll.mp3",
       "sha1": "b6d159ca2f90f831de01da01b2cca4dbee3002e3"
     },
