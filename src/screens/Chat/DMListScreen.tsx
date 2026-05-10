@@ -68,6 +68,7 @@ const DMListScreen: React.FC<Props> = ({ navigation }) => {
     navigation.navigate('DMChat', {
       chatId: chat.id,
       chatName: chat.name || 'Direct Message',
+      avatarUrl: chat.avatar_url || null,
     });
   };
 

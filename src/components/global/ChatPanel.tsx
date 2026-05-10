@@ -9,6 +9,8 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { BlurView } from '@react-native-community/blur';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import chatService, { Message } from '../../services/chat.service';
 import chatSocketService from '../../services/chatSocket.service';
 
@@ -20,120 +22,168 @@ interface ChatPanelProps {
   keyboardAvoidingViewStyle?: any;
 }
 
-const ChatPanel: React.FC<ChatPanelProps> = ({ chatId, chatType, currentUserId, onNewMessage, keyboardAvoidingViewStyle }) => {
+const ChatPanel: React.FC<ChatPanelProps> = ({
+  chatId,
+  chatType,
+  currentUserId,
+  onNewMessage,
+  keyboardAvoidingViewStyle,
+}) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
-  const [loading, setLoading] = useState(false);
   const flatListRef = useRef<FlatList>(null);
 
   useEffect(() => {
     loadMessages();
-    
-    // Join chat room via Socket.IO for real-time updates
+
     chatSocketService.joinChat(chatId, currentUserId);
-    
-    // Listen for new messages
+
     const handleNewMessage = (message: Message) => {
       setMessages(prev => [...prev, message]);
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
       }, 100);
-      
-      if (onNewMessage) {
-        onNewMessage(message);
-      }
+      if (onNewMessage) onNewMessage(message);
     };
-    
+
     chatSocketService.onMessage(chatId, handleNewMessage);
-    
-    // Cleanup on unmount
+
     return () => {
       chatSocketService.offMessage(chatId, handleNewMessage);
       chatSocketService.leaveChat(chatId);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chatId]);
 
   const loadMessages = async () => {
     try {
-      setLoading(true);
       const result = await chatService.getMessages(chatId, 50);
       setMessages(result.messages);
     } catch (error) {
       console.error('Failed to load messages:', error);
-    } finally {
-      setLoading(false);
     }
   };
 
   const handleSend = async () => {
     if (!inputText.trim()) return;
-    
     try {
       const result = await chatService.postMessage(chatId, inputText.trim());
       setMessages(prev => [...prev, result.message]);
       setInputText('');
-      
-      // Scroll to bottom
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
       }, 100);
-      
-      if (onNewMessage) {
-        onNewMessage(result.message);
-      }
+      if (onNewMessage) onNewMessage(result.message);
     } catch (error) {
       console.error('Failed to send message:', error);
     }
   };
 
+  const formatTime = (iso: string) => {
+    try {
+      return new Date(iso).toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    } catch {
+      return '';
+    }
+  };
+
   const renderMessage = ({ item }: { item: Message }) => {
     const isMe = item.sender_id === currentUserId;
+    const showName = chatType !== 'direct';
+    const username =
+      (item as any).sender_username ||
+      (item as any).username ||
+      (isMe ? 'Me' : 'Anonymous');
     return (
-      <View style={[styles.messageBubble, isMe ? styles.myMessage : styles.theirMessage]}>
-        {!isMe && chatType !== 'direct' && (
-          <Text style={styles.senderName}>{item.sender_username || 'Unknown'}</Text>
-        )}
-        <Text style={[styles.messageText, isMe ? styles.myMessageText : styles.theirMessageText]}>
-          {item.content}
-        </Text>
-        <Text style={styles.timestamp}>
-          {new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-        </Text>
+      <View
+        style={[
+          styles.row,
+          isMe ? styles.rowMe : styles.rowOther,
+        ]}>
+        <View
+          style={[
+            styles.bubble,
+            isMe ? styles.bubbleMe : styles.bubbleOther,
+          ]}>
+          <Text
+            style={[
+              styles.bubbleText,
+              isMe ? styles.bubbleTextMe : styles.bubbleTextOther,
+            ]}>
+            {item.content}
+          </Text>
+        </View>
+        <View style={[styles.metaRow, isMe ? styles.metaRowMe : styles.metaRowOther]}>
+          {showName && (
+            <Text
+              style={[
+                styles.usernameLabel,
+                isMe && styles.usernameLabelMe,
+              ]}
+              numberOfLines={1}>
+              {username}
+            </Text>
+          )}
+          <Text style={[styles.timestamp, isMe ? styles.timestampMe : styles.timestampOther]}>
+            {formatTime(item.created_at)}
+          </Text>
+        </View>
       </View>
     );
   };
 
   return (
-    <KeyboardAvoidingView 
+    <KeyboardAvoidingView
       style={[styles.container, keyboardAvoidingViewStyle]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}>
-      
       <FlatList
         ref={flatListRef}
         data={messages}
         keyExtractor={item => item.id}
         renderItem={renderMessage}
         contentContainerStyle={styles.messageList}
-        onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
+        onContentSizeChange={() =>
+          flatListRef.current?.scrollToEnd({ animated: false })
+        }
       />
-      
-      <View style={styles.inputContainer}>
-        <TextInput
-          style={styles.input}
-          placeholder="Type a message..."
-          placeholderTextColor="#888"
-          value={inputText}
-          onChangeText={setInputText}
-          multiline
-          maxLength={500}
-        />
-        <TouchableOpacity 
-          style={[styles.sendButton, !inputText.trim() && styles.sendButtonDisabled]}
-          onPress={handleSend}
-          disabled={!inputText.trim()}>
-          <Text style={styles.sendButtonText}>Send</Text>
-        </TouchableOpacity>
+
+      <View style={styles.inputWrap}>
+        <View style={styles.inputPill}>
+          <BlurView
+            style={StyleSheet.absoluteFill}
+            blurType={Platform.OS === 'ios' ? 'ultraThinMaterialDark' : 'dark'}
+            blurAmount={Platform.OS === 'ios' ? 24 : 18}
+            reducedTransparencyFallbackColor="rgba(20, 14, 32, 0.55)"
+          />
+          <View style={styles.inputGlassTint} pointerEvents="none" />
+          <TouchableOpacity style={styles.inputIconBtn} activeOpacity={0.7}>
+            <Icon name="paperclip" size={20} color="rgba(255,255,255,0.75)" />
+          </TouchableOpacity>
+          <TextInput
+            style={styles.input}
+            placeholder="Start typing..."
+            placeholderTextColor="rgba(255,255,255,0.5)"
+            value={inputText}
+            onChangeText={setInputText}
+            multiline
+            maxLength={500}
+          />
+          <TouchableOpacity
+            style={styles.inputIconBtn}
+            onPress={handleSend}
+            disabled={!inputText.trim()}
+            activeOpacity={0.7}>
+            <Icon
+              name="send"
+              size={20}
+              color={inputText.trim() ? '#d8c8ff' : 'rgba(255,255,255,0.4)'}
+            />
+          </TouchableOpacity>
+        </View>
       </View>
     </KeyboardAvoidingView>
   );
@@ -142,79 +192,116 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ chatId, chatType, currentUserId, 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: 'transparent',
   },
   messageList: {
-    paddingHorizontal: 12,
-    paddingVertical: 16,
+    paddingHorizontal: 14,
+    paddingTop: 16,
+    paddingBottom: 12,
   },
-  messageBubble: {
-    maxWidth: '80%',
-    marginVertical: 4,
-    padding: 12,
-    borderRadius: 16,
+  row: {
+    marginVertical: 5,
+    maxWidth: '78%',
   },
-  myMessage: {
+  rowMe: {
     alignSelf: 'flex-end',
-    backgroundColor: '#007AFF',
+    alignItems: 'flex-end',
   },
-  theirMessage: {
+  rowOther: {
     alignSelf: 'flex-start',
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
+    alignItems: 'flex-start',
   },
-  senderName: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#666',
-    marginBottom: 4,
+  bubble: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 18,
   },
-  messageText: {
-    fontSize: 16,
+  bubbleOther: {
+    backgroundColor: 'rgba(15,10,25,0.85)',
+    borderBottomLeftRadius: 6,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255,255,255,0.06)',
   },
-  myMessageText: {
-    color: '#fff',
+  bubbleMe: {
+    backgroundColor: '#d8c8ff',
+    borderBottomRightRadius: 6,
   },
-  theirMessageText: {
-    color: '#000',
+  bubbleText: {
+    fontSize: 15,
+    lineHeight: 20,
+  },
+  bubbleTextOther: {
+    color: '#ffffff',
+  },
+  bubbleTextMe: {
+    color: '#1a1230',
+    fontWeight: '500',
   },
   timestamp: {
-    fontSize: 10,
-    color: 'rgba(255,255,255,0.7)',
-    marginTop: 4,
-    alignSelf: 'flex-end',
+    fontSize: 11,
   },
-  inputContainer: {
+  timestampOther: {
+    color: 'rgba(255,255,255,0.55)',
+  },
+  timestampMe: {
+    color: 'rgba(255,255,255,0.6)',
+  },
+  metaRow: {
     flexDirection: 'row',
-    padding: 12,
-    backgroundColor: '#fff',
-    borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
+    alignItems: 'center',
+    marginTop: 3,
+    paddingHorizontal: 6,
+    gap: 6,
+    maxWidth: '100%',
+  },
+  metaRowMe: {
+    justifyContent: 'flex-end',
+  },
+  metaRowOther: {
+    justifyContent: 'flex-start',
+  },
+  usernameLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: 'rgba(216, 200, 255, 0.95)',
+    maxWidth: 160,
+  },
+  usernameLabelMe: {
+    color: 'rgba(216, 200, 255, 0.95)',
+  },
+  inputWrap: {
+    paddingHorizontal: 12,
+    paddingTop: 8,
+    paddingBottom: Platform.OS === 'ios' ? 10 : 12,
+  },
+  inputPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 28,
+    overflow: 'hidden',
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+    minHeight: 48,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255,255,255,0.12)',
+  },
+  inputGlassTint: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+  },
+  inputIconBtn: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   input: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    fontSize: 16,
+    color: '#ffffff',
+    fontSize: 15,
+    paddingHorizontal: 6,
+    paddingVertical: Platform.OS === 'ios' ? 10 : 6,
     maxHeight: 100,
-  },
-  sendButton: {
-    marginLeft: 8,
-    backgroundColor: '#007AFF',
-    borderRadius: 20,
-    paddingHorizontal: 20,
-    justifyContent: 'center',
-  },
-  sendButtonDisabled: {
-    opacity: 0.5,
-  },
-  sendButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
   },
 });
 

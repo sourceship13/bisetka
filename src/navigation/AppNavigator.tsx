@@ -81,7 +81,7 @@ export type RootStackParamList = {
   SessionStatus: { gameType: GameType; session: any };
   GlobalChat: undefined;
   DMList: undefined;
-  DMChat: { chatId: string; chatName: string };
+  DMChat: { chatId: string; chatName: string; avatarUrl?: string | null; isOnline?: boolean };
   Leaderboard: undefined;
   ActiveRooms: undefined;
   ChatRoomsList: undefined;
