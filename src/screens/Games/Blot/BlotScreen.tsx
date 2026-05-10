@@ -658,11 +658,13 @@ const BlotScreen = ({ navigation }: any) => {
 
   const renderGameEnd = () => {
     const winner = gameState.gameScore.team1 > gameState.gameScore.team2 ? 1 : 2;
+    const playerTeam = gameState.players.find(p => p.id === 0)?.team ?? 1;
+    const playerWon = winner === playerTeam;
     return (
       <View style={styles.gameEndContainer}>
         <Text style={styles.gameEndTitle}>Game Over!</Text>
         <Text style={styles.gameEndWinner}>
-          {winner === 1 ? '🏆 Team 1 Wins!' : '🏆 Team 2 Wins!'}
+          {playerWon ? '🏆 You Win!' : '😔 You Lose'}
         </Text>
         <Text style={styles.gameEndScore}>
           Team 1: {gameState.gameScore.team1} — Team 2: {gameState.gameScore.team2}

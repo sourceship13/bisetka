@@ -1073,11 +1073,12 @@ const BaazarBlotScreen = ({ navigation }: any) => {
   const renderGameEnd = () => {
     if (!gameState) return null;
     const winner = gameState.gameScore.team1 > gameState.gameScore.team2 ? 1 : 2;
-    const isWin = winner === 1;
+    const playerTeam = gameState.players.find(p => p.id === 0)?.team ?? 1;
+    const isWin = winner === playerTeam;
     return (
       <View style={styles.centeredSection}>
         <Text style={styles.bigTitle}>{isWin ? '🏆 You Win!' : '😔 You Lose'}</Text>
-        <Text style={styles.gameEndWinner}>{isWin ? 'Team 1 wins!' : 'Team 2 wins!'}</Text>
+        <Text style={styles.gameEndWinner}>{isWin ? 'You win!' : 'You lose'}</Text>
         <Text style={styles.gameEndScore}>
           {gameState.gameScore.team1} — {gameState.gameScore.team2}
         </Text>
