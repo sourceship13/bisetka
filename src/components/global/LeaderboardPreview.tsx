@@ -76,12 +76,10 @@ const LeaderboardPreview: React.FC<{ limit?: number }> = ({ limit = 4 }) => {
             const rank = idx + 1;
             const gradient = RANK_GRADIENTS[rank] || ['#3a3057', '#2a234a'];
             return (
-              <LinearGradient
+              <View
                 key={item.user_id}
-                colors={gradient}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.row}>
+                style={[styles.row, { backgroundColor: gradient[0] }]}
+              >
                 <Text style={styles.rank}>{rank}</Text>
                 <View style={styles.rowInfo}>
                   <Text style={styles.name} numberOfLines={1}>
@@ -97,7 +95,7 @@ const LeaderboardPreview: React.FC<{ limit?: number }> = ({ limit = 4 }) => {
                   </Text>
                   <Text style={styles.scoreLabel}>pts</Text>
                 </View>
-              </LinearGradient>
+              </View>
             );
           })
         )}
