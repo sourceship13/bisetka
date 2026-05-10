@@ -2150,10 +2150,10 @@ const NardiScreen = ({ navigation, route }: any) => {
                 <TouchableOpacity
                   style={styles.newGameBtn}
                   onPress={() => {
-                    setGameState(initializeNardiGame('short'));
-                    setEntryDeducted(false);
-                    setPrizeAwarded(false);
-                    gameIdRef.current = uuidv4();
+                    navigation.replace('GameInfo', {
+                      gameType: 'nardi',
+                      preferredMode: isMultiplayer ? 'random' : 'ai',
+                    });
                   }}>
                   <Text style={styles.newGameText}>Play Again</Text>
                 </TouchableOpacity>
