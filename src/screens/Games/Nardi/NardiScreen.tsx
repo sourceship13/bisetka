@@ -1566,7 +1566,7 @@ const NardiScreen = ({ navigation, route }: any) => {
 
   return (
     <View style={styles.container}>
-      <AraratBackground overlayOpacity={showBlur ? 0.5 : 0.3} />
+      <AraratBackground  />
       <AR3DOverlay
         ref={arOverlayRef}
         visible={arEnabled}
@@ -1622,9 +1622,9 @@ const NardiScreen = ({ navigation, route }: any) => {
               <GameToolbarControls
                 buttons={[
                   { icon: easyMode ? '🎮' : '🎯', onPress: () => setEasyMode(!easyMode), label: easyMode ? 'Easy Mode' : 'Normal Mode' },
-                  { icon: arEnabled ? '🥽' : '🎮', onPress: () => setArEnabled(!arEnabled) },
-                  { icon: showMusicPlayer ? '🎵' : '🎶', onPress: () => setShowMusicPlayer(s => !s) },
-                  ...(isMultiplayer && mpStatus === 'playing' ? [{ icon: '✏️', onPress: () => setShowRoomNameModal(true) }] : []),
+                  // { icon: arEnabled ? '🥽' : '🎮', onPress: () => setArEnabled(!arEnabled) },
+                  // { icon: showMusicPlayer ? '🎵' : '🎶', onPress: () => setShowMusicPlayer(s => !s) },
+                  // ...(isMultiplayer && mpStatus === 'playing' ? [{ icon: '✏️', onPress: () => setShowRoomNameModal(true) }] : []),
                 ]}
               />
               {arEnabled && spOpeningPhase !== 'rolling' && (
