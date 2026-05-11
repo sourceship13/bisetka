@@ -1282,6 +1282,27 @@ if (BOARD_URI) {
         var typeMap = { King:'king', Queen:'queen', Bishop:'bishop', Knight:'knight', Rook:'rook', Pawn:'pawn' };
         var typ = typeMap[mt[1]];
         var col = mt[2] === 'A' ? 'white' : 'black';
+        // Tint embedded "black" pieces using BLACK_HEX so the screen can
+        // override their dark baked color (e.g. show them as red for
+        // contrast). White pieces keep their original baked materials.
+        if (col === 'black') {
+          ch.traverse(function(sub) {
+            if (!sub.isMesh) return;
+            var mats = Array.isArray(sub.material) ? sub.material : [sub.material];
+            var newMats = mats.map(function(m) {
+              if (!m) return m;
+              var nmMat = m.clone();
+              if (nmMat.color) nmMat.color.setHex(${BLACK_HEX});
+              // Drop the baked texture so the override color isn't multiplied
+              // down to near-black by a dark grayscale map.
+              nmMat.map = null;
+              nmMat.roughness = 0.55;
+              nmMat.metalness = 0.15;
+              return nmMat;
+            });
+            sub.material = Array.isArray(sub.material) ? newMats : newMats[0];
+          });
+        }
         // After attach, ch.position is in boardGroup-local coordinates.
         rawPieces.push({ node: ch, name: nm, type: typ, color: col, localX: ch.position.x, localY: ch.position.y, localZ: ch.position.z });
       });
