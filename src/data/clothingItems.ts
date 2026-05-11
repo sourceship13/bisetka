@@ -67,3 +67,38 @@ export function getAvatarGenderById(avatarId: string | null | undefined): string
   const a = NEW_BASE_AVATARS.find(x => x.id === avatarId);
   return a ? (a.gender as string | undefined) : undefined;
 }
+
+/**
+ * Starter shirts every player owns from the moment they sign up. The exact
+ * shirt depends on their avatar's gender + build. These items are excluded
+ * from the clothing store (you already own them) and always appear in the
+ * "My Clothes" section of the Avatar Builder.
+ */
+export const STARTER_SHIRT_IDS: ReadonlySet<string> = new Set([
+  'shirts-shirt-style-5',              // male / standard
+  'shirts-muscle-shirt-style-5',       // male / muscle
+  'shirts-fat-shirt-style-5',          // male / fat
+  'shirts-female-shirt-style-5',       // female / standard
+  'shirts-female-muscle-shirt-style-5',// female / muscle
+  'shirts-female-fat-shirt-style-5',   // female / fat
+]);
+
+/**
+ * Resolve the correct starter shirt id for the given avatar gender + build.
+ * Anything that isn't `muscle` or `fat` is treated as the standard build.
+ */
+export function getStarterShirtIdForAvatar(
+  gender: string | undefined | null,
+  build: string | undefined | null,
+): string {
+  const g = gender === 'female' ? 'female' : 'male';
+  const b = build === 'muscle' ? 'muscle' : build === 'fat' ? 'fat' : 'standard';
+  if (g === 'female') {
+    if (b === 'muscle') return 'shirts-female-muscle-shirt-style-5';
+    if (b === 'fat') return 'shirts-female-fat-shirt-style-5';
+    return 'shirts-female-shirt-style-5';
+  }
+  if (b === 'muscle') return 'shirts-muscle-shirt-style-5';
+  if (b === 'fat') return 'shirts-fat-shirt-style-5';
+  return 'shirts-shirt-style-5';
+}
