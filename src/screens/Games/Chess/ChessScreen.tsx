@@ -568,6 +568,7 @@ const ChessScreen = ({navigation}: any) => {
         onSquareTap={handleSquarePress}
         boardGlbPath={boardConfigs[boardIdx].path}
         boardGlbHasEmbeddedChessPieces={!!boardConfigs[boardIdx].embeddedPieces}
+        pieceColorBlack="#dc2626"
         hideCheckerboard={true}
         boardFixed
         boardFixedZoom={0.75}

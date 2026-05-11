@@ -610,6 +610,7 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
           moves={gameState?.possibleMoves || []}
           boardGlbPath="glb/chess/ChessSet.glb"
           boardGlbHasEmbeddedChessPieces
+          pieceColorBlack="#dc2626"
           hideCheckerboard={true}
           boardFixed
           boardFixedZoom={0.6}
