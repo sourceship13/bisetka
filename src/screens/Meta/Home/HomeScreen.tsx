@@ -537,7 +537,7 @@ const HomeScreen = ({ navigation, route }: any) => {
                     </Text>
                     <View style={styles.pointsPlus}>
                       <Icon name="plus" size={12} color="#fff" />
-                      <Text style={styles.pointsPlusText}>Get</Text>
+                      <Text style={styles.pointsPlusText}>Get Points</Text>
                     </View>
                   </View>
                 </TouchableOpacity>

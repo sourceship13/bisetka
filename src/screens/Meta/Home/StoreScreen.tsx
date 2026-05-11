@@ -163,15 +163,11 @@ const StoreScreen = ({navigation}: any) => {
         activeOpacity={0.9}
         onPress={() => navigation.navigate('PointsShop')}
         style={styles.getPointsBtnWrap}>
-        <LinearGradient
-          colors={['#f59e0b', '#f97316']}
-          start={{x: 0, y: 0}}
-          end={{x: 1, y: 1}}
-          style={styles.getPointsBtn}>
+        <View style={styles.getPointsBtn}>
           <Text style={styles.getPointsIcon}>🪙</Text>
           <Text style={styles.getPointsText}>Get More Points</Text>
           <Text style={styles.getPointsArrow}>→</Text>
-        </LinearGradient>
+        </View>
       </TouchableOpacity>
 
       {/* Category Filters */}
@@ -294,6 +290,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 16,
     gap: 10,
+    backgroundColor: '#f59e0b',
   },
   getPointsIcon: {
     fontSize: 20,

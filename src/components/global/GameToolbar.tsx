@@ -51,7 +51,7 @@ const GameToolbar: React.FC<GameToolbarProps> = ({
           <Text style={styles.pointsCoin}>🪙</Text>
           <Text style={styles.pointsAmount}>{balance.toLocaleString()}</Text>
           <View style={styles.pointsPlus}>
-            <Text style={styles.pointsPlusText}>+</Text>
+            <Text style={styles.pointsPlusText}>+ Get Points</Text>
           </View>
         </TouchableOpacity>
         {rightElement ?? null}
@@ -117,16 +117,16 @@ const styles = StyleSheet.create({
   },
   pointsPlus: {
     backgroundColor: '#f59e0b',
-    width: 22,
     height: 22,
     borderRadius: 11,
+    paddingHorizontal: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
   pointsPlusText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 11,
     fontWeight: '800',
-    lineHeight: 18,
+    letterSpacing: 0.3,
   },
 });
