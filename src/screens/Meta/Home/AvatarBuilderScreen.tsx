@@ -23,6 +23,7 @@ import {
   ALL_BASE_AVATARS,
   ALL_CLOTHING_ITEMS,
   filterClothingForAvatar,
+  getStarterShirtIdForAvatar,
 } from '../../../data/clothingItems';
 
 const { width } = Dimensions.get('window');
@@ -142,7 +143,16 @@ const AvatarBuilderScreen = ({ navigation }: any) => {
   );
 
   const ownedItems = useMemo<AvatarClothing[]>(() => {
-    const all = ALL_CLOTHING_ITEMS.filter(i => ownedIds.has(i.id));
+    // Always include the starter shirt for the current avatar's gender/build,
+    // even if it's not in the persisted owned set yet. Every player gets a
+    // starter shirt on signup based on their avatar.
+    const starterId = getStarterShirtIdForAvatar(
+      selectedAvatar?.gender ?? genderTab,
+      (selectedAvatar as any)?.build,
+    );
+    const all = ALL_CLOTHING_ITEMS.filter(
+      i => ownedIds.has(i.id) || i.id === starterId,
+    );
     return filterClothingForAvatar(
       all,
       selectedAvatar?.gender ?? genderTab,
