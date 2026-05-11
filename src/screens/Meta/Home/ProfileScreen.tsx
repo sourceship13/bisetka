@@ -161,7 +161,7 @@ const ProfileScreen = ({ navigation }: any) => {
                   </Text>
                   <View style={styles.pointsPlus}>
                     <Icon name="plus" size={11} color="#fff" />
-                    <Text style={styles.pointsPlusText}>Get</Text>
+                    <Text style={styles.pointsPlusText}>Get Points</Text>
                   </View>
                 </View>
               </TouchableOpacity>
