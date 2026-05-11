@@ -684,6 +684,11 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
                       }>
                       <Text style={styles.playAgainText}>Play Again</Text>
                     </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.playAgainButton, {marginTop: 10, backgroundColor: 'transparent', borderWidth: 1.5, borderColor: '#fff'}]}
+                      onPress={() => navigation.navigate('Home' as never)}>
+                      <Text style={styles.playAgainText}>Exit</Text>
+                    </TouchableOpacity>
                   </View>
                 </View>
               )}

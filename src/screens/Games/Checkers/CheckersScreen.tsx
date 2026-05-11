@@ -764,6 +764,11 @@ const CheckersScreen = ({ navigation, route }: any) => {
                 <Text style={styles.playAgainText}>Play Again</Text>
               </TouchableOpacity>
             )}
+            <TouchableOpacity
+              style={styles.exitButton}
+              onPress={() => navigation.navigate('Home' as never)}>
+              <Text style={styles.exitButtonText}>Exit</Text>
+            </TouchableOpacity>
           </View>
         </View>
       )}
@@ -921,7 +926,9 @@ const styles = StyleSheet.create({
   gameOverTitle:      { fontSize:24, fontWeight:'bold', marginBottom:10, color:'#2c3e50' },
   gameOverText:       { fontSize:18, marginBottom:20, color:'#34495e' },
   playAgainButton:    { backgroundColor:'#3498db', paddingHorizontal:24, paddingVertical:12, borderRadius:8 },
-  playAgainText:      { color:'#fff', fontSize:16, fontWeight:'600' },  panelBackdrop: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.45)' },
+  playAgainText:      { color:'#fff', fontSize:16, fontWeight:'600' },
+  exitButton:         { marginTop:12, paddingHorizontal:24, paddingVertical:10, borderRadius:8, borderWidth:1.5, borderColor:'#fff' },
+  exitButtonText:     { color:'#fff', fontSize:15, fontWeight:'700' },  panelBackdrop: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.45)' },
   sidePanel: { position: 'absolute', top: 0, right: 0, bottom: 0, width: 270, backgroundColor: 'rgba(12,12,30,0.97)', borderLeftWidth: 1, borderLeftColor: 'rgba(255,255,255,0.12)', shadowColor: '#000', shadowOffset: { width: -4, height: 0 }, shadowOpacity: 0.5, shadowRadius: 12, elevation: 20 },
   panelHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, paddingTop: 56, paddingBottom: 14, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.1)' },
   panelTitle: { fontSize: 18, fontWeight: '700', color: '#fff' },

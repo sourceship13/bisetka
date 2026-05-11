@@ -351,7 +351,7 @@ const MultiplayerMrotsiScreen = ({navigation, route}: any) => {
 
         BisetkaAlert.alert(title, message, [
           {text: 'Play Again', onPress: () => navigation.replace('GameMode', {gameType: 'mrotsi'})},
-          {text: 'Home', onPress: () => navigation.replace('Home')},
+          {text: 'Exit', onPress: () => navigation.navigate('Home' as never)},
         ]);
       });
 

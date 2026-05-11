@@ -1182,11 +1182,11 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
       }
     },
     { 
-      text: 'Main Menu', 
+      text: 'Exit', 
       onPress: () => {
         setIsLocalGame(false);
         setLocalGameState(null);
-        navigation.replace('GameMode', {gameType: 'blot'});
+        navigation.navigate('Home' as never);
       }
     }];
     if (isDraw) {

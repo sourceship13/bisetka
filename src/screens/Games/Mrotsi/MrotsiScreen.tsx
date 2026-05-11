@@ -726,11 +726,11 @@ const MrotsiScreen = ({ navigation, route }: any) => {
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.closeButtonModal}
-                    onPress={handleBackPress}
+                    onPress={() => navigation.navigate('Home' as never)}
                     disabled={isPostGameSyncing}
                   >
                     <Text style={styles.closeModalText}>
-                      {isPostGameSyncing ? 'Syncing…' : '✕ Close'}
+                      {isPostGameSyncing ? 'Syncing…' : 'Exit'}
                     </Text>
                   </TouchableOpacity>
                 </View>
