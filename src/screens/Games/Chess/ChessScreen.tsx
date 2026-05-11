@@ -66,6 +66,11 @@ const ChessScreen = ({navigation}: any) => {
   // player's entry fee is refunded. This handles real-chess situations where
   // the position can't be won (e.g. perpetual-check stalemates).
   const checkCountRef = useRef(0);
+  // When the player puts the AI in check, we show a 'Check!' modal and want
+  // the AI to wait 3 s after the player dismisses the modal before responding,
+  // so the player can clearly see which AI piece moves next. Until released,
+  // the AI-move useEffect is short-circuited.
+  const [aiMoveBlocked, setAiMoveBlocked] = useState(false);
   const lastPlayerMoveRef = useRef<{ from: Position; to: Position; piece: string; captured?: string } | null>(null);
   useGameEndRefresh(!!(gameState?.isCheckmate || gameState?.isStalemate), 'chess');
   const [showCustomization, setShowCustomization] = useState(false);
@@ -305,7 +310,7 @@ const ChessScreen = ({navigation}: any) => {
 
   useEffect(() => {
     // Computer's turn
-    if (gameState && gameState.currentPlayer === 'black' && !gameState.isCheckmate && !gameState.isStalemate) {
+    if (gameState && gameState.currentPlayer === 'black' && !gameState.isCheckmate && !gameState.isStalemate && !aiMoveBlocked) {
       const boardBefore = gameState.board;
       const timer = setTimeout(() => {
         // Get computer move using current gameState
@@ -378,7 +383,7 @@ const ChessScreen = ({navigation}: any) => {
       }, 1800 + Math.floor(Math.random() * 700));
       return () => clearTimeout(timer);
     }
-  }, [gameState]);
+  }, [gameState, aiMoveBlocked]);
 
   const startGame = (selectedDifficulty: Difficulty) => {
     setDifficulty(selectedDifficulty);
@@ -494,7 +499,25 @@ const ChessScreen = ({navigation}: any) => {
         'Game is a draw.'
       );
     } else if (isCheck) {
-      BisetkaAlert.warning('Check!', `${nextPlayer === 'white' ? 'White' : 'Black'} is in check.`);
+      // Player just put the AI (black) in check. Block the AI from moving
+      // until the user dismisses the modal AND a 3-second pause has elapsed,
+      // so they can see clearly which piece the AI moves in response.
+      const aiToMoveAfterCheck = nextPlayer === 'black';
+      if (aiToMoveAfterCheck) {
+        setAiMoveBlocked(true);
+      }
+      BisetkaAlert.warning(
+        'Check!',
+        `${nextPlayer === 'white' ? 'White' : 'Black'} is in check.`,
+        aiToMoveAfterCheck
+          ? [{
+              text: 'OK',
+              onPress: () => {
+                setTimeout(() => setAiMoveBlocked(false), 3000);
+              },
+            }]
+          : undefined,
+      );
     }
   };
 
@@ -507,6 +530,7 @@ const ChessScreen = ({navigation}: any) => {
     lastPlayerMoveRef.current = null;
     setEntryDeducted(false);
     setPrizeAwarded(false);
+    setAiMoveBlocked(false);
   };
 
   // Difficulty selection screen
