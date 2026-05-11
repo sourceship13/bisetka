@@ -282,7 +282,7 @@ const AppNavigator = () => {
               <Stack.Screen name="Mrotsi" component={MrotsiScreen} options={{ gestureEnabled: false }} />
               <Stack.Screen name="MultiplayerMrotsi" component={MultiplayerMrotsiScreen} options={{ gestureEnabled: false }} />
               <Stack.Screen name="PokerRoom" component={PokerRoomScreen} options={{ gestureEnabled: false }} />
-              <Stack.Screen name="BilliardsGame" component={BilliardsGameScreen} options={{ gestureEnabled: false }} />
+              <Stack.Screen name="BilliardsGame" component={BilliardsGameScreen} options={{ gestureEnabled: false, orientation: 'portrait' }} />
               <Stack.Screen name="Slots" component={SlotsScreen} options={{ gestureEnabled: false }} />
               <Stack.Screen name="Blackjack" component={BlackjackScreen} options={{ gestureEnabled: false }} />
               <Stack.Screen name="GameInfo" component={GameInfoScreen} />
