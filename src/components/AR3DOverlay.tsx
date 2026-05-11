@@ -1172,10 +1172,15 @@ if (BOARD_URI) {
     // Center in XY and position so the top face sits flush at Z=0 of boardGroup.
     model.position.set(-ctr2.x, -ctr2.y, -box2.max.z + 0.001);
     const BOARD_COLOR_OVERRIDE = ${BOARD_COLOR_OVERRIDE_JS};
+    // Identify chess piece meshes inside the board GLB so we only flatten the
+    // board surface (not the pieces). Same regex used for embedded chess piece
+    // extraction below.
+    var _chessPieceRe = /^(King|Queen|Bishop|Knight|Rook|Pawn)_([AB])(?:_[LR])?(?:[._]?\\d+)?$/;
     model.traverse(ch => {
       if (ch.isMesh) {
         ch.receiveShadow = true;
         const mats = Array.isArray(ch.material) ? ch.material : [ch.material];
+        const isChessPieceMesh = HAS_EMBEDDED_CHESS_PIECES && _chessPieceRe.test(ch.name || '');
         mats.forEach(m => {
           if (m) {
             if (BOARD_COLOR_OVERRIDE) {
@@ -1183,6 +1188,12 @@ if (BOARD_URI) {
               m.map = null;
               m.roughness = 0.6;
               m.metalness = 0.1;
+            } else if (HAS_EMBEDDED_CHESS_PIECES && !isChessPieceMesh) {
+              // Chess board surface: force fully matte to eliminate the
+              // bright specular hotspot from the directional key light.
+              m.roughness = 1.0;
+              m.metalness = 0.0;
+              if ('envMapIntensity' in m) m.envMapIntensity = 0.2;
             } else {
               m.roughness = Math.max((m.roughness||0.5)*0.8, 0.35);
             }

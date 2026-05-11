@@ -571,7 +571,7 @@ const ChessScreen = ({navigation}: any) => {
         hideCheckerboard={true}
         boardFixed
         boardFixedZoom={0.75}
-        boardTiltX={0}
+        boardTiltX={0.1745}
         boardY={-0.35}
         tableDist={0.50}
         boardScale={0.8}
