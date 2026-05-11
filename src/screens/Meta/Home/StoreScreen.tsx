@@ -146,13 +146,33 @@ const StoreScreen = ({navigation}: any) => {
           <Text style={styles.backText}>←</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Store</Text>
-        <View style={styles.balanceBadge}>
+        <TouchableOpacity
+          activeOpacity={0.85}
+          onPress={() => navigation.navigate('PointsShop')}
+          style={styles.balanceBadge}>
           <Text style={styles.balanceIcon}>⭐</Text>
           <Text style={styles.balanceText}>
             {(user?.balance ?? 0).toLocaleString()}
           </Text>
-        </View>
+          <Text style={styles.balancePlus}>+</Text>
+        </TouchableOpacity>
       </View>
+
+      {/* Get More Points CTA */}
+      <TouchableOpacity
+        activeOpacity={0.9}
+        onPress={() => navigation.navigate('PointsShop')}
+        style={styles.getPointsBtnWrap}>
+        <LinearGradient
+          colors={['#f59e0b', '#f97316']}
+          start={{x: 0, y: 0}}
+          end={{x: 1, y: 1}}
+          style={styles.getPointsBtn}>
+          <Text style={styles.getPointsIcon}>🪙</Text>
+          <Text style={styles.getPointsText}>Get More Points</Text>
+          <Text style={styles.getPointsArrow}>→</Text>
+        </LinearGradient>
+      </TouchableOpacity>
 
       {/* Category Filters */}
       <ScrollView
@@ -247,6 +267,48 @@ const styles = StyleSheet.create({
     color: '#fbbf24',
     fontSize: 14,
     fontWeight: '700',
+  },
+  balancePlus: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '800',
+    marginLeft: 4,
+    backgroundColor: '#f59e0b',
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    textAlign: 'center',
+    lineHeight: 18,
+    overflow: 'hidden',
+  },
+  getPointsBtnWrap: {
+    marginHorizontal: spacing.md,
+    marginBottom: 12,
+    borderRadius: 14,
+    overflow: 'hidden',
+  },
+  getPointsBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    gap: 10,
+  },
+  getPointsIcon: {
+    fontSize: 20,
+  },
+  getPointsText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '800',
+    letterSpacing: 0.3,
+  },
+  getPointsArrow: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '800',
+    marginLeft: 4,
   },
   categoryBar: {
     paddingHorizontal: spacing.md,
