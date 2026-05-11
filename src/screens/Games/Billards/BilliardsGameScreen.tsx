@@ -2006,39 +2006,108 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
       const dnx = deflectDirX / deflectLen;
       const dny = deflectDirY / deflectLen;
 
-      // Calculate where target ball trajectory hits wall or pocket
-      let targetEndDist = TABLE_WIDTH * 0.5;
-      // Check walls for target ball
+      // Calculate where target ball trajectory ends. Stop at the FIRST of:
+      //   1. Another ball blocks the path (ball-ball collision along ray).
+      //   2. The trajectory enters a pocket (using the same capture
+      //      threshold the physics engine uses → POCKET_RADIUS * 0.85).
+      //   3. A cushion is reached.
+      // Tracking which one wins is what makes the indicator accurate: the
+      // line will only end inside a pocket when the ball will actually drop.
+      let targetEndDist = TABLE_WIDTH * 1.5; // start large; clamp by collisions below
+      // Walls (cushions) — ball center must stay within BALL_RADIUS of edge.
       if (dnx > 0.001) targetEndDist = Math.min(targetEndDist, (TABLE_WIDTH - BALL_RADIUS - hitBall.pos.x) / dnx);
       if (dnx < -0.001) targetEndDist = Math.min(targetEndDist, (BALL_RADIUS - hitBall.pos.x) / dnx);
       if (dny > 0.001) targetEndDist = Math.min(targetEndDist, (TABLE_HEIGHT - BALL_RADIUS - hitBall.pos.y) / dny);
       if (dny < -0.001) targetEndDist = Math.min(targetEndDist, (BALL_RADIUS - hitBall.pos.y) / dny);
+
+      // Other balls in the way (anything that's not cue and not the target).
+      // Use ray-vs-circle of radius (2 * BALL_RADIUS) to find collision distance.
+      for (const ob of balls) {
+        if (ob.pocketed) continue;
+        if (ob.number === hitBall.number) continue;
+        if (ob.type === 'cue') continue;
+        const ocx = ob.pos.x - hitBall.pos.x;
+        const ocy = ob.pos.y - hitBall.pos.y;
+        const obProj = ocx * dnx + ocy * dny;
+        if (obProj <= BALL_RADIUS * 2) continue; // behind or already touching
+        const closestX = hitBall.pos.x + dnx * obProj;
+        const closestY = hitBall.pos.y + dny * obProj;
+        const perpDist = Math.sqrt((closestX - ob.pos.x) ** 2 + (closestY - ob.pos.y) ** 2);
+        const collisionRadius = BALL_RADIUS * 2;
+        if (perpDist < collisionRadius) {
+          const offset = Math.sqrt(collisionRadius * collisionRadius - perpDist * perpDist);
+          const obDist = obProj - offset;
+          if (obDist > 0 && obDist < targetEndDist) targetEndDist = obDist;
+        }
+      }
+
+      // Pockets — using the same capture threshold as checkPockets so the
+      // line only "drops" into a pocket when the ball actually would.
+      const POCKET_CAPTURE = POCKET_RADIUS * 0.85;
+      let pocketHitDist = Infinity;
+      let pocketHitIdx = -1;
+      for (let pi = 0; pi < POCKETS.length; pi++) {
+        const p = POCKETS[pi]!;
+        const tpx = p.x - hitBall.pos.x;
+        const tpy = p.y - hitBall.pos.y;
+        const proj = tpx * dnx + tpy * dny;
+        if (proj <= 0) continue;
+        const cx = hitBall.pos.x + dnx * proj;
+        const cy = hitBall.pos.y + dny * proj;
+        const perp = Math.sqrt((cx - p.x) ** 2 + (cy - p.y) ** 2);
+        if (perp < POCKET_CAPTURE) {
+          // Distance at which ball center first crosses capture radius.
+          const off = Math.sqrt(POCKET_CAPTURE * POCKET_CAPTURE - perp * perp);
+          const dropDist = Math.max(0, proj - off);
+          if (dropDist < pocketHitDist) {
+            pocketHitDist = dropDist;
+            pocketHitIdx = pi;
+          }
+        }
+      }
+      // If a pocket capture happens before any wall/ball collision, end the
+      // trajectory at the pocket center.
+      let willPocket = false;
+      let willPocketIdx = -1;
+      if (pocketHitDist < targetEndDist) {
+        willPocket = true;
+        willPocketIdx = pocketHitIdx;
+        // Snap to pocket center for a clear visual.
+        const p = POCKETS[pocketHitIdx]!;
+        const tpx = p.x - hitBall.pos.x;
+        const tpy = p.y - hitBall.pos.y;
+        targetEndDist = tpx * dnx + tpy * dny;
+      }
       targetEndDist = Math.max(targetEndDist, BALL_RADIUS * 2);
 
       const targetEndX = hitBall.pos.x + dnx * targetEndDist;
       const targetEndY = hitBall.pos.y + dny * targetEndDist;
 
-      // Draw target ball trajectory (yellow/gold line)
+      // Draw target ball trajectory. Use green when the line is going to
+      // pocket — purely cosmetic but matches the highlight below.
       elements.push(...renderLine(
         hitBall.pos.x, hitBall.pos.y,
         targetEndX, targetEndY,
-        'rgba(255,200,0,0.8)', 2, 'target-line',
+        willPocket ? 'rgba(34,197,94,0.9)' : 'rgba(255,200,0,0.8)', 2, 'target-line',
       ));
 
-      // Ghost target ball at end position
-      elements.push(
-        <View key="ghost-target" pointerEvents="none" style={{
-          position: 'absolute',
-          left: targetEndX - BALL_RADIUS,
-          top: targetEndY - BALL_RADIUS,
-          width: BALL_RADIUS * 2,
-          height: BALL_RADIUS * 2,
-          borderRadius: BALL_RADIUS,
-          backgroundColor: 'rgba(255,200,0,0.2)',
-          borderWidth: 1,
-          borderColor: 'rgba(255,200,0,0.5)',
-        }} />,
-      );
+      // Ghost target ball at end position. Hide it when the ball is going
+      // into a pocket (it would visually sit on top of the pocket).
+      if (!willPocket) {
+        elements.push(
+          <View key="ghost-target" pointerEvents="none" style={{
+            position: 'absolute',
+            left: targetEndX - BALL_RADIUS,
+            top: targetEndY - BALL_RADIUS,
+            width: BALL_RADIUS * 2,
+            height: BALL_RADIUS * 2,
+            borderRadius: BALL_RADIUS,
+            backgroundColor: 'rgba(255,200,0,0.2)',
+            borderWidth: 1,
+            borderColor: 'rgba(255,200,0,0.5)',
+          }} />,
+        );
+      }
 
       // === CUE BALL DEFLECTION AFTER HIT ===
       // For equal mass elastic collision: cue ball travels perpendicular to the collision normal
@@ -2071,38 +2140,25 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
         ));
       }
 
-      // === POCKET PROXIMITY INDICATOR ===
-      // Highlight if target ball trajectory passes near a pocket
-      for (let i = 0; i < POCKETS.length; i++) {
-        const pocket = POCKETS[i]!;
-        // Check if trajectory line passes within pocket radius
-        // Vector from ball to pocket
-        const toPocketX = pocket.x - hitBall.pos.x;
-        const toPocketY = pocket.y - hitBall.pos.y;
-        // Project onto deflection direction
-        const projToPocket = toPocketX * dnx + toPocketY * dny;
-        if (projToPocket > 0 && projToPocket < targetEndDist + POCKET_RADIUS) {
-          // Closest point on trajectory to pocket
-          const closestX = hitBall.pos.x + dnx * projToPocket;
-          const closestY = hitBall.pos.y + dny * projToPocket;
-          const distToPocket = Math.sqrt((closestX - pocket.x) ** 2 + (closestY - pocket.y) ** 2);
-          if (distToPocket < POCKET_RADIUS * 1.5) {
-            // Draw pocket highlight
-            elements.push(
-              <View key={`pocket-highlight-${i}`} pointerEvents="none" style={{
-                position: 'absolute',
-                left: pocket.x - POCKET_RADIUS * 1.2,
-                top: pocket.y - POCKET_RADIUS * 1.2,
-                width: POCKET_RADIUS * 2.4,
-                height: POCKET_RADIUS * 2.4,
-                borderRadius: POCKET_RADIUS * 1.2,
-                borderWidth: 2,
-                borderColor: distToPocket < POCKET_RADIUS ? '#22C55E' : '#FBBF24',
-                backgroundColor: distToPocket < POCKET_RADIUS ? 'rgba(34,197,94,0.2)' : 'rgba(251,191,36,0.1)',
-              }} />,
-            );
-          }
-        }
+      // === POCKET INDICATOR ===
+      // Only highlight the pocket the ball will actually drop into. We
+      // already determined this above using the same capture threshold the
+      // physics engine uses, so the highlight matches the actual outcome.
+      if (willPocket && willPocketIdx >= 0) {
+        const pocket = POCKETS[willPocketIdx]!;
+        elements.push(
+          <View key={`pocket-highlight-${willPocketIdx}`} pointerEvents="none" style={{
+            position: 'absolute',
+            left: pocket.x - POCKET_RADIUS * 1.2,
+            top: pocket.y - POCKET_RADIUS * 1.2,
+            width: POCKET_RADIUS * 2.4,
+            height: POCKET_RADIUS * 2.4,
+            borderRadius: POCKET_RADIUS * 1.2,
+            borderWidth: 2,
+            borderColor: '#22C55E',
+            backgroundColor: 'rgba(34,197,94,0.2)',
+          }} />,
+        );
       }
     }
 
