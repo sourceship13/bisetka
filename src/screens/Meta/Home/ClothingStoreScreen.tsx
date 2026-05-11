@@ -1,11 +1,13 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import {
   View,
   Text,
   ScrollView,
+  FlatList,
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
+  InteractionManager,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
@@ -60,38 +62,46 @@ const ClothingStoreScreen: React.FC<any> = ({ navigation }) => {
     () => filterClothingForAvatar(ALL_CLOTHING_ITEMS, avatarGender, avatarBuild) as ClothingItem[],
     [avatarBuild, avatarGender],
   );
-  const [owned, setOwned] = useState<Set<string>>(new Set());
+  // Default-owned items are derived synchronously so the UI can render
+  // immediately on mount without waiting for AsyncStorage. This avoids the
+  // long blank/spinner the user was seeing when opening the store.
+  const defaultOwnedIds = useMemo(
+    () => ALL_CLOTHING_ITEMS.filter(i => i.isDefault).map(i => i.id),
+    [],
+  );
+  const [owned, setOwned] = useState<Set<string>>(
+    () => new Set<string>(defaultOwnedIds),
+  );
   const [equipped, setEquipped] = useState<Record<string, string>>({});
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    (async () => {
-      try {
-        const selectedAvatarId = await AsyncStorage.getItem('selectedAvatarId');
-        setAvatarBuild(getAvatarBuildById(selectedAvatarId));
-        setAvatarGender(getAvatarGenderById(selectedAvatarId));
-
-        const ownedStr = await AsyncStorage.getItem(STORE_OWNED_KEY);
-        const defaults = ALL_CLOTHING_ITEMS.filter(i => i.isDefault).map(
-          i => i.id,
-        );
-        const ownedSet = ownedStr
-          ? new Set<string>(JSON.parse(ownedStr))
-          : new Set<string>(defaults);
-        setOwned(ownedSet);
-
-        const eqStr = await AsyncStorage.getItem(STORE_EQUIPPED_KEY);
-        if (eqStr) setEquipped(JSON.parse(eqStr));
-      } catch {
-        const defaults = ALL_CLOTHING_ITEMS.filter(i => i.isDefault).map(
-          i => i.id,
-        );
-        setOwned(new Set(defaults));
-      } finally {
-        setLoading(false);
-      }
-    })();
+    // Defer the AsyncStorage reads until after the first paint/interactions
+    // so the store screen appears instantly. Persisted state then hydrates in.
+    const task = InteractionManager.runAfterInteractions(() => {
+      (async () => {
+        try {
+          const [selectedAvatarId, ownedStr, eqStr] = await Promise.all([
+            AsyncStorage.getItem('selectedAvatarId'),
+            AsyncStorage.getItem(STORE_OWNED_KEY),
+            AsyncStorage.getItem(STORE_EQUIPPED_KEY),
+          ]);
+          setAvatarBuild(getAvatarBuildById(selectedAvatarId));
+          setAvatarGender(getAvatarGenderById(selectedAvatarId));
+          if (ownedStr) {
+            try {
+              setOwned(new Set<string>(JSON.parse(ownedStr)));
+            } catch {}
+          }
+          if (eqStr) {
+            try {
+              setEquipped(JSON.parse(eqStr));
+            } catch {}
+          }
+        } catch {}
+      })();
+    });
+    return () => task.cancel();
   }, []);
 
   const grouped = useMemo(() => {
@@ -162,82 +172,22 @@ const ClothingStoreScreen: React.FC<any> = ({ navigation }) => {
     setBusyId(null);
   };
 
-  const renderCard = (item: ClothingItem) => {
+  const renderCard = useCallback((item: ClothingItem) => {
     const isOwned = owned.has(item.id);
     const isEquipped = equipped[item.type] === item.id;
     const isBusy = busyId === item.id;
 
     return (
-      <LinearGradient
-        key={item.id}
-        colors={['#7a6cf5', '#5b4ae0']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.card}>
-        <View style={styles.rarityPill}>
-          <Text style={styles.rarityText}>{RARITY_LABEL[item.rarity]}</Text>
-        </View>
-
-        <View style={styles.imageWrap}>
-          <AssetImage
-            source={item.imageUrl}
-            width="100%"
-            height="100%"
-          />
-          {!isOwned && (
-            <View style={styles.lockOverlay}>
-              <View style={styles.lockCircle}>
-                <Icon name="lock" size={28} color="#fff" />
-              </View>
-            </View>
-          )}
-        </View>
-
-        <Text style={styles.itemName} numberOfLines={1}>
-          {item.name}
-        </Text>
-
-        <View style={styles.priceRow}>
-          <Text style={styles.coin}>🪙</Text>
-          <Text style={styles.priceText}>
-            {item.price === 0 ? 'FREE' : `$${(item.price / 100).toFixed(2)}`}
-          </Text>
-        </View>
-
-        {isBusy ? (
-          <View style={[styles.actionBtn, styles.actionBtnGhost]}>
-            <ActivityIndicator color="#fff" />
-          </View>
-        ) : isOwned ? (
-          <TouchableOpacity
-            activeOpacity={0.85}
-            onPress={() => handleUse(item)}
-            style={[
-              styles.actionBtn,
-              styles.actionBtnGhost,
-              isEquipped && styles.actionBtnEquipped,
-            ]}>
-            <Text style={styles.actionTextGhost}>
-              {isEquipped ? 'EQUIPPED' : 'USE'}
-            </Text>
-          </TouchableOpacity>
-        ) : (
-          <TouchableOpacity
-            activeOpacity={0.85}
-            onPress={() => handleBuy(item)}
-            style={styles.actionBtnWrap}>
-            <LinearGradient
-              colors={['#fbbf24', '#f59e0b']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.actionBtnSolid}>
-              <Text style={styles.actionTextSolid}>BUY</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-        )}
-      </LinearGradient>
+      <StoreCard
+        item={item}
+        isOwned={isOwned}
+        isEquipped={isEquipped}
+        isBusy={isBusy}
+        onUse={handleUse}
+        onBuy={handleBuy}
+      />
     );
-  };
+  }, [owned, equipped, busyId]);
 
   return (
     <View style={styles.container}>
@@ -293,33 +243,36 @@ const ClothingStoreScreen: React.FC<any> = ({ navigation }) => {
           </View>
           </View>
 
-          {loading ? (
-            <View style={{ paddingVertical: 60 }}>
-              <ActivityIndicator size="large" color="#7c4dff" />
-            </View>
-          ) : (
-            SECTION_ORDER.map(type => {
-              const list = grouped[type];
-              if (!list || list.length === 0) return null;
-              const meta = SECTION_META[type];
-              return (
-                <View key={type} style={styles.section}>
-                  <View style={styles.sectionHeader}>
-                    <View style={styles.sectionIconCircle}>
-                      <Icon name={meta.icon} size={18} color="#a78bfa" />
-                    </View>
-                    <Text style={styles.sectionTitle}>{meta.label}</Text>
+          {SECTION_ORDER.map(type => {
+            const list = grouped[type];
+            if (!list || list.length === 0) return null;
+            const meta = SECTION_META[type];
+            return (
+              <View key={type} style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <View style={styles.sectionIconCircle}>
+                    <Icon name={meta.icon} size={18} color="#a78bfa" />
                   </View>
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={styles.cardsRow}>
-                    {list.map(renderCard)}
-                  </ScrollView>
+                  <Text style={styles.sectionTitle}>{meta.label}</Text>
                 </View>
-              );
-            })
-          )}
+                {/* Virtualized horizontal list — only ~4 cards mount per
+                    section initially instead of all ~290 across the screen. */}
+                <FlatList
+                  data={list}
+                  keyExtractor={keyExtractor}
+                  renderItem={({ item }) => renderCard(item)}
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.cardsRow}
+                  initialNumToRender={3}
+                  maxToRenderPerBatch={4}
+                  windowSize={3}
+                  removeClippedSubviews
+                  getItemLayout={getItemLayout}
+                />
+              </View>
+            );
+          })}
         </ScrollView>
       </SafeAreaView>
       <BottomTabBar active="Store" />
@@ -328,6 +281,105 @@ const ClothingStoreScreen: React.FC<any> = ({ navigation }) => {
 };
 
 const CARD_W = 168;
+const CARD_GAP = 14;
+
+const keyExtractor = (item: ClothingItem) => item.id;
+const getItemLayout = (_data: any, index: number) => ({
+  length: CARD_W + CARD_GAP,
+  offset: (CARD_W + CARD_GAP) * index,
+  index,
+});
+
+interface StoreCardProps {
+  item: ClothingItem;
+  isOwned: boolean;
+  isEquipped: boolean;
+  isBusy: boolean;
+  onUse: (item: ClothingItem) => void;
+  onBuy: (item: ClothingItem) => void;
+}
+
+const StoreCardImpl: React.FC<StoreCardProps> = ({
+  item,
+  isOwned,
+  isEquipped,
+  isBusy,
+  onUse,
+  onBuy,
+}) => {
+  return (
+    <LinearGradient
+      colors={['#7a6cf5', '#5b4ae0']}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={styles.card}>
+      <View style={styles.rarityPill}>
+        <Text style={styles.rarityText}>{RARITY_LABEL[item.rarity]}</Text>
+      </View>
+
+      <View style={styles.imageWrap}>
+        <AssetImage source={item.imageUrl} width="100%" height="100%" />
+        {!isOwned && (
+          <View style={styles.lockOverlay}>
+            <View style={styles.lockCircle}>
+              <Icon name="lock" size={28} color="#fff" />
+            </View>
+          </View>
+        )}
+      </View>
+
+      <Text style={styles.itemName} numberOfLines={1}>
+        {item.name}
+      </Text>
+
+      <View style={styles.priceRow}>
+        <Text style={styles.coin}>🪙</Text>
+        <Text style={styles.priceText}>
+          {item.price === 0 ? 'FREE' : `$${(item.price / 100).toFixed(2)}`}
+        </Text>
+      </View>
+
+      {isBusy ? (
+        <View style={[styles.actionBtn, styles.actionBtnGhost]}>
+          <ActivityIndicator color="#fff" />
+        </View>
+      ) : isOwned ? (
+        <TouchableOpacity
+          activeOpacity={0.85}
+          onPress={() => onUse(item)}
+          style={[
+            styles.actionBtn,
+            styles.actionBtnGhost,
+            isEquipped && styles.actionBtnEquipped,
+          ]}>
+          <Text style={styles.actionTextGhost}>
+            {isEquipped ? 'EQUIPPED' : 'USE'}
+          </Text>
+        </TouchableOpacity>
+      ) : (
+        <TouchableOpacity
+          activeOpacity={0.85}
+          onPress={() => onBuy(item)}
+          style={styles.actionBtnWrap}>
+          <LinearGradient
+            colors={['#fbbf24', '#f59e0b']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.actionBtnSolid}>
+            <Text style={styles.actionTextSolid}>BUY</Text>
+          </LinearGradient>
+        </TouchableOpacity>
+      )}
+    </LinearGradient>
+  );
+};
+
+const StoreCard = React.memo(StoreCardImpl, (prev, next) =>
+  prev.item.id === next.item.id &&
+  prev.isOwned === next.isOwned &&
+  prev.isEquipped === next.isEquipped &&
+  prev.isBusy === next.isBusy,
+);
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#100828' },
