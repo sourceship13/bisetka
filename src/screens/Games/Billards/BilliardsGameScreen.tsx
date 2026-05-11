@@ -1153,11 +1153,18 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
         if (!firstHit && !cueScratch) isFoul = true;
 
         if (variant === '9-ball') {
-          // 9-ball foul rule: must hit the lowest numbered ball first
+          // 9-ball foul rule: must hit the lowest numbered ball first.
+          // IMPORTANT: compute "lowest" from the table state BEFORE this shot —
+          // i.e. include balls that were pocketed during this shot. Otherwise,
+          // legally pocketing the lowest ball would falsely look like a foul
+          // because the post-shot lowest would be higher than firstHit.number.
           if (firstHit) {
-            const activeBalls = next.filter(b => !b.pocketed && b.number > 0 && b.type !== 'cue');
-            const lowestNum = Math.min(...activeBalls.map(b => b.number));
-            if (firstHit.number !== lowestNum) {
+            const wasOnTable = (b: Ball) =>
+              b.number > 0 && b.type !== 'cue' &&
+              (!b.pocketed || shotPocketed.some(sp => sp.number === b.number));
+            const preShot = next.filter(wasOnTable);
+            const lowestNum = preShot.length > 0 ? Math.min(...preShot.map(b => b.number)) : 0;
+            if (lowestNum > 0 && firstHit.number !== lowestNum) {
               isFoul = true;
               setShotMessage(`Foul! Must hit the ${lowestNum} ball first`);
             }
@@ -1168,9 +1175,15 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
           // any first-hit type is legal on an open table.
           const shooterType = wasPlayerTurn ? playerTypeRef.current : aiTypeRef.current;
           if (firstHit && shooterType && !typesAssignedThisShot) {
-            // If all own balls are pocketed, must hit 8-ball
-            const ownRemaining = next.filter(b => !b.pocketed && b.type === shooterType);
-            if (ownRemaining.length === 0) {
+            // If all own balls were pocketed BEFORE this shot, must hit 8-ball.
+            // Use pre-shot table state (include this-shot pocketed balls) so
+            // legally clearing your last ball this shot doesn't retroactively
+            // turn the same shot into a foul.
+            const ownRemainingBefore = next.filter(b =>
+              b.type === shooterType &&
+              (!b.pocketed || shotPocketed.some(sp => sp.number === b.number))
+            );
+            if (ownRemainingBefore.length === 0) {
               if (firstHit.number !== 8) isFoul = true;
             } else {
               if (firstHit.type !== shooterType) isFoul = true;
