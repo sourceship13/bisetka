@@ -43,6 +43,7 @@ import FontTestScreen from '../screens/Meta/Home/FontTestScreen';
 import AvatarSelectionScreen from '../screens/Meta/Onboarding/AvatarSelectionScreen';
 import ClothingStoreScreen from '../screens/Meta/Home/ClothingStoreScreen';
 import WardrobeScreen from '../screens/Meta/Home/WardrobeScreen';
+import AvatarBuilderScreen from '../screens/Meta/Home/AvatarBuilderScreen';
 import TravelScreen from '../screens/Meta/Home/TravelScreen';
 import GlobalViewScreen from '../screens/Meta/GlobalView/GlobalViewScreen';
 import BisetkaDetailScreen from '../screens/Meta/BisetkaDetail/BisetkaDetailScreen';
@@ -93,6 +94,7 @@ export type RootStackParamList = {
   AvatarSelection: undefined;
   ClothingStore: { initialTab?: 'points' | 'clothing' } | undefined;
   Wardrobe: undefined;
+  AvatarBuilder: undefined;
   Travel: undefined;
   GlobalView: { userId?: string };
   BisetkaDetail: { bisetkaId: string; bisetkaName: string; city: string; country: string };
@@ -178,6 +180,7 @@ const linking: LinkingOptions<RootStackParamList> = {
       AvatarSelection: 'avatar-selection',
       ClothingStore: 'clothing-store',
       Wardrobe: 'wardrobe',
+      AvatarBuilder: 'avatar-builder',
       GlobalView: 'global-view',
     },
   },
@@ -299,6 +302,7 @@ const AppNavigator = () => {
               <Stack.Screen name="AvatarSelection" component={AvatarSelectionScreen} />
               <Stack.Screen name="ClothingStore" component={ClothingStoreScreen} />
               <Stack.Screen name="Wardrobe" component={WardrobeScreen} />
+              <Stack.Screen name="AvatarBuilder" component={AvatarBuilderScreen} />
               <Stack.Screen name="Travel" component={TravelScreen} />
               <Stack.Screen name="GlobalView" component={GlobalViewScreen} />
               <Stack.Screen name="Achievements" component={AchievementsScreen} />

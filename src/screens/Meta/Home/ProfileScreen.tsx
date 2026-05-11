@@ -189,10 +189,7 @@ const ProfileScreen = ({ navigation }: any) => {
               </View>
             </TouchableOpacity>
 
-            <LinearGradient
-              colors={['#6f5cf2', '#3a2f8f']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
+            <View
               style={styles.profileCard}>
               <Text style={styles.profileName}>{displayName}</Text>
               <Text style={styles.profileEmail}>
@@ -203,24 +200,21 @@ const ProfileScreen = ({ navigation }: any) => {
                 onPress={() => navigation.navigate('Settings')}
                 activeOpacity={0.85}
                 style={styles.settingsBtnWrap}>
-                <LinearGradient
-                  colors={['#fbbf24', '#f59e0b']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.settingsBtn}>
+                <View
+                  style={[styles.settingsBtn, { backgroundColor: '#fbbf24' }]}>
                   <Icon name="cog" size={18} color="#fff" />
                   <Text style={styles.settingsBtnText}>Settings</Text>
-                </LinearGradient>
+                </View>
               </TouchableOpacity>
-            </LinearGradient>
+            </View>
           </View>
 
-          {/* Wardrobe / Asset Gallery rows */}
+          {/* Avatar / Asset Gallery rows */}
           <TouchableOpacity
-            onPress={() => navigation.navigate('Wardrobe')}
+            onPress={() => navigation.navigate('AvatarBuilder')}
             activeOpacity={0.7}
             style={styles.linkRow}>
-            <Text style={styles.linkRowText}>My Wardrobe</Text>
+            <Text style={styles.linkRowText}>My Avatar</Text>
             <Icon name="chevron-right" size={26} color="#fff" />
           </TouchableOpacity>
           <View style={styles.linkRowDivider} />
@@ -473,6 +467,7 @@ const styles = StyleSheet.create({
     paddingBottom: 22,
     paddingHorizontal: 18,
     alignItems: 'center',
+    backgroundColor: "#6f5cf2"
   },
   profileName: {
     color: '#fff',
