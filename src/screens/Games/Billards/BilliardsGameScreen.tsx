@@ -59,7 +59,9 @@ const CUE_LENGTH = TABLE_WIDTH * 0.65;
 const CUE_THICK = 3;
 const FRICTION = 0.984;
 const MIN_SPEED = 0.12;
-const MAX_FORCE = 55;
+// Reduced from 55 → 45 (~17% softer max hit) for better control on
+// long shots in 8-ball / 9-ball pool.
+const MAX_FORCE = 45;
 
 type Vec2 = {x: number; y: number};
 

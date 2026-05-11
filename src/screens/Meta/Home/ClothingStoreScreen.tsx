@@ -58,6 +58,7 @@ const ClothingStoreScreen: React.FC<any> = ({ navigation }) => {
   const { user } = useAuth();
   const [avatarBuild, setAvatarBuild] = useState<string | undefined>(undefined);
   const [avatarGender, setAvatarGender] = useState<string | undefined>(undefined);
+  const [genderHydrated, setGenderHydrated] = useState(false);
   const items = useMemo<ClothingItem[]>(
     () => filterClothingForAvatar(ALL_CLOTHING_ITEMS, avatarGender, avatarBuild) as ClothingItem[],
     [avatarBuild, avatarGender],
@@ -75,19 +76,41 @@ const ClothingStoreScreen: React.FC<any> = ({ navigation }) => {
   const [equipped, setEquipped] = useState<Record<string, string>>({});
   const [busyId, setBusyId] = useState<string | null>(null);
 
+  // Resolve the user's avatar gender ASAP (small, fast read) so we never
+  // briefly show clothing of the wrong gender. The larger reads (owned /
+  // equipped) are still deferred for perf.
   useEffect(() => {
-    // Defer the AsyncStorage reads until after the first paint/interactions
-    // so the store screen appears instantly. Persisted state then hydrates in.
+    let cancelled = false;
+    (async () => {
+      try {
+        const selectedAvatarId = await AsyncStorage.getItem('selectedAvatarId');
+        if (cancelled) return;
+        setAvatarBuild(getAvatarBuildById(selectedAvatarId));
+        // Fall back to 'male' if no avatar has been selected so we never
+        // show a mixed-gender catalog. Users can change avatar/gender from
+        // the Avatar Builder screen.
+        setAvatarGender(getAvatarGenderById(selectedAvatarId) ?? 'male');
+      } catch {
+        if (!cancelled) setAvatarGender('male');
+      } finally {
+        if (!cancelled) setGenderHydrated(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    // Defer the heavier AsyncStorage reads (owned/equipped) until after
+    // the first paint/interactions so the screen appears instantly.
     const task = InteractionManager.runAfterInteractions(() => {
       (async () => {
         try {
-          const [selectedAvatarId, ownedStr, eqStr] = await Promise.all([
-            AsyncStorage.getItem('selectedAvatarId'),
+          const [ownedStr, eqStr] = await Promise.all([
             AsyncStorage.getItem(STORE_OWNED_KEY),
             AsyncStorage.getItem(STORE_EQUIPPED_KEY),
           ]);
-          setAvatarBuild(getAvatarBuildById(selectedAvatarId));
-          setAvatarGender(getAvatarGenderById(selectedAvatarId));
           if (ownedStr) {
             try {
               setOwned(new Set<string>(JSON.parse(ownedStr)));
@@ -243,7 +266,11 @@ const ClothingStoreScreen: React.FC<any> = ({ navigation }) => {
           </View>
           </View>
 
-          {SECTION_ORDER.map(type => {
+          {!genderHydrated ? (
+            <View style={{ paddingVertical: 40, alignItems: 'center' }}>
+              <ActivityIndicator color="#7c4dff" />
+            </View>
+          ) : SECTION_ORDER.map(type => {
             const list = grouped[type];
             if (!list || list.length === 0) return null;
             const meta = SECTION_META[type];
