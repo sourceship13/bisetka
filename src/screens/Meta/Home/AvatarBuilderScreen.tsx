@@ -25,6 +25,8 @@ import {
   filterClothingForAvatar,
   getStarterShirtIdForAvatar,
 } from '../../../data/clothingItems';
+import { BisetkaAlert } from '../../../utils/BisetkaAlert';
+import { useAuth } from '../../../libs/hooks/useAuth';
 
 const { width } = Dimensions.get('window');
 const COL_GAP = 12;
@@ -74,15 +76,21 @@ const SELECTED_AVATAR_KEY = 'selectedAvatarId';
 const SELECTED_AVATAR_OBJ_KEY = '@bisetka_selected_avatar';
 const EQUIPPED_KEY = '@bisetka_equipped_clothing';
 const OWNED_KEY = 'ownedClothing';
+const AVATAR_UNLOCKED_KEY = '@bisetka_avatar_change_unlocked';
+const AVATAR_CHANGE_COST = 1000;
 
 type GenderTab = 'male' | 'female';
 
 const AvatarBuilderScreen = ({ navigation }: any) => {
+  const { user, setUser } = useAuth();
   const [loading, setLoading] = useState(true);
   const [selectedAvatarId, setSelectedAvatarId] = useState<string | null>(null);
   const [equipped, setEquipped] = useState<Record<string, AvatarClothing>>({});
   const [ownedIds, setOwnedIds] = useState<Set<string>>(new Set());
   const [genderTab, setGenderTab] = useState<GenderTab>('male');
+  // Whether the user has paid to unlock the avatar selector. Once they pick
+  // an avatar, the grid auto-collapses and re-opening it costs points.
+  const [changeUnlocked, setChangeUnlocked] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -97,6 +105,9 @@ const AvatarBuilderScreen = ({ navigation }: any) => {
       setOwnedIds(
         ownedStr ? new Set<string>(JSON.parse(ownedStr)) : new Set<string>(defaults),
       );
+
+      const unlockedStr = await AsyncStorage.getItem(AVATAR_UNLOCKED_KEY);
+      setChangeUnlocked(unlockedStr === '1');
 
       // Initialize gender tab from selected avatar (if any)
       if (id) {
@@ -165,9 +176,66 @@ const AvatarBuilderScreen = ({ navigation }: any) => {
       setSelectedAvatarId(a.id);
       await AsyncStorage.setItem(SELECTED_AVATAR_KEY, a.id);
       await AsyncStorage.setItem(SELECTED_AVATAR_OBJ_KEY, JSON.stringify(a));
+      // Auto-collapse + re-lock the selector after a pick.
+      setChangeUnlocked(false);
+      await AsyncStorage.setItem(AVATAR_UNLOCKED_KEY, '0');
     } catch (e) {
       console.error('Failed to save avatar selection', e);
     }
+  };
+
+  const persistEquipped = async (next: Record<string, AvatarClothing>) => {
+    setEquipped(next);
+    try {
+      await AsyncStorage.setItem(EQUIPPED_KEY, JSON.stringify(next));
+    } catch (e) {
+      console.error('Failed to save equipped clothing', e);
+    }
+  };
+
+  const toggleEquip = (item: AvatarClothing) => {
+    const slot = item.type as string;
+    const current = equipped[slot];
+    const next = { ...equipped };
+    if (current && current.id === item.id) {
+      // Tap an already-equipped item to remove it.
+      delete next[slot];
+    } else {
+      next[slot] = item;
+    }
+    persistEquipped(next);
+  };
+
+  const requestUnlockAvatarChange = () => {
+    const balance = Math.floor(user?.balance ?? 0);
+    if (balance < AVATAR_CHANGE_COST) {
+      BisetkaAlert.error(
+        'Not Enough Points',
+        `Changing your avatar costs ${AVATAR_CHANGE_COST.toLocaleString()} points.\nYou have ${balance.toLocaleString()}.`,
+      );
+      return;
+    }
+    BisetkaAlert.alert(
+      'Change Avatar?',
+      `Unlocking the avatar selector costs ${AVATAR_CHANGE_COST.toLocaleString()} points.\nYour balance: ${balance.toLocaleString()}.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: `Spend ${AVATAR_CHANGE_COST}`,
+          onPress: async () => {
+            try {
+              if (user) {
+                setUser({ ...user, balance: balance - AVATAR_CHANGE_COST } as any);
+              }
+              setChangeUnlocked(true);
+              await AsyncStorage.setItem(AVATAR_UNLOCKED_KEY, '1');
+            } catch (e) {
+              console.error('Failed to unlock avatar change', e);
+            }
+          },
+        },
+      ],
+    );
   };
 
   if (loading) {
@@ -209,64 +277,93 @@ const AvatarBuilderScreen = ({ navigation }: any) => {
             )}
           </View>
 
-          {/* Gender tabs */}
-          <View style={styles.genderTabs}>
-            {(['male', 'female'] as GenderTab[]).map(g => (
-              <TouchableOpacity
-                key={g}
-                style={[
-                  styles.genderTab,
-                  genderTab === g && styles.genderTabActive,
-                ]}
-                onPress={() => setGenderTab(g)}>
-                <Text
-                  style={[
-                    styles.genderTabText,
-                    genderTab === g && styles.genderTabTextActive,
-                  ]}>
-                  {g === 'male' ? 'Male' : 'Female'}
+          {/* Avatar selector — collapses + locks once an avatar is chosen.
+              Re-opening the picker costs AVATAR_CHANGE_COST points. */}
+          {selectedAvatar && !changeUnlocked ? (
+            <View style={styles.lockedCard}>
+              <View style={styles.lockedThumbWrap}>
+                <BaseAvatarThumb
+                  avatar={selectedAvatar}
+                  width={64}
+                  height={64 * (1750 / 750)}
+                />
+              </View>
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <Text style={styles.lockedTitle}>{selectedAvatar.name}</Text>
+                <Text style={styles.lockedSub}>
+                  Your avatar is locked. Change costs {AVATAR_CHANGE_COST.toLocaleString()} pts.
                 </Text>
+              </View>
+              <TouchableOpacity
+                style={styles.changeButton}
+                onPress={requestUnlockAvatarChange}
+                activeOpacity={0.85}>
+                <Icon name="lock" size={14} color="#fff" />
+                <Text style={styles.changeButtonText}>Change</Text>
               </TouchableOpacity>
-            ))}
-          </View>
+            </View>
+          ) : (
+            <>
+              {/* Gender tabs */}
+              <View style={styles.genderTabs}>
+                {(['male', 'female'] as GenderTab[]).map(g => (
+                  <TouchableOpacity
+                    key={g}
+                    style={[
+                      styles.genderTab,
+                      genderTab === g && styles.genderTabActive,
+                    ]}
+                    onPress={() => setGenderTab(g)}>
+                    <Text
+                      style={[
+                        styles.genderTabText,
+                        genderTab === g && styles.genderTabTextActive,
+                      ]}>
+                      {g === 'male' ? 'Male' : 'Female'}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
 
-          {/* Base avatars */}
-          <Text style={styles.sectionTitle}>Choose a body that looks like you</Text>
-          <Text style={styles.sectionSub}>
-            Pick the avatar that best resembles you in real life.
-          </Text>
-          <View style={styles.avatarGrid}>
-            {baseAvatarsForGender.map(a => {
-              const isSelected = a.id === selectedAvatarId;
-              return (
-                <TouchableOpacity
-                  key={a.id}
-                  style={[
-                    styles.avatarCard,
-                    isSelected && styles.avatarCardSelected,
-                  ]}
-                  onPress={() => pickAvatar(a)}
-                  activeOpacity={0.85}>
-                  <View style={styles.avatarImageWrap}>
-                    <BaseAvatarThumb
-                      avatar={a}
-                      width={AVATAR_CARD_W - 32}
-                      height={(AVATAR_CARD_W - 32) * (1750 / 750)}
-                    />
-                  </View>
-                  <Text style={styles.avatarName}>{a.name}</Text>
-                  {a.description ? (
-                    <Text style={styles.avatarDesc}>{a.description}</Text>
-                  ) : null}
-                  {isSelected && (
-                    <View style={styles.selectedBadge}>
-                      <Icon name="check" size={16} color="#fff" />
-                    </View>
-                  )}
-                </TouchableOpacity>
-              );
-            })}
-          </View>
+              {/* Base avatars */}
+              <Text style={styles.sectionTitle}>Choose a body that looks like you</Text>
+              <Text style={styles.sectionSub}>
+                Pick the avatar that best resembles you in real life.
+              </Text>
+              <View style={styles.avatarGrid}>
+                {baseAvatarsForGender.map(a => {
+                  const isSelected = a.id === selectedAvatarId;
+                  return (
+                    <TouchableOpacity
+                      key={a.id}
+                      style={[
+                        styles.avatarCard,
+                        isSelected && styles.avatarCardSelected,
+                      ]}
+                      onPress={() => pickAvatar(a)}
+                      activeOpacity={0.85}>
+                      <View style={styles.avatarImageWrap}>
+                        <BaseAvatarThumb
+                          avatar={a}
+                          width={AVATAR_CARD_W - 32}
+                          height={(AVATAR_CARD_W - 32) * (1750 / 750)}
+                        />
+                      </View>
+                      <Text style={styles.avatarName}>{a.name}</Text>
+                      {a.description ? (
+                        <Text style={styles.avatarDesc}>{a.description}</Text>
+                      ) : null}
+                      {isSelected && (
+                        <View style={styles.selectedBadge}>
+                          <Icon name="check" size={16} color="#fff" />
+                        </View>
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </>
+          )}
 
           {/* My Clothes */}
           <View style={styles.clothesHeaderRow}>
@@ -285,16 +382,31 @@ const AvatarBuilderScreen = ({ navigation }: any) => {
             </View>
           ) : (
             <View style={styles.clothesGrid}>
-              {ownedItems.map(item => (
-                <View key={item.id} style={styles.clothesCard}>
-                  <View style={styles.clothesImageWrap}>
-                    <AssetImage source={item.imageUrl} width="100%" height="100%" />
-                  </View>
-                  <Text style={styles.clothesName} numberOfLines={1}>
-                    {item.name}
-                  </Text>
-                </View>
-              ))}
+              {ownedItems.map(item => {
+                const isEquipped = equipped[item.type as string]?.id === item.id;
+                return (
+                  <TouchableOpacity
+                    key={item.id}
+                    style={[
+                      styles.clothesCard,
+                      isEquipped && styles.clothesCardEquipped,
+                    ]}
+                    onPress={() => toggleEquip(item)}
+                    activeOpacity={0.85}>
+                    <View style={styles.clothesImageWrap}>
+                      <AssetImage source={item.imageUrl} width="100%" height="100%" />
+                    </View>
+                    <Text style={styles.clothesName} numberOfLines={1}>
+                      {item.name}
+                    </Text>
+                    {isEquipped && (
+                      <View style={styles.equippedBadge}>
+                        <Icon name="check" size={12} color="#fff" />
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
             </View>
           )}
 
@@ -489,6 +601,66 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 8,
     alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  clothesCardEquipped: {
+    borderColor: '#10b981',
+    backgroundColor: 'rgba(16,185,129,0.15)',
+  },
+  equippedBadge: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#10b981',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  lockedCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderRadius: 16,
+    padding: 12,
+    marginBottom: 28,
+    borderWidth: 1,
+    borderColor: 'rgba(99,102,241,0.5)',
+  },
+  lockedThumbWrap: {
+    width: 64,
+    height: 96,
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  lockedTitle: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  lockedSub: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 12,
+    marginTop: 2,
+  },
+  changeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#4f46e5',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  changeButtonText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 13,
   },
   clothesImageWrap: {
     width: '100%',
