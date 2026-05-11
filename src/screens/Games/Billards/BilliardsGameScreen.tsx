@@ -197,7 +197,9 @@ function chooseAIShot(
   if (!cue || legalTargets.length === 0) return null;
 
   const candidates: AIShot[] = [];
-  const MAX_CUT_DEG = difficulty === 'hard' ? 78 : difficulty === 'medium' ? 70 : 60;
+  // Wider cut-angle tolerance lets the AI find more makeable shots,
+  // especially on cluttered tables where straight-on shots are rare.
+  const MAX_CUT_DEG = difficulty === 'hard' ? 84 : difficulty === 'medium' ? 78 : 70;
 
   for (const target of legalTargets) {
     for (const pocket of POCKETS) {
@@ -235,11 +237,13 @@ function chooseAIShot(
       const targetBlocked = pathBlocked(target.pos, pocket, allBalls, [target.number]);
       if (cueBlocked || targetBlocked) continue;
 
-      // Score: prefer small cut angle and short total travel.
+      // Score: prefer small cut angle, short total travel, and balls that
+      // are already close to a pocket (high-percentage shots).
       const totalDist = cgLen + tpLen;
-      const cutScore = 1 - cutDeg / 90; // 1 at straight-on, 0 at 90°
+      const cutScore = 1 - cutDeg / 90;            // 1 at straight-on, 0 at 90°
       const distScore = 1 - Math.min(1, totalDist / (TABLE_WIDTH + TABLE_HEIGHT));
-      const score = cutScore * 1.5 + distScore * 0.5;
+      const targetToPocketScore = 1 - Math.min(1, tpLen / (TABLE_WIDTH * 0.6));
+      const score = cutScore * 1.8 + distScore * 0.5 + targetToPocketScore * 0.7;
 
       candidates.push({
         vx: cgNx,
@@ -276,8 +280,10 @@ function chooseAIShot(
 
   candidates.sort((a, b) => b.score - a.score);
 
-  // Easier difficulties pick from a wider top-N to feel more human.
-  const topN = difficulty === 'hard' ? 1 : difficulty === 'medium' ? 3 : 5;
+  // Easier difficulties pick from a wider top-N to feel more human; hard
+  // sticks to the very best shot. Reduced from previous values so even
+  // medium/easy are noticeably more accurate at picking strong shots.
+  const topN = difficulty === 'hard' ? 1 : difficulty === 'medium' ? 2 : 3;
   const pick = candidates[Math.floor(Math.random() * Math.min(topN, candidates.length))]!;
   return pick;
 }
@@ -1390,7 +1396,9 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
         // closest legal target if no clean pocket shot exists.
         const shot = chooseAIShot(cue, targets, ballsRef.current, difficulty);
         if (shot) best = shot.target;
-        const jitter = difficulty === 'easy' ? 0.16 : difficulty === 'medium' ? 0.06 : 0.018;
+        // Aim jitter reduced ~60% so the AI actually pots the shots it picks.
+        // Was: easy 0.16, medium 0.06, hard 0.018.
+        const jitter = difficulty === 'easy' ? 0.064 : difficulty === 'medium' ? 0.024 : 0.007;
 
         // Power scales with shot distance so long shots actually reach.
         // Hard AI uses higher power for better cut shots; easier AI is softer.
@@ -2327,7 +2335,15 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
         <GameOverOverlay
           isWin={winner === 'player'}
           isMultiplayer={isMultiplayer}
-          onNewGame={handleNewGame}
+          onNewGame={() => {
+            // Take the user back to the game-info screen for the same
+            // variant (8-ball vs 9-ball), with the previous mode (AI vs
+            // multiplayer) preselected so it auto-launches that mode.
+            navigation.replace('GameInfo' as never, {
+              gameType: variant === '9-ball' ? '9-ball' : 'billiards',
+              preferredMode: isMultiplayer ? 'random' : 'ai',
+            } as never);
+          }}
           onGoBack={() => navigation.navigate('Home' as never)}
         />
       )}
