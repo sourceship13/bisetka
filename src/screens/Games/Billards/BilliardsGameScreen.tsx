@@ -1117,9 +1117,14 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
         }
 
         // --- Type assignment (8-ball only: first non-cue, non-8 ball pocketed decides types) ---
+        // Track whether types were assigned during THIS shot so the foul check
+        // below doesn't incorrectly penalize an open-table shot for hitting
+        // the "wrong" type first.
+        let typesAssignedThisShot = false;
         if (variant === '8-ball' && !playerTypeRef.current && !aiTypeRef.current) {
           const firstLegit = shotPocketed.find(b => b.type === 'solid' || b.type === 'stripe');
           if (firstLegit && !cueScratch) {
+            typesAssignedThisShot = true;
             const pocketedType = firstLegit.type as 'solid' | 'stripe';
             const otherType = pocketedType === 'solid' ? 'stripe' : 'solid';
             if (wasPlayerTurn) {
@@ -1158,9 +1163,11 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
             }
           }
         } else {
-          // 8-ball foul rule: first ball hit was not the shooter's type (if types assigned)
+          // 8-ball foul rule: first ball hit was not the shooter's type (if types assigned).
+          // Skip this check when the table was just "opened" by this shot —
+          // any first-hit type is legal on an open table.
           const shooterType = wasPlayerTurn ? playerTypeRef.current : aiTypeRef.current;
-          if (firstHit && shooterType) {
+          if (firstHit && shooterType && !typesAssignedThisShot) {
             // If all own balls are pocketed, must hit 8-ball
             const ownRemaining = next.filter(b => !b.pocketed && b.type === shooterType);
             if (ownRemaining.length === 0) {
@@ -1172,15 +1179,25 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
         }
 
         // --- Determine if shooter keeps their turn ---
+        // Rule (both variants): shooter continues as long as they legally
+        // pocketed at least one object ball on the shot.
+        // 8-ball: the pocketed ball(s) must include one of the shooter's own
+        //   group (or any non-cue/non-8 ball while the table is still "open"
+        //   and types haven't been assigned).
+        // 9-ball: any legally pocketed object ball lets the shooter continue.
         let keepTurn = false;
         if (variant === '8-ball') {
-          // 8-ball: keep turn if you pocketed one of your own balls
           const shooterType = wasPlayerTurn ? playerTypeRef.current : aiTypeRef.current;
           const ownPocketed = shotPocketed.filter(b => b.type === shooterType);
-          const madeOwnBall = shooterType ? ownPocketed.length > 0 : shotPocketed.some(b => b.type !== 'cue' && b.type !== 'eight');
+          const madeOwnBall = shooterType
+            ? ownPocketed.length > 0
+            : shotPocketed.some(b => b.type !== 'cue' && b.type !== 'eight');
           keepTurn = !isFoul && madeOwnBall;
+        } else {
+          // 9-ball: pocketing any non-cue ball legally lets you shoot again.
+          const madeBall = shotPocketed.some(b => b.type !== 'cue');
+          keepTurn = !isFoul && madeBall;
         }
-        // 9-ball: turns always alternate (no shoot-again)
 
         if (isFoul) {
           if (cueScratch) {
@@ -2093,10 +2110,6 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
         <View>
           <GameToolbarControls
             buttons={[
-              // { icon: showBlur ? '🌫️' : '✨', onPress: () => setShowBlur(!showBlur) },
-              { icon: showBackground ? '🖼️' : '🔲', onPress: () => setShowBackground(!showBackground) },
-              { icon: arEnabled ? '🥽' : '🎮', onPress: () => setArEnabled(!arEnabled) },
-              { icon: showMusicPlayer ? '🎵' : '🎶', onPress: () => setShowMusicPlayer(s => !s) },
               ...(isMultiplayer && !gameOver ? [{ icon: '✏️', onPress: () => setShowRoomNameModal(true) }] : []),
             ]}
           />
@@ -2339,10 +2352,10 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
             // Take the user back to the game-info screen for the same
             // variant (8-ball vs 9-ball), with the previous mode (AI vs
             // multiplayer) preselected so it auto-launches that mode.
-            navigation.replace('GameInfo' as never, {
+            (navigation as any).replace('GameInfo', {
               gameType: variant === '9-ball' ? '9-ball' : 'billiards',
               preferredMode: isMultiplayer ? 'random' : 'ai',
-            } as never);
+            });
           }}
           onGoBack={() => navigation.navigate('Home' as never)}
         />
