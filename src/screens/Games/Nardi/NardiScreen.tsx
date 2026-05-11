@@ -2131,35 +2131,9 @@ const NardiScreen = ({ navigation, route }: any) => {
             )}
           </View>
 
-          {gameState.winner && (
-            <View style={styles.winOverlay}>
-              <View style={[styles.winCard, gameState.winner === myNardiColor ? styles.winCardWin : styles.winCardLose]}>
-                <Text style={styles.winTitle}>
-                  {gameState.winner === myNardiColor ? '🏆 You Win!' : (isMultiplayer ? '💀 Opponent Wins' : '💀 AI Wins')}
-                </Text>
-                {gameEntryInfo && (
-                  <Text style={[
-                    styles.winPoints,
-                    gameState.winner === myNardiColor ? styles.winPointsPositive : styles.winPointsNegative,
-                  ]}>
-                    {gameState.winner === myNardiColor
-                      ? `+${gameEntryInfo.winPrize} points`
-                      : `-${gameEntryInfo.entryCost} points`}
-                  </Text>
-                )}
-                <TouchableOpacity
-                  style={styles.newGameBtn}
-                  onPress={() => {
-                    navigation.replace('GameInfo', {
-                      gameType: 'nardi',
-                      preferredMode: isMultiplayer ? 'random' : 'ai',
-                    });
-                  }}>
-                  <Text style={styles.newGameText}>Play Again</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          )}
+          {/* Win overlay rendered at the root of the component (after dice
+              overlays) so it sits on top of everything and blocks touches.
+              See block at the bottom of the return tree. */}
         </SafeAreaView>
       </View>
 
@@ -2298,6 +2272,46 @@ const NardiScreen = ({ navigation, route }: any) => {
               </Text>
             </View>
           </Animated.View>
+        </View>
+      )}
+
+      {/* Game-over win overlay rendered LAST so it sits on top of every
+          floating overlay (dice tray, AR pan responder, etc.) and absorbs
+          all touches except the buttons inside it. */}
+      {gameState.winner && (
+        <View style={styles.winOverlay}>
+          <View style={[styles.winCard, gameState.winner === myNardiColor ? styles.winCardWin : styles.winCardLose]}>
+            <Text style={styles.winTitle}>
+              {gameState.winner === myNardiColor ? '🏆 You Win!' : (isMultiplayer ? '💀 Opponent Wins' : '💀 AI Wins')}
+            </Text>
+            {gameEntryInfo && (
+              <Text style={[
+                styles.winPoints,
+                gameState.winner === myNardiColor ? styles.winPointsPositive : styles.winPointsNegative,
+              ]}>
+                {gameState.winner === myNardiColor
+                  ? `+${gameEntryInfo.winPrize} points`
+                  : `-${gameEntryInfo.entryCost} points`}
+              </Text>
+            )}
+            <TouchableOpacity
+              style={styles.newGameBtn}
+              onPress={() => {
+                navigation.replace('GameInfo', {
+                  gameType: 'nardi',
+                  preferredMode: isMultiplayer ? 'random' : 'ai',
+                });
+              }}>
+              <Text style={styles.newGameText}>Play Again</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.exitBtn}
+              onPress={() => {
+                navigation.navigate('Home' as never);
+              }}>
+              <Text style={styles.exitBtnText}>Exit</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       )}
     </View>
@@ -2501,6 +2515,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(0,0,0,0.7)',
+    zIndex: 9999,
+    elevation: 30,
   },
   winCard: {
     borderRadius: 20,
@@ -2536,6 +2552,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
     paddingVertical: 14,
     borderRadius: 12,
+  },
+  exitBtn: {
+    marginTop: 12,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    paddingHorizontal: 32,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.6)',
+  },
+  exitBtnText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#fff',
+    textAlign: 'center',
   },
   newGameText: {
     fontSize: 16,

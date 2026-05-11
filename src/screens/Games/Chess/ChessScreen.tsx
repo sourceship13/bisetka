@@ -689,6 +689,12 @@ const ChessScreen = ({navigation}: any) => {
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
               <Text style={styles.playAgainText}>Play Again</Text>
             </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.exitButton}
+              onPress={() => navigation.navigate('Home' as never)}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <Text style={styles.exitButtonText}>Exit</Text>
+            </TouchableOpacity>
           </View>
         </View>
       )}
@@ -944,6 +950,19 @@ const styles = StyleSheet.create({
   playAgainText: {
     fontSize: 18,
     fontWeight: 'bold',
+    color: '#1C1917',
+  },
+  exitButton: {
+    marginTop: 12,
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 32,
+    borderWidth: 1.5,
+    borderColor: '#1C1917',
+  },
+  exitButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
     color: '#1C1917',
   },
   panelBackdrop: {

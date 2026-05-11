@@ -2328,7 +2328,7 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
           isWin={winner === 'player'}
           isMultiplayer={isMultiplayer}
           onNewGame={handleNewGame}
-          onGoBack={() => navigation.goBack()}
+          onGoBack={() => navigation.navigate('Home' as never)}
         />
       )}
 
