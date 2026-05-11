@@ -58,7 +58,8 @@ const DMChatScreen: React.FC<Props> = ({ route, navigation }) => {
                   {Math.floor(user?.balance || 0).toLocaleString()}
                 </Text>
                 <View style={styles.pointsPlus}>
-                  <Icon name="plus" size={14} color="#fff" />
+                  <Icon name="plus" size={12} color="#fff" />
+                  <Text style={styles.pointsPlusText}>Get</Text>
                 </View>
               </View>
             </TouchableOpacity>
@@ -156,14 +157,21 @@ const styles = StyleSheet.create({
   pointsCoin: { fontSize: 16 },
   pointsAmount: { color: '#fff', fontWeight: '800', fontSize: 14 },
   pointsPlus: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 1.5,
-    borderColor: '#fff',
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: 2,
+    paddingHorizontal: 8,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#f59e0b',
+    marginLeft: 4,
+    gap: 2,
+  },
+  pointsPlusText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.3,
   },
   globeBtn: {
     width: 36,
