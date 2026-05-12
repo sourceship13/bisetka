@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Dimensions,
   ActivityIndicator,
+  DeviceEventEmitter,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
@@ -187,6 +188,7 @@ const AvatarBuilderScreen = ({ navigation }: any) => {
       // Auto-collapse + re-lock the selector after a pick.
       setChangeUnlocked(false);
       await AsyncStorage.setItem(AVATAR_UNLOCKED_KEY, '0');
+      DeviceEventEmitter.emit('bisetka:avatarUpdated');
     } catch (e) {
       console.error('Failed to save avatar selection', e);
     }
@@ -196,6 +198,7 @@ const AvatarBuilderScreen = ({ navigation }: any) => {
     setEquipped(next);
     try {
       await AsyncStorage.setItem(EQUIPPED_KEY, JSON.stringify(next));
+      DeviceEventEmitter.emit('bisetka:avatarUpdated');
     } catch (e) {
       console.error('Failed to save equipped clothing', e);
     }
