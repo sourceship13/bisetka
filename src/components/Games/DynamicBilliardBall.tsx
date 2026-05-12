@@ -83,34 +83,30 @@ const DynamicBilliardBall: React.FC<DynamicBilliardBallProps> = ({
   const data = BILLIARD_BALL_DATA[number] ?? BILLIARD_BALL_DATA[0];
   const { color, isStripe, type } = data;
 
-  // ── Rolling projection ─────────────────────────────────────────────────
-  // Model the ball as a sphere with a single colored equatorial band and a
-  // number decal at the "north pole". The pole-axis is fixed perpendicular
-  // to the velocity direction (so the band always wraps the ball
-  // perpendicular to motion). As the ball rolls forward by `rotation`
-  // degrees, the polar axis tilts within the motion plane.
+  // ── Stripe band rolling model (side-view convention) ───────────────────
+  // Pool balls are rendered "side-view": stripe is a horizontal band across
+  // the middle, label sits on the band. As the ball rolls forward, the band
+  // and label scroll across the visible face of the ball — when one edge
+  // disappears off the top, a second copy of the band wraps in from the
+  // bottom, so the rolling looks continuous (no popping/recentering).
   //
-  // In a frame rotated to align the X axis with motion:
-  //   north pole 3D position: (sin(rot)*r, 0, cos(rot)*r)
-  //   project to screen (drop Z): X = sin(rot)*r, foreshorten by |cos(rot)|
-  //
-  // The equatorial band is perpendicular to the polar axis; from above, its
-  // visible top crossing appears as a band perpendicular to the motion axis
-  // (i.e. spanning the full Y extent), centered at X = sin(rot)*r and with
-  // width along motion X = |cos(rot)| * stripeBandH. As the band rolls past
-  // the front edge of the ball the OPPOSITE crossing of the same band
-  // becomes visible at the back edge — so we render two band copies offset
-  // by ±2r and let the circular clip mask them off.
+  // The whole decal group (band + label) is rotated by `velAngle` so the
+  // scrolling direction matches the actual motion direction. Once the ball
+  // stops, both `velAngle` and `rotation` are preserved by the physics
+  // engine, so the stripe rests in whatever orientation it landed.
+  const stripeBandH = r * 0.78;             // band thickness
+  // Convert rolling angle → linear travel along the ball surface, then to
+  // the projected on-screen offset within the visible face. A full 360° of
+  // roll moves the decal 2r down (one full circumference's worth) — but we
+  // need the projected displacement, which is r * sin(rot). To make it
+  // wrap seamlessly we use sin of the wrapped angle and render a second
+  // band copy 2r away in the opposite direction.
   const rotRad = (rotation * Math.PI) / 180;
-  const sRot = Math.sin(rotRad);
-  const cRot = Math.cos(rotRad);
-  const stripeBandH = r * 0.78;          // band thickness when seen flat
-  const bandCenterX = sRot * r;           // top crossing along motion axis
-  const bandWidthX = Math.abs(cRot) * stripeBandH;
-  // Number label sits at the same point as the band center; only visible
-  // when the north pole is on the front-facing hemisphere (cos > 0).
-  const labelOnFront = cRot > 0;
-  const labelScaleX = Math.max(0.05, Math.abs(cRot)); // foreshortening
+  const bandOffset = Math.sin(rotRad) * r;  // -r .. +r
+  // The "front-of-ball" hemisphere is when cos(rot) > 0; that's when the
+  // decal printed on the ball is currently facing the viewer. When we're
+  // looking at the back hemisphere the label should not be drawn.
+  const labelOnFront = Math.cos(rotRad) > 0;
 
   // Label circle size and font
   const labelR = r * 0.38;
@@ -214,36 +210,36 @@ const DynamicBilliardBall: React.FC<DynamicBilliardBallProps> = ({
         )}
 
         {/* ─── DECAL GROUP (stripe band + number label) ───
-            Rotated to align X with motion direction so the stripe band wraps
-            perpendicular to the velocity vector. */}
-        <G transform={`rotate(${velAngle} ${cx} ${cy})`}>
-          {/* Stripe band — render two copies offset by ±2r so the band
-              wraps around the back of the ball seamlessly as it rolls. */}
-          {isStripe && bandWidthX > 0.5 && (
+            Rotated by velAngle so "rolling forward" matches actual motion
+            direction (e.g. ball moving right rolls along its X axis). When
+            stationary, velAngle is whatever the ball was last moving at,
+            so the stripe rests in a natural orientation. */}
+        <G transform={`rotate(${velAngle - 90} ${cx} ${cy})`}>
+          {/* Stripe band — drawn as full-width horizontal band, plus a
+              second copy 2r away so it wraps seamlessly during rolling. */}
+          {isStripe && (
             <>
               <Rect
-                x={cx + bandCenterX - bandWidthX / 2}
-                y={cy - r}
-                width={bandWidthX}
-                height={2 * r}
+                x={cx - r}
+                y={cy + bandOffset - stripeBandH / 2}
+                width={2 * r}
+                height={stripeBandH}
                 fill={`url(#${uid}_bodyGrad)`}
               />
               <Rect
-                x={cx + bandCenterX - (sRot >= 0 ? 2 * r : -2 * r) - bandWidthX / 2}
-                y={cy - r}
-                width={bandWidthX}
-                height={2 * r}
+                x={cx - r}
+                y={cy + bandOffset + (bandOffset >= 0 ? -2 * r : 2 * r) - stripeBandH / 2}
+                width={2 * r}
+                height={stripeBandH}
                 fill={`url(#${uid}_bodyGrad)`}
               />
             </>
           )}
 
-          {/* Number label — sits on the north pole; only visible when that
-              pole is on the front hemisphere. Foreshortened along motion
-              axis as the ball tilts. */}
+          {/* Number label — sits on the band, scrolls with the ball, only
+              visible while the decal is on the front-facing hemisphere. */}
           {type !== 'cue' && labelOnFront && (
-            <G
-              transform={`translate(${cx + bandCenterX} ${cy}) scale(${labelScaleX} 1) rotate(${-velAngle})`}>
+            <G transform={`translate(${cx} ${cy + bandOffset}) rotate(${90 - velAngle})`}>
               <Circle cx={0} cy={0} r={labelR} fill="white" opacity={0.95} />
               <SvgText
                 x={0}
