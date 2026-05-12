@@ -40,7 +40,7 @@ const SLOT_REGION: Record<
   // Shorts
   shorts:  { top: 0.52,  left: 0.28,    width: 0.44,    height: 0.24    },
   // Shoes
-  shoes:   { top: 0.88,  left: 0.24,    width: 0.52,    height: 0.12    },
+  shoes:   { top: 0.88,  left: 0.22,    width: 0.52,    height: 0.12    },
   // Hair sits on head
   hair:    { top: 0.0,   left: 0.16,    width: 0.67,    height: 0.145    },
   // Hat sits above the hair

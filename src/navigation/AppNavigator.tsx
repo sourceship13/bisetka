@@ -63,7 +63,7 @@ export type RootStackParamList = {
   Home: undefined;
   GameSelection: undefined;
   Blot: undefined;
-  MultiplayerBlot: { userId: string; mode?: 'ai' | 'menu' | 'private-create' | 'private-join' | 'random'; difficulty?: 'easy' | 'medium' | 'hard'; joinCode?: string };
+  MultiplayerBlot: { userId: string; mode?: 'ai' | 'menu' | 'private-create' | 'private-join' | 'random'; difficulty?: 'easy' | 'medium' | 'hard'; joinCode?: string; teamMode?: 'hybrid' | 'full-multiplayer'; allowReplaceAI?: boolean };
   BaazarBlot: undefined;
   MultiplayerBaazarBlot: { userId: string };
   Nardi: undefined;
