@@ -21,6 +21,9 @@ import apiService from '../../../services/api.service';
 import {colors} from '../../../theme/colors';
 import {useAuth} from '../../../libs/hooks/useAuth';
 import AVATARS, { resolveAvatar } from '../../../utils/avatars';
+import AvatarPreview from '../../../components/AvatarPreview';
+import { ALL_BASE_AVATARS } from '../../../data/clothingItems';
+import type { BaseAvatar } from '../../../types/avatar2d';
 
 const BisetkaLogo = require('../../../../assets/imgs/bisetka-logo.png');
 
@@ -34,6 +37,7 @@ interface Slide {
   gradient: [string, string];
   isNotificationSlide?: boolean;
   isUsernameSlide?: boolean;
+  isGenderSlide?: boolean;
   isAvatarSlide?: boolean;
 }
 
@@ -82,6 +86,15 @@ const USERNAME_SLIDE: Slide = {
   isUsernameSlide: true,
 };
 
+const GENDER_SLIDE: Slide = {
+  id: '5b',
+  title: 'Pick Your Gender',
+  description: 'This locks the avatar set you can choose from. You can’t change it later.',
+  emoji: '🚹',
+  gradient: ['#a18cd1', '#fbc2eb'],
+  isGenderSlide: true,
+};
+
 const AVATAR_SLIDE: Slide = {
   id: '6',
   title: 'Pick Your Avatar',
@@ -92,6 +105,9 @@ const AVATAR_SLIDE: Slide = {
 };
 
 const ONBOARDING_COMPLETE_KEY = '@bisetka_onboarding_complete';
+const GENDER_KEY = '@bisetka_gender';
+const SELECTED_AVATAR_KEY = 'selectedAvatarId';
+const SELECTED_AVATAR_OBJ_KEY = '@bisetka_selected_avatar';
 
 const OnboardingScreen: React.FC<{navigation: any; route?: any}> = ({navigation}) => {
   const {user, setUser} = useAuth();
@@ -105,7 +121,7 @@ const OnboardingScreen: React.FC<{navigation: any; route?: any}> = ({navigation}
     user?.username?.startsWith('user_')
   );
   const slides = needsUsernameSelection 
-    ? [...BASE_SLIDES, USERNAME_SLIDE, AVATAR_SLIDE] 
+    ? [...BASE_SLIDES, USERNAME_SLIDE, GENDER_SLIDE, AVATAR_SLIDE] 
     : BASE_SLIDES;
 
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -118,8 +134,9 @@ const OnboardingScreen: React.FC<{navigation: any; route?: any}> = ({navigation}
   const [usernameMessage, setUsernameMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
   
-  // Avatar slide state
-  const [selectedAvatar, setSelectedAvatar] = useState<string | null>(null);
+  // Gender + avatar slide state
+  const [selectedGender, setSelectedGender] = useState<'male' | 'female' | null>(null);
+  const [selectedAvatarId, setSelectedAvatarId] = useState<string | null>(null);
 
   const flatListRef = useRef<FlatList>(null);
   const scrollX = useRef(new Animated.Value(0)).current;
@@ -149,9 +166,12 @@ const OnboardingScreen: React.FC<{navigation: any; route?: any}> = ({navigation}
   }, [username, needsUsernameSelection]);
 
   const handleNext = () => {
-    // If on username slide, don't allow advancing without a valid username
+    // Block forward navigation when the current slide isn't satisfied.
     const currentSlide = slides[currentIndex];
     if (currentSlide?.isUsernameSlide && !available) {
+      return;
+    }
+    if (currentSlide?.isGenderSlide && !selectedGender) {
       return;
     }
     
@@ -190,14 +210,27 @@ const OnboardingScreen: React.FC<{navigation: any; route?: any}> = ({navigation}
   const handleGetStarted = async () => {
     if (needsUsernameSelection) {
       if (!available) return;
-      if (!selectedAvatar) return; // Must select avatar
+      if (!selectedGender) return; // Must pick gender
+      if (!selectedAvatarId) return; // Must pick avatar
       try {
         setSubmitting(true);
         // Update username
         const response = await apiService.updateUsername(username);
-        // Update avatar
-        await apiService.updateAvatar(selectedAvatar);
-        const updatedUser = {...response.user, needsUsernameSelection: false, avatar_url: selectedAvatar};
+        // Persist gender + avatar choice locally so the rest of the app picks it up.
+        await AsyncStorage.setItem(GENDER_KEY, selectedGender);
+        await AsyncStorage.setItem(SELECTED_AVATAR_KEY, selectedAvatarId);
+        const chosen = ALL_BASE_AVATARS.find(a => a.id === selectedAvatarId);
+        if (chosen) {
+          await AsyncStorage.setItem(SELECTED_AVATAR_OBJ_KEY, JSON.stringify(chosen));
+        }
+        // Mirror the avatar id to the user's avatar_url server-side so other
+        // clients/devices can resolve the choice via UserAvatar.
+        try {
+          await apiService.updateAvatar(selectedAvatarId);
+        } catch (avatarErr) {
+          console.warn('Failed to persist avatar to server:', avatarErr);
+        }
+        const updatedUser = {...response.user, needsUsernameSelection: false, avatar_url: selectedAvatarId};
         setUser(updatedUser);
       } catch (error: any) {
         setUsernameMessage(error.message || 'Failed to save profile. Try again.');
@@ -334,27 +367,59 @@ const OnboardingScreen: React.FC<{navigation: any; route?: any}> = ({navigation}
           </View>
         )}
 
+        {/* Gender selection on gender slide */}
+        {item.isGenderSlide && (
+          <View style={slideStyles.genderContainer}>
+            {(['male', 'female'] as const).map(g => (
+              <TouchableOpacity
+                key={g}
+                style={[
+                  slideStyles.genderCard,
+                  selectedGender === g && slideStyles.genderCardSelected,
+                ]}
+                onPress={() => {
+                  setSelectedGender(g);
+                  // Reset any previously chosen avatar so it matches new gender.
+                  setSelectedAvatarId(null);
+                }}
+                activeOpacity={0.85}>
+                <Text style={slideStyles.genderEmoji}>{g === 'male' ? '👨' : '👩'}</Text>
+                <Text style={slideStyles.genderLabel}>{g === 'male' ? 'Male' : 'Female'}</Text>
+                {selectedGender === g && (
+                  <View style={slideStyles.avatarCheckmark}>
+                    <Text style={slideStyles.avatarCheckmarkText}>✓</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            ))}
+            {!selectedGender && (
+              <Text style={slideStyles.avatarHint}>Pick one to continue</Text>
+            )}
+          </View>
+        )}
+
         {/* Avatar selection on avatar slide */}
         {item.isAvatarSlide && (
           <View style={slideStyles.avatarContainer}>
             <FlatList
-              data={AVATARS}
+              data={ALL_BASE_AVATARS.filter(a => a.gender === selectedGender)}
               numColumns={3}
-              keyExtractor={(avatar) => avatar.key}
+              keyExtractor={(avatar) => avatar.id}
               contentContainerStyle={slideStyles.avatarGrid}
               renderItem={({item: avatar}) => (
                 <TouchableOpacity
                   style={[
                     slideStyles.avatarOption,
-                    selectedAvatar === avatar.key && slideStyles.avatarOptionSelected,
+                    selectedAvatarId === avatar.id && slideStyles.avatarOptionSelected,
                   ]}
-                  onPress={() => setSelectedAvatar(avatar.key)}
+                  onPress={() => setSelectedAvatarId(avatar.id)}
                   activeOpacity={0.7}>
-                  <Image
-                    source={avatar.source}
-                    style={slideStyles.avatarImage}
+                  <AvatarPreview
+                    baseAvatar={avatar}
+                    equipped={{}}
+                    size={Math.floor(((screenWidth - 80) / 3) * 0.85)}
                   />
-                  {selectedAvatar === avatar.key && (
+                  {selectedAvatarId === avatar.id && (
                     <View style={slideStyles.avatarCheckmark}>
                       <Text style={slideStyles.avatarCheckmarkText}>✓</Text>
                     </View>
@@ -362,7 +427,7 @@ const OnboardingScreen: React.FC<{navigation: any; route?: any}> = ({navigation}
                 </TouchableOpacity>
               )}
             />
-            {!selectedAvatar && (
+            {!selectedAvatarId && (
               <Text style={slideStyles.avatarHint}>
                 Choose an avatar to continue
               </Text>
@@ -444,8 +509,8 @@ const OnboardingScreen: React.FC<{navigation: any; route?: any}> = ({navigation}
             <TouchableOpacity
               onPress={handleGetStarted}
               activeOpacity={0.8}
-              disabled={submitting || (needsUsernameSelection && (!available || !selectedAvatar))}
-              style={{opacity: submitting || (needsUsernameSelection && (!available || !selectedAvatar)) ? 0.5 : 1}}>
+              disabled={submitting || (needsUsernameSelection && (!available || !selectedGender || !selectedAvatarId))}
+              style={{opacity: submitting || (needsUsernameSelection && (!available || !selectedGender || !selectedAvatarId)) ? 0.5 : 1}}>
               <LinearGradient
                 colors={[colors.primary, colors.primaryDark]}
                 style={slideStyles.button}>
@@ -466,10 +531,15 @@ const OnboardingScreen: React.FC<{navigation: any; route?: any}> = ({navigation}
               onPress={handleNext} 
               activeOpacity={0.8} 
               style={{flex:1}}
-              disabled={slides[currentIndex]?.isUsernameSlide && !available}>
+              disabled={
+                (slides[currentIndex]?.isUsernameSlide && !available) ||
+                (slides[currentIndex]?.isGenderSlide && !selectedGender)
+              }>
               <LinearGradient
                 colors={[colors.primary, colors.primaryDark]}
-                style={[slideStyles.button, slides[currentIndex]?.isUsernameSlide && !available && {opacity: 0.5}]}>
+                style={[slideStyles.button,
+                  ((slides[currentIndex]?.isUsernameSlide && !available) ||
+                   (slides[currentIndex]?.isGenderSlide && !selectedGender)) && {opacity: 0.5}]}>
                 <Text style={slideStyles.buttonText}>Next</Text>
                 <Text style={{fontSize: 18, color: '#fff'}}>→</Text>
               </LinearGradient>
@@ -693,7 +763,39 @@ const slideStyles = StyleSheet.create({
     marginTop: 12,
     textAlign: 'center',
   },
+  genderContainer: {
+    marginTop: 28,
+    width: '100%',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    flexWrap: 'wrap',
+    gap: 16,
+  },
+  genderCard: {
+    width: (screenWidth - 80) / 2,
+    aspectRatio: 1,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.25)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  genderCardSelected: {
+    borderColor: colors.primary,
+    borderWidth: 3,
+    backgroundColor: 'rgba(161,140,209,0.25)',
+  },
+  genderEmoji: {
+    fontSize: 64,
+  },
+  genderLabel: {
+    marginTop: 12,
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.text.primary,
+  },
 });
 
-export {ONBOARDING_COMPLETE_KEY};
+export {ONBOARDING_COMPLETE_KEY, GENDER_KEY};
 export default OnboardingScreen;
