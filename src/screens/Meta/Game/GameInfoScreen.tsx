@@ -19,6 +19,7 @@ import apiConfig from '../../../libs/utils/api.utils';
 import tokenService from '../../../services/token.service';
 import { apiService } from '../../../services/api.service';
 import bisetkaService, { Bisetka } from '../../../services/bisetka.service';
+import { gameSessionsService } from '../../../services/gameSessions.service';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'GameInfo'>;
 
@@ -232,6 +233,48 @@ const GameInfoScreen: React.FC<Props> = ({ route, navigation }) => {
         difficulty: 'medium',
         teamMode: selectedTeamMode,
       });
+      return;
+    }
+
+    // Billiards / 8-ball / 9-ball — bypass GameModeScreen for the same reason
+    // as blot. Going through GameMode does a navigation.reset which causes
+    // Fabric's RCTComponentViewRegistry to throw "Attempt to recycle a mounted
+    // view" on iOS. We create the session directly here and navigate straight
+    // to BilliardsGame.
+    const isBilliards =
+      gameType === 'billiards' || gameType === '8-ball' || gameType === '9-ball';
+    if (isBilliards) {
+      try {
+        let session: any;
+        if (selectedMode === 'ai') {
+          session = await gameSessionsService.createAiMatch(
+            gameType as any,
+            'medium',
+            false,
+          );
+        } else if (selectedMode === 'private') {
+          session = await gameSessionsService.createPrivateMatch(
+            gameType as any,
+          );
+        } else {
+          session = await gameSessionsService.createRandomMatch(
+            gameType as any,
+          );
+        }
+        navigation.navigate('BilliardsGame' as any, {
+          session: {
+            ...session,
+            gameType,
+            mode: selectedMode === 'private' ? 'private-create' : selectedMode,
+            difficulty: session?.difficulty || 'medium',
+          },
+        });
+      } catch (err: any) {
+        BisetkaAlert.error(
+          'Unable to start game',
+          err?.message || 'Please try again.',
+        );
+      }
       return;
     }
 
