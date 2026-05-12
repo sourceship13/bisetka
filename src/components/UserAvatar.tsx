@@ -1,5 +1,5 @@
 import React, {useCallback, useEffect, useState} from 'react';
-import {Image, ImageStyle, StyleProp, View, ViewStyle} from 'react-native';
+import {DeviceEventEmitter, Image, ImageStyle, StyleProp, View, ViewStyle} from 'react-native';
 import {useFocusEffect} from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -62,6 +62,10 @@ const UserAvatar: React.FC<UserAvatarProps> = ({
 
   useEffect(() => {
     load();
+    const sub = DeviceEventEmitter.addListener('bisetka:avatarUpdated', () => {
+      load();
+    });
+    return () => sub.remove();
   }, [load]);
 
   useFocusEffect(
