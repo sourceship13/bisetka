@@ -3,7 +3,7 @@ import {StyleSheet, StatusBar, View, ActivityIndicator, Text} from 'react-native
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import GameModeSelector from '../../../components/global/GameModeSelector';
-import TeamModeSelector, { TeamMode } from '../../../components/TeamModeSelector';
+import type { TeamMode } from '../../../components/TeamModeSelector';
 import {GAME_LABELS, gameSessionsService} from '../../../services/gameSessions.service';
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {RootStackParamList} from '../../../navigation/AppNavigator';
@@ -87,14 +87,17 @@ const formatSuccessMessage = (
 };
 
 const GameModeScreen: React.FC<Props> = ({route, navigation}) => {
-  const {gameType, preferredMode} = route.params as any;
+  const {gameType, preferredMode, teamMode: teamModeParam} = route.params as any;
   const {user} = useAuth();
   const label = GAME_LABELS[gameType] || {title: 'Game', description: ''};
-  
-  // Team games need to select team mode first
+
+  // Team games receive their team mode as a route param from GameInfoScreen.
+  // We default to 'hybrid' so legacy entry points (e.g. joining via code from
+  // a different screen) still have a usable value.
   const isTeamGame = gameType === 'blot' || gameType === 'baazar-blot';
-  const [teamMode, setTeamMode] = useState<TeamMode | null>(null);
-  const [showTeamSelector, setShowTeamSelector] = useState(isTeamGame);
+  const teamMode: TeamMode | null = isTeamGame
+    ? (teamModeParam ?? 'hybrid')
+    : null;
   const [allowReplaceAI, setAllowReplaceAI] = useState(false);
   // When a preferredMode is supplied (from GameInfoScreen), we auto-trigger it
   // so the user never sees the mode-picker step.
@@ -312,19 +315,20 @@ const GameModeScreen: React.FC<Props> = ({route, navigation}) => {
     }
   };
 
-  const handleTeamModeSelect = (mode: TeamMode) => {
-    setTeamMode(mode);
-    setShowTeamSelector(false);
+  const handleTeamModeSelect = (_mode: TeamMode) => {
+    // Team mode is now picked on GameInfoScreen and passed via route params.
+    // This handler is retained as a no-op for backwards compatibility.
   };
+  // Suppress unused-var warning while keeping the typed alias importable.
+  void handleTeamModeSelect;
 
   // Auto-fire the preferredMode coming from GameInfoScreen so the user
-  // never has to pick the mode again. For team games this fires only after
-  // the team has been selected.
+  // never has to pick the mode again. Team mode (when relevant) is already
+  // resolved from route params, so we no longer wait on a selector step.
   const autoFiredRef = useRef(false);
   useEffect(() => {
     if (!autoModePending) return;
     if (autoFiredRef.current) return;
-    if (isTeamGame && (showTeamSelector || teamMode === null)) return;
     autoFiredRef.current = true;
     if (preferredMode === 'random') {
       withLoading('random', 'random', async () =>
@@ -344,29 +348,17 @@ const GameModeScreen: React.FC<Props> = ({route, navigation}) => {
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoModePending, isTeamGame, showTeamSelector, teamMode]);
+  }, [autoModePending]);
 
   const handleBackFromModeSelector = () => {
-    if (isTeamGame && teamMode !== null) {
-      // Go back to team selector
-      setShowTeamSelector(true);
-      setTeamMode(null);
-    } else {
-      navigation.goBack();
-    }
+    navigation.goBack();
   };
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="light-content" backgroundColor={colors.background.primary} />
       
-      {showTeamSelector && isTeamGame ? (
-        <TeamModeSelector
-          title={label.title}
-          onSelectTeamMode={handleTeamModeSelect}
-          onBack={() => navigation.goBack()}
-        />
-      ) : autoModePending ? (
+      {autoModePending ? (
         <View style={styles.autoLoadingWrap}>
           <ActivityIndicator size="large" color="#fff" />
           <Text style={styles.autoLoadingText}>
