@@ -22,7 +22,12 @@ import {colors} from '../../../theme/colors';
 import {useAuth} from '../../../libs/hooks/useAuth';
 import AVATARS, { resolveAvatar } from '../../../utils/avatars';
 import AvatarPreview from '../../../components/AvatarPreview';
-import { ALL_BASE_AVATARS } from '../../../data/clothingItems';
+import {
+  ALL_BASE_AVATARS,
+  ALL_CLOTHING_ITEMS,
+  getStarterShirtIdForAvatar,
+  getStarterPantsIdForAvatar,
+} from '../../../data/clothingItems';
 import type { BaseAvatar } from '../../../types/avatar2d';
 
 const BisetkaLogo = require('../../../../assets/imgs/bisetka-logo.png');
@@ -222,6 +227,35 @@ const OnboardingScreen: React.FC<{navigation: any; route?: any}> = ({navigation}
         const chosen = ALL_BASE_AVATARS.find(a => a.id === selectedAvatarId);
         if (chosen) {
           await AsyncStorage.setItem(SELECTED_AVATAR_OBJ_KEY, JSON.stringify(chosen));
+        }
+        // Seed starter wardrobe: every player starts owning + wearing the
+        // shirt-style-5 + pants-style-5 matching their avatar's gender/build.
+        try {
+          const build = (chosen as any)?.build as string | undefined;
+          const shirtId = getStarterShirtIdForAvatar(selectedGender, build);
+          const pantsId = getStarterPantsIdForAvatar(selectedGender, build);
+          const shirt = ALL_CLOTHING_ITEMS.find(i => i.id === shirtId);
+          const pants = ALL_CLOTHING_ITEMS.find(i => i.id === pantsId);
+          const equipped: Record<string, any> = {};
+          if (shirt) equipped[shirt.type] = shirt;
+          if (pants) equipped[pants.type] = pants;
+          await AsyncStorage.setItem(
+            '@bisetka_equipped_clothing',
+            JSON.stringify(equipped),
+          );
+          // Merge into the owned set so they show up in the wardrobe.
+          const ownedStr = await AsyncStorage.getItem('ownedClothing');
+          const owned: Set<string> = new Set(
+            ownedStr ? JSON.parse(ownedStr) : [],
+          );
+          if (shirt) owned.add(shirt.id);
+          if (pants) owned.add(pants.id);
+          await AsyncStorage.setItem(
+            'ownedClothing',
+            JSON.stringify([...owned]),
+          );
+        } catch (seedErr) {
+          console.warn('Failed to seed starter wardrobe:', seedErr);
         }
         // Mirror the avatar id to the user's avatar_url server-side so other
         // clients/devices can resolve the choice via UserAvatar.

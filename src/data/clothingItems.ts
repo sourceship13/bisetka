@@ -102,3 +102,42 @@ export function getStarterShirtIdForAvatar(
   if (b === 'fat') return 'shirts-fat-shirt-style-5';
   return 'shirts-shirt-style-5';
 }
+
+/**
+ * Starter pants every player owns from the moment they sign up. Same idea as
+ * the starter shirts above — the exact pants id depends on the avatar's
+ * gender + build. Excluded from the store and always present in the wardrobe.
+ */
+export const STARTER_PANTS_IDS: ReadonlySet<string> = new Set([
+  'pants-male-pants-style-5',          // male / standard
+  'pants-muscle-pants-style-5',        // male / muscle
+  'pants-fat-pants-style-5',           // male / fat
+  'pants-female-pants-style-5',        // female / standard
+  'pants-female-muscle-pants-style-5', // female / muscle
+  'pants-female-fat-pants-style-5',    // female / fat
+]);
+
+/**
+ * Resolve the correct starter pants id for the given avatar gender + build.
+ */
+export function getStarterPantsIdForAvatar(
+  gender: string | undefined | null,
+  build: string | undefined | null,
+): string {
+  const g = gender === 'female' ? 'female' : 'male';
+  const b = build === 'muscle' ? 'muscle' : build === 'fat' ? 'fat' : 'standard';
+  if (g === 'female') {
+    if (b === 'muscle') return 'pants-female-muscle-pants-style-5';
+    if (b === 'fat') return 'pants-female-fat-pants-style-5';
+    return 'pants-female-pants-style-5';
+  }
+  if (b === 'muscle') return 'pants-muscle-pants-style-5';
+  if (b === 'fat') return 'pants-fat-pants-style-5';
+  return 'pants-male-pants-style-5';
+}
+
+/** Set of all starter item ids (shirts + pants), useful for store filtering. */
+export const STARTER_ITEM_IDS: ReadonlySet<string> = new Set([
+  ...STARTER_SHIRT_IDS,
+  ...STARTER_PANTS_IDS,
+]);

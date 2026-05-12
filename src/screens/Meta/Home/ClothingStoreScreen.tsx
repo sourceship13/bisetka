@@ -16,7 +16,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import BottomTabBar from '../../../components/global/BottomTabBar';
 import AssetImage from '../../../components/AssetImage';
 import { ClothingItem, ClothingType, Rarity } from '../../../types/avatar2d';
-import { ALL_CLOTHING_ITEMS, filterClothingForAvatar, getAvatarBuildById, getAvatarGenderById, STARTER_SHIRT_IDS } from '../../../data/clothingItems';
+import { ALL_CLOTHING_ITEMS, filterClothingForAvatar, getAvatarBuildById, getAvatarGenderById, STARTER_ITEM_IDS } from '../../../data/clothingItems';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { useAuth } from '../../../libs/hooks/useAuth';
 
@@ -62,8 +62,8 @@ const ClothingStoreScreen: React.FC<any> = ({ navigation }) => {
   const items = useMemo<ClothingItem[]>(
     () =>
       (filterClothingForAvatar(ALL_CLOTHING_ITEMS, avatarGender, avatarBuild) as ClothingItem[])
-        // Starter shirts are auto-granted on signup, so don't show them in the store.
-        .filter(i => !STARTER_SHIRT_IDS.has(i.id)),
+        // Starter shirt + pants are auto-granted on signup, so don't show them in the store.
+        .filter(i => !STARTER_ITEM_IDS.has(i.id)),
     [avatarBuild, avatarGender],
   );
   // Default-owned items are derived synchronously so the UI can render
