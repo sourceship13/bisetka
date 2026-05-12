@@ -117,7 +117,10 @@ const makeBall = (num: number, x: number, y: number): Ball => ({
   pocketed: false,
   type: num === 0 ? 'cue' : num === 8 ? 'eight' : num <= 7 ? 'solid' : 'stripe',
   rotation: 0,
-  velAngle: 0,
+  // Default to "moving down" so a fresh-racked stripe ball shows a horizontal
+  // band (the classic 2D pool look). Updated to true motion direction once
+  // the ball is hit; preserved when it stops so the stripe doesn't snap back.
+  velAngle: 90,
 });
 
 const createRack8Ball = (): Ball[] => {
