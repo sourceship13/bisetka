@@ -487,7 +487,6 @@ const BlackjackScreen = ({ navigation }: any) => {
         <ScrollView style={styles.gameArea} showsVerticalScrollIndicator={false}>
           {/* Balance */}
           <View style={styles.balanceBox}>
-            <Text style={styles.balanceLabel}>Balance</Text>
             <Text style={styles.balanceAmount}>${gameState.balance}</Text>
           </View>
 
@@ -672,9 +671,10 @@ const styles = StyleSheet.create({
   },
   balanceBox: {
     backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 20,
+    borderRadius: 10,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    marginBottom: 10,
     alignItems: 'center',
     borderWidth: 2,
     borderColor: '#FFD700',
@@ -686,7 +686,7 @@ const styles = StyleSheet.create({
   },
   balanceAmount: {
     color: '#FFD700',
-    fontSize: 32,
+    fontSize: 22,
     fontWeight: 'bold',
   },
   cardTable: {
@@ -905,7 +905,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#10b981',
     borderRadius: 8,
-    padding: 14,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
     alignItems: 'center',
   },
   actionButtonText: {
