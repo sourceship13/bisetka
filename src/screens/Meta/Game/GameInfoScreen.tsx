@@ -83,7 +83,7 @@ const GameInfoScreen: React.FC<Props> = ({ route, navigation }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showRulesDetailed, setShowRulesDetailed] = useState(false);
-  const [selectedMode, setSelectedMode] = useState<GameMode>(preferredMode ?? 'random');
+  const [selectedMode, setSelectedMode] = useState<GameMode>(preferredMode ?? 'ai');
   const [bisetka, setBisetka] = useState<Bisetka | null>(null);
   const [showPointsModal, setShowPointsModal] = useState(false);
   const [liveBalance, setLiveBalance] = useState<number | null>(null);
@@ -411,7 +411,7 @@ const GameInfoScreen: React.FC<Props> = ({ route, navigation }) => {
             Select Game Mode:
           </Text>
           <View style={{ paddingHorizontal: 16, gap: 12 }}>
-            {GAME_MODE_OPTIONS.map(opt => {
+            {GAME_MODE_OPTIONS.filter(opt => gameType === 'blackjack' ? opt.id === 'ai' : true).map(opt => {
               const active = selectedMode === opt.id;
               return (
                 <TouchableOpacity
