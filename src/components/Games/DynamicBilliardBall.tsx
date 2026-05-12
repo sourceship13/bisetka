@@ -64,7 +64,8 @@ export const BILLIARD_BALL_DATA: Record<BilliardBallNumber, BilliardBallConfig> 
 interface DynamicBilliardBallProps {
   number: BilliardBallNumber;
   size?: number;
-  rotation?: number;  // degrees, drives stripe oscillation while rolling
+  rotation?: number;  // degrees, accumulated rolling angle
+  velAngle?: number;  // degrees, direction of motion (stripe orients perpendicular to this)
   dimmed?: number;    // 0-1 opacity (default 1)
 }
 
@@ -72,6 +73,7 @@ const DynamicBilliardBall: React.FC<DynamicBilliardBallProps> = ({
   number,
   size = 40,
   rotation = 0,
+  velAngle = 0,
   dimmed = 1,
 }) => {
   const r = size / 2;                       // SVG radius
@@ -80,13 +82,35 @@ const DynamicBilliardBall: React.FC<DynamicBilliardBallProps> = ({
 
   const data = BILLIARD_BALL_DATA[number] ?? BILLIARD_BALL_DATA[0];
   const { color, isStripe, type } = data;
-  const isRolling = rotation !== 0;
 
-  // Stripe band oscillation: sinusoidal center offset while rolling
-  const stripeCenterY = isRolling
-    ? cy + Math.sin((rotation * Math.PI) / 180) * r * 0.38
-    : cy;
-  const stripeBandH = r * 0.72;  // height of the colored stripe band
+  // ── Rolling projection ─────────────────────────────────────────────────
+  // Model the ball as a sphere with a single colored equatorial band and a
+  // number decal at the "north pole". The pole-axis is fixed perpendicular
+  // to the velocity direction (so the band always wraps the ball
+  // perpendicular to motion). As the ball rolls forward by `rotation`
+  // degrees, the polar axis tilts within the motion plane.
+  //
+  // In a frame rotated to align the X axis with motion:
+  //   north pole 3D position: (sin(rot)*r, 0, cos(rot)*r)
+  //   project to screen (drop Z): X = sin(rot)*r, foreshorten by |cos(rot)|
+  //
+  // The equatorial band is perpendicular to the polar axis; from above, its
+  // visible top crossing appears as a band perpendicular to the motion axis
+  // (i.e. spanning the full Y extent), centered at X = sin(rot)*r and with
+  // width along motion X = |cos(rot)| * stripeBandH. As the band rolls past
+  // the front edge of the ball the OPPOSITE crossing of the same band
+  // becomes visible at the back edge — so we render two band copies offset
+  // by ±2r and let the circular clip mask them off.
+  const rotRad = (rotation * Math.PI) / 180;
+  const sRot = Math.sin(rotRad);
+  const cRot = Math.cos(rotRad);
+  const stripeBandH = r * 0.78;          // band thickness when seen flat
+  const bandCenterX = sRot * r;           // top crossing along motion axis
+  const bandWidthX = Math.abs(cRot) * stripeBandH;
+  // Number label sits at the same point as the band center; only visible
+  // when the north pole is on the front-facing hemisphere (cos > 0).
+  const labelOnFront = cRot > 0;
+  const labelScaleX = Math.max(0.05, Math.abs(cRot)); // foreshortening
 
   // Label circle size and font
   const labelR = r * 0.38;
@@ -189,43 +213,55 @@ const DynamicBilliardBall: React.FC<DynamicBilliardBallProps> = ({
           <Circle cx={cx} cy={cy} r={r} fill={`url(#${uid}_solidGrad)`} />
         )}
 
-        {/* ─── STRIPE BAND ─── */}
-        {isStripe && (
-          <Rect
-            x={0}
-            y={stripeCenterY - stripeBandH / 2}
-            width={size}
-            height={stripeBandH}
-            fill={`url(#${uid}_bodyGrad)`}
-          />
-        )}
+        {/* ─── DECAL GROUP (stripe band + number label) ───
+            Rotated to align X with motion direction so the stripe band wraps
+            perpendicular to the velocity vector. */}
+        <G transform={`rotate(${velAngle} ${cx} ${cy})`}>
+          {/* Stripe band — render two copies offset by ±2r so the band
+              wraps around the back of the ball seamlessly as it rolls. */}
+          {isStripe && bandWidthX > 0.5 && (
+            <>
+              <Rect
+                x={cx + bandCenterX - bandWidthX / 2}
+                y={cy - r}
+                width={bandWidthX}
+                height={2 * r}
+                fill={`url(#${uid}_bodyGrad)`}
+              />
+              <Rect
+                x={cx + bandCenterX - (sRot >= 0 ? 2 * r : -2 * r) - bandWidthX / 2}
+                y={cy - r}
+                width={bandWidthX}
+                height={2 * r}
+                fill={`url(#${uid}_bodyGrad)`}
+              />
+            </>
+          )}
+
+          {/* Number label — sits on the north pole; only visible when that
+              pole is on the front hemisphere. Foreshortened along motion
+              axis as the ball tilts. */}
+          {type !== 'cue' && labelOnFront && (
+            <G
+              transform={`translate(${cx + bandCenterX} ${cy}) scale(${labelScaleX} 1) rotate(${-velAngle})`}>
+              <Circle cx={0} cy={0} r={labelR} fill="white" opacity={0.95} />
+              <SvgText
+                x={0}
+                y={fontSize * 0.37}
+                textAnchor="middle"
+                fontSize={fontSize}
+                fontWeight="bold"
+                fontFamily="Helvetica Neue, Helvetica, Arial, sans-serif"
+                fill={labelTextColor}>
+                {number}
+              </SvgText>
+            </G>
+          )}
+        </G>
 
         {/* ─── CUE-BALL CENTER DOT ─── */}
         {type === 'cue' && (
           <Circle cx={cx} cy={cy} r={r * 0.08} fill="rgba(180,180,180,0.7)" />
-        )}
-
-        {/* ─── NUMBER LABEL CIRCLE (all numbered balls) ─── */}
-        {type !== 'cue' && (
-          <>
-            <Circle
-              cx={cx}
-              cy={cy}
-              r={labelR}
-              fill="white"
-              opacity={0.95}
-            />
-            <SvgText
-              x={cx}
-              y={cy + fontSize * 0.37}
-              textAnchor="middle"
-              fontSize={fontSize}
-              fontWeight="bold"
-              fontFamily="Helvetica Neue, Helvetica, Arial, sans-serif"
-              fill={labelTextColor}>
-              {number}
-            </SvgText>
-          </>
         )}
 
         {/* ─── SPECULAR HIGHLIGHT LAYER ─── */}
@@ -233,17 +269,6 @@ const DynamicBilliardBall: React.FC<DynamicBilliardBallProps> = ({
 
         {/* ─── RIM SHADOW LAYER ─── */}
         <Circle cx={cx} cy={cy} r={r} fill={`url(#${uid}_rimGrad)`} />
-
-        {/* Rolling: add slight ambient shadow on equator for depth while rotating */}
-        {isRolling && isStripe && (
-          <Ellipse
-            cx={cx}
-            cy={stripeCenterY}
-            rx={r * 0.75}
-            ry={r * 0.06}
-            fill="rgba(0,0,0,0.18)"
-          />
-        )}
       </G>
 
       {/* ─── OUTER EDGE STROKE ─────────────────────────────────────────────── */}

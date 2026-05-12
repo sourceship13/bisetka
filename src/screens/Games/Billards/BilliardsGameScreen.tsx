@@ -86,6 +86,7 @@ type Ball = {
   pocketed: boolean;
   type: 'solid' | 'stripe' | 'cue' | 'eight';
   rotation: number; // accumulated rotation in degrees
+  velAngle: number; // last known direction of motion (deg) — persists when the ball stops so the stripe rests in the same orientation it was rolling in
 };
 
 type GameVariant = '8-ball' | '9-ball';
@@ -116,6 +117,7 @@ const makeBall = (num: number, x: number, y: number): Ball => ({
   pocketed: false,
   type: num === 0 ? 'cue' : num === 8 ? 'eight' : num <= 7 ? 'solid' : 'stripe',
   rotation: 0,
+  velAngle: 0,
 });
 
 const createRack8Ball = (): Ball[] => {
@@ -1042,13 +1044,18 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
         const speed = Math.sqrt(ball.vel.x * ball.vel.x + ball.vel.y * ball.vel.y);
         // Circumference = 2πr, so degrees per pixel = 360 / (2πr)
         ball.rotation = (ball.rotation + (speed / (BALL_RADIUS * 2 * Math.PI)) * 360) % 360;
+        // Track motion direction so the stripe band orients perpendicular to it.
+        // Persist the last direction once the ball stops so the stripe doesn't snap.
+        if (speed > MIN_SPEED) {
+          ball.velAngle = (Math.atan2(ball.vel.y, ball.vel.x) * 180) / Math.PI;
+        }
         ball.vel.x *= FRICTION;
         ball.vel.y *= FRICTION;
         if (Math.abs(ball.vel.x) < MIN_SPEED && Math.abs(ball.vel.y) < MIN_SPEED) {
           ball.vel.x = 0;
           ball.vel.y = 0;
-          // Snap rotation to 0 when stopped (number faces up)
-          ball.rotation = 0;
+          // Don't snap rotation back to 0 — let the stripe rest where it was.
+          // Real pool balls stop with the texture in whatever orientation it landed in.
         } else {
           anyMoving = true;
         }
@@ -2301,6 +2308,7 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
                   number={ball.number as BilliardBallNumber}
                   size={BALL_RADIUS * 2}
                   rotation={ball.rotation}
+                  velAngle={ball.velAngle}
                 />
               </View>
             ))}
