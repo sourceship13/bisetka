@@ -50,6 +50,17 @@ const TABLE_HEIGHT = SCREEN_TABLE_H - RAIL_WIDTH * 2;
 
 const BALL_RADIUS = TABLE_WIDTH * 0.042;
 const POCKET_RADIUS = BALL_RADIUS * 1.6; // slightly forgiving for mobile touch controls, close to real proportions
+// A ball is only considered pocketed when its center is deep inside the
+// pocket mouth — not just brushing the visual rim. The previous threshold
+// of POCKET_RADIUS * 0.85 (~1.36 * BALL_RADIUS) was loose enough that a
+// cue ball travelling along the rail near a pocket could be flagged as
+// pocketed (false scratch). This tighter threshold requires the ball to
+// actually overlap the pocket center before counting as pocketed, which
+// matches real-world pool: the ball has to fall in, not just graze.
+const POCKET_DETECT_RADIUS = Math.max(
+  BALL_RADIUS * 0.5,
+  POCKET_RADIUS - BALL_RADIUS * 0.6,
+);
 const POCKET_PADDING = 20; // inset each pocket 20px away from the table edges
 // Visible inner cushion thickness. Physics bounces balls off the inside edge
 // of the cushions (not the raw felt edge) so balls collide with the bumpers
@@ -360,7 +371,7 @@ function physicsStep(balls: Ball[]): { anyMoving: boolean; pocketed: Ball[]; fir
   for (const ball of balls) {
     if (ball.pocketed) continue;
     for (const pocket of POCKETS) {
-      if (dist(ball.pos, pocket) < POCKET_RADIUS * 0.85) {
+      if (dist(ball.pos, pocket) < POCKET_DETECT_RADIUS) {
         ball.pocketed = true;
         ball.vel = {x: 0, y: 0};
         pocketed.push({...ball});
@@ -953,7 +964,7 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
     for (const ball of currentBalls) {
       if (ball.pocketed) continue;
       for (const pocket of POCKETS) {
-        if (dist(ball.pos, pocket) < POCKET_RADIUS * 0.85) {
+        if (dist(ball.pos, pocket) < POCKET_DETECT_RADIUS) {
           ball.pocketed = true;
           ball.vel = {x: 0, y: 0};
           newPocketed.push({...ball});
