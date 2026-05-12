@@ -23,32 +23,32 @@ const LAYER_ORDER = [
   'other',
 ];
 
-// Per-slot anchor box on the avatar canvas, expressed as percentages of the
+// Per-slot anchor box on the avatar canvas, expressed as fractions of the
 // square container. Each clothing SVG preserves its own aspect ratio inside
 // this box, so the visible item sizes itself to the body landmark.
 // Avatar bodies fill ~full container height and are horizontally centered.
 const SLOT_REGION: Record<
   string,
-  { top: string; left: string; width: string; height: string }
+  { top: number; left: number; width: number; height: number }
 > = {
   // Shirt / top: torso area
-  top:     { top: '14.5%', left: '22%', width: '56%', height: '50%' },
+  top:     { top: 0.145, left: 0.22,    width: 0.56,    height: 0.50    },
   // Jacket: slightly larger than shirt to wrap arms
-  jacket:  { top: '21%', left: '18%', width: '64%', height: '38%' },
+  jacket:  { top: 0.21,  left: 0.18,    width: 0.64,    height: 0.38    },
   // Pants (3% smaller than the original 44%×44% box, re-centered)
-  bottom:  { top: '50.66%', left: '28.66%', width: '42.68%', height: '42.68%' },
+  bottom:  { top: 0.5066,left: 0.2866,  width: 0.4268,  height: 0.4268  },
   // Shorts
-  shorts:  { top: '52%', left: '28%', width: '44%', height: '24%' },
+  shorts:  { top: 0.52,  left: 0.28,    width: 0.44,    height: 0.24    },
   // Shoes
-  shoes:   { top: '88%', left: '24%', width: '52%', height: '12%' },
+  shoes:   { top: 0.88,  left: 0.24,    width: 0.52,    height: 0.12    },
   // Hair sits on head
-  hair:    { top: '0%',  left: '28%', width: '44%', height: '24%' },
+  hair:    { top: 0.0,   left: 0.28,    width: 0.44,    height: 0.24    },
   // Hat sits above the hair
-  hat:     { top: '-2%', left: '28%', width: '44%', height: '20%' },
+  hat:     { top: -0.02, left: 0.28,    width: 0.44,    height: 0.20    },
   // Jewelry around neckline
-  jewelry: { top: '18%', left: '32%', width: '36%', height: '12%' },
+  jewelry: { top: 0.18,  left: 0.32,    width: 0.36,    height: 0.12    },
   // Other = full overlay (accessories, props)
-  other:   { top: '0%',  left: '0%',  width: '100%', height: '100%' },
+  other:   { top: 0.0,   left: 0.0,     width: 1.0,     height: 1.0     },
 };
 
 export const AvatarPreview: React.FC<AvatarPreviewProps> = ({
@@ -64,32 +64,34 @@ export const AvatarPreview: React.FC<AvatarPreviewProps> = ({
     <View style={[styles.container, containerStyle]}>
       <AssetImage
         source={baseAvatar.imageUrl}
-        width="100%"
-        height="100%"
+        width={size}
+        height={size}
         style={styles.layer}
       />
       {LAYER_ORDER.map(slot => {
         const item = equipped[slot];
         if (!item) return null;
         const region = SLOT_REGION[slot] ?? SLOT_REGION.other;
+        const w = Math.round(size * region.width);
+        const h = Math.round(size * region.height);
+        const top = Math.round(size * region.top);
+        const left = Math.round(size * region.left);
         return (
           <View
             key={slot}
-            style={[
-              styles.layer,
-              {
-                top: region.top as any,
-                left: region.left as any,
-                width: region.width as any,
-                height: region.height as any,
-              },
-            ]}
+            style={{
+              position: 'absolute',
+              top,
+              left,
+              width: w,
+              height: h,
+            }}
             pointerEvents="none"
           >
             <AssetImage
               source={item.imageUrl}
-              width="100%"
-              height="100%"
+              width={w}
+              height={h}
             />
           </View>
         );
