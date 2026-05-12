@@ -36,7 +36,7 @@ const SLOT_REGION: Record<
   // Jacket: slightly larger than shirt to wrap arms
   jacket:  { top: 0.21,  left: 0.18,    width: 0.64,    height: 0.38    },
   // Pants (3% smaller than the original 44%×44% box, re-centered)
-  bottom:  { top: 0.5066,left: 0.2866,  width: 0.4268,  height: 0.4268  },
+  bottom:  { top: 0.5066,left: 0.2866,  width: 0.42,  height: 0.426  },
   // Shorts
   shorts:  { top: 0.52,  left: 0.28,    width: 0.44,    height: 0.24    },
   // Shoes
