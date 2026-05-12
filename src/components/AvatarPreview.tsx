@@ -35,8 +35,8 @@ const SLOT_REGION: Record<
   top:     { top: '14.5%', left: '22%', width: '56%', height: '50%' },
   // Jacket: slightly larger than shirt to wrap arms
   jacket:  { top: '21%', left: '18%', width: '64%', height: '38%' },
-  // Pants
-  bottom:  { top: '52%', left: '28%', width: '44%', height: '44%' },
+  // Pants (3% smaller than the original 44%×44% box, re-centered)
+  bottom:  { top: '50.66%', left: '28.66%', width: '42.68%', height: '42.68%' },
   // Shorts
   shorts:  { top: '52%', left: '28%', width: '44%', height: '24%' },
   // Shoes
