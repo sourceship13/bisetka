@@ -85,16 +85,17 @@ const GAMES: GameConfig[] = [
     players: 15,
     entryFee: 50,
   },
-  {
-    id: 'poker',
-    name: 'Poker',
-    description: "Texas Hold'em Poker",
-    icon: require('../../../../assets/game-icons/poker-icon.png'),
-    gradient: ['#7a6cf5', '#5b4ae0'],
-    gameType: 'poker',
-    players: 15,
-    entryFee: 50,
-  },
+  // Temporarily disabled
+  // {
+  //   id: 'poker',
+  //   name: 'Poker',
+  //   description: "Texas Hold'em Poker",
+  //   icon: require('../../../../assets/game-icons/poker-icon.png'),
+  //   gradient: ['#7a6cf5', '#5b4ae0'],
+  //   gameType: 'poker',
+  //   players: 15,
+  //   entryFee: 50,
+  // },
   {
     id: 'nardi',
     name: 'Nardi',
