@@ -27,6 +27,7 @@ import {
   ALL_CLOTHING_ITEMS,
   getStarterShirtIdForAvatar,
   getStarterPantsIdForAvatar,
+  getStarterHairIdForAvatar,
 } from '../../../data/clothingItems';
 import type { BaseAvatar } from '../../../types/avatar2d';
 
@@ -234,11 +235,14 @@ const OnboardingScreen: React.FC<{navigation: any; route?: any}> = ({navigation}
           const build = (chosen as any)?.build as string | undefined;
           const shirtId = getStarterShirtIdForAvatar(selectedGender, build);
           const pantsId = getStarterPantsIdForAvatar(selectedGender, build);
+          const hairId = getStarterHairIdForAvatar(selectedGender);
           const shirt = ALL_CLOTHING_ITEMS.find(i => i.id === shirtId);
           const pants = ALL_CLOTHING_ITEMS.find(i => i.id === pantsId);
+          const hair = ALL_CLOTHING_ITEMS.find(i => i.id === hairId);
           const equipped: Record<string, any> = {};
           if (shirt) equipped[shirt.type] = shirt;
           if (pants) equipped[pants.type] = pants;
+          if (hair) equipped[hair.type] = hair;
           await AsyncStorage.setItem(
             '@bisetka_equipped_clothing',
             JSON.stringify(equipped),
@@ -250,6 +254,7 @@ const OnboardingScreen: React.FC<{navigation: any; route?: any}> = ({navigation}
           );
           if (shirt) owned.add(shirt.id);
           if (pants) owned.add(pants.id);
+          if (hair) owned.add(hair.id);
           await AsyncStorage.setItem(
             'ownedClothing',
             JSON.stringify([...owned]),

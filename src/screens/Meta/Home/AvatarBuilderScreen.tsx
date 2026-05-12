@@ -26,6 +26,7 @@ import {
   filterClothingForAvatar,
   getStarterShirtIdForAvatar,
   getStarterPantsIdForAvatar,
+  getStarterHairIdForAvatar,
 } from '../../../data/clothingItems';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { useAuth } from '../../../libs/hooks/useAuth';
@@ -127,8 +128,10 @@ const AvatarBuilderScreen = ({ navigation }: any) => {
       if (seedGender) {
         const shirtId = getStarterShirtIdForAvatar(seedGender, seedBuild);
         const pantsId = getStarterPantsIdForAvatar(seedGender, seedBuild);
+        const hairId = getStarterHairIdForAvatar(seedGender);
         const shirt = ALL_CLOTHING_ITEMS.find(i => i.id === shirtId);
         const pants = ALL_CLOTHING_ITEMS.find(i => i.id === pantsId);
+        const hair = ALL_CLOTHING_ITEMS.find(i => i.id === hairId);
         let mutated = false;
         if (shirt && !loadedEquipped[shirt.type]) {
           loadedEquipped[shirt.type] = shirt;
@@ -138,12 +141,20 @@ const AvatarBuilderScreen = ({ navigation }: any) => {
           loadedEquipped[pants.type] = pants;
           mutated = true;
         }
+        if (hair && !loadedEquipped[hair.type]) {
+          loadedEquipped[hair.type] = hair;
+          mutated = true;
+        }
         if (shirt && !loadedOwned.has(shirt.id)) {
           loadedOwned.add(shirt.id);
           mutated = true;
         }
         if (pants && !loadedOwned.has(pants.id)) {
           loadedOwned.add(pants.id);
+          mutated = true;
+        }
+        if (hair && !loadedOwned.has(hair.id)) {
+          loadedOwned.add(hair.id);
           mutated = true;
         }
         if (mutated) {
@@ -210,7 +221,7 @@ const AvatarBuilderScreen = ({ navigation }: any) => {
   );
 
   const ownedItems = useMemo<AvatarClothing[]>(() => {
-    // Always include the starter shirt + pants for the current avatar's
+    // Always include the starter shirt + pants + hair for the current avatar's
     // gender/build, even if not in the persisted owned set yet. Every player
     // gets a starter outfit on signup based on their avatar.
     const starterShirtId = getStarterShirtIdForAvatar(
@@ -221,8 +232,15 @@ const AvatarBuilderScreen = ({ navigation }: any) => {
       selectedAvatar?.gender ?? genderTab,
       (selectedAvatar as any)?.build,
     );
+    const starterHairId = getStarterHairIdForAvatar(
+      selectedAvatar?.gender ?? genderTab,
+    );
     const all = ALL_CLOTHING_ITEMS.filter(
-      i => ownedIds.has(i.id) || i.id === starterShirtId || i.id === starterPantsId,
+      i =>
+        ownedIds.has(i.id) ||
+        i.id === starterShirtId ||
+        i.id === starterPantsId ||
+        i.id === starterHairId,
     );
     return filterClothingForAvatar(
       all,
