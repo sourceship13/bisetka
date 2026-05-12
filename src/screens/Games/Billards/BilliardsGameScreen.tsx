@@ -654,6 +654,13 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
   const shotPocketedRef = useRef<Ball[]>([]);
   const firstHitRef = useRef<Ball | null>(null); // first ball cue ball contacted
   const cueScratchRef = useRef(false);
+  // Guards the settlement block so it only runs ONCE per shot. The animation
+  // loop calls simulateStep multiple times per RAF tick (fixed-timestep
+  // catch-up), and after the first call sets all velocities to 0 the next
+  // calls would re-enter settlement with cleared shot-tracking refs and
+  // wrongly compute "no first hit → foul → switch turn", stealing the turn
+  // from a player who legally pocketed their own ball.
+  const settledRef = useRef(true);
 
   // Refs for PanResponder (avoids stale closures)
   const isMovingRef = useRef(isMoving);
@@ -1064,6 +1071,13 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
 
       // --- Settlement when all balls stop ---
       if (!anyMoving) {
+        // Skip if we already ran settlement for this shot. Without this guard
+        // the fixed-timestep loop would re-enter the block on the next idle
+        // frame, see an empty shotPocketedRef, and incorrectly switch turn.
+        if (settledRef.current) {
+          return next;
+        }
+        settledRef.current = true;
         setIsMoving(false);
 
         // In multiplayer, the opponent just watches the animation — skip game
@@ -1464,6 +1478,7 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
         shotPocketedRef.current = [];
         firstHitRef.current = null;
         cueScratchRef.current = false;
+        settledRef.current = false;
 
         const dirX = shot ? shot.vx : (best.pos.x - cue.pos.x) / (dist(cue.pos, best.pos) || 1);
         const dirY = shot ? shot.vy : (best.pos.y - cue.pos.y) / (dist(cue.pos, best.pos) || 1);
@@ -1619,6 +1634,7 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
         shotPocketedRef.current = [];
         firstHitRef.current = null;
         cueScratchRef.current = false;
+        settledRef.current = false;
 
         // Capture player shot info for logging
         const cueBallVelocity = {x: Math.cos(angle) * force, y: Math.sin(angle) * force};
@@ -1726,6 +1742,7 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
     shotPocketedRef.current = [];
     firstHitRef.current = null;
     cueScratchRef.current = false;
+    settledRef.current = true;
     frameBufferRef.current = [];
     frameIndexRef.current = 0;
   };
