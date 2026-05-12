@@ -15,6 +15,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import {useAuth} from '../libs/hooks/useAuth';
 import {colors, spacing} from '../theme';
 import AVATARS, {resolveAvatar} from '../utils/avatars';
+import UserAvatar from './UserAvatar';
 
 const {width: SCREEN_WIDTH} = Dimensions.get('window');
 const DRAWER_WIDTH = SCREEN_WIDTH * 0.75;
@@ -184,11 +185,7 @@ const HomeDrawer: React.FC<HomeDrawerProps> = ({visible, onClose, onOpen, onNavi
           end={{x: 1, y: 1}}
           style={styles.userHeader}>
           <View style={styles.avatarWrap}>
-            {avatarSource ? (
-              <Image source={avatarSource} style={styles.avatar} />
-            ) : (
-              <Image source={AVATARS[0].source} style={styles.avatar} />
-            )}
+            <UserAvatar size={100} avatarUrl={user?.avatar_url} />
           </View>
           <Text style={styles.drawerName}>{displayName}</Text>
           {user?.username && (

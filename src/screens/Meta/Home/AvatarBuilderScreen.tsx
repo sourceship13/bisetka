@@ -77,6 +77,7 @@ const SELECTED_AVATAR_OBJ_KEY = '@bisetka_selected_avatar';
 const EQUIPPED_KEY = '@bisetka_equipped_clothing';
 const OWNED_KEY = 'ownedClothing';
 const AVATAR_UNLOCKED_KEY = '@bisetka_avatar_change_unlocked';
+const GENDER_KEY = '@bisetka_gender';
 const AVATAR_CHANGE_COST = 1000;
 
 type GenderTab = 'male' | 'female';
@@ -88,6 +89,9 @@ const AvatarBuilderScreen = ({ navigation }: any) => {
   const [equipped, setEquipped] = useState<Record<string, AvatarClothing>>({});
   const [ownedIds, setOwnedIds] = useState<Set<string>>(new Set());
   const [genderTab, setGenderTab] = useState<GenderTab>('male');
+  // Once the user has picked a gender (during onboarding), it's locked: they
+  // can swap avatars within that gender but can't switch the gender itself.
+  const [genderLocked, setGenderLocked] = useState(false);
   // Whether the user has paid to unlock the avatar selector. Once they pick
   // an avatar, the grid auto-collapses and re-opening it costs points.
   const [changeUnlocked, setChangeUnlocked] = useState(false);
@@ -109,8 +113,12 @@ const AvatarBuilderScreen = ({ navigation }: any) => {
       const unlockedStr = await AsyncStorage.getItem(AVATAR_UNLOCKED_KEY);
       setChangeUnlocked(unlockedStr === '1');
 
-      // Initialize gender tab from selected avatar (if any)
-      if (id) {
+      // Initialize gender tab from saved gender (locks it) or selected avatar.
+      const savedGender = await AsyncStorage.getItem(GENDER_KEY);
+      if (savedGender === 'male' || savedGender === 'female') {
+        setGenderTab(savedGender);
+        setGenderLocked(true);
+      } else if (id) {
         const a = ALL_BASE_AVATARS.find(x => x.id === id);
         if (a?.gender === 'female' || a?.gender === 'male') setGenderTab(a.gender);
       }
@@ -304,26 +312,28 @@ const AvatarBuilderScreen = ({ navigation }: any) => {
             </View>
           ) : (
             <>
-              {/* Gender tabs */}
-              <View style={styles.genderTabs}>
-                {(['male', 'female'] as GenderTab[]).map(g => (
-                  <TouchableOpacity
-                    key={g}
-                    style={[
-                      styles.genderTab,
-                      genderTab === g && styles.genderTabActive,
-                    ]}
-                    onPress={() => setGenderTab(g)}>
-                    <Text
+              {/* Gender tabs (hidden once the player has locked their gender). */}
+              {!genderLocked && (
+                <View style={styles.genderTabs}>
+                  {(['male', 'female'] as GenderTab[]).map(g => (
+                    <TouchableOpacity
+                      key={g}
                       style={[
-                        styles.genderTabText,
-                        genderTab === g && styles.genderTabTextActive,
-                      ]}>
-                      {g === 'male' ? 'Male' : 'Female'}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
+                        styles.genderTab,
+                        genderTab === g && styles.genderTabActive,
+                      ]}
+                      onPress={() => setGenderTab(g)}>
+                      <Text
+                        style={[
+                          styles.genderTabText,
+                          genderTab === g && styles.genderTabTextActive,
+                        ]}>
+                        {g === 'male' ? 'Male' : 'Female'}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
 
               {/* Base avatars */}
               <Text style={styles.sectionTitle}>Choose a body that looks like you</Text>

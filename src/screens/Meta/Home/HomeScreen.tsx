@@ -31,6 +31,7 @@ import HomeGlobalChat from '../../../components/global/HomeGlobalChat';
 import BottomTabBar from '../../../components/global/BottomTabBar';
 import LeaderboardPreview from '../../../components/global/LeaderboardPreview';
 import AVATARS, { resolveAvatar } from '../../../utils/avatars';
+import UserAvatar from '../../../components/UserAvatar';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { socketService } from '../../../services/SocketService';
 import tokenService from '../../../services/token.service';
@@ -562,11 +563,7 @@ const HomeScreen = ({ navigation, route }: any) => {
                 activeOpacity={0.85}
               >
                 <View style={styles.greetingAvatarRing}>
-                  <Image
-                    source={avatarSource || AVATARS[0].source}
-                    style={styles.greetingAvatarImg}
-                    resizeMode="contain"
-                  />
+                  <UserAvatar size={64} avatarUrl={user?.avatar_url} />
                 </View>
               </TouchableOpacity>
 

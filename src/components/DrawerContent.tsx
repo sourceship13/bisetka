@@ -1,11 +1,11 @@
 import React from 'react';
-import {View, Text, StyleSheet, Image, TouchableOpacity} from 'react-native';
+import {View, Text, StyleSheet, TouchableOpacity} from 'react-native';
 
 import AppVersionFooter from './global/AppVersionFooter';
 import LinearGradient from 'react-native-linear-gradient';
 import {useAuth} from '../libs/hooks/useAuth';
 import {colors, spacing} from '../theme';
-import AVATARS, {resolveAvatar} from '../utils/avatars';
+import UserAvatar from './UserAvatar';
 
 const MENU_ITEMS = [
   {key: 'Home', icon: '🏠', label: 'Home', gradient: ['#10b981', '#34d399'] as const},
@@ -29,8 +29,6 @@ const DrawerContent = (props: any) => {
     user?.username ||
     'Player';
 
-  const avatarSource = resolveAvatar(user?.avatar_url);
-
   return (
     <View style={styles.container}>
       {/* User header */}
@@ -40,11 +38,7 @@ const DrawerContent = (props: any) => {
         end={{x: 1, y: 1}}
         style={styles.userHeader}>
         <View style={styles.avatarWrap}>
-          {avatarSource ? (
-            <Image source={avatarSource} style={styles.avatar} />
-          ) : (
-            <Image source={AVATARS[0].source} style={styles.avatar} />
-          )}
+          <UserAvatar size={100} avatarUrl={user?.avatar_url} />
         </View>
         <Text style={styles.drawerName}>{displayName}</Text>
         {user?.username && (

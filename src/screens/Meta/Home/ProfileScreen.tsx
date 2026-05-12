@@ -16,11 +16,19 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../../../libs/hooks/useAuth';
 import AVATARS, { resolveAvatar } from '../../../utils/avatars';
 import type { AvatarOption } from '../../../utils/avatars';
 import apiService from '../../../services/api.service';
 import BottomTabBar from '../../../components/global/BottomTabBar';
+import UserAvatar from '../../../components/UserAvatar';
+import AvatarPreview from '../../../components/AvatarPreview';
+import { ALL_BASE_AVATARS } from '../../../data/clothingItems';
+import type { BaseAvatar, AvatarClothing } from '../../../types/avatar2d';
+
+const SELECTED_AVATAR_KEY = 'selectedAvatarId';
+const EQUIPPED_KEY = '@bisetka_equipped_clothing';
 
 interface AchievementItem {
   achievement_id: string;
@@ -44,6 +52,20 @@ const ProfileScreen = ({ navigation }: any) => {
   const [achievements, setAchievements] = useState<AchievementItem[]>([]);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [builderAvatar, setBuilderAvatar] = useState<BaseAvatar | null>(null);
+  const [builderEquipped, setBuilderEquipped] = useState<Record<string, AvatarClothing>>({});
+
+  const loadBuilderAvatar = useCallback(async () => {
+    try {
+      const id = await AsyncStorage.getItem(SELECTED_AVATAR_KEY);
+      const found = id ? ALL_BASE_AVATARS.find(a => a.id === id) ?? null : null;
+      setBuilderAvatar(found);
+      const eqStr = await AsyncStorage.getItem(EQUIPPED_KEY);
+      setBuilderEquipped(eqStr ? JSON.parse(eqStr) : {});
+    } catch (e) {
+      // Non-fatal — fall back to legacy avatar image
+    }
+  }, []);
 
   const loadStats = useCallback(async () => {
     if (!user?.id) return;
@@ -76,13 +98,15 @@ const ProfileScreen = ({ navigation }: any) => {
   useEffect(() => {
     loadStats();
     loadAchievements();
-  }, [loadStats, loadAchievements]);
+    loadBuilderAvatar();
+  }, [loadStats, loadAchievements, loadBuilderAvatar]);
 
   useFocusEffect(
     useCallback(() => {
       loadStats();
       loadAchievements();
-    }, [loadStats, loadAchievements]),
+      loadBuilderAvatar();
+    }, [loadStats, loadAchievements, loadBuilderAvatar]),
   );
 
   const handleSelectAvatar = async (avatar: AvatarOption) => {
@@ -117,8 +141,6 @@ const ProfileScreen = ({ navigation }: any) => {
       .join(' ') ||
     user?.username ||
     'Player';
-
-  const avatarSource = resolveAvatar(user?.avatar_url) || AVATARS[0].source;
 
   // Sort achievements: unlocked first, then highest progress
   const featuredAchievements = [...achievements]
@@ -179,11 +201,11 @@ const ProfileScreen = ({ navigation }: any) => {
           {/* Profile card with floating avatar */}
           <View style={styles.profileCardWrap}>
             <TouchableOpacity
-              onPress={() => setPickerOpen(true)}
+              onPress={() => navigation.navigate('AvatarBuilder')}
               activeOpacity={0.85}
               style={styles.avatarFloat}>
               <View style={styles.avatarRing}>
-                <Image source={avatarSource} style={styles.avatarImg} resizeMode="contain" />
+                <UserAvatar size={100} avatarUrl={user?.avatar_url} />
               </View>
               <View style={styles.editBadge}>
                 <Icon name="pencil" size={14} color="#fff" />
