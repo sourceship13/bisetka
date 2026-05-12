@@ -406,6 +406,7 @@ const OnboardingScreen: React.FC<{navigation: any; route?: any}> = ({navigation}
               numColumns={3}
               keyExtractor={(avatar) => avatar.id}
               contentContainerStyle={slideStyles.avatarGrid}
+              columnWrapperStyle={slideStyles.avatarRow}
               renderItem={({item: avatar}) => (
                 <TouchableOpacity
                   style={[
@@ -414,11 +415,13 @@ const OnboardingScreen: React.FC<{navigation: any; route?: any}> = ({navigation}
                   ]}
                   onPress={() => setSelectedAvatarId(avatar.id)}
                   activeOpacity={0.7}>
-                  <AvatarPreview
-                    baseAvatar={avatar}
-                    equipped={{}}
-                    size={Math.floor(((screenWidth - 80) / 3) * 0.85)}
-                  />
+                  <View style={slideStyles.avatarPreviewWrap}>
+                    <AvatarPreview
+                      baseAvatar={avatar}
+                      equipped={{}}
+                      size={Math.floor(((screenWidth - 80) / 3) * 1.4)}
+                    />
+                  </View>
                   {selectedAvatarId === avatar.id && (
                     <View style={slideStyles.avatarCheckmark}>
                       <Text style={slideStyles.avatarCheckmarkText}>✓</Text>
@@ -718,10 +721,14 @@ const slideStyles = StyleSheet.create({
   },
   avatarGrid: {
     paddingHorizontal: 8,
+    alignItems: 'center',
+  },
+  avatarRow: {
+    justifyContent: 'center',
   },
   avatarOption: {
     width: (screenWidth - 80) / 3,
-    aspectRatio: 1,
+    aspectRatio: 0.7,
     margin: 6,
     borderRadius: 16,
     backgroundColor: 'rgba(255,255,255,0.12)',
@@ -730,6 +737,12 @@ const slideStyles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
+  },
+  avatarPreviewWrap: {
+    width: '100%',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   avatarOptionSelected: {
     borderColor: colors.primary,
