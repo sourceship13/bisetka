@@ -27,6 +27,7 @@ import {
   getStarterShirtIdForAvatar,
   getStarterPantsIdForAvatar,
   getStarterHairIdForAvatar,
+  getStarterShoeIdForAvatar,
 } from '../../../data/clothingItems';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { useAuth } from '../../../libs/hooks/useAuth';
@@ -143,9 +144,11 @@ const AvatarBuilderScreen = ({ navigation }: any) => {
         const shirtId = getStarterShirtIdForAvatar(seedGender, seedBuild);
         const pantsId = getStarterPantsIdForAvatar(seedGender, seedBuild);
         const hairId = getStarterHairIdForAvatar(seedGender);
+        const shoeId = getStarterShoeIdForAvatar(seedGender);
         const shirt = ALL_CLOTHING_ITEMS.find(i => i.id === shirtId);
         const pants = ALL_CLOTHING_ITEMS.find(i => i.id === pantsId);
         const hair = ALL_CLOTHING_ITEMS.find(i => i.id === hairId);
+        const shoes = ALL_CLOTHING_ITEMS.find(i => i.id === shoeId);
         let mutated = false;
         if (shirt && !loadedEquipped[shirt.type]) {
           loadedEquipped[shirt.type] = shirt;
@@ -159,6 +162,10 @@ const AvatarBuilderScreen = ({ navigation }: any) => {
           loadedEquipped[hair.type] = hair;
           mutated = true;
         }
+        if (shoes && !loadedEquipped[shoes.type]) {
+          loadedEquipped[shoes.type] = shoes;
+          mutated = true;
+        }
         if (shirt && !loadedOwned.has(shirt.id)) {
           loadedOwned.add(shirt.id);
           mutated = true;
@@ -169,6 +176,10 @@ const AvatarBuilderScreen = ({ navigation }: any) => {
         }
         if (hair && !loadedOwned.has(hair.id)) {
           loadedOwned.add(hair.id);
+          mutated = true;
+        }
+        if (shoes && !loadedOwned.has(shoes.id)) {
+          loadedOwned.add(shoes.id);
           mutated = true;
         }
         if (mutated) {
@@ -249,12 +260,16 @@ const AvatarBuilderScreen = ({ navigation }: any) => {
     const starterHairId = getStarterHairIdForAvatar(
       selectedAvatar?.gender ?? genderTab,
     );
+    const starterShoeId = getStarterShoeIdForAvatar(
+      selectedAvatar?.gender ?? genderTab,
+    );
     const all = ALL_CLOTHING_ITEMS.filter(
       i =>
         ownedIds.has(i.id) ||
         i.id === starterShirtId ||
         i.id === starterPantsId ||
-        i.id === starterHairId,
+        i.id === starterHairId ||
+        i.id === starterShoeId,
     );
     return filterClothingForAvatar(
       all,

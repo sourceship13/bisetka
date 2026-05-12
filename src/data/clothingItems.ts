@@ -136,12 +136,28 @@ export function getStarterPantsIdForAvatar(
   return 'pants-male-pants-style-5';
 }
 
-/** Set of all starter item ids (shirts + pants + hair), useful for store filtering. */
+/** Starter shoes (one per gender — no build variants exist). */
+export const STARTER_SHOE_IDS: ReadonlySet<string> = new Set([
+  'shoes-shoe-style-1',          // male
+  'shoes-female-shoe-style-1',   // female
+]);
+
+/** Resolve the starter shoe id for the given avatar gender. */
+export function getStarterShoeIdForAvatar(
+  gender: string | undefined | null,
+): string {
+  return gender === 'female'
+    ? 'shoes-female-shoe-style-1'
+    : 'shoes-shoe-style-1';
+}
+
+/** Set of all starter item ids (shirts + pants + hair + shoes), useful for store filtering. */
 export const STARTER_ITEM_IDS: ReadonlySet<string> = new Set([
   ...STARTER_SHIRT_IDS,
   ...STARTER_PANTS_IDS,
   'hairstyle-male-hairstyle-5',
   'hairstyle-female-hair-style-5',
+  ...STARTER_SHOE_IDS,
 ]);
 
 /** Starter hairstyles (one per gender — no build variants exist). */
