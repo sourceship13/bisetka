@@ -78,15 +78,16 @@ const GAMES = [
     gameType: 'chess',
     isImage: true,
   },
-  {
-    id: 'poker',
-    name: 'Poker',
-    description: "Texas Hold'em",
-    icon: require('../../../../assets/game-icons/poker-icon.png'),
-    gradient: ['#10b981', '#34d399'],
-    gameType: 'poker',
-    isImage: true,
-  },
+  // Temporarily disabled
+  // {
+  //   id: 'poker',
+  //   name: 'Poker',
+  //   description: "Texas Hold'em",
+  //   icon: require('../../../../assets/game-icons/poker-icon.png'),
+  //   gradient: ['#10b981', '#34d399'],
+  //   gameType: 'poker',
+  //   isImage: true,
+  // },
   {
     id: 'nardi',
     name: 'Nardi',
