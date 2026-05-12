@@ -4,7 +4,7 @@ import {useFocusEffect} from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import AvatarPreview from './AvatarPreview';
-import {ALL_BASE_AVATARS} from '../data/clothingItems';
+import {ALL_BASE_AVATARS, ALL_CLOTHING_ITEMS} from '../data/clothingItems';
 import type {AvatarClothing, BaseAvatar} from '../types/avatar2d';
 import {resolveAvatar} from '../utils/avatars';
 
@@ -52,7 +52,19 @@ const UserAvatar: React.FC<UserAvatarProps> = ({
       const found = id ? ALL_BASE_AVATARS.find(a => a.id === id) ?? null : null;
       setBaseAvatar(found);
       const eqStr = await AsyncStorage.getItem(EQUIPPED_KEY);
-      setEquipped(eqStr ? JSON.parse(eqStr) : {});
+      // SVG components don't survive JSON round-trip, so rehydrate every
+      // persisted entry by id from the in-memory catalog before rendering.
+      // Accepts both `{slot: AvatarClothing}` and legacy `{slot: itemId}`.
+      const raw: Record<string, any> = eqStr ? JSON.parse(eqStr) : {};
+      const fresh: Record<string, AvatarClothing> = {};
+      for (const slot of Object.keys(raw)) {
+        const persisted = raw[slot];
+        const id = typeof persisted === 'string' ? persisted : persisted?.id;
+        if (!id) continue;
+        const item = ALL_CLOTHING_ITEMS.find(i => i.id === id);
+        if (item) fresh[slot] = item;
+      }
+      setEquipped(fresh);
       const g = await AsyncStorage.getItem(GENDER_KEY);
       setSavedGender(g === 'male' || g === 'female' ? g : null);
     } catch {

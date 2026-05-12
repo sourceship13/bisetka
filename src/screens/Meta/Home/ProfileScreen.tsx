@@ -24,7 +24,7 @@ import apiService from '../../../services/api.service';
 import BottomTabBar from '../../../components/global/BottomTabBar';
 import UserAvatar from '../../../components/UserAvatar';
 import AvatarPreview from '../../../components/AvatarPreview';
-import { ALL_BASE_AVATARS } from '../../../data/clothingItems';
+import { ALL_BASE_AVATARS, ALL_CLOTHING_ITEMS } from '../../../data/clothingItems';
 import type { BaseAvatar, AvatarClothing } from '../../../types/avatar2d';
 
 const SELECTED_AVATAR_KEY = 'selectedAvatarId';
@@ -61,7 +61,18 @@ const ProfileScreen = ({ navigation }: any) => {
       const found = id ? ALL_BASE_AVATARS.find(a => a.id === id) ?? null : null;
       setBuilderAvatar(found);
       const eqStr = await AsyncStorage.getItem(EQUIPPED_KEY);
-      setBuilderEquipped(eqStr ? JSON.parse(eqStr) : {});
+      // SVG `imageUrl` references are React components and can't survive the
+      // JSON round-trip, so re-resolve every persisted entry by id.
+      const raw: Record<string, any> = eqStr ? JSON.parse(eqStr) : {};
+      const fresh: Record<string, AvatarClothing> = {};
+      for (const slot of Object.keys(raw)) {
+        const persisted = raw[slot];
+        const id = typeof persisted === 'string' ? persisted : persisted?.id;
+        if (!id) continue;
+        const item = ALL_CLOTHING_ITEMS.find(i => i.id === id);
+        if (item) fresh[slot] = item;
+      }
+      setBuilderEquipped(fresh);
     } catch (e) {
       // Non-fatal — fall back to legacy avatar image
     }
