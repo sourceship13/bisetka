@@ -53,6 +53,24 @@ interface GameInfoData {
 }
 
 type GameMode = 'random' | 'ai' | 'private';
+type TeamMode = 'hybrid' | 'full-multiplayer';
+
+const TEAM_MODE_OPTIONS: Array<{
+  id: TeamMode;
+  title: string;
+  subtitle: string;
+}> = [
+  {
+    id: 'hybrid',
+    title: '1 Player + AI vs 1 Player + AI',
+    subtitle: 'You + AI partner vs Opponent + AI partner',
+  },
+  {
+    id: 'full-multiplayer',
+    title: '2 Players vs 2 Players',
+    subtitle: 'Full multiplayer — 4 human players in teams',
+  },
+];
 
 const GAME_MODE_OPTIONS: Array<{
   id: GameMode;
@@ -84,6 +102,8 @@ const GameInfoScreen: React.FC<Props> = ({ route, navigation }) => {
   const [error, setError] = useState<string | null>(null);
   const [showRulesDetailed, setShowRulesDetailed] = useState(false);
   const [selectedMode, setSelectedMode] = useState<GameMode>(preferredMode ?? 'ai');
+  const isTeamGame = gameType === 'blot' || gameType === 'baazar-blot';
+  const [selectedTeamMode, setSelectedTeamMode] = useState<TeamMode>('hybrid');
   const [bisetka, setBisetka] = useState<Bisetka | null>(null);
   const [showPointsModal, setShowPointsModal] = useState(false);
   const [liveBalance, setLiveBalance] = useState<number | null>(null);
@@ -196,6 +216,7 @@ const GameInfoScreen: React.FC<Props> = ({ route, navigation }) => {
       bisetkaId,
       bisetkaName,
       preferredMode: selectedMode,
+      teamMode: isTeamGame ? selectedTeamMode : undefined,
     } as any);
   };
 
@@ -405,6 +426,42 @@ const GameInfoScreen: React.FC<Props> = ({ route, navigation }) => {
               showSign={prizes.loss !== 0}
             />
           </View>
+
+          {/* Team mode selection (Blot / Baazar Blot only) */}
+          {isTeamGame && (
+            <>
+              <Text style={[styles.sectionHeading, styles.sectionHeadingCenter]}>
+                Select Team Mode:
+              </Text>
+              <View style={{ paddingHorizontal: 16, gap: 12 }}>
+                {TEAM_MODE_OPTIONS.map(opt => {
+                  const active = selectedTeamMode === opt.id;
+                  return (
+                    <TouchableOpacity
+                      key={opt.id}
+                      onPress={() => setSelectedTeamMode(opt.id)}
+                      activeOpacity={0.85}
+                      style={[
+                        styles.modeRow,
+                        active && styles.modeRowActive,
+                      ]}>
+                      <View
+                        style={[
+                          styles.radioOuter,
+                          active && styles.radioOuterActive,
+                        ]}>
+                        {active && <View style={styles.radioInner} />}
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.modeTitle}>{opt.title}</Text>
+                        <Text style={styles.modeSubtitle}>{opt.subtitle}</Text>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </>
+          )}
 
           {/* Mode selection */}
           <Text style={[styles.sectionHeading, styles.sectionHeadingCenter]}>
