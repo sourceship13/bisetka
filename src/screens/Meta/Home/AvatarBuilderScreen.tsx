@@ -105,7 +105,21 @@ const AvatarBuilderScreen = ({ navigation }: any) => {
       setSelectedAvatarId(id);
 
       const eqStr = await AsyncStorage.getItem(EQUIPPED_KEY);
-      const loadedEquipped: Record<string, AvatarClothing> = eqStr ? JSON.parse(eqStr) : {};
+      const rawEquipped: Record<string, any> = eqStr ? JSON.parse(eqStr) : {};
+      // SVG `imageUrl` references are React components (functions) and don't
+      // survive JSON.stringify -> JSON.parse, so any persisted equipped item
+      // comes back with a useless empty `imageUrl`. Re-resolve every entry by
+      // id from the in-memory catalog so the previewer can render them.
+      // Also accept the legacy ClothingStore shape `{ slot: itemId }`.
+      const loadedEquipped: Record<string, AvatarClothing> = {};
+      for (const slot of Object.keys(rawEquipped)) {
+        const persisted = rawEquipped[slot];
+        const id =
+          typeof persisted === 'string' ? persisted : persisted?.id;
+        if (!id) continue;
+        const fresh = ALL_CLOTHING_ITEMS.find(i => i.id === id);
+        if (fresh) loadedEquipped[slot] = fresh;
+      }
 
       const ownedStr = await AsyncStorage.getItem(OWNED_KEY);
       const defaults = ALL_CLOTHING_ITEMS.filter(i => i.isDefault).map(i => i.id);
