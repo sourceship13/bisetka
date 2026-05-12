@@ -211,6 +211,30 @@ const GameInfoScreen: React.FC<Props> = ({ route, navigation }) => {
       return;
     }
 
+    // Blot / Baazar Blot already collected mode + team mode on this screen.
+    // Skip GameModeScreen entirely and route directly — going through GameMode
+    // adds an extra mount/unmount cycle that has been known to crash Fabric's
+    // native view recycling on some devices.
+    if (isTeamGame) {
+      const userId = user?.id || 'guest';
+      if (selectedMode === 'ai') {
+        // Single-player blot vs AI — no server session needed.
+        const target = gameType === 'baazar-blot' ? 'BaazarBlot' : 'Blot';
+        navigation.navigate(target as any);
+        return;
+      }
+      // Random / private → multiplayer screen, which manages the socket flow.
+      const target =
+        gameType === 'baazar-blot' ? 'MultiplayerBaazarBlot' : 'MultiplayerBlot';
+      navigation.navigate(target as any, {
+        userId,
+        mode: selectedMode === 'private' ? 'private-create' : 'random',
+        difficulty: 'medium',
+        teamMode: selectedTeamMode,
+      });
+      return;
+    }
+
     navigation.navigate('GameMode', {
       gameType: gameType as any,
       bisetkaId,
