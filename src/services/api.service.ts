@@ -328,6 +328,8 @@ class ApiService {
       `/avatar/appearance/${encodeURIComponent(userId)}`,
       { method: 'GET' },
       true,
+      true,
+      { suppressErrorLogging: true },
     );
   }
 
@@ -344,6 +346,8 @@ class ApiService {
       '/avatar/appearance',
       { method: 'PUT', body: JSON.stringify(payload) },
       true,
+      true,
+      { suppressErrorLogging: true },
     );
   }
 
