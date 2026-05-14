@@ -28,8 +28,8 @@ interface Props {
 
 const GamePlayerOverlay: React.FC<Props> = ({
   opponent,
-  size = 56,
-  topOffset = 70,
+  size = 88,
+  topOffset = 150,
 }) => {
   return (
     <View
