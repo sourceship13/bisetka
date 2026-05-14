@@ -10,6 +10,7 @@ import DailyPointsRewardModal from './src/components/DailyPointsRewardModal';
 import AppVersionFooter from './src/components/global/AppVersionFooter';
 import pushNotificationService from './src/services/pushNotification.service';
 import { startAvatarSync } from './src/services/avatarSync';
+import { seedDefaultOutfitIfMissing } from './src/utils/seedDefaultOutfit';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as Sentry from '@sentry/react-native';
@@ -56,7 +57,13 @@ function App(): React.JSX.Element {
 
   // Push the local avatar appearance to the backend on boot and on every
   // `bisetka:avatarUpdated` event so opponents can render this user's avatar.
-  useEffect(() => startAvatarSync(), []);
+  useEffect(() => {
+    // Make sure the user is wearing the starter wardrobe (idempotent — only
+    // fills slots that are empty). Must run BEFORE startAvatarSync so the
+    // first sync includes the seeded items.
+    seedDefaultOutfitIfMissing();
+    return startAvatarSync();
+  }, []);
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

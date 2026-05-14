@@ -12,6 +12,7 @@ import {
   TextInput,
   ActivityIndicator,
   KeyboardAvoidingView,
+  DeviceEventEmitter,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
@@ -264,6 +265,9 @@ const OnboardingScreen: React.FC<{navigation: any; route?: any}> = ({navigation}
             'ownedClothing',
             JSON.stringify([...owned]),
           );
+          // Notify UserAvatar / avatarSync so the new wardrobe is picked up
+          // by every screen and pushed to the backend immediately.
+          DeviceEventEmitter.emit('bisetka:avatarUpdated');
         } catch (seedErr) {
           console.warn('Failed to seed starter wardrobe:', seedErr);
         }
