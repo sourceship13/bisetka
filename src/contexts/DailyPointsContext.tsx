@@ -17,6 +17,7 @@ import React, {
   useMemo,
   useState,
 } from 'react';
+import { Vibration } from 'react-native';
 import { useAuth } from '../libs/hooks/useAuth';
 import apiService from '../services/api.service';
 import { playCoinDropSound } from '../utils/coinSound';
@@ -46,17 +47,29 @@ export const DailyPointsProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const dismissReward = useCallback(() => {
     const awarded = pendingReward;
-    setPendingReward(null);
-    if (!awarded) return;
+    if (!awarded) {
+      setPendingReward(null);
+      return;
+    }
 
-    // Optimistically credit the local balance and flash + play sound now;
-    // the server call confirms the value and corrects it if needed.
+    // Play sound + haptic FIRST, while the modal is still on-screen so the
+    // dismiss animation doesn't preempt anything.
+    console.log('[DailyPoints] CLAIM pressed → firing coin drop sound');
+    Vibration.vibrate(50);
+    try {
+      playCoinDropSound();
+    } catch (e) {
+      console.warn('[DailyPoints] playCoinDropSound threw:', e);
+    }
+
+    setPendingReward(null);
+
+    // Optimistically credit the local balance and flash; the server call
+    // confirms the value and corrects it if needed.
     setUser(curr =>
       curr ? { ...curr, balance: (curr.balance ?? 0) + awarded } : curr,
     );
     setFlashCounter(c => c + 1);
-    console.log('[DailyPoints] dismiss → playing coin drop sound');
-    playCoinDropSound();
 
     apiService
       .claimDailyPoints(awarded)

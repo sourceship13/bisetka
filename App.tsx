@@ -11,6 +11,7 @@ import AppVersionFooter from './src/components/global/AppVersionFooter';
 import pushNotificationService from './src/services/pushNotification.service';
 import { startAvatarSync } from './src/services/avatarSync';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as Sentry from '@sentry/react-native';
 import Config from 'react-native-config';
 
@@ -59,18 +60,20 @@ function App(): React.JSX.Element {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <AuthProvider>
-        <AchievementProvider>
-          <DailyPointsProvider>
-            <AppNavigator />
-            <InAppNotificationBanner />
-            <DailyPointsRewardModal />
-            <NotificationTapBridge />
-            <BisetkaAlertContainer />
-            <AppVersionFooter mode="floating" showBrand={false} />
-          </DailyPointsProvider>
-        </AchievementProvider>
-      </AuthProvider>
+      <SafeAreaProvider>
+        <AuthProvider>
+          <AchievementProvider>
+            <DailyPointsProvider>
+              <AppNavigator />
+              <InAppNotificationBanner />
+              <DailyPointsRewardModal />
+              <NotificationTapBridge />
+              <BisetkaAlertContainer />
+              <AppVersionFooter mode="floating" showBrand={false} />
+            </DailyPointsProvider>
+          </AchievementProvider>
+        </AuthProvider>
+      </SafeAreaProvider>
     </GestureHandlerRootView>
   );
 }
