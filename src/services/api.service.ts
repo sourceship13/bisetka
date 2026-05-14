@@ -293,6 +293,26 @@ class ApiService {
   }
 
   /**
+   * Claim the daily-points reward for the current user (authenticated).
+   * POST /api/users/claim-daily-points
+   * Returns the updated balance + breakdown of points totals.
+   */
+  async claimDailyPoints(): Promise<{
+    success: boolean;
+    pointsAwarded: number;
+    totalPoints: number;
+    availablePoints: number;
+    lifetimePoints: number;
+    balance: number;
+  }> {
+    return this.request(
+      '/users/claim-daily-points',
+      { method: 'POST' },
+      true,
+    );
+  }
+
+  /**
    * Check if username is available
    * GET /api/auth/check-username/:username
    */

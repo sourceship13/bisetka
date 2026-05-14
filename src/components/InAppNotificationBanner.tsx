@@ -63,6 +63,14 @@ const InAppNotificationBanner: React.FC = () => {
     }).start(() => setPayload(null));
   };
 
+  const handlePress = () => {
+    // If this is a special payload (e.g. daily-points reward), forward the
+    // tap so the global handler can open the right modal/screen.
+    const data = payload?.data;
+    if (data) pushNotificationService.emitNotificationTap(data);
+    dismiss();
+  };
+
   useEffect(() => {
     const unsubscribe = pushNotificationService.onForegroundMessage(show);
     return () => {
@@ -87,7 +95,7 @@ const InAppNotificationBanner: React.FC = () => {
     >
       <TouchableOpacity
         activeOpacity={0.92}
-        onPress={dismiss}
+        onPress={handlePress}
         style={styles.inner}
       >
         <View style={styles.iconPlaceholder}>
