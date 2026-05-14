@@ -21,6 +21,7 @@ import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import GameToolbar from '../../../components/global/GameToolbar';
 import GameToolbarControls from '../../../components/global/GameToolbarControls';
+import GamePlayerOverlay from '../../../components/GamePlayerOverlay';
 
 const MROTSI_BACKGROUND = require('../../../../assets/backgrounds/game_backgrounds/street_armo_bisetka.png');
 import { v4 as uuidv4 } from 'uuid';
@@ -473,6 +474,7 @@ const MrotsiScreen = ({ navigation, route }: any) => {
         )}
       </ImageBackground>
       <View style={styles.overlay} pointerEvents="box-none">
+        <GamePlayerOverlay opponent={null} />
         <SafeAreaView style={styles.container} pointerEvents="box-none">
           <View>
             <GameToolbar

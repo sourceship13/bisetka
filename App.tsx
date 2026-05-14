@@ -9,6 +9,7 @@ import InAppNotificationBanner from './src/components/InAppNotificationBanner';
 import DailyPointsRewardModal from './src/components/DailyPointsRewardModal';
 import AppVersionFooter from './src/components/global/AppVersionFooter';
 import pushNotificationService from './src/services/pushNotification.service';
+import { startAvatarSync } from './src/services/avatarSync';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
 import * as Sentry from '@sentry/react-native';
 import Config from 'react-native-config';
@@ -51,6 +52,10 @@ function App(): React.JSX.Element {
   useEffect(() => {
     BootSplash.hide({ fade: true });
   }, []);
+
+  // Push the local avatar appearance to the backend on boot and on every
+  // `bisetka:avatarUpdated` event so opponents can render this user's avatar.
+  useEffect(() => startAvatarSync(), []);
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

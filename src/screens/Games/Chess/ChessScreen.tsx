@@ -8,6 +8,7 @@ import ReAnimated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-
 import ExpandableView from '../../../components/global/ExpandableView';
 import GameToolbar from '../../../components/global/GameToolbar';
 import GameToolbarControls from '../../../components/global/GameToolbarControls';
+import GamePlayerOverlay from '../../../components/GamePlayerOverlay';
 import {
   Difficulty,
   ChessGameState,
@@ -616,6 +617,7 @@ const ChessScreen = ({navigation}: any) => {
         }}
       />
       <View style={styles.overlay} pointerEvents="box-none">
+        <GamePlayerOverlay opponent="ai" />
         <SafeAreaView style={styles.safeArea} pointerEvents="box-none">
           <View>
             <GameToolbar
