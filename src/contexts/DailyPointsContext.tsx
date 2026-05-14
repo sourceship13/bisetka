@@ -14,7 +14,9 @@ import React, {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import { Vibration } from 'react-native';
@@ -22,10 +24,16 @@ import { useAuth } from '../libs/hooks/useAuth';
 import apiService from '../services/api.service';
 import { playCoinDropSound } from '../utils/coinSound';
 
+interface PendingReward {
+  points: number;
+  /** Epoch-ms after which the modal auto-dismisses without crediting. */
+  expiresAt?: number;
+}
+
 interface DailyPointsContextValue {
   pendingReward: number | null;
   flashCounter: number;
-  triggerReward: (points: number) => void;
+  triggerReward: (points: number, expiresAt?: number) => void;
   dismissReward: () => void;
 }
 
@@ -37,17 +45,55 @@ export const DailyPointsProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const { setUser } = useAuth();
-  const [pendingReward, setPendingReward] = useState<number | null>(null);
+  const [pendingReward, setPendingReward] = useState<PendingReward | null>(null);
   const [flashCounter, setFlashCounter] = useState(0);
+  const expiryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const triggerReward = useCallback((points: number) => {
-    if (!Number.isFinite(points) || points <= 0) return;
-    setPendingReward(points);
+  const clearExpiryTimer = useCallback(() => {
+    if (expiryTimerRef.current) {
+      clearTimeout(expiryTimerRef.current);
+      expiryTimerRef.current = null;
+    }
   }, []);
 
+  const triggerReward = useCallback((points: number, expiresAt?: number) => {
+    if (!Number.isFinite(points) || points <= 0) return;
+    if (typeof expiresAt === 'number' && expiresAt > 0 && Date.now() > expiresAt) {
+      // Already expired before we even rendered.
+      return;
+    }
+    setPendingReward({ points, expiresAt });
+  }, []);
+
+  // Auto-dismiss the modal when its window ends — no claim, no credit.
+  useEffect(() => {
+    clearExpiryTimer();
+    if (!pendingReward?.expiresAt) return;
+    const ms = pendingReward.expiresAt - Date.now();
+    if (ms <= 0) {
+      setPendingReward(null);
+      return;
+    }
+    expiryTimerRef.current = setTimeout(() => {
+      console.log('[DailyPoints] reward window elapsed — auto-dismissing');
+      setPendingReward(null);
+    }, ms);
+    return clearExpiryTimer;
+  }, [pendingReward, clearExpiryTimer]);
+
   const dismissReward = useCallback(() => {
-    const awarded = pendingReward;
-    if (!awarded) {
+    const current = pendingReward;
+    if (!current) {
+      setPendingReward(null);
+      return;
+    }
+    const { points: awarded, expiresAt } = current;
+
+    // Belt-and-braces: if the user managed to tap Claim exactly as the timer
+    // fires, treat it as expired and don't credit.
+    if (expiresAt && Date.now() > expiresAt) {
+      console.log('[DailyPoints] claim arrived after expiry — dropping');
+      clearExpiryTimer();
       setPendingReward(null);
       return;
     }
@@ -62,6 +108,7 @@ export const DailyPointsProvider: React.FC<{ children: React.ReactNode }> = ({
       console.warn('[DailyPoints] playCoinDropSound threw:', e);
     }
 
+    clearExpiryTimer();
     setPendingReward(null);
 
     // Optimistically credit the local balance and flash; the server call
@@ -72,19 +119,33 @@ export const DailyPointsProvider: React.FC<{ children: React.ReactNode }> = ({
     setFlashCounter(c => c + 1);
 
     apiService
-      .claimDailyPoints(awarded)
+      .claimDailyPoints(awarded, expiresAt)
       .then(res => {
         if (typeof res?.balance === 'number') {
           setUser(curr => (curr ? { ...curr, balance: res.balance } : curr));
         }
       })
       .catch(err => {
+        // Server rejected as expired — roll the optimistic credit back.
+        const code = err?.code ?? err?.data?.code;
+        if (code === 'REWARD_EXPIRED' || err?.status === 410) {
+          console.warn('[DailyPoints] server says reward expired, rolling back');
+          setUser(curr =>
+            curr ? { ...curr, balance: Math.max(0, (curr.balance ?? 0) - awarded) } : curr,
+          );
+          return;
+        }
         console.warn('[DailyPoints] claim failed:', err?.message ?? err);
       });
-  }, [pendingReward, setUser]);
+  }, [pendingReward, setUser, clearExpiryTimer]);
 
   const value = useMemo<DailyPointsContextValue>(
-    () => ({ pendingReward, flashCounter, triggerReward, dismissReward }),
+    () => ({
+      pendingReward: pendingReward?.points ?? null,
+      flashCounter,
+      triggerReward,
+      dismissReward,
+    }),
     [pendingReward, flashCounter, triggerReward, dismissReward],
   );
 
