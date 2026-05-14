@@ -16,6 +16,7 @@ const PIECE_MOVE_FILE =
 const DICE_ROLL_FILE = 'dice_roll.mp3';
 const CARD_FLIP_FILE = 'card_flip.mp3';
 const CARD_RIFFLE_SHUFFLE_FILE = 'card_riffle_shuffle.mp3';
+const COIN_DROP_FILE = 'coin_drop.mp3';
 
 interface CachedSound {
   snd: Sound | null;
@@ -48,6 +49,7 @@ ensureLoaded(PIECE_MOVE_FILE, () => {});
 ensureLoaded(DICE_ROLL_FILE, () => {});
 ensureLoaded(CARD_FLIP_FILE, () => {});
 ensureLoaded(CARD_RIFFLE_SHUFFLE_FILE, () => {});
+ensureLoaded(COIN_DROP_FILE, () => {});
 
 const playOnce = (filename: string) => {
   ensureLoaded(filename, snd => {
@@ -65,3 +67,4 @@ export const playPieceMoveSound = () => playOnce(PIECE_MOVE_FILE);
 export const playDiceRollSound = () => playOnce(DICE_ROLL_FILE);
 export const playCardFlipSound = () => playOnce(CARD_FLIP_FILE);
 export const playCardRiffleShuffleSound = () => playOnce(CARD_RIFFLE_SHUFFLE_FILE);
+export const playCoinDropSound = () => playOnce(COIN_DROP_FILE);
