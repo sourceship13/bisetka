@@ -1,16 +1,12 @@
 /**
- * Photosphere360Background — full-screen 360° equirectangular background.
+ * Photosphere360Background — full-screen equirectangular background.
  *
- * Uses the native SphereViewer from @sourceship13/react-native-capture360
- * with gyro-based head tracking for an immersive ambient effect behind game UI.
- *
- * Also exports `useSharedAttitude()` so children (e.g. AR3DOverlay) can
- * consume the same gyro subscription without creating a second sensor read.
+ * Capture360 native SphereViewer + gyro tracking has been removed; this now
+ * renders a static panorama image. `useSharedAttitude()` is preserved for
+ * descendants (e.g. AR3DOverlay) but always returns zeroed attitude.
  */
-import React, {createContext, useContext, useEffect, useRef} from 'react';
-import {View, StyleSheet, Image, Platform} from 'react-native';
-import RNFS from 'react-native-fs';
-import {SphereViewer, type SphereViewerHandle, useAttitude} from '@sourceship13/react-native-capture360';
+import React, {createContext, useContext} from 'react';
+import {View, StyleSheet, Image} from 'react-native';
 import AR3DOverlay, {type AR3DOverlayHandle} from './AR3DOverlay';
 
 // ─── Shared attitude context ──────────────────────────────────────────────────
@@ -58,64 +54,22 @@ type Props = {
   arOverlayRef?: React.Ref<AR3DOverlayHandle>;
 };
 
+const STATIC_ATTITUDE: AttitudeValue = {yaw: 0, pitch: 0, roll: 0};
+
 export default function Photosphere360Background({
   panoramaSource = DEFAULT_PANORAMA,
-  initialPitch = -5,
-  gyroEnabled = true,
-  heightOffset = 0.08,
   overlayOpacity = 0.3,
   children,
   arEnabled = false,
   arOverlayRef,
 }: Props) {
-  const attitude = useAttitude();
-  const sphereRef = useRef<SphereViewerHandle>(null);
-
-  // Inject gyro updates imperatively — keeps SphereViewer from re-rendering at 25fps
-  // which would starve its useEffect([], []) and prevent the image from ever loading.
-  useEffect(() => {
-    if (gyroEnabled) {
-      sphereRef.current?.updateAttitude(attitude.yaw, attitude.pitch);
-    }
-  }, [attitude, gyroEnabled]);
-
-  const panoramaImagePath = React.useMemo(() => {
-    const resolved = Image.resolveAssetSource(panoramaSource);
-    const uri = resolved?.uri;
-    if (!uri) {
-      return undefined;
-    }
-
-    // SphereViewer's native readFileBase64 expects a local file path.
-    // In release/TestFlight, this avoids fetch-based placeholder loading getting stuck.
-    if (uri.startsWith('file://') || uri.startsWith('/')) {
-      return uri;
-    }
-
-    // iOS release may return a bundle-relative asset path (no URI scheme).
-    if (Platform.OS === 'ios' && !uri.includes('://')) {
-      return `${RNFS.MainBundlePath}/${uri.replace(/^\/+/, '')}`;
-    }
-
-    // Dev Metro URLs (http://...) continue through placeholderSource fallback.
-    return undefined;
-  }, [panoramaSource]);
-
   return (
-    <AttitudeContext.Provider value={attitude}>
+    <AttitudeContext.Provider value={STATIC_ATTITUDE}>
       <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
-        {/* Fallback flat image shown when WebGL texture fails to load */}
         <Image
           source={panoramaSource}
           style={StyleSheet.absoluteFill}
           resizeMode="cover"
-        />
-        <SphereViewer
-          ref={sphereRef}
-          imagePath={panoramaImagePath}
-          placeholderSource={panoramaSource}
-          initialPitch={initialPitch}
-          heightOffset={heightOffset}
         />
         {overlayOpacity > 0 && (
           <View
@@ -127,9 +81,7 @@ export default function Photosphere360Background({
           />
         )}
       </View>
-      {/* Generic AR overlay (no pieces) when arEnabled=true */}
       {arEnabled && <AR3DOverlay ref={arOverlayRef} visible={true} />}
-      {/* Children (AR3DOverlay etc.) render on top of the sphere viewer */}
       {children}
     </AttitudeContext.Provider>
   );

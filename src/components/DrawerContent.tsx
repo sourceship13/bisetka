@@ -14,7 +14,6 @@ const MENU_ITEMS = [
   {key: 'Achievements', icon: '🏆', label: 'Achievements', gradient: ['#f59e0b', '#fbbf24'] as const},
   {key: 'Store', icon: '🛍️', label: 'Store', gradient: ['#f59e0b', '#fbbf24'] as const},
   {key: 'Settings', icon: '⚙️', label: 'Settings', gradient: ['#64748b', '#94a3b8'] as const},
-  {key: 'Photosphere', icon: '📸', label: 'Photosphere', gradient: ['#ec4899', '#f472b6'] as const},
 ];
 
 const DrawerContent = (props: any) => {
