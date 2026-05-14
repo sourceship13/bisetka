@@ -293,11 +293,11 @@ class ApiService {
   }
 
   /**
-   * Claim the daily-points reward for the current user (authenticated).
-   * POST /api/users/claim-daily-points
+   * Claim the random-reward bonus for the current user (authenticated).
+   * POST /api/users/claim-daily-points  body: { points }
    * Returns the updated balance + breakdown of points totals.
    */
-  async claimDailyPoints(): Promise<{
+  async claimDailyPoints(points: number): Promise<{
     success: boolean;
     pointsAwarded: number;
     totalPoints: number;
@@ -307,7 +307,7 @@ class ApiService {
   }> {
     return this.request(
       '/users/claim-daily-points',
-      { method: 'POST' },
+      { method: 'POST', body: JSON.stringify({ points }) },
       true,
     );
   }
