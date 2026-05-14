@@ -2869,11 +2869,6 @@
   resolved "https://registry.npmjs.org/@socket.io/component-emitter/-/component-emitter-3.1.2.tgz"
   integrity sha512-9BCxFwvbGg/RsZK9tjXd8s4UcwR0MWeFQ1XEKIQVVvAGJyINdrqKMcTRyLoK8Rse1GjzLV9cwjWV1olXRWEXVA==
 
-"@sourceship13/react-native-capture360@1.0.10":
-  version "1.0.10"
-  resolved "https://npm.pkg.github.com/download/@sourceship13/react-native-capture360/1.0.10/1330ff61f1a9d657606cfc6e8f4ae7bf22ce349b"
-  integrity sha512-bFgtxSJkVa6vSzjyNF5fOa/ihGFQsV/eDzhB/4DNmx4x5EgtV8e0963DsnzmVtSOf3hqmaK/vBznguQcRGnu9g==
-
 "@svgr/babel-plugin-add-jsx-attribute@8.0.0":
   version "8.0.0"
   resolved "https://registry.npmjs.org/@svgr/babel-plugin-add-jsx-attribute/-/babel-plugin-add-jsx-attribute-8.0.0.tgz"
