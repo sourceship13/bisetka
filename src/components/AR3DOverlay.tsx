@@ -31,7 +31,11 @@ import {StyleSheet, View, NativeModules, Platform, Image} from 'react-native';
 import WebView from 'react-native-webview';
 import RNFS from 'react-native-fs';
 import {useSharedAttitude} from './Photosphere360Background';
-import {useAttitude} from '@sourceship13/react-native-capture360';
+
+// capture360 removed — return a static zeroed attitude.
+function useAttitude() {
+  return {yaw: 0, pitch: 0, roll: 0, rawYaw: 0, resetYawOffset: () => {}};
+}
 
 // ─── Public types ─────────────────────────────────────────────────────────────
 
