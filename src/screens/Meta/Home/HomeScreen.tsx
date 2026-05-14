@@ -11,6 +11,8 @@ import {
   Platform,
   ImageBackground,
   Image,
+  Animated,
+  Easing,
 } from 'react-native';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -18,6 +20,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import { useAuth } from '../../../libs/hooks/useAuth';
 import apiService from '../../../services/api.service';
 import pushNotificationService from '../../../services/pushNotification.service';
+import { useDailyPoints } from '../../../contexts/DailyPointsContext';
 import { iOSUIKit } from 'react-native-typography';
 import { colors } from '../../../theme';
 import {
@@ -149,8 +152,35 @@ type GameConfig = (typeof GAMES)[number];
 
 const HomeScreen = ({ navigation, route }: any) => {
   const { user, signOut, refreshUser } = useAuth();
+  const { flashCounter } = useDailyPoints();
   const drawerNav = useNavigation();
   const refreshUserRef = useRef(refreshUser);
+
+  // Flash the points number yellow→white→yellow when points are credited.
+  const pointsFlash = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (flashCounter === 0) return;
+    const oneCycle = () =>
+      Animated.sequence([
+        Animated.timing(pointsFlash, {
+          toValue: 1,
+          duration: 140,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: false,
+        }),
+        Animated.timing(pointsFlash, {
+          toValue: 0,
+          duration: 140,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: false,
+        }),
+      ]);
+    Animated.sequence([oneCycle(), oneCycle(), oneCycle(), oneCycle()]).start();
+  }, [flashCounter, pointsFlash]);
+  const pointsAnimatedColor = pointsFlash.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['#fbbf24', '#ffffff'],
+  });
   const forceBackgroundReload = route?.params?.forceBackgroundReload;
   const {
     bisetka: resolvedBisetka,
@@ -508,9 +538,11 @@ const HomeScreen = ({ navigation, route }: any) => {
         )}
         <StatusBar
           barStyle={statusBarStyle}
-          backgroundColor="transparent"
-          translucent
-        />
+          backgroundCAnimated.Text
+                      style={[styles.pointsAmount, { color: pointsAnimatedColor }]}
+                    >
+                      {Math.floor(user?.balance || 0).toLocaleString()}
+                    </Animated.
         <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
           <ScrollView
             contentContainerStyle={styles.scrollContent}
@@ -695,7 +727,7 @@ const styles = StyleSheet.create({
   },
   pointsCoin: {
     fontSize: 16,
-  },
+  },bbf24
   pointsAmount: {
     color: '#fff',
     fontWeight: '800',

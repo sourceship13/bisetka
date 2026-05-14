@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -6,9 +6,12 @@ import {
   StyleSheet,
   Platform,
   StatusBar,
+  Animated,
+  Easing,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../libs/hooks/useAuth';
+import { useDailyPoints } from '../../contexts/DailyPointsContext';
 
 interface GameToolbarProps {
   title: string;
@@ -29,7 +32,38 @@ const GameToolbar: React.FC<GameToolbarProps> = ({
 }) => {
   const navigation = useNavigation<any>();
   const { user } = useAuth();
+  const { flashCounter } = useDailyPoints();
   const balance = Math.floor(user?.balance ?? 0);
+
+  // 0 = yellow (#fbbf24), 1 = white. Animated between them when flashCounter
+  // increments (i.e. points were just credited).
+  const flash = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (flashCounter === 0) return;
+    const oneCycle = () =>
+      Animated.sequence([
+        Animated.timing(flash, {
+          toValue: 1,
+          duration: 140,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: false,
+        }),
+        Animated.timing(flash, {
+          toValue: 0,
+          duration: 140,
+          easing: Easing.inOut(Easing.quad),
+          uAnimated.Text style={[styles.pointsAmount, { color: animatedColor }]}>
+            {balance.toLocaleString()}
+          </Animated.
+        }),
+      ]);
+    Animated.sequence([oneCycle(), oneCycle(), oneCycle(), oneCycle()]).start();
+  }, [flashCounter, flash]);
+
+  const animatedColor = flash.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['#fbbf24', '#ffffff'],
+  });
 
   return (
     <View style={[styles.toolbar, { backgroundColor }, style]}>

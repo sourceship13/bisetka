@@ -207,6 +207,12 @@ class PushNotificationService {
   /** Components can subscribe to receive foreground push payloads. */
   private foregroundListeners: Array<(title: string, body: string, data?: Record<string, string>) => void> = [];
 
+  /** Components can subscribe to user taps on push notifications. */
+  private tapListeners: Array<(data: Record<string, string> | undefined) => void> = [];
+
+  /** Holds a tap that arrived before any listener was registered (cold start). */
+  private pendingTap: Record<string, string> | undefined = undefined;
+
   /**
    * Register a callback that fires whenever a push arrives while the app
    * is in the foreground.  Returns an unsubscribe function.
@@ -218,6 +224,35 @@ class PushNotificationService {
     return () => {
       this.foregroundListeners = this.foregroundListeners.filter(l => l !== cb);
     };
+  }
+
+  /**
+   * Register a callback that fires whenever the user TAPS a push notification
+   * (background → foreground, or cold-start launch). Returns unsubscribe.
+   * If a tap is already buffered (cold start arrived before subscription),
+   * the callback is invoked immediately on the next tick.
+   */
+  onNotificationTap(
+    cb: (data: Record<string, string> | undefined) => void
+  ): () => void {
+    this.tapListeners.push(cb);
+    if (this.pendingTap) {
+      const buffered = this.pendingTap;
+      this.pendingTap = undefined;
+      setTimeout(() => cb(buffered), 0);
+    }
+    return () => {
+      this.tapListeners = this.tapListeners.filter(l => l !== cb);
+    };
+  }
+
+  /** Public: emit a synthetic tap (e.g. when user taps the foreground banner). */
+  emitNotificationTap(data: Record<string, string> | undefined) {
+    if (this.tapListeners.length === 0) {
+      this.pendingTap = data;
+      return;
+    }
+    this.tapListeners.forEach(cb => cb(data));
   }
 
   private emitForeground(title: string, body: string, data?: Record<string, string>) {
@@ -242,6 +277,24 @@ class PushNotificationService {
     messaging().setBackgroundMessageHandler(async remoteMessage => {
       console.log('📬 Background push received:', remoteMessage.notification?.title);
     });
+
+    // User tapped a notification while the app was in the background.
+    messaging().onNotificationOpenedApp(remoteMessage => {
+      console.log('👆 Notification tap (background):', remoteMessage?.notification?.title);
+      const data = remoteMessage?.data as Record<string, string> | undefined;
+      this.emitNotificationTap(data);
+    });
+
+    // App was launched FROM a tapped notification (cold start).
+    messaging()
+      .getInitialNotification()
+      .then(remoteMessage => {
+        if (!remoteMessage) return;
+        console.log('👆 Notification tap (cold start):', remoteMessage.notification?.title);
+        const data = remoteMessage.data as Record<string, string> | undefined;
+        this.emitNotificationTap(data);
+      })
+      .catch(err => console.warn('getInitialNotification failed:', err));
   }
 
   /**

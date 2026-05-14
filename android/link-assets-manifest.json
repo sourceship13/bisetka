@@ -578,6 +578,10 @@
       "sha1": "4878fdbc272211934e1f74b51382113ebdfe0490"
     },
     {
+      "path": "assets/sounds/coin_drop.mp3",
+      "sha1": "8ba04e9a302d25af14cad9983cc0fde602cdcade"
+    },
+    {
       "path": "assets/sounds/dice_roll.mp3",
       "sha1": "b6d159ca2f90f831de01da01b2cca4dbee3002e3"
     },
