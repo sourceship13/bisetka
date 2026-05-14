@@ -538,11 +538,9 @@ const HomeScreen = ({ navigation, route }: any) => {
         )}
         <StatusBar
           barStyle={statusBarStyle}
-          backgroundCAnimated.Text
-                      style={[styles.pointsAmount, { color: pointsAnimatedColor }]}
-                    >
-                      {Math.floor(user?.balance || 0).toLocaleString()}
-                    </Animated.
+          backgroundColor="transparent"
+          translucent
+        />
         <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
           <ScrollView
             contentContainerStyle={styles.scrollContent}
@@ -566,9 +564,11 @@ const HomeScreen = ({ navigation, route }: any) => {
                 >
                   <View style={styles.pointsPill}>
                     <Text style={styles.pointsCoin}>🪙</Text>
-                    <Text style={styles.pointsAmount}>
+                    <Animated.Text
+                      style={[styles.pointsAmount, { color: pointsAnimatedColor }]}
+                    >
                       {Math.floor(user?.balance || 0).toLocaleString()}
-                    </Text>
+                    </Animated.Text>
                     <View style={styles.pointsPlus}>
                       <Icon name="plus" size={12} color="#fff" />
                       <Text style={styles.pointsPlusText}>Get Points</Text>
@@ -727,9 +727,9 @@ const styles = StyleSheet.create({
   },
   pointsCoin: {
     fontSize: 16,
-  },bbf24
+  },
   pointsAmount: {
-    color: '#fff',
+    color: '#fbbf24',
     fontWeight: '800',
     fontSize: 14,
   },

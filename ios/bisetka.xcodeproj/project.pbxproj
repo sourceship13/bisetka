@@ -246,6 +246,7 @@
 		8274A4424345495FAFD54C17 /* Inter_18pt-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = ACE88FC4642A4578A3EB51B2 /* Inter_18pt-Medium.ttf */; };
 		82D4F2F704774AAD81330FB6 /* JetBrainsMono-BoldItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 2910604EF97045BD8E4E41B3 /* JetBrainsMono-BoldItalic.ttf */; };
 		8319C20619AE4608A1AB90D4 /* Inter_18pt-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = CF6248775B954B2A91E9577D /* Inter_18pt-Regular.ttf */; };
+		831A4413F32044979A92E43D /* coin_drop.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 3378386355354E3F875E5EAF /* coin_drop.mp3 */; };
 		841189894D504235A1E191B2 /* PlayfairDisplaySC-BoldItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = D15C27B397F84A35AE9A96BE /* PlayfairDisplaySC-BoldItalic.ttf */; };
 		8565C7DAE73C4EF599FD3EFE /* Inter_18pt-BoldItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = EC60E269600D49D2B29C40BF /* Inter_18pt-BoldItalic.ttf */; };
 		85D215EAC47D4882898D7456 /* Fredoka_SemiCondensed-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = B377AA1FB09A4536A7456AC3 /* Fredoka_SemiCondensed-Regular.ttf */; };
@@ -460,7 +461,6 @@
 		FF3C68A367FB4044A85958C6 /* PlayfairDisplaySC-BlackItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 2B5851A33D6247CE9AB24075 /* PlayfairDisplaySC-BlackItalic.ttf */; };
 		FFE09CFF9100478FBF3FB468 /* RobotoMono-BoldItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = F033DC7713084399A0BF5BB2 /* RobotoMono-BoldItalic.ttf */; };
 		FFF82F87E7034142BB97E5D1 /* coin_drop.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 3378386355354E3F875E5EAF /* coin_drop.mp3 */; };
-		831A4413F32044979A92E43D /* coin_drop.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 3378386355354E3F875E5EAF /* coin_drop.mp3 */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -492,6 +492,7 @@
 		309BA12C14FB4180A28EE547 /* Cinzel-Medium.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Cinzel-Medium.ttf"; path = "../assets/fonts/Cinzel-Medium.ttf"; sourceTree = "<group>"; };
 		31166F39FBC54D65847154E2 /* RobotoMono-Bold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "RobotoMono-Bold.ttf"; path = "../assets/fonts/RobotoMono-Bold.ttf"; sourceTree = "<group>"; };
 		31A8725F0C24440FABE9E106 /* Inter_24pt-BoldItalic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Inter_24pt-BoldItalic.ttf"; path = "../assets/fonts/Inter_24pt-BoldItalic.ttf"; sourceTree = "<group>"; };
+		3378386355354E3F875E5EAF /* coin_drop.mp3 */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = coin_drop.mp3; path = ../assets/sounds/coin_drop.mp3; sourceTree = "<group>"; };
 		3450A82E96A24FA088D9BBF0 /* Cinzel-SemiBold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Cinzel-SemiBold.ttf"; path = "../assets/fonts/Cinzel-SemiBold.ttf"; sourceTree = "<group>"; };
 		35A18494E9EB4A04AF403618 /* Inter_28pt-ExtraLightItalic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Inter_28pt-ExtraLightItalic.ttf"; path = "../assets/fonts/Inter_28pt-ExtraLightItalic.ttf"; sourceTree = "<group>"; };
 		3672A385AB5B4A2B96586F9F /* Inter_24pt-Black.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Inter_24pt-Black.ttf"; path = "../assets/fonts/Inter_24pt-Black.ttf"; sourceTree = "<group>"; };
@@ -630,7 +631,6 @@
 		FC01DB49CF114D32BD358121 /* Inter_18pt-ThinItalic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Inter_18pt-ThinItalic.ttf"; path = "../assets/fonts/Inter_18pt-ThinItalic.ttf"; sourceTree = "<group>"; };
 		FC3030E946664228B6A0A3F2 /* Inter_28pt-SemiBoldItalic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Inter_28pt-SemiBoldItalic.ttf"; path = "../assets/fonts/Inter_28pt-SemiBoldItalic.ttf"; sourceTree = "<group>"; };
 		FD83D179460F48869D17B5A4 /* Inter_24pt-LightItalic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Inter_24pt-LightItalic.ttf"; path = "../assets/fonts/Inter_24pt-LightItalic.ttf"; sourceTree = "<group>"; };
-		3378386355354E3F875E5EAF /* coin_drop.mp3 */ = {isa = PBXFileReference; name = "coin_drop.mp3"; path = "../assets/sounds/coin_drop.mp3"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
