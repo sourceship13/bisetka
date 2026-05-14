@@ -52,9 +52,7 @@ const GameToolbar: React.FC<GameToolbarProps> = ({
           toValue: 0,
           duration: 140,
           easing: Easing.inOut(Easing.quad),
-          uAnimated.Text style={[styles.pointsAmount, { color: animatedColor }]}>
-            {balance.toLocaleString()}
-          </Animated.
+          useNativeDriver: false,
         }),
       ]);
     Animated.sequence([oneCycle(), oneCycle(), oneCycle(), oneCycle()]).start();
@@ -83,7 +81,7 @@ const GameToolbar: React.FC<GameToolbarProps> = ({
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           style={styles.pointsPill}>
           <Text style={styles.pointsCoin}>🪙</Text>
-          <Text style={styles.pointsAmount}>{balance.toLocaleString()}</Text>
+          <Animated.Text style={[styles.pointsAmount, { color: animatedColor }]}>{balance.toLocaleString()}</Animated.Text>
           <View style={styles.pointsPlus}>
             <Text style={styles.pointsPlusText}>+ Get Points</Text>
           </View>

@@ -11,6 +11,12 @@ require_relative '../node_modules/react-native-permissions/scripts/setup'
 platform :ios, min_ios_version_supported
 prepare_react_native_project!
 
+# Pin MapboxMaps native SDK to v10.x — @rnmapbox/maps@10.x (RNMBXShapeSource etc.)
+# uses the `Shape` type which was renamed to `GeoJSONObject` in MapboxMaps 11.x.
+# Without this, pod install resolves to 11.x and the rnmapbox-maps target fails
+# to compile ("cannot find 'Shape' in scope").
+$RNMapboxMapsVersion = '= 10.18.2'
+
 linkage = ENV['USE_FRAMEWORKS']
 if linkage != nil
   Pod::UI.puts "Configuring Pod with #{linkage}ally linked Frameworks".green

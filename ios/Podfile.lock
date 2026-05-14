@@ -133,14 +133,15 @@ PODS:
     - hermes-engine/Pre-built (= 0.14.0)
   - hermes-engine/Pre-built (0.14.0)
   - JitsiWebRTC (124.0.2)
-  - MapboxCommon (24.16.6):
-    - Turf (= 4.0.0)
-  - MapboxCoreMaps (11.16.6):
-    - MapboxCommon (= 24.16.6)
-  - MapboxMaps (11.16.6):
-    - MapboxCommon (= 24.16.6)
-    - MapboxCoreMaps (= 11.16.6)
-    - Turf (= 4.0.0)
+  - MapboxCommon (23.10.1)
+  - MapboxCoreMaps (10.18.0):
+    - MapboxCommon (~> 23.10)
+  - MapboxMaps (10.18.2):
+    - MapboxCommon (= 23.10.1)
+    - MapboxCoreMaps (= 10.18.0)
+    - MapboxMobileEvents (= 1.0.10)
+    - Turf (= 2.8.0)
+  - MapboxMobileEvents (1.0.10)
   - nanopb (3.30910.0):
     - nanopb/decode (= 3.30910.0)
     - nanopb/encode (= 3.30910.0)
@@ -3117,7 +3118,7 @@ PODS:
     - SocketRocket
     - Yoga
   - rnmapbox-maps (10.2.10):
-    - MapboxMaps (~> 11.16.2)
+    - MapboxMaps (= 10.18.2)
     - React
     - React-Core
     - rnmapbox-maps/DynamicLibrary (= 10.2.10)
@@ -3128,7 +3129,7 @@ PODS:
     - fast_float
     - fmt
     - hermes-engine
-    - MapboxMaps (~> 11.16.2)
+    - MapboxMaps (= 10.18.2)
     - RCT-Folly
     - RCT-Folly/Fabric
     - RCTRequired
@@ -3563,7 +3564,7 @@ PODS:
     - Sentry/Core (= 9.5.1)
   - Sentry/Core (9.5.1)
   - SocketRocket (0.7.1)
-  - Turf (4.0.0)
+  - Turf (2.8.0)
   - ViroKit (1.0):
     - React
   - ViroReact (1.0):
@@ -3707,6 +3708,7 @@ SPEC REPOS:
     - MapboxCommon
     - MapboxCoreMaps
     - MapboxMaps
+    - MapboxMobileEvents
     - nanopb
     - PromisesObjC
     - Sentry
@@ -3964,9 +3966,10 @@ SPEC CHECKSUMS:
   GTMSessionFetcher: 5aea5ba6bd522a239e236100971f10cb71b96ab6
   hermes-engine: 2eef0ee3c5b1de5e8b77e4e39a81d761989a4611
   JitsiWebRTC: b47805ab5668be38e7ee60e2258f49badfe8e1d0
-  MapboxCommon: 10cbf74edb23c9abcfe2424899d804f288a47334
-  MapboxCoreMaps: f19680d20681797067268284b2292349de861730
-  MapboxMaps: 04c7bf46d66265ad0f4b98484a251777a926c423
+  MapboxCommon: 0ff437e44988da6856e280d00ffb266564ed0487
+  MapboxCoreMaps: f1bd9405f5b9d3e343f2fe4138775299699a22fb
+  MapboxMaps: e76b14f52c54c40b76ddecd04f40448e6f35a864
+  MapboxMobileEvents: de50b3a4de180dd129c326e09cd12c8adaaa46d6
   nanopb: fad817b59e0457d11a5dfbde799381cd727c1275
   PromisesObjC: f5707f49cb48b9636751c5b2e7d227e43fba9f47
   RCT-Folly: 846fda9475e61ec7bcbf8a3fe81edfcaeb090669
@@ -4059,7 +4062,7 @@ SPEC CHECKSUMS:
   RNGestureHandler: d7ebd5abfdf03ddebef995d2f828a9f07fca7990
   RNGoogleSignin: 15341729e1f79f1b82740393924cae5e429ad176
   RNKeychain: a2c134ab796272c3d605e035ab727591000b30f3
-  rnmapbox-maps: 3d1e47317c5ca1763a120120c207825ab3728836
+  rnmapbox-maps: eea6c28dd0cfd4e0422613d9ff58e6617092572d
   RNPermissions: 1fb440bbd97ced458beb8cc121853bf0e50b279d
   RNReanimated: 4e6187f2ba1e30e6ddc7c8fc9f19b2dd2b6b2532
   RNScreens: 7f643ee0fd1407dc5085c7795460bd93da113b8f
@@ -4070,11 +4073,11 @@ SPEC CHECKSUMS:
   RNWorklets: 809b16c37950dbcc71adaeee55c9476217a9e449
   Sentry: 7475eb7bf6a41d7505f46341706015ad2d1766b9
   SocketRocket: d4aabe649be1e368d1318fdf28a022d714d65748
-  Turf: c9eb11a65d96af58cac523460fd40fec5061b081
+  Turf: aa2ede4298009639d10db36aba1a7ebaad072a5e
   ViroKit: 728e2547f4ac693a69fa7652813ec178a361dbd6
   ViroReact: 0fe7ad200cee750209ef1e767f677a90f4736bf0
   Yoga: 5456bb010373068fc92221140921b09d126b116e
 
-PODFILE CHECKSUM: 8187e9471583ee3d7a2bb284ffbef6cc2ab7f91d
+PODFILE CHECKSUM: b335af676d18a69ef9ce4ce6f56737ba4fd68fb1
 
 COCOAPODS: 1.16.2
