@@ -58,7 +58,7 @@ export const DailyPointsProvider: React.FC<{ children: React.ReactNode }> = ({
     playCoinDropSound();
 
     apiService
-      .claimDailyPoints()
+      .claimDailyPoints(awarded)
       .then(res => {
         if (typeof res?.balance === 'number') {
           setUser(curr => (curr ? { ...curr, balance: res.balance } : curr));

@@ -61,7 +61,7 @@ const DailyPointsRewardModal: React.FC = () => {
           ]}
         >
           <Text style={styles.coin}>🪙</Text>
-          <Text style={styles.title}>Free Points!</Text>
+          <Text style={styles.title}>Random Reward!</Text>
           <Text style={styles.amount}>
             +{(pendingReward ?? 0).toLocaleString()}
           </Text>
