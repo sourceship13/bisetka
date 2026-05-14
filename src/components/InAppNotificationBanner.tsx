@@ -13,9 +13,8 @@ import {
   Text,
   TouchableOpacity,
   View,
-  Platform,
-  StatusBar,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '../theme/colors';
 import { pushNotificationService } from '../services/pushNotification.service';
 
@@ -29,6 +28,7 @@ const BANNER_HEIGHT = 80;
 const AUTO_DISMISS_MS = 4500;
 
 const InAppNotificationBanner: React.FC = () => {
+  const insets = useSafeAreaInsets();
   const [payload, setPayload] = useState<NotifPayload | null>(null);
   const translateY = useRef(new Animated.Value(-BANNER_HEIGHT - 60)).current;
   const dismissTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -82,14 +82,15 @@ const InAppNotificationBanner: React.FC = () => {
 
   if (!payload) return null;
 
-  const statusBarHeight =
-    Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 0;
+  // Push the banner down past the status bar / notch and add a small visual
+  // gap so it doesn't feel glued to the top of the screen.
+  const topOffset = insets.top + 8;
 
   return (
     <Animated.View
       style={[
         styles.container,
-        { top: statusBarHeight, transform: [{ translateY }] },
+        { top: topOffset, transform: [{ translateY }] },
       ]}
       pointerEvents="box-none"
     >
