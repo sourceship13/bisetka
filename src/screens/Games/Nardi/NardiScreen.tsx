@@ -16,6 +16,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import GameToolbar from '../../../components/global/GameToolbar';
 import GameToolbarControls from '../../../components/global/GameToolbarControls';
+import GamePlayerOverlay from '../../../components/GamePlayerOverlay';
 import RoomNameModal from '../../../components/RoomNameModal';
 import ReAnimated, { useSharedValue, useAnimatedStyle, withTiming, withSequence, withDelay } from 'react-native-reanimated';
 import ExpandableView from '../../../components/global/ExpandableView';
@@ -1606,6 +1607,7 @@ const NardiScreen = ({ navigation, route }: any) => {
         ]}
       />
       <View style={styles.overlay} pointerEvents="box-none">
+        <GamePlayerOverlay opponent={isMultiplayer ? null : 'ai'} />
         <SafeAreaView style={styles.safeArea} pointerEvents="box-none">
           <View>
             <GameToolbar

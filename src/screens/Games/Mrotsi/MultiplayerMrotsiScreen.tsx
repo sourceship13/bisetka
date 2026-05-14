@@ -16,6 +16,7 @@ import {
 import {SafeAreaView} from 'react-native-safe-area-context';
 import GameToolbar from '../../../components/global/GameToolbar';
 import GameToolbarControls from '../../../components/global/GameToolbarControls';
+import GamePlayerOverlay from '../../../components/GamePlayerOverlay';
 import RoomNameModal from '../../../components/RoomNameModal';
 import ReAnimated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import Photosphere360Background from '../../../components/Photosphere360Background';
@@ -582,6 +583,7 @@ const MultiplayerMrotsiScreen = ({navigation, route}: any) => {
       <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/game_boards/rounded_table_panel_v4.glb" />
     </Photosphere360Background>
     <View style={styles.overlay} pointerEvents="box-none">
+    <GamePlayerOverlay opponent={null} />
     <SafeAreaView style={styles.container}>
       <View>
         <GameToolbar

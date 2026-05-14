@@ -8,6 +8,7 @@ import { resolveAvatar } from '../../../utils/avatars';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import GameToolbar from '../../../components/global/GameToolbar';
 import GameToolbarControls from '../../../components/global/GameToolbarControls';
+import GamePlayerOverlay from '../../../components/GamePlayerOverlay';
 import ReAnimated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import ExpandableView from '../../../components/global/ExpandableView';
 import Card3D from '../../../components/Card3D';
@@ -1303,6 +1304,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
         <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/game_assets/casino_table_level2_textured.glb" hideCheckerboard boardScale={1.9} boardY={-0.91} boardGlbForceFlat boardTiltX={0.55} cardGlbPath="glb/cards/card-template.glb" cards={arCards} arLabels={arLabels} tableDist={0.90} boardFixed boardFixedZoom={0.8} />
       </AraratBackground>
       <View style={styles.overlay} pointerEvents="box-none">
+      <GamePlayerOverlay opponent={isMultiplayer ? null : 'ai'} />
       <SafeAreaView style={styles.safeArea}>
 
       {/* ── Connecting / Waiting Room Overlay ── */}

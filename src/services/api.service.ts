@@ -313,6 +313,41 @@ class ApiService {
   }
 
   /**
+   * Fetch the avatar appearance config (base + equipped) for any user.
+   * GET /api/avatar/appearance/:userId
+   */
+  async getAvatarAppearance(userId: string): Promise<{
+    appearance: {
+      baseAvatarId: string | null;
+      gender: 'male' | 'female' | null;
+      equipped: Record<string, string>;
+      updatedAt: string;
+    };
+  }> {
+    return this.request(
+      `/avatar/appearance/${encodeURIComponent(userId)}`,
+      { method: 'GET' },
+      true,
+    );
+  }
+
+  /**
+   * Upsert the caller's avatar appearance config.
+   * PUT /api/avatar/appearance
+   */
+  async saveAvatarAppearance(payload: {
+    baseAvatarId: string | null;
+    gender: 'male' | 'female' | null;
+    equipped: Record<string, string>;
+  }): Promise<unknown> {
+    return this.request(
+      '/avatar/appearance',
+      { method: 'PUT', body: JSON.stringify(payload) },
+      true,
+    );
+  }
+
+  /**
    * Check if username is available
    * GET /api/auth/check-username/:username
    */

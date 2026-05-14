@@ -17,6 +17,7 @@ import ReAnimated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-
 import ExpandableView from '../../../components/global/ExpandableView';
 import GameToolbar from '../../../components/global/GameToolbar';
 import GameToolbarControls from '../../../components/global/GameToolbarControls';
+import GamePlayerOverlay from '../../../components/GamePlayerOverlay';
 import GameThemeCustomizer from '../../../components/global/GameThemeCustomizer';
 import type { GameTheme } from '../../../components/global/GameThemeCustomizer';
 import RoomNameModal from '../../../components/RoomNameModal';
@@ -89,6 +90,7 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
   // Ref so stale closures (socket listeners) always read the current value
   const myColorRef = React.useRef<'white' | 'black'>('white');
   const [opponentId, setOpponentId] = useState<string>('');
+  const [opponentUsername, setOpponentUsername] = useState<string>('');
   const [currentTurn, setCurrentTurn] = useState<'white' | 'black'>('white');
   const [isMyTurn, setIsMyTurn] = useState<boolean>(false);
   const [gameStatus, setGameStatus] = useState<string>('Waiting for opponent...');
@@ -146,6 +148,7 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
 
       socketService.onOpponentJoined((data) => {
         setOpponentId(data.opponent.id);
+        setOpponentUsername((data.opponent as any).username ?? (data.opponent as any).displayName ?? '');
         setGameStatus('Opponent found! Get ready...');
         // Player 1 (room creator) must also signal ready so the backend starts the game
         const liveRoomId = roomIdRef.current;
@@ -271,6 +274,7 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
             setRoomId(data.roomId);
             setMyColor(data.color ?? 'black');
             setOpponentId(data.opponent?.id ?? '');
+            setOpponentUsername(((data.opponent as any)?.username ?? (data.opponent as any)?.displayName) ?? '');
             setGameStatus('Joined! Waiting for game to start...');
             socketService.playerReady(data.roomId, userId);
           });
@@ -366,6 +370,7 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
       setRoomId(matchData.roomId);
       setMyColor(matchData.color);
       setOpponentId(matchData.opponent.id);
+      setOpponentUsername((matchData.opponent as any).username ?? (matchData.opponent as any).displayName ?? '');
       setIsMyTurn(matchData.color === 'white');
       
       // Send ready signal
@@ -405,6 +410,7 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
       setRoomId(roomData.roomId);
       setMyColor(roomData.color);
       setOpponentId(roomData.opponent.id);
+      setOpponentUsername((roomData.opponent as any).username ?? (roomData.opponent as any).displayName ?? '');
       setMode('private');
       setShowJoinModal(false);
       
@@ -622,6 +628,13 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
         />
       </AraratBackground>
       <View style={styles.overlay} pointerEvents="box-none">
+        <GamePlayerOverlay
+          opponent={
+            opponentId
+              ? { userId: opponentId, username: opponentUsername }
+              : null
+          }
+        />
         <SafeAreaView style={styles.safeArea}>
           <View>
             <GameToolbar

@@ -8,6 +8,7 @@ import ReAnimated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-
 import ExpandableView from '../../../components/global/ExpandableView';
 import GameToolbar from '../../../components/global/GameToolbar';
 import GameToolbarControls from '../../../components/global/GameToolbarControls';
+import GamePlayerOverlay from '../../../components/GamePlayerOverlay';
 import GameThemeCustomizer from '../../../components/global/GameThemeCustomizer';
 import type { GameTheme } from '../../../components/global/GameThemeCustomizer';
 import { aiMoveLogService } from '../../../services/aiMoveLog.service';
@@ -638,6 +639,7 @@ const CheckersScreen = ({ navigation, route }: any) => {
         boardScale={0.8}
       />
       <View style={styles.overlay} pointerEvents="box-none">
+        <GamePlayerOverlay opponent={isMultiplayer ? null : 'ai'} />
         <SafeAreaView style={styles.safeArea} pointerEvents="box-none">
           <View>
             <GameToolbar

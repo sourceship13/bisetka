@@ -17,6 +17,7 @@ import ReAnimated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-
 import ExpandableView from '../../../components/global/ExpandableView';
 import GameToolbar from '../../../components/global/GameToolbar';
 import GameToolbarControls from '../../../components/global/GameToolbarControls';
+import GamePlayerOverlay from '../../../components/GamePlayerOverlay';
 import GameThemeCustomizer from '../../../components/global/GameThemeCustomizer';
 import type { GameTheme } from '../../../components/global/GameThemeCustomizer';
 import RoomNameModal from '../../../components/RoomNameModal';
@@ -151,6 +152,7 @@ const MultiplayerCheckersScreen = ({navigation, route}: any) => {
   const [roomCode, setRoomCode] = useState<string>('');
   const [joinRoomCode, setJoinRoomCode] = useState<string>('');
   const [opponentId, setOpponentId] = useState<string>('');
+  const [opponentUsername, setOpponentUsername] = useState<string>('');
 
   // server assigns 'white'|'black'; white → plays red pieces, black → plays black pieces
   const [mySocketColor, setMySocketColor] = useState<'white' | 'black'>('white');
@@ -191,6 +193,7 @@ const MultiplayerCheckersScreen = ({navigation, route}: any) => {
 
       socketService.onOpponentJoined(data => {
         setOpponentId(data.opponent?.id ?? '');
+        setOpponentUsername(((data.opponent as any)?.username ?? (data.opponent as any)?.displayName) ?? '');
         setGameStatus('Opponent found! Get ready...');
         const liveRoomId = roomIdRef.current;
         if (liveRoomId) socketService.playerReady(liveRoomId, userId);
@@ -290,6 +293,7 @@ const MultiplayerCheckersScreen = ({navigation, route}: any) => {
             setRoomId(data.roomId);
             setMySocketColor(data.color ?? 'black');
             setOpponentId(data.opponent?.id ?? '');
+            setOpponentUsername(((data.opponent as any)?.username ?? (data.opponent as any)?.displayName) ?? '');
             setGameStatus('Joined! Waiting for game to start...');
             socketService.playerReady(data.roomId, userId);
           });
@@ -376,6 +380,7 @@ const MultiplayerCheckersScreen = ({navigation, route}: any) => {
       setRoomId(matchData.roomId);
       setMySocketColor(matchData.color);
       setOpponentId(matchData.opponent?.id ?? '');
+      setOpponentUsername(((matchData.opponent as any)?.username ?? (matchData.opponent as any)?.displayName) ?? '');
       socketService.playerReady(matchData.roomId, userId);
     } catch (error: any) {
       BisetkaAlert.error('Matchmaking Error', error.message);
@@ -410,6 +415,7 @@ const MultiplayerCheckersScreen = ({navigation, route}: any) => {
       setRoomId(roomData.roomId);
       setMySocketColor(roomData.color);
       setOpponentId(roomData.opponent?.id ?? '');
+      setOpponentUsername(((roomData.opponent as any)?.username ?? (roomData.opponent as any)?.displayName) ?? '');
       setMode('private');
       setShowJoinModal(false);
       socketService.playerReady(roomData.roomId, userId);
@@ -571,6 +577,13 @@ const MultiplayerCheckersScreen = ({navigation, route}: any) => {
         />
       </AraratBackground>
       <View style={styles.overlay} pointerEvents="box-none">
+        <GamePlayerOverlay
+          opponent={
+            opponentId
+              ? { userId: opponentId, username: opponentUsername }
+              : null
+          }
+        />
         <SafeAreaView style={styles.safeArea}>
           <View>
             <GameToolbar

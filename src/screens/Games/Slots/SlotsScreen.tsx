@@ -20,6 +20,7 @@ import apiConfig from '../../../libs/utils/api.utils';
 import tokenService from '../../../services/token.service';
 import GameToolbar from '../../../components/global/GameToolbar';
 import GameToolbarControls from '../../../components/global/GameToolbarControls';
+import GamePlayerOverlay from '../../../components/GamePlayerOverlay';
 import ReAnimated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import ExpandableView from '../../../components/global/ExpandableView';
 import { apiService } from '../../../services/api.service';
@@ -311,6 +312,7 @@ const SlotsScreen = ({ navigation }: any) => {
         <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/chess/chess-board/source/ui.glb" />
       </Photosphere360Background>
       <View style={styles.overlay} pointerEvents="box-none">
+      <GamePlayerOverlay opponent={null} />
       <SafeAreaView style={{flex: 1}}>
         <View>
           <GameToolbar

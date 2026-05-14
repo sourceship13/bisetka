@@ -26,6 +26,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import AraratBackground from '../../../components/AraratBackground';
 import AR3DOverlay, {type AR3DOverlayHandle, type ARCard} from '../../../components/AR3DOverlay';
 import GameToolbar from '../../../components/global/GameToolbar';
+import GamePlayerOverlay from '../../../components/GamePlayerOverlay';
 import GameToolbarControls from '../../../components/global/GameToolbarControls';
 import { CardType, Suit } from '../../../components/Card';
 import BlotCard from '../../../components/BlotCard';
@@ -1112,6 +1113,7 @@ const BaazarBlotScreen = ({ navigation }: any) => {
         <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/game_boards/Poker_table.glb" hideCheckerboard boardFixed boardFixedZoom={1.0} boardScale={1.9} tableDist={0.9} boardY={-1.5} boardTiltX={0} cardGlbPath="glb/cards/card-template.glb" cards={arCards} />
       </AraratBackground>
       <View style={styles.overlay} pointerEvents="box-none">
+      <GamePlayerOverlay opponent="ai" />
       <SafeAreaView style={styles.safe}>
         <View>
           <GameToolbar

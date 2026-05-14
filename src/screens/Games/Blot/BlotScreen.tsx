@@ -24,6 +24,7 @@ import AraratBackground from '../../../components/AraratBackground';
 import AR3DOverlay, {type AR3DOverlayHandle, type ARCard} from '../../../components/AR3DOverlay';
 import GameToolbar from '../../../components/global/GameToolbar';
 import GameToolbarControls from '../../../components/global/GameToolbarControls';
+import GamePlayerOverlay from '../../../components/GamePlayerOverlay';
 import { CardType, Suit } from '../../../components/Card';
 import RiffleDealAnimation from '../../../components/RiffleDealAnimation';
 import CardCustomizationModal from '../../../components/global/GameCustomizationModal';
@@ -718,6 +719,7 @@ const BlotScreen = ({ navigation }: any) => {
         <>
           <View style={StyleSheet.absoluteFill} {...pinchResponder.panHandlers} pointerEvents="box-none" />
       <View style={styles.overlay} pointerEvents="box-none">
+        <GamePlayerOverlay opponent="ai" />
         <SafeAreaView style={[styles.safeArea,]} onLayout={handleBoardLayout}>
           <View>
             <GameToolbar

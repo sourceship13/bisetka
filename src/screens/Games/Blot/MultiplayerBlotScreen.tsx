@@ -30,6 +30,7 @@ import CardHandFan from '../../../components/CardHandFan';
 import InGameChat from '../../../components/InGameChat';
 import GameToolbar from '../../../components/global/GameToolbar';
 import GameToolbarControls from '../../../components/global/GameToolbarControls';
+import GamePlayerOverlay from '../../../components/GamePlayerOverlay';
 import RoomNameModal from '../../../components/RoomNameModal';
 import RoomInfoDrawer from '../../../components/RoomInfoDrawer';
 import type { RoomInfoDrawerHandle } from '../../../components/RoomInfoDrawer';
@@ -1758,6 +1759,17 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
         <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/game_boards/Poker_table.glb" hideCheckerboard boardScale={1.9} tableDist={0.9} boardY={-1.5} boardTiltX={0.35} cardGlbPath="glb/cards/card-template.glb" cards={arCards} />
       </AraratBackground>
       <View style={styles.overlay} pointerEvents="box-none">
+        <GamePlayerOverlay
+          opponent={
+            opponent && opponent.id
+              ? {
+                  userId: opponent.id,
+                  username:
+                    opponent.displayName ?? opponent.username ?? null,
+                }
+              : null
+          }
+        />
         <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right']}>
       {(gameMode === 'game' || gameMode === 'local') && (
         <View>
