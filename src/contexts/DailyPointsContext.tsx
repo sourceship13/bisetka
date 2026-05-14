@@ -55,6 +55,7 @@ export const DailyPointsProvider: React.FC<{ children: React.ReactNode }> = ({
       curr ? { ...curr, balance: (curr.balance ?? 0) + awarded } : curr,
     );
     setFlashCounter(c => c + 1);
+    console.log('[DailyPoints] dismiss → playing coin drop sound');
     playCoinDropSound();
 
     apiService

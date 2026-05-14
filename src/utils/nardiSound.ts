@@ -30,7 +30,9 @@ const ensureLoaded = (
   cb: (snd: Sound | null) => void,
 ) => {
   let entry = cache[filename];
-  if (entry?.failed) return cb(null);
+  // NOTE: deliberately do NOT short-circuit on `failed` — react-native-sound
+  // can spuriously fail to load on app cold-start (audio session not yet
+  // ready) so we always retry rather than caching the failure forever.
   if (entry?.snd && entry.snd.isLoaded()) return cb(entry.snd);
   const snd = new Sound(filename, Sound.MAIN_BUNDLE, err => {
     if (err) {
@@ -39,6 +41,7 @@ const ensureLoaded = (
       cb(null);
       return;
     }
+    snd.setVolume(1.0);
     cache[filename] = { snd, failed: false };
     cb(snd);
   });
@@ -53,9 +56,14 @@ ensureLoaded(COIN_DROP_FILE, () => {});
 
 const playOnce = (filename: string) => {
   ensureLoaded(filename, snd => {
-    if (!snd) return;
+    if (!snd) {
+      console.warn(`[nardiSound] play skipped — ${filename} not loaded`);
+      return;
+    }
+    snd.setVolume(1.0);
     // Restart from beginning so rapid plays still trigger.
     snd.stop(() => {
+      snd.setCurrentTime(0);
       snd.play(success => {
         if (!success) console.warn(`[nardiSound] playback failed for ${filename}`);
       });
