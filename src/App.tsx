@@ -20,8 +20,15 @@ const NotificationTapBridge: React.FC = () => {
     const unsubscribe = pushNotificationService.onNotificationTap(data => {
       if (data?.type !== 'daily_points') return;
       const points = parseInt(data.points ?? '0', 10);
+      const expiresAt = parseInt(data.expiresAt ?? '0', 10);
+      // Drop stale taps. If the push has been sitting in the tray past its
+      // 5-hour window the user shouldn't be credited.
+      if (expiresAt && Date.now() > expiresAt) {
+        console.log('[NotificationTapBridge] reward expired, ignoring tap');
+        return;
+      }
       if (Number.isFinite(points) && points > 0) {
-        triggerReward(points);
+        triggerReward(points, expiresAt || undefined);
       }
     });
     return unsubscribe;

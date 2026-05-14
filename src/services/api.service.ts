@@ -297,7 +297,7 @@ class ApiService {
    * POST /api/users/claim-daily-points  body: { points }
    * Returns the updated balance + breakdown of points totals.
    */
-  async claimDailyPoints(points: number): Promise<{
+  async claimDailyPoints(points: number, expiresAt?: number): Promise<{
     success: boolean;
     pointsAwarded: number;
     totalPoints: number;
@@ -307,7 +307,12 @@ class ApiService {
   }> {
     return this.request(
       '/users/claim-daily-points',
-      { method: 'POST', body: JSON.stringify({ points }) },
+      {
+        method: 'POST',
+        body: JSON.stringify(
+          typeof expiresAt === 'number' ? { points, expiresAt } : { points },
+        ),
+      },
       true,
     );
   }
