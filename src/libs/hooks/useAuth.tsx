@@ -410,21 +410,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signOut = async (logoutAll: boolean = false) => {
+    // NOTE: do NOT flip `isLoading` here. AppNavigator renders a full-screen
+    // spinner branch when `isLoading` is true, which would unmount the entire
+    // authenticated stack BEFORE we clear `user` — any focused screen
+    // (Settings, Profile, etc.) gets torn down with native handles still
+    // alive and crashes the app. By only setting `user = null` we trigger a
+    // single clean swap from the app stack to the Login stack.
     try {
-      setIsLoading(true);
-      
       // TODO: Call backend to revoke all sessions if logoutAll is true
-      
       await AuthService.signOut();
       await tokenService.clearSession();
       await bisetkaStorageService.clearBisetka(); // Clear stored Bisetka
       // chatSocketService.disconnect();
-      setUser(null);
     } catch (error) {
       console.error('Sign out error:', error);
-      setUser(null);
     } finally {
-      setIsLoading(false);
+      setUser(null);
     }
   };
 
