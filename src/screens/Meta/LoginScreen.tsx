@@ -9,7 +9,6 @@
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
-  Image,
   ImageBackground,
   ScrollView,
   StyleSheet,
@@ -20,12 +19,12 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import LogoWhite from '../../../assets/logo/logo-white.svg';
 import { BisetkaAlert } from '../../utils/BisetkaAlert';
 import { useAuth } from '../../libs/hooks/useAuth';
 import AuthService from '../../services/AuthService';
 
 const BG = require('../../../assets/backgrounds/bisetka.png');
-const LOGO = require('../../../assets/imgs/bisetka-logo.png');
 
 // Dev test users — password is "test123" for all. Only shown in __DEV__.
 const DEV_TEST_USERS = [
@@ -93,7 +92,7 @@ const LoginScreen: React.FC = () => {
 
       <SafeAreaView style={styles.safe} edges={['top', 'left', 'right', 'bottom']}>
         <View style={styles.center}>
-          <Image source={LOGO} style={styles.logo} resizeMode="contain" />
+          <LogoWhite width={240} height={110} style={styles.logo} />
           <Text style={styles.tagline}>Sign in to start your journey</Text>
 
           {AuthService.isAppleAuthAvailable() && (
