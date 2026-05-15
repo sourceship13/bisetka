@@ -28,7 +28,7 @@ interface Props {
 
 const GamePlayerOverlay: React.FC<Props> = ({
   opponent,
-  size = 88,
+  size = 100,
   topOffset = 150,
 }) => {
   return (

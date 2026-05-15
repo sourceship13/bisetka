@@ -719,7 +719,7 @@ const BlotScreen = ({ navigation }: any) => {
         <>
           <View style={StyleSheet.absoluteFill} {...pinchResponder.panHandlers} pointerEvents="box-none" />
       <View style={styles.overlay} pointerEvents="box-none">
-        <GamePlayerOverlay opponent="ai" />
+        <GamePlayerOverlay opponent="ai" topOffset={260} size={100} />
         <SafeAreaView style={[styles.safeArea,]} onLayout={handleBoardLayout}>
           <View>
             <GameToolbar
