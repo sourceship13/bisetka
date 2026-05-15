@@ -47,7 +47,19 @@ const SettingsScreen = ({navigation}: any) => {
   };
 
   const handleSignOut = () => {
-    signOut();
+    // Pop back to the root of the stack BEFORE clearing the user. If we sign
+    // out while Settings is still the focused route, the navigator rewires
+    // its routes (app stack → Login stack) with Settings still mounted and
+    // the app crashes. Popping first guarantees we're on Home when the swap
+    // happens.
+    try {
+      navigation.popToTop?.();
+    } catch {
+      // popToTop is a no-op on root — ignore.
+    }
+    setTimeout(() => {
+      signOut();
+    }, 0);
   };
 
   const handleOpenNotifSettings = () => {
