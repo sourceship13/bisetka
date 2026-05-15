@@ -400,8 +400,8 @@ const OnboardingScreen: React.FC<{navigation: any; route?: any}> = ({navigation}
                   <Text
                     style={[
                       slideStyles.usernameHelper,
-                      available === true && {color: '#a78bfa'},
-                      available === false && {color: '#f5576c'},
+                      available === true && {color: '#22c55e'},
+                      available === false && {color: '#ef4444'},
                     ]}>
                     {username.length >= 3 && usernameMessage
                       ? usernameMessage
@@ -879,7 +879,23 @@ const OnboardingScreen: React.FC<{navigation: any; route?: any}> = ({navigation}
     <LinearGradient
       colors={[colors.background.primary, colors.background.secondary, colors.background.tertiary]}
       style={slideStyles.container}>
-      <SafeAreaView style={slideStyles.safeArea}>
+      {/* Slides render full-screen behind any chrome so background images
+          extend edge-to-edge under notches and home indicators. */}
+      <FlatList
+        ref={flatListRef}
+        style={StyleSheet.absoluteFill}
+        data={slides}
+        renderItem={renderSlide}
+        keyExtractor={item => item.id}
+        horizontal
+        pagingEnabled
+        scrollEventThrottle={16}
+        onScroll={handleScroll}
+        onMomentumScrollEnd={handleMomentumScrollEnd}
+        scrollEnabled={true}
+        showsHorizontalScrollIndicator={false}
+      />
+      <SafeAreaView style={slideStyles.safeArea} pointerEvents="box-none">
         {/* Header: Skip + Logo. Hidden on full-bleed slides (welcome / username)
             so the design matches the mockup. */}
         {!hidesGlobalChrome && (
@@ -901,92 +917,6 @@ const OnboardingScreen: React.FC<{navigation: any; route?: any}> = ({navigation}
         )}
 
         {/* Slides */}
-        <FlatList
-          ref={flatListRef}
-          data={slides}
-          renderItem={renderSlide}
-          keyExtractor={item => item.id}
-          horizontal
-          pagingEnabled
-          scrollEventThrottle={16}
-          onScroll={handleScroll}
-          onMomentumScrollEnd={handleMomentumScrollEnd}
-          scrollEnabled={true}
-          showsHorizontalScrollIndicator={false}
-        />
-
-        {/* Dots — hidden on full-bleed slides (welcome / username). */}
-        {!hidesGlobalChrome && (
-          <View style={slideStyles.dotsContainer}>
-          {slides.map((_, index) => {
-            const opacity = dotPosition.interpolate({
-              inputRange: [index - 1, index, index + 1],
-              outputRange: [0.3, 1, 0.3],
-              extrapolate: 'clamp',
-            });
-            const width = dotPosition.interpolate({
-              inputRange: [index - 1, index, index + 1],
-              outputRange: [8, 24, 8],
-              extrapolate: 'clamp',
-            });
-            return (
-              <Animated.View
-                key={index}
-                style={[
-                  slideStyles.dot,
-                  {opacity, width, backgroundColor: colors.primary},
-                ]}
-              />
-            );
-          })}
-        </View>
-        )}
-
-        {/* Button — hidden on full-bleed slides; they have their own CTA. */}
-        {!hidesGlobalChrome && (
-        <View style={slideStyles.buttonContainer}>
-          {isLastSlide ? (
-            <TouchableOpacity
-              onPress={handleGetStarted}
-              activeOpacity={0.8}
-              disabled={submitting || (needsUsernameSelection && (!available || !selectedGender || !selectedAvatarId))}
-              style={{opacity: submitting || (needsUsernameSelection && (!available || !selectedGender || !selectedAvatarId)) ? 0.5 : 1}}>
-              <LinearGradient
-                colors={[colors.primary, colors.primaryDark]}
-                style={slideStyles.button}>
-                {submitting ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <>
-                    <Text style={slideStyles.buttonText}>
-                      {needsUsernameSelection ? 'Complete Profile' : 'Get Started'}
-                    </Text>
-                    <Text style={{fontSize: 18, color: '#fff'}}>→</Text>
-                  </>
-                )}
-              </LinearGradient>
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity 
-              onPress={handleNext} 
-              activeOpacity={0.8} 
-              style={{flex:1}}
-              disabled={
-                (slides[currentIndex]?.isUsernameSlide && !available) ||
-                (slides[currentIndex]?.isGenderSlide && !selectedGender)
-              }>
-              <LinearGradient
-                colors={[colors.primary, colors.primaryDark]}
-                style={[slideStyles.button,
-                  ((slides[currentIndex]?.isUsernameSlide && !available) ||
-                   (slides[currentIndex]?.isGenderSlide && !selectedGender)) && {opacity: 0.5}]}>
-                <Text style={slideStyles.buttonText}>Next</Text>
-                <Text style={{fontSize: 18, color: '#fff'}}>→</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          )}
-        </View>
-        )}
       </SafeAreaView>
     </LinearGradient>
   );
