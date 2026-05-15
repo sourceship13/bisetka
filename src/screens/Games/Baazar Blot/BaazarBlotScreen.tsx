@@ -1113,7 +1113,7 @@ const BaazarBlotScreen = ({ navigation }: any) => {
         <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/game_boards/Poker_table.glb" hideCheckerboard boardFixed boardFixedZoom={1.0} boardScale={1.9} tableDist={0.9} boardY={-1.5} boardTiltX={0} cardGlbPath="glb/cards/card-template.glb" cards={arCards} />
       </AraratBackground>
       <View style={styles.overlay} pointerEvents="box-none">
-      <GamePlayerOverlay opponent="ai" />
+      <GamePlayerOverlay opponent="ai" topOffset={260} size={100}/>
       <SafeAreaView style={styles.safe}>
         <View>
           <GameToolbar
@@ -1321,6 +1321,8 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: 'rgba(255,255,255,0.85)',
     marginBottom: 28,
+    marginHorizontal:100,
+    textAlign: 'center',
   },
   sectionTitle: {
     fontSize: 22,
