@@ -9,6 +9,7 @@ import {
   Animated,
   Platform,
   Image,
+  ImageBackground,
   TextInput,
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -32,8 +33,10 @@ import {
   getStarterShoeIdForAvatar,
 } from '../../../data/clothingItems';
 import type { BaseAvatar } from '../../../types/avatar2d';
+import LogoWhite from '../../../../assets/logo/logo-white.svg';
 
 const BisetkaLogo = require('../../../../assets/imgs/bisetka-logo.png');
+const WelcomeBackground = require('../../../../assets/backgrounds/bisetka.png');
 
 const {width: screenWidth} = Dimensions.get('window');
 
@@ -43,42 +46,30 @@ interface Slide {
   description: string;
   emoji: string;
   gradient: [string, string];
+  isWelcomeSlide?: boolean;
   isNotificationSlide?: boolean;
   isUsernameSlide?: boolean;
   isGenderSlide?: boolean;
   isAvatarSlide?: boolean;
+  isCharacterSlide?: boolean;
 }
 
+const WELCOME_SLIDE: Slide = {
+  id: '0',
+  title: 'The Armenian Cultural Hub.',
+  description: 'Play, connect, and explore our community.',
+  emoji: '🏛️',
+  gradient: ['#a78bfa', '#7c3aed'],
+  isWelcomeSlide: true,
+};
+
 const BASE_SLIDES: Slide[] = [
-  {
-    id: '1',
-    title: 'Play Classic Games',
-    description:
-      'Enjoy Nardi, Blot, Chess, Checkers, Poker and more — all in one place. Challenge the AI or play with friends.',
-    emoji: '🎲',
-    gradient: ['#667eea', '#764ba2'],
-  },
-  {
-    id: '2',
-    title: 'Compete & Climb',
-    description:
-      'Earn points, climb the leaderboard, and prove you\'re the best. Every game counts toward your ranking.',
-    emoji: '🏆',
-    gradient: ['#f093fb', '#f5576c'],
-  },
-  {
-    id: '3',
-    title: 'Chat & Connect',
-    description:
-      'Join the global chat, send direct messages, and find players to challenge in real-time matches.',
-    emoji: '💬',
-    gradient: ['#11998e', '#38ef7d'],
-  },
+  WELCOME_SLIDE,
   {
     id: '4',
-    title: 'Stay in the Loop',
+    title: 'Never Miss a Game',
     description:
-      'Get notified when friends challenge you, when it\'s your turn, and when new events drop. Never miss a game!',
+      'Enable notifications to get invites from friends and stay updated on community events.',
     emoji: '🔔',
     gradient: ['#ee0979', '#ff6a00'],
     isNotificationSlide: true,
@@ -87,8 +78,9 @@ const BASE_SLIDES: Slide[] = [
 
 const USERNAME_SLIDE: Slide = {
   id: '5',
-  title: 'Choose Your Username',
-  description: 'Pick a unique username so other players can find and challenge you.',
+  title: "What's your username?",
+  description:
+    'Choose a unique username that will be visible to other players in the hub.',
   emoji: '👤',
   gradient: ['#4facfe', '#00f2fe'],
   isUsernameSlide: true,
@@ -112,6 +104,20 @@ const AVATAR_SLIDE: Slide = {
   isAvatarSlide: true,
 };
 
+// Combined gender + avatar selection — the third onboarding screen, matching
+// the "Create Your Avatar" mockup. Replaces the legacy split GENDER + AVATAR
+// slides; we keep those constants around because other code paths still use
+// the type flags.
+const CHARACTER_SLIDE: Slide = {
+  id: '5c',
+  title: 'Create Your Avatar',
+  description:
+    'Select your character and pick your first outfit to start your journey.',
+  emoji: '🎭',
+  gradient: ['#a78bfa', '#7c3aed'],
+  isCharacterSlide: true,
+};
+
 const ONBOARDING_COMPLETE_KEY = '@bisetka_onboarding_complete';
 const GENDER_KEY = '@bisetka_gender';
 const SELECTED_AVATAR_KEY = 'selectedAvatarId';
@@ -129,7 +135,7 @@ const OnboardingScreen: React.FC<{navigation: any; route?: any}> = ({navigation}
     user?.username?.startsWith('user_')
   );
   const slides = needsUsernameSelection 
-    ? [...BASE_SLIDES, USERNAME_SLIDE, GENDER_SLIDE, AVATAR_SLIDE] 
+    ? [BASE_SLIDES[0], USERNAME_SLIDE, CHARACTER_SLIDE, ...BASE_SLIDES.slice(1)] 
     : BASE_SLIDES;
 
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -180,6 +186,9 @@ const OnboardingScreen: React.FC<{navigation: any; route?: any}> = ({navigation}
       return;
     }
     if (currentSlide?.isGenderSlide && !selectedGender) {
+      return;
+    }
+    if (currentSlide?.isCharacterSlide && (!selectedGender || !selectedAvatarId)) {
       return;
     }
     
@@ -318,7 +327,375 @@ const OnboardingScreen: React.FC<{navigation: any; route?: any}> = ({navigation}
     setCurrentIndex(index);
   };
 
-  const renderSlide = ({item}: {item: Slide}) => (
+  const renderSlide = ({item}: {item: Slide}) => {
+    // First slide is a full-bleed welcome splash (Bisetka background, logo,
+    // tagline, single purple "Get Started" CTA that advances to slide 2).
+    if (item.isWelcomeSlide) {
+      return (
+        <ImageBackground
+          source={WelcomeBackground}
+          resizeMode="cover"
+          style={slideStyles.welcomeBg}>
+          <View style={slideStyles.welcomeOverlay} />
+          <SafeAreaView style={slideStyles.welcomeSafe} edges={['top', 'bottom', 'left', 'right']}>
+            <View style={slideStyles.welcomeContent}>
+              <LogoWhite width={260} height={120} style={slideStyles.welcomeLogo} />
+              <Text style={slideStyles.welcomeTitle}>{item.title}</Text>
+              <Text style={slideStyles.welcomeSubtitle}>{item.description}</Text>
+            </View>
+            <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={handleNext}
+              style={slideStyles.welcomeCta}>
+              <Text style={slideStyles.welcomeCtaText}>Get Started</Text>
+            </TouchableOpacity>
+          </SafeAreaView>
+        </ImageBackground>
+      );
+    }
+
+    // Username slide — second screen in the flow. Full-bleed Bisetka background,
+    // framed logo at the top, glass card with the username input, and a
+    // dots-left / Continue-right footer that mirrors the mockup exactly.
+    if (item.isUsernameSlide) {
+      const canContinue = !!available && !submitting;
+      return (
+        <ImageBackground
+          source={WelcomeBackground}
+          resizeMode="cover"
+          style={slideStyles.welcomeBg}>
+          <View style={slideStyles.welcomeOverlay} />
+          <SafeAreaView style={slideStyles.usernameSafe} edges={['top', 'bottom', 'left', 'right']}>
+            <KeyboardAvoidingView
+              style={{flex: 1}}
+              behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+              <View style={slideStyles.usernameTop}>
+                <LogoWhite width={140} height={64} />
+              </View>
+
+              <View style={slideStyles.usernameMiddle}>
+                <Text style={slideStyles.usernameTitle}>{item.title}</Text>
+                <Text style={slideStyles.usernameSubtitle}>{item.description}</Text>
+
+                <View style={slideStyles.usernameCard}>
+                  <View style={slideStyles.usernameInputWrap}>
+                    <TextInput
+                      style={slideStyles.usernameInputV2}
+                      value={username}
+                      onChangeText={setUsername}
+                      placeholder="Enter your username"
+                      placeholderTextColor="rgba(60,40,80,0.55)"
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      maxLength={20}
+                    />
+                    {checking && (
+                      <ActivityIndicator
+                        size="small"
+                        color="#7c3aed"
+                        style={slideStyles.usernameSpinner}
+                      />
+                    )}
+                  </View>
+                  <Text
+                    style={[
+                      slideStyles.usernameHelper,
+                      available === true && {color: '#a78bfa'},
+                      available === false && {color: '#f5576c'},
+                    ]}>
+                    {username.length >= 3 && usernameMessage
+                      ? usernameMessage
+                      : '3–20 characters. letters, numbers and underscores only'}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={slideStyles.usernameBottomRow}>
+                <View style={slideStyles.usernameDotsRow}>
+                  {slides.map((_, index) => (
+                    <View
+                      key={index}
+                      style={[
+                        slideStyles.usernameDot,
+                        index === currentIndex && slideStyles.usernameDotActive,
+                      ]}
+                    />
+                  ))}
+                </View>
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  disabled={!canContinue}
+                  onPress={handleNext}
+                  style={[
+                    slideStyles.usernameContinue,
+                    !canContinue && {opacity: 0.5},
+                  ]}>
+                  <Text style={slideStyles.usernameContinueText}>CONTINUE</Text>
+                  <Text style={slideStyles.usernameContinueArrow}>{'›'}</Text>
+                </TouchableOpacity>
+              </View>
+            </KeyboardAvoidingView>
+          </SafeAreaView>
+        </ImageBackground>
+      );
+    }
+
+    // Character creator — third onboarding screen. Combined gender toggle +
+    // 3-column avatar grid using the SVG "yellow" avatars from
+    // assets/avatars_new/Avatars (delivered via NEW_BASE_AVATARS).
+    if (item.isCharacterSlide) {
+      const activeGender: 'male' | 'female' = selectedGender ?? 'female';
+      const charAvatars = ALL_BASE_AVATARS.filter(a => a.gender === activeGender);
+      const cellSize = Math.floor((screenWidth - 24 * 2 - 12 * 2) / 3);
+      const canContinue = !!selectedGender && !!selectedAvatarId;
+      return (
+        <ImageBackground
+          source={WelcomeBackground}
+          resizeMode="cover"
+          style={slideStyles.welcomeBg}>
+          <View style={slideStyles.welcomeOverlay} />
+          <SafeAreaView style={slideStyles.charSafe} edges={['top', 'bottom', 'left', 'right']}>
+            <View style={slideStyles.charHeader}>
+              <TouchableOpacity
+                onPress={() => {
+                  if (currentIndex > 0) {
+                    flatListRef.current?.scrollToIndex({index: currentIndex - 1, animated: true});
+                  }
+                }}
+                hitSlop={{top: 12, bottom: 12, left: 12, right: 12}}
+                style={slideStyles.charBack}>
+                <Text style={slideStyles.charBackArrow}>{'‹'}</Text>
+              </TouchableOpacity>
+              <LogoWhite width={140} height={64} />
+              <View style={{width: 32}} />
+            </View>
+
+            <Text style={slideStyles.charTitle}>{item.title}</Text>
+            <Text style={slideStyles.charSubtitle}>{item.description}</Text>
+
+            <View style={slideStyles.genderToggle}>
+              {(['female', 'male'] as const).map(g => {
+                const active = activeGender === g;
+                return (
+                  <TouchableOpacity
+                    key={g}
+                    activeOpacity={0.85}
+                    onPress={() => {
+                      setSelectedGender(g);
+                      setSelectedAvatarId(null);
+                    }}
+                    style={[
+                      slideStyles.genderToggleItem,
+                      active && slideStyles.genderToggleItemActive,
+                    ]}>
+                    {active && (
+                      <LinearGradient
+                        colors={['#a78bfa', '#7c3aed']}
+                        start={{x: 0, y: 0}}
+                        end={{x: 1, y: 0}}
+                        style={StyleSheet.absoluteFill}
+                      />
+                    )}
+                    <Text style={slideStyles.genderToggleText}>
+                      {g === 'female' ? 'Female' : 'Male'}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <FlatList
+              data={charAvatars}
+              numColumns={3}
+              keyExtractor={a => a.id}
+              contentContainerStyle={slideStyles.charGridContent}
+              columnWrapperStyle={slideStyles.charGridRow}
+              showsVerticalScrollIndicator={false}
+              style={{flex: 1}}
+              renderItem={({item: avatar}) => {
+                const selected = selectedAvatarId === avatar.id;
+                return (
+                  <TouchableOpacity
+                    activeOpacity={0.85}
+                    onPress={() => setSelectedAvatarId(avatar.id)}
+                    style={[
+                      slideStyles.charCell,
+                      {width: cellSize, height: cellSize},
+                      selected && slideStyles.charCellSelected,
+                    ]}>
+                    <AvatarPreview
+                      baseAvatar={avatar}
+                      equipped={{}}
+                      size={cellSize - 12}
+                    />
+                  </TouchableOpacity>
+                );
+              }}
+            />
+
+            <View style={slideStyles.usernameBottomRow}>
+              <View style={slideStyles.usernameDotsRow}>
+                {slides.map((_, index) => (
+                  <View
+                    key={index}
+                    style={[
+                      slideStyles.usernameDot,
+                      index === currentIndex && slideStyles.usernameDotActive,
+                    ]}
+                  />
+                ))}
+              </View>
+              <TouchableOpacity
+                activeOpacity={0.85}
+                disabled={!canContinue}
+                onPress={handleNext}
+                style={[
+                  slideStyles.usernameContinue,
+                  !canContinue && {opacity: 0.5},
+                ]}>
+                <Text style={slideStyles.usernameContinueText}>CONTINUE</Text>
+                <Text style={slideStyles.usernameContinueArrow}>{'›'}</Text>
+              </TouchableOpacity>
+            </View>
+          </SafeAreaView>
+        </ImageBackground>
+      );
+    }
+
+    // Notifications splash — fourth and final onboarding screen. Mock iOS
+    // banner, gradient "Enable Notifications" CTA, and "Get Started!" pill
+    // that completes onboarding.
+    if (item.isNotificationSlide) {
+      const submittingDisabled =
+        submitting ||
+        (needsUsernameSelection && (!available || !selectedGender || !selectedAvatarId));
+      return (
+        <ImageBackground
+          source={WelcomeBackground}
+          resizeMode="cover"
+          style={slideStyles.welcomeBg}>
+          <View style={slideStyles.welcomeOverlay} />
+          <SafeAreaView style={slideStyles.notifSafe} edges={['top', 'bottom', 'left', 'right']}>
+            <View style={slideStyles.notifHeader}>
+              <TouchableOpacity
+                onPress={() => {
+                  if (currentIndex > 0) {
+                    flatListRef.current?.scrollToIndex({
+                      index: currentIndex - 1,
+                      animated: true,
+                    });
+                  }
+                }}
+                hitSlop={{top: 12, bottom: 12, left: 12, right: 12}}
+                style={slideStyles.charBack}>
+                <Text style={slideStyles.charBackArrow}>{'‹'}</Text>
+              </TouchableOpacity>
+              <LogoWhite width={140} height={64} />
+              <TouchableOpacity
+                onPress={handleSkip}
+                hitSlop={{top: 12, bottom: 12, left: 12, right: 12}}>
+                <Text style={slideStyles.notifSkip}>Skip</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={slideStyles.notifMiddle}>
+              <Text style={slideStyles.notifTitle}>{item.title}</Text>
+              <Text style={slideStyles.notifSubtitle}>{item.description}</Text>
+
+              {/* Mock iOS notification banner */}
+              <View style={slideStyles.notifBanner}>
+                <View style={slideStyles.notifBannerIcon}>
+                  <LogoWhite width={36} height={36} />
+                </View>
+                <View style={{flex: 1}}>
+                  <View style={slideStyles.notifBannerTopRow}>
+                    <Text style={slideStyles.notifBannerApp}>Bisetka</Text>
+                    <Text style={slideStyles.notifBannerTime}>9:41 AM</Text>
+                  </View>
+                  <Text style={slideStyles.notifBannerBody}>
+                    Aram invited you to Blot! 🃏
+                  </Text>
+                </View>
+              </View>
+
+              {notificationStatus === 'pending' && (
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  onPress={handleEnableNotifications}
+                  style={slideStyles.notifEnableWrap}>
+                  <LinearGradient
+                    colors={['#ff8a00', '#ffd200']}
+                    start={{x: 0, y: 0}}
+                    end={{x: 1, y: 0}}
+                    style={slideStyles.notifEnable}>
+                    <Text style={slideStyles.notifEnableText}>ENABLE NOTIFICATIONS</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              )}
+              {notificationStatus === 'granted' && (
+                <View style={slideStyles.notifStatusPill}>
+                  <Text style={slideStyles.notifStatusPillText}>✅ Notifications enabled!</Text>
+                </View>
+              )}
+              {notificationStatus === 'denied' && (
+                <View style={slideStyles.notifStatusPill}>
+                  <Text style={[slideStyles.notifStatusPillText, {color: 'rgba(255,255,255,0.8)'}]}>
+                    You can enable notifications later in Settings
+                  </Text>
+                </View>
+              )}
+              {notificationStatus === 'blocked' && (
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  onPress={handleOpenSettings}
+                  style={slideStyles.notifEnableWrap}>
+                  <LinearGradient
+                    colors={['#ff8a00', '#ffd200']}
+                    start={{x: 0, y: 0}}
+                    end={{x: 1, y: 0}}
+                    style={slideStyles.notifEnable}>
+                    <Text style={slideStyles.notifEnableText}>⚙️ OPEN SETTINGS</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            <View style={slideStyles.usernameBottomRow}>
+              <View style={slideStyles.usernameDotsRow}>
+                {slides.map((_, index) => (
+                  <View
+                    key={index}
+                    style={[
+                      slideStyles.usernameDot,
+                      index === currentIndex && slideStyles.usernameDotActive,
+                    ]}
+                  />
+                ))}
+              </View>
+              <TouchableOpacity
+                activeOpacity={0.85}
+                disabled={submittingDisabled}
+                onPress={handleGetStarted}
+                style={[
+                  slideStyles.usernameContinue,
+                  submittingDisabled && {opacity: 0.5},
+                ]}>
+                {submitting ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <>
+                    <Text style={slideStyles.usernameContinueText}>GET STARTED!</Text>
+                    <Text style={slideStyles.usernameContinueArrow}>{'›'}</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+          </SafeAreaView>
+        </ImageBackground>
+      );
+    }
+
+    return (
     <KeyboardAvoidingView
       style={slideStyles.slide}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
@@ -487,32 +864,41 @@ const OnboardingScreen: React.FC<{navigation: any; route?: any}> = ({navigation}
         )}
       </View>
     </KeyboardAvoidingView>
-  );
+    );
+  };
 
   const dotPosition = Animated.divide(scrollX, screenWidth);
   const isLastSlide = currentIndex === slides.length - 1;
+  const isWelcome = slides[currentIndex]?.isWelcomeSlide;
+  const isUsernameStep = slides[currentIndex]?.isUsernameSlide;
+  const isCharacterStep = slides[currentIndex]?.isCharacterSlide;
+  const isNotificationStep = slides[currentIndex]?.isNotificationSlide;
+  const hidesGlobalChrome = isWelcome || isUsernameStep || isCharacterStep || isNotificationStep;
 
   return (
     <LinearGradient
       colors={[colors.background.primary, colors.background.secondary, colors.background.tertiary]}
       style={slideStyles.container}>
       <SafeAreaView style={slideStyles.safeArea}>
-        {/* Header: Skip + Logo */}
-        <View style={slideStyles.header}>
-          <View style={{width: 60}}>
-            {!isLastSlide && !needsUsernameSelection && (
-              <TouchableOpacity onPress={handleSkip}>
-                <Text style={slideStyles.skipText}>Skip</Text>
-              </TouchableOpacity>
-            )}
+        {/* Header: Skip + Logo. Hidden on full-bleed slides (welcome / username)
+            so the design matches the mockup. */}
+        {!hidesGlobalChrome && (
+          <View style={slideStyles.header}>
+            <View style={{width: 60}}>
+              {!isLastSlide && !needsUsernameSelection && (
+                <TouchableOpacity onPress={handleSkip}>
+                  <Text style={slideStyles.skipText}>Skip</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+            <Image
+              source={BisetkaLogo}
+              style={slideStyles.logo}
+              resizeMode="contain"
+            />
+            <View style={{width: 60}} />
           </View>
-          <Image
-            source={BisetkaLogo}
-            style={slideStyles.logo}
-            resizeMode="contain"
-          />
-          <View style={{width: 60}} />
-        </View>
+        )}
 
         {/* Slides */}
         <FlatList
@@ -529,8 +915,9 @@ const OnboardingScreen: React.FC<{navigation: any; route?: any}> = ({navigation}
           showsHorizontalScrollIndicator={false}
         />
 
-        {/* Dots */}
-        <View style={slideStyles.dotsContainer}>
+        {/* Dots — hidden on full-bleed slides (welcome / username). */}
+        {!hidesGlobalChrome && (
+          <View style={slideStyles.dotsContainer}>
           {slides.map((_, index) => {
             const opacity = dotPosition.interpolate({
               inputRange: [index - 1, index, index + 1],
@@ -553,8 +940,10 @@ const OnboardingScreen: React.FC<{navigation: any; route?: any}> = ({navigation}
             );
           })}
         </View>
+        )}
 
-        {/* Button */}
+        {/* Button — hidden on full-bleed slides; they have their own CTA. */}
+        {!hidesGlobalChrome && (
         <View style={slideStyles.buttonContainer}>
           {isLastSlide ? (
             <TouchableOpacity
@@ -597,6 +986,7 @@ const OnboardingScreen: React.FC<{navigation: any; route?: any}> = ({navigation}
             </TouchableOpacity>
           )}
         </View>
+        )}
       </SafeAreaView>
     </LinearGradient>
   );
@@ -855,6 +1245,384 @@ const slideStyles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     color: colors.text.primary,
+  },
+  // Welcome splash (first onboarding slide)
+  welcomeBg: {
+    width: screenWidth,
+    flex: 1,
+    backgroundColor: '#000',
+  },
+  welcomeOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+  },
+  welcomeSafe: {
+    flex: 1,
+    paddingHorizontal: 28,
+    justifyContent: 'space-between',
+  },
+  welcomeContent: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  welcomeLogo: {
+    marginBottom: 28,
+  },
+  welcomeTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#fff',
+    textAlign: 'center',
+    marginBottom: 12,
+    letterSpacing: 0.2,
+  },
+  welcomeSubtitle: {
+    fontSize: 16,
+    color: 'rgba(255,255,255,0.9)',
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  welcomeCta: {
+    backgroundColor: '#7c3aed',
+    borderRadius: 28,
+    height: 56,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+    shadowColor: '#7c3aed',
+    shadowOpacity: 0.45,
+    shadowRadius: 12,
+    shadowOffset: {width: 0, height: 6},
+    elevation: 6,
+  },
+  welcomeCtaText: {
+    color: '#fff',
+    fontSize: 17,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+  },
+  // Username splash (second onboarding slide)
+  usernameSafe: {
+    flex: 1,
+    width: screenWidth,
+    paddingHorizontal: 24,
+  },
+  usernameTop: {
+    alignItems: 'center',
+    paddingTop: 8,
+    paddingBottom: 24,
+  },
+  usernameMiddle: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  usernameTitle: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#fff',
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  usernameSubtitle: {
+    fontSize: 15,
+    color: 'rgba(255,255,255,0.85)',
+    textAlign: 'center',
+    lineHeight: 22,
+    paddingHorizontal: 12,
+    marginBottom: 28,
+  },
+  usernameCard: {
+    backgroundColor: 'rgba(20,10,30,0.55)',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    paddingHorizontal: 16,
+    paddingVertical: 18,
+  },
+  usernameInputWrap: {
+    position: 'relative',
+    justifyContent: 'center',
+  },
+  usernameInputV2: {
+    backgroundColor: '#e9def8',
+    borderRadius: 14,
+    borderWidth: 2,
+    borderColor: '#7c3aed',
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+    fontSize: 16,
+    color: '#1a0b2e',
+    fontWeight: '600',
+  },
+  usernameSpinner: {
+    position: 'absolute',
+    right: 14,
+  },
+  usernameHelper: {
+    marginTop: 12,
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.85)',
+    textAlign: 'center',
+    fontWeight: '600',
+  },
+  usernameBottomRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingBottom: 8,
+  },
+  usernameDotsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  usernameDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255,255,255,0.35)',
+    marginRight: 6,
+  },
+  usernameDotActive: {
+    width: 22,
+    backgroundColor: '#a78bfa',
+  },
+  usernameContinue: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#7c3aed',
+    borderRadius: 28,
+    paddingHorizontal: 26,
+    paddingVertical: 14,
+    shadowColor: '#7c3aed',
+    shadowOpacity: 0.45,
+    shadowRadius: 12,
+    shadowOffset: {width: 0, height: 6},
+    elevation: 6,
+  },
+  usernameContinueText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '800',
+    letterSpacing: 1,
+    marginRight: 8,
+  },
+  usernameContinueArrow: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '800',
+  },
+  // Character creator splash (third onboarding slide)
+  charSafe: {
+    flex: 1,
+    width: screenWidth,
+    paddingHorizontal: 24,
+  },
+  charHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: 4,
+    paddingBottom: 12,
+  },
+  charBack: {
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  charBackArrow: {
+    color: '#fff',
+    fontSize: 32,
+    fontWeight: '300',
+    lineHeight: 32,
+  },
+  charTitle: {
+    fontSize: 26,
+    fontWeight: '800',
+    color: '#fff',
+    textAlign: 'center',
+    marginTop: 8,
+    marginBottom: 8,
+  },
+  charSubtitle: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.85)',
+    textAlign: 'center',
+    lineHeight: 20,
+    paddingHorizontal: 12,
+    marginBottom: 18,
+  },
+  genderToggle: {
+    flexDirection: 'row',
+    alignSelf: 'center',
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    borderRadius: 999,
+    padding: 4,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  genderToggleItem: {
+    paddingVertical: 10,
+    paddingHorizontal: 28,
+    borderRadius: 999,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 110,
+  },
+  genderToggleItemActive: {},
+  genderToggleText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  charGridContent: {
+    paddingTop: 4,
+    paddingBottom: 8,
+  },
+  charGridRow: {
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  charCell: {
+    backgroundColor: 'rgba(20,10,30,0.55)',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  charCellSelected: {
+    borderColor: '#a78bfa',
+    borderWidth: 2,
+    shadowColor: '#7c3aed',
+    shadowOpacity: 0.5,
+    shadowRadius: 10,
+    shadowOffset: {width: 0, height: 4},
+    elevation: 6,
+  },
+  // Notifications splash (fourth onboarding slide)
+  notifSafe: {
+    flex: 1,
+    width: screenWidth,
+    paddingHorizontal: 24,
+  },
+  notifHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: 4,
+    paddingBottom: 12,
+  },
+  notifSkip: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  notifMiddle: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  notifTitle: {
+    fontSize: 26,
+    fontWeight: '800',
+    color: '#fff',
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  notifSubtitle: {
+    fontSize: 15,
+    color: 'rgba(255,255,255,0.85)',
+    textAlign: 'center',
+    lineHeight: 22,
+    paddingHorizontal: 12,
+    marginBottom: 28,
+  },
+  notifBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(40,30,55,0.85)',
+    borderRadius: 18,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    shadowColor: '#000',
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    shadowOffset: {width: 0, height: 6},
+    elevation: 6,
+  },
+  notifBannerIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 10,
+    backgroundColor: '#7c3aed',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  notifBannerTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  notifBannerApp: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  notifBannerTime: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 12,
+  },
+  notifBannerBody: {
+    color: 'rgba(255,255,255,0.95)',
+    fontSize: 13,
+    marginTop: 2,
+  },
+  notifEnableWrap: {
+    alignSelf: 'center',
+    marginTop: 24,
+    borderRadius: 999,
+    overflow: 'hidden',
+    shadowColor: '#ff8a00',
+    shadowOpacity: 0.55,
+    shadowRadius: 14,
+    shadowOffset: {width: 0, height: 6},
+    elevation: 8,
+  },
+  notifEnable: {
+    paddingHorizontal: 28,
+    paddingVertical: 14,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  notifEnableText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '800',
+    letterSpacing: 1,
+  },
+  notifStatusPill: {
+    alignSelf: 'center',
+    marginTop: 24,
+    paddingHorizontal: 22,
+    paddingVertical: 12,
+    borderRadius: 999,
+    backgroundColor: 'rgba(56,239,125,0.18)',
+    borderWidth: 1,
+    borderColor: 'rgba(56,239,125,0.35)',
+  },
+  notifStatusPillText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 13,
   },
 });
 
