@@ -514,6 +514,22 @@ const OnboardingScreen: React.FC<{navigation: any; route?: any}> = ({navigation}
               style={{flex: 1}}
               renderItem={({item: avatar}) => {
                 const selected = selectedAvatarId === avatar.id;
+                // Show each avatar wearing their starter outfit so the grid
+                // matches what the user actually begins the game with.
+                const build = (avatar as any)?.build as string | undefined;
+                const shirtId = getStarterShirtIdForAvatar(selectedGender, build);
+                const pantsId = getStarterPantsIdForAvatar(selectedGender, build);
+                const hairId = getStarterHairIdForAvatar(selectedGender);
+                const shoeId = getStarterShoeIdForAvatar(selectedGender);
+                const equipped: Record<string, any> = {};
+                const shirt = ALL_CLOTHING_ITEMS.find(i => i.id === shirtId);
+                const pants = ALL_CLOTHING_ITEMS.find(i => i.id === pantsId);
+                const hair = ALL_CLOTHING_ITEMS.find(i => i.id === hairId);
+                const shoes = ALL_CLOTHING_ITEMS.find(i => i.id === shoeId);
+                if (shirt) equipped[shirt.type] = shirt;
+                if (pants) equipped[pants.type] = pants;
+                if (hair) equipped[hair.type] = hair;
+                if (shoes) equipped[shoes.type] = shoes;
                 return (
                   <TouchableOpacity
                     activeOpacity={0.85}
@@ -525,7 +541,7 @@ const OnboardingScreen: React.FC<{navigation: any; route?: any}> = ({navigation}
                     ]}>
                     <AvatarPreview
                       baseAvatar={avatar}
-                      equipped={{}}
+                      equipped={equipped}
                       size={cellSize - 12}
                     />
                   </TouchableOpacity>
