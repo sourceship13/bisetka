@@ -3491,15 +3491,25 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
     } catch (_) {}
   }, [onSquareTap, onNardiPointTap, onDiceRolled]);
 
-  if (!visible || !htmlFileUri) return null;
+  // NOTE: Do NOT `return null` when not visible. Conditional unmounting of the
+  // WebView triggers a Fabric (New Arch) assertion:
+  //   "RCTComponentViewRegistry: Attempt to recycle a mounted view."
+  // (RCTComponentViewRegistry.mm:116). Instead we always render the wrapper
+  // View (with collapsable={false} to prevent view flattening) and only mount
+  // the WebView when both `visible` and `htmlFileUri` are ready.
+  const showWebView = visible && !!htmlFileUri;
 
   return (
     // box-none: wrapper does not capture touches but WebView child does
-    <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
-      <WebView
+    <View
+      style={[StyleSheet.absoluteFill, !showWebView && styles.hidden]}
+      pointerEvents={showWebView ? 'box-none' : 'none'}
+      collapsable={false}
+    >
+      {showWebView ? <WebView
         key={htmlFileUri} // Unique file URL per session = WebView always remounts with fresh spawnYaw
         ref={webViewRef}
-        source={{ uri: htmlFileUri }}
+        source={{ uri: htmlFileUri! }}
         style={[styles.webview, !webviewReady && styles.webviewHidden]}
         scrollEnabled={false}
         bounces={false}
@@ -3523,7 +3533,7 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
           req.url.startsWith('data:') ||
           req.url.startsWith('file:')
         }
-      />
+      /> : null}
     </View>
   );
 });
@@ -3531,6 +3541,7 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
 const styles = StyleSheet.create({
   webview: { flex: 1, backgroundColor: 'transparent' },
   webviewHidden: { opacity: 0 },
+  hidden: { opacity: 0 },
 });
 
 export default AR3DOverlay;

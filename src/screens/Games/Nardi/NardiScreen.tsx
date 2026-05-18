@@ -1566,7 +1566,7 @@ const NardiScreen = ({ navigation, route }: any) => {
     gameState.possibleMoves.some(m => m.from === selectedPoint && m.to === 24);
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} collapsable={false}>
       <AraratBackground  />
       <AR3DOverlay
         ref={arOverlayRef}
