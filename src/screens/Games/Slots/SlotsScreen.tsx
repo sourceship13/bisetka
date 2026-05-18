@@ -11,8 +11,7 @@ import {
   Image,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import Photosphere360Background from '../../../components/Photosphere360Background';
-import AR3DOverlay, {type AR3DOverlayHandle} from '../../../components/AR3DOverlay';
+import AraratBackground from '../../../components/AraratBackground';
 import { useAuth } from '../../../libs/hooks/useAuth';
 import { useGameEndRefresh } from '../../../libs/hooks/useGameEndRefresh';
 import Svg, { Polyline } from 'react-native-svg';
@@ -92,8 +91,6 @@ const SlotsScreen = ({ navigation }: any) => {
   const [betAmount, setBetAmount] = useState(10);
   const [showBlur, setShowBlur] = useState(false);
   const [showMusicPlayer, setShowMusicPlayer] = useState(false);
-  const [arEnabled, setArEnabled] = useState(true);
-  const arOverlayRef = useRef<AR3DOverlayHandle>(null);
   const [showBackground, setShowBackground] = useState(true);
   const toolbarExpanded = useSharedValue(false);
   const chevronStyle = useAnimatedStyle(() => ({
@@ -308,9 +305,7 @@ const SlotsScreen = ({ navigation }: any) => {
 
   return (
     <View style={styles.container}>
-      <Photosphere360Background overlayOpacity={0.5}>
-        <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/chess/chess-board/source/ui.glb" />
-      </Photosphere360Background>
+      <AraratBackground overlayOpacity={0.5} />
       <View style={styles.overlay} pointerEvents="box-none">
       <GamePlayerOverlay opponent={null} />
       <SafeAreaView style={{flex: 1}}>
@@ -324,7 +319,6 @@ const SlotsScreen = ({ navigation }: any) => {
             <GameToolbarControls
               buttons={[
                 { icon: showBackground ? '🖼️' : '🔲', onPress: () => setShowBackground(!showBackground) },
-                { icon: arEnabled ? '🥽' : '🎮', onPress: () => setArEnabled(!arEnabled) },
                 { icon: showMusicPlayer ? '🎵' : '🎶', onPress: () => setShowMusicPlayer(s => !s) },
               ]}
             />
