@@ -516,11 +516,15 @@ const OnboardingScreen: React.FC<{navigation: any; route?: any}> = ({navigation}
                 const selected = selectedAvatarId === avatar.id;
                 // Show each avatar wearing their starter outfit so the grid
                 // matches what the user actually begins the game with.
+                // Derive gender + build from the avatar itself (not the
+                // screen-level `selectedGender`, which can be stale/null on
+                // first paint and would fall back to male clothing).
+                const avatarGender = (avatar as any)?.gender as string | undefined;
                 const build = (avatar as any)?.build as string | undefined;
-                const shirtId = getStarterShirtIdForAvatar(selectedGender, build);
-                const pantsId = getStarterPantsIdForAvatar(selectedGender, build);
-                const hairId = getStarterHairIdForAvatar(selectedGender);
-                const shoeId = getStarterShoeIdForAvatar(selectedGender);
+                const shirtId = getStarterShirtIdForAvatar(avatarGender, build);
+                const pantsId = getStarterPantsIdForAvatar(avatarGender, build);
+                const hairId = getStarterHairIdForAvatar(avatarGender);
+                const shoeId = getStarterShoeIdForAvatar(avatarGender);
                 const equipped: Record<string, any> = {};
                 const shirt = ALL_CLOTHING_ITEMS.find(i => i.id === shirtId);
                 const pants = ALL_CLOTHING_ITEMS.find(i => i.id === pantsId);
@@ -848,28 +852,48 @@ const OnboardingScreen: React.FC<{navigation: any; route?: any}> = ({navigation}
               keyExtractor={(avatar) => avatar.id}
               contentContainerStyle={slideStyles.avatarGrid}
               columnWrapperStyle={slideStyles.avatarRow}
-              renderItem={({item: avatar}) => (
-                <TouchableOpacity
-                  style={[
-                    slideStyles.avatarOption,
-                    selectedAvatarId === avatar.id && slideStyles.avatarOptionSelected,
-                  ]}
-                  onPress={() => setSelectedAvatarId(avatar.id)}
-                  activeOpacity={0.7}>
-                  <View style={slideStyles.avatarPreviewWrap}>
-                    <AvatarPreview
-                      baseAvatar={avatar}
-                      equipped={{}}
-                      size={Math.floor(((screenWidth - 80) / 3) * 1.4)}
-                    />
-                  </View>
-                  {selectedAvatarId === avatar.id && (
-                    <View style={slideStyles.avatarCheckmark}>
-                      <Text style={slideStyles.avatarCheckmarkText}>✓</Text>
+              renderItem={({item: avatar}) => {
+                // Render each avatar wearing their starter outfit (matches
+                // what's auto-equipped on Continue). Use the avatar's own
+                // gender/build so each tile is correct.
+                const avatarGender = (avatar as any)?.gender as string | undefined;
+                const build = (avatar as any)?.build as string | undefined;
+                const shirtId = getStarterShirtIdForAvatar(avatarGender, build);
+                const pantsId = getStarterPantsIdForAvatar(avatarGender, build);
+                const hairId = getStarterHairIdForAvatar(avatarGender);
+                const shoeId = getStarterShoeIdForAvatar(avatarGender);
+                const equipped: Record<string, any> = {};
+                const shirt = ALL_CLOTHING_ITEMS.find(i => i.id === shirtId);
+                const pants = ALL_CLOTHING_ITEMS.find(i => i.id === pantsId);
+                const hair = ALL_CLOTHING_ITEMS.find(i => i.id === hairId);
+                const shoes = ALL_CLOTHING_ITEMS.find(i => i.id === shoeId);
+                if (shirt) equipped[shirt.type] = shirt;
+                if (pants) equipped[pants.type] = pants;
+                if (hair) equipped[hair.type] = hair;
+                if (shoes) equipped[shoes.type] = shoes;
+                return (
+                  <TouchableOpacity
+                    style={[
+                      slideStyles.avatarOption,
+                      selectedAvatarId === avatar.id && slideStyles.avatarOptionSelected,
+                    ]}
+                    onPress={() => setSelectedAvatarId(avatar.id)}
+                    activeOpacity={0.7}>
+                    <View style={slideStyles.avatarPreviewWrap}>
+                      <AvatarPreview
+                        baseAvatar={avatar}
+                        equipped={equipped}
+                        size={Math.floor(((screenWidth - 80) / 3) * 1.4)}
+                      />
                     </View>
-                  )}
-                </TouchableOpacity>
-              )}
+                    {selectedAvatarId === avatar.id && (
+                      <View style={slideStyles.avatarCheckmark}>
+                        <Text style={slideStyles.avatarCheckmarkText}>✓</Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                );
+              }}
             />
             {!selectedAvatarId && (
               <Text style={slideStyles.avatarHint}>

@@ -98,13 +98,47 @@ const BUILD_OVERRIDES: Record<string, BuildOverrides> = {
   },
   // ───── FEMALE FAT ──────────────────────────────────────────────────────
   'female-fat': {
-    top:    { left: 0.17, width: 0.66, top: 0.150, height: 0.51 },
+    top:    { left: 0.32, width: 0.33, top: -0.1, height: 0.8 },
     jacket: { left: 0.13, width: 0.74, top: 0.215 },
-    bottom: { left: 0.255, width: 0.49, top: 0.515, height: 0.42 },
+    bottom: { left: -0.012, width: 1, top: 0.51, height: 0.42 },
     shorts: { left: 0.245, width: 0.51, top: 0.525 },
     shoes:  { left: 0.215, width: 0.53, top: 0.885 },
     hair:    { left: 0.145, width: 0.71, top: 0.0,   height: 0.150 },
     jewelry: { left: 0.295, width: 0.41, top: 0.185, height: 0.13 },
+  },
+  // ───── FEMALE ATHLETIC / SLIM / OLD ────────────────────────────────────
+  // The non-muscle / non-fat female bodies are noticeably narrower than the
+  // default male body the shared SLOT_REGION was tuned for. Without these
+  // overrides, the shirt + pants render way too wide and the shirt also
+  // sits too tall (covering the head), and the pants top doesn't line up
+  // with the waistline. Numbers below are tightened versions of the
+  // defaults — adjust freely if any single build needs a nudge.
+  'female-athletic': {
+    top:    { left: 0.28, width: 0.2, top: 0.175, height: 0.32 },
+    jacket: { left: 0.245, width: 0.51, top: 0.225, height: 0.30 },
+    bottom: { left: 0.305, width: 0.39, top: 0.48,  height: 0.40 },
+    shorts: { left: 0.30,  width: 0.40, top: 0.495, height: 0.22 },
+    shoes:  { left: 0.28,  width: 0.44, top: 0.88,  height: 0.10 },
+    hair:   { left: 0.205, width: 0.59, top: 0.0,   height: 0.13 },
+    jewelry:{ left: 0.34,  width: 0.32, top: 0.20,  height: 0.10 },
+  },
+  'female-slim': {
+    top:    { left: 0.30, width: 0.40, top: 0.180, height: 0.30 },
+    jacket: { left: 0.265, width: 0.47, top: 0.230, height: 0.28 },
+    bottom: { left: 0.32,  width: 0.36, top: 0.475, height: 0.40 },
+    shorts: { left: 0.315, width: 0.37, top: 0.49,  height: 0.22 },
+    shoes:  { left: 0.295, width: 0.41, top: 0.88,  height: 0.10 },
+    hair:   { left: 0.215, width: 0.57, top: 0.0,   height: 0.13 },
+    jewelry:{ left: 0.35,  width: 0.30, top: 0.20,  height: 0.10 },
+  },
+  'female-old': {
+    top:    { left: 0.27, width: 0.46, top: 0.180, height: 0.32 },
+    jacket: { left: 0.235, width: 0.53, top: 0.230, height: 0.30 },
+    bottom: { left: 0.30,  width: 0.40, top: 0.48,  height: 0.40 },
+    shorts: { left: 0.295, width: 0.41, top: 0.495, height: 0.22 },
+    shoes:  { left: 0.275, width: 0.45, top: 0.88,  height: 0.10 },
+    hair:   { left: 0.195, width: 0.61, top: 0.0,   height: 0.13 },
+    jewelry:{ left: 0.335, width: 0.33, top: 0.205, height: 0.10 },
   },
 };
 
