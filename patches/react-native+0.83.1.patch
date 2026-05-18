@@ -1,0 +1,24 @@
+diff --git a/node_modules/react-native/React/Fabric/Mounting/RCTComponentViewRegistry.mm b/node_modules/react-native/React/Fabric/Mounting/RCTComponentViewRegistry.mm
+index 0834bbf..0beaeb6 100644
+--- a/node_modules/react-native/React/Fabric/Mounting/RCTComponentViewRegistry.mm
++++ b/node_modules/react-native/React/Fabric/Mounting/RCTComponentViewRegistry.mm
+@@ -112,8 +112,17 @@ - (void)_enqueueComponentViewWithComponentHandle:(ComponentHandle)componentHandl
+     return;
+   }
+ 
+-  RCTAssert(
+-      componentViewDescriptor.view.superview == nil, @"RCTComponentViewRegistry: Attempt to recycle a mounted view.");
++  // PATCHED (bisetka): Upstream Fabric bug — sometimes a component view is
++  // enqueued for recycling while it still has a superview (mount/unmount race
++  // around WebView/Screen transitions). The original code RCTAssert()s and
++  // crashes the app. We instead invalidate the view and skip the recycle
++  // pool, which is the same fallback path used when the pool is full.
++  // See: facebook/react-native#51419
++  if (componentViewDescriptor.view.superview != nil) {
++    [componentViewDescriptor.view invalidate];
++    return;
++  }
++
+   [componentViewDescriptor.view prepareForRecycle];
+ 
+   recycledViews.push_back(componentViewDescriptor);

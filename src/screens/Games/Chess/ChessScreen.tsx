@@ -582,7 +582,7 @@ const ChessScreen = ({navigation}: any) => {
 
   // Game screen
   return (
-    <View style={styles.container}>
+    <View style={styles.container} collapsable={false}>
       {/* Photosphere always renders — AR3DOverlay WebView is transparent and sits on top */}
       <AraratBackground overlayOpacity={0.4} />
       <AR3DOverlay

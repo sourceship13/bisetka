@@ -620,7 +620,7 @@ const CheckersScreen = ({ navigation, route }: any) => {
 
   // ── board render ──────────────────────────────────────────────────────────
   return (
-    <View style={styles.container}>
+    <View style={styles.container} collapsable={false}>
       <AraratBackground />
       <AR3DOverlay
         ref={arOverlayRef}

@@ -460,7 +460,7 @@ const MrotsiScreen = ({ navigation, route }: any) => {
   // ─── Render ─────────────────────────────────────────────────────────────────
 
   return (
-    <View style={styles.backgroundImage}>
+    <View style={styles.backgroundImage} collapsable={false}>
       <ImageBackground
         source={MROTSI_BACKGROUND}
         style={StyleSheet.absoluteFill}
