@@ -1760,6 +1760,8 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
       </AraratBackground>
       <View style={styles.overlay} pointerEvents="box-none">
         <GamePlayerOverlay
+          topOffset={260}
+          size={100}
           opponent={
             opponent && opponent.id
               ? {

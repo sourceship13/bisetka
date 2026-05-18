@@ -39,7 +39,7 @@ const PlayerChip: React.FC<Props> = ({
       <View
         style={[
           styles.robot,
-          { width: size, height: size, borderRadius: size / 2 },
+          { width: size, height: size, borderRadius: 12 },
         ]}
       >
         <Text style={[styles.robotGlyph, { fontSize: size * 0.55 }]}>🤖</Text>
@@ -53,7 +53,7 @@ const PlayerChip: React.FC<Props> = ({
       <View
         style={[
           styles.robot,
-          { width: size, height: size, borderRadius: size / 2 },
+          { width: size, height: size, borderRadius: 12 },
         ]}
       />
     );
@@ -64,7 +64,7 @@ const PlayerChip: React.FC<Props> = ({
       <View
         style={[
           styles.avatarRing,
-          { width: size + 6, height: size + 6, borderRadius: (size + 6) / 2 },
+          { width: size + 8, height: size + 8, borderRadius: 14 },
         ]}
       >
         {avatar}
@@ -86,9 +86,7 @@ const styles = StyleSheet.create({
   avatarRing: {
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(0,0,0,0.45)',
-    borderWidth: 2,
-    borderColor: 'rgba(255,215,0,0.85)',
+    backgroundColor: 'rgba(0,0,0,0.55)',
     overflow: 'hidden',
   },
   labelWrap: {
