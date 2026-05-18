@@ -927,6 +927,17 @@ const OnboardingScreen: React.FC<{navigation: any; route?: any}> = ({navigation}
         data={slides}
         renderItem={renderSlide}
         keyExtractor={item => item.id}
+        // Force visible slides to re-render when these external state values
+        // change (otherwise FlatList memoizes rows and the Continue button on
+        // the character slide stays disabled after the user picks an avatar).
+        extraData={[
+          selectedGender,
+          selectedAvatarId,
+          available,
+          username,
+          currentIndex,
+          notificationStatus,
+        ]}
         horizontal
         pagingEnabled
         scrollEventThrottle={16}

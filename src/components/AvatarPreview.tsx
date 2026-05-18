@@ -114,7 +114,7 @@ const BUILD_OVERRIDES: Record<string, BuildOverrides> = {
   // with the waistline. Numbers below are tightened versions of the
   // defaults — adjust freely if any single build needs a nudge.
   'female-athletic': {
-    top:    { left: 0.28, width: 0.2, top: 0.175, height: 0.32 },
+    top:    { left: 0.39, width: 0.19, top: 0.17, height: 0.32 },
     jacket: { left: 0.245, width: 0.51, top: 0.225, height: 0.30 },
     bottom: { left: 0.305, width: 0.39, top: 0.48,  height: 0.40 },
     shorts: { left: 0.30,  width: 0.40, top: 0.495, height: 0.22 },
