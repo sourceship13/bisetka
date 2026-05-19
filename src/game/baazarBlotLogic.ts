@@ -466,47 +466,229 @@ const isTeammateWinning = (
   return !!winner && !!me && winner.team === me.team && winnerId !== playerId;
 };
 
+// ---------------------------------------------------------------------------
+// Card-counting context. Built from completed + current tricks so the AI
+// knows which cards are still live and which opponents are known void in
+// which suits (via the forced-follow / forced-trump rules).
+// ---------------------------------------------------------------------------
+
+export interface BaazarAIContext {
+  playedCards: CardType[];
+  knownVoids: Record<number, Set<Suit>>;
+}
+
+export const buildAIContext = (state: BaazarGameState): BaazarAIContext => {
+  const playedCards: CardType[] = [];
+  const knownVoids: Record<number, Set<Suit>> = {
+    0: new Set(), 1: new Set(), 2: new Set(), 3: new Set(),
+  };
+  const allTricks: Trick[] = [...state.completedTricks];
+  if (state.currentTrick?.cards?.length) allTricks.push(state.currentTrick);
+
+  for (const trick of allTricks) {
+    if (!trick.cards.length) continue;
+    const leadSuit = trick.cards[0].card.suit;
+    for (const cp of trick.cards) {
+      if (!cp?.card) continue;
+      playedCards.push(cp.card);
+      if (cp.card.suit !== leadSuit) {
+        knownVoids[cp.playerId]?.add(leadSuit);
+        // Didn't follow non-trump and didn't trump → also void in trump.
+        if (state.trump && leadSuit !== state.trump && cp.card.suit !== state.trump) {
+          knownVoids[cp.playerId]?.add(state.trump);
+        }
+      }
+    }
+  }
+  return { playedCards, knownVoids };
+};
+
+const isMasterCard = (
+  card: CardType,
+  played: CardType[],
+  myHand: CardType[],
+  trump: Suit | null,
+): boolean => {
+  const order = card.suit === trump ? TRUMP_ORDER : PLAIN_ORDER;
+  const idx = order.indexOf(card.rank as Rank);
+  if (idx < 0) return false;
+  const seen = new Set<string>();
+  played.forEach(c => seen.add(`${c.suit}-${c.rank}`));
+  myHand.forEach(c => seen.add(`${c.suit}-${c.rank}`));
+  for (let i = 0; i < idx; i++) {
+    if (!seen.has(`${card.suit}-${order[i]}`)) return false;
+  }
+  return true;
+};
+
+const remainingOpponentTrumps = (
+  trump: Suit | null,
+  played: CardType[],
+  myHand: CardType[],
+  partnerHand: CardType[] | null,
+): number => {
+  if (!trump) return 0;
+  const seen = new Set<string>();
+  played.forEach(c => { if (c.suit === trump) seen.add(c.rank); });
+  myHand.forEach(c => { if (c.suit === trump) seen.add(c.rank); });
+  (partnerHand ?? []).forEach(c => { if (c.suit === trump) seen.add(c.rank); });
+  let count = 0;
+  RANKS.forEach(r => { if (!seen.has(r)) count++; });
+  return count;
+};
+
+const opponentsCouldBeat = (
+  winningCard: CardType,
+  remainingOpps: Player[],
+  trump: Suit | null,
+  leadSuit: Suit,
+  ctx: BaazarAIContext,
+  myHand: CardType[],
+  partnerHand: CardType[] | null,
+): boolean => {
+  const taken = new Set<string>();
+  myHand.forEach(c => taken.add(`${c.suit}-${c.rank}`));
+  (partnerHand ?? []).forEach(c => taken.add(`${c.suit}-${c.rank}`));
+  ctx.playedCards.forEach(c => taken.add(`${c.suit}-${c.rank}`));
+
+  const winIsTrump = winningCard.suit === trump;
+  const winStrength = getCardStrength(winningCard, trump);
+
+  for (const opp of remainingOpps) {
+    const voids = ctx.knownVoids[opp.id] ?? new Set<Suit>();
+    for (const suit of SUITS) {
+      if (voids.has(suit)) continue;
+      const order = suit === trump ? TRUMP_ORDER : PLAIN_ORDER;
+      for (const rank of order) {
+        if (taken.has(`${suit}-${rank}`)) continue;
+        const cIsTrump = suit === trump;
+
+        if (cIsTrump && !winIsTrump) {
+          if (leadSuit === trump) {
+            if (getCardStrength({ suit, rank, id: '' } as CardType, trump) < winStrength) {
+              return true;
+            }
+          } else if (voids.has(leadSuit)) {
+            return true;
+          }
+          continue;
+        }
+        if (cIsTrump && winIsTrump) {
+          if (getCardStrength({ suit, rank, id: '' } as CardType, trump) < winStrength) return true;
+          continue;
+        }
+        if (!cIsTrump && !winIsTrump) {
+          if (suit !== leadSuit) continue;
+          if (getCardStrength({ suit, rank, id: '' } as CardType, trump) < winStrength) return true;
+        }
+      }
+    }
+  }
+  return false;
+};
+
+const trickPointValue = (trick: Trick, trump: Suit | null): number =>
+  trick.cards.reduce((s, cp) => s + getCardPoints(cp.card, trump), 0);
+
+// ---------------------------------------------------------------------------
+// chooseAICard — strong heuristic AI:
+//   • Card counting & known-void inference.
+//   • Throws A/10/K on partner's win when win is provably safe.
+//   • Leads master cards; as bidder, pulls trumps when long; avoids leading
+//     into suits where opponents are void and still hold trumps.
+//   • Refuses to win small tricks the next opponent will just over-trump.
+// ---------------------------------------------------------------------------
+
 export const chooseAICard = (
   player: Player,
   currentTrick: Trick,
   trump: Suit | null,
   players: Player[],
+  state?: BaazarGameState,
+  bidderTeam?: 1 | 2 | null,
 ): CardType => {
-  // Filter out any invalid cards first
   const hand = player.hand.filter(c => c && c.suit && c.rank);
-  
-  // Safety: if no valid cards, return first available card
   if (hand.length === 0) {
     console.warn('AI has no valid cards in hand');
     return player.hand[0] || { suit: 'hearts', rank: 'A', id: 'fallback' };
   }
-  
+
   const legal = hand.filter(c => canPlayCard(c, hand, currentTrick, trump));
-  
-  // If no legal moves, just play first card (shouldn't happen)
   if (legal.length === 0) {
     console.warn('AI has no legal cards, playing first card');
     return hand[0];
   }
-  
   if (legal.length === 1) return legal[0];
 
-  const teammate = isTeammateWinning(currentTrick, player.id, players, trump);
+  const ctx: BaazarAIContext = state
+    ? buildAIContext(state)
+    : {
+        playedCards: currentTrick.cards.map(cp => cp.card).filter(Boolean) as CardType[],
+        knownVoids: { 0: new Set(), 1: new Set(), 2: new Set(), 3: new Set() },
+      };
 
-  if (teammate) {
-    const sorted = legal.sort((a, b) => getCardPoints(a, trump) - getCardPoints(b, trump));
-    return sorted[0] || legal[0];
-  }
+  const partner = players.find(p => p.team === player.team && p.id !== player.id);
+  const partnerHand = partner?.hand?.filter(c => c && c.suit && c.rank) ?? null;
+  const opponents = players.filter(p => p.team !== player.team);
 
+  const cheapestOf = (cards: CardType[]): CardType =>
+    [...cards].sort((a, b) => getCardPoints(a, trump) - getCardPoints(b, trump))[0];
+  const richestOf = (cards: CardType[]): CardType =>
+    [...cards].sort((a, b) => getCardPoints(b, trump) - getCardPoints(a, trump))[0];
+  const strongestOf = (cards: CardType[]): CardType =>
+    [...cards].sort((a, b) => getCardStrength(a, trump) - getCardStrength(b, trump))[0];
+
+  // -----------------------------------------------------------------------
+  // LEADING
+  // -----------------------------------------------------------------------
   if (currentTrick.cards.length === 0) {
-    const nonTrump = legal.filter(c => c.suit !== trump);
-    const pool = nonTrump.length > 0 ? nonTrump : legal;
-    const sorted = pool.sort((a, b) => getCardStrength(a, trump) - getCardStrength(b, trump));
-    return sorted[0] || legal[0];
+    const myTrumps = legal.filter(c => c.suit === trump);
+    const nonTrumps = legal.filter(c => c.suit !== trump);
+    const oppTrumpsLeft = remainingOpponentTrumps(trump, ctx.playedCards, hand, partnerHand);
+
+    // 1) Master non-trump cards — cash them in.
+    const masters = nonTrumps.filter(c => isMasterCard(c, ctx.playedCards, hand, trump));
+    const safeMasters = masters.filter(c =>
+      oppTrumpsLeft === 0 || !opponents.some(o => ctx.knownVoids[o.id]?.has(c.suit)),
+    );
+    if (safeMasters.length > 0) return richestOf(safeMasters);
+
+    // 2) Bidder team with long trumps → pull opposing trumps.
+    const iAmBidder = bidderTeam !== undefined && bidderTeam === player.team;
+    if (iAmBidder && myTrumps.length >= 4 && oppTrumpsLeft > 0) {
+      return strongestOf(myTrumps);
+    }
+
+    // 3) Lead low card of longest non-trump suit (penalise suits opponents
+    //    are known void in while they still have trumps).
+    if (nonTrumps.length > 0) {
+      const bySuit = new Map<Suit, CardType[]>();
+      nonTrumps.forEach(c => {
+        if (!bySuit.has(c.suit)) bySuit.set(c.suit, []);
+        bySuit.get(c.suit)!.push(c);
+      });
+      let bestSuit: Suit | null = null;
+      let bestAdj = -Infinity;
+      bySuit.forEach((cards, s) => {
+        const oppVoid = opponents.some(o => ctx.knownVoids[o.id]?.has(s));
+        const adj = cards.length - (oppVoid && oppTrumpsLeft > 0 ? 3 : 0);
+        if (adj > bestAdj) { bestAdj = adj; bestSuit = s; }
+      });
+      if (bestSuit) {
+        const pool = bySuit.get(bestSuit)!;
+        return cheapestOf(pool);
+      }
+    }
+
+    // 4) Only trumps left — lead lowest.
+    return cheapestOf(legal);
   }
 
+  // -----------------------------------------------------------------------
+  // FOLLOWING
+  // -----------------------------------------------------------------------
   const leadSuit = currentTrick.cards[0].card.suit;
-  const bestPlay = currentTrick.cards.reduce((best, play) => {
+  const winningPlay = currentTrick.cards.reduce((best, play) => {
     const b = best.card; const c = play.card;
     if (c.suit === trump && b.suit !== trump) return play;
     if (c.suit === trump && b.suit === trump)
@@ -516,8 +698,26 @@ export const chooseAICard = (
     return best;
   }, currentTrick.cards[0]);
 
-  const winning = legal.filter(c => {
-    const b = bestPlay.card;
+  const winnerPlayer = players.find(p => p.id === winningPlay.playerId);
+  const partnerWinning = !!winnerPlayer && winnerPlayer.team === player.team
+                                         && winnerPlayer.id !== player.id;
+
+  const playedIds = new Set(currentTrick.cards.map(c => c.playerId));
+  playedIds.add(player.id);
+  const remainingOpps = players.filter(p => p.team !== player.team && !playedIds.has(p.id));
+
+  // Partner winning → throw points if safe, else shed low.
+  if (partnerWinning) {
+    const partnerSafe = !opponentsCouldBeat(
+      winningPlay.card, remainingOpps, trump, leadSuit, ctx, hand, partnerHand,
+    );
+    if (partnerSafe) return richestOf(legal);
+    return cheapestOf(legal);
+  }
+
+  // Opponent winning → look for cheapest winner that survives.
+  const winners = legal.filter(c => {
+    const b = winningPlay.card;
     if (c.suit === trump && b.suit !== trump) return true;
     if (c.suit === trump && b.suit === trump)
       return getCardStrength(c, trump) < getCardStrength(b, trump);
@@ -526,71 +726,159 @@ export const chooseAICard = (
     return false;
   });
 
-  if (winning.length > 0) {
-    const sorted = winning.sort((a, b) => getCardPoints(a, trump) - getCardPoints(b, trump));
-    return sorted[0] || legal[0];
+  if (winners.length > 0) {
+    const candidate = cheapestOf(winners);
+    const trickPts = trickPointValue(currentTrick, trump) + getCardPoints(candidate, trump);
+    const ourWinSafe = !opponentsCouldBeat(
+      candidate, remainingOpps, trump, leadSuit, ctx, hand, partnerHand,
+    );
+    if (ourWinSafe) return candidate;
+    // Risky win — only commit if trick is already worth grabbing.
+    if (trickPts >= 14) return candidate;
+    return cheapestOf(legal);
   }
-  
-  const sorted = legal.sort((a, b) => getCardPoints(a, trump) - getCardPoints(b, trump));
-  return sorted[0] || legal[0];
+
+  // Can't win — shed non-trump first to preserve trumps.
+  const sheds = legal.filter(c => c.suit !== trump);
+  return cheapestOf(sheds.length > 0 ? sheds : legal);
 };
 
-/**
- * AI bid evaluation: estimate how many points this hand can take with a given trump.
- * Returns a bid level (8-16) or 0 if it should pass.
- */
+// ---------------------------------------------------------------------------
+// Bidding AI — far more accurate hand evaluation. Scores:
+//   • Real trump card points (J=20, 9=14, A=11, 10=10, K=4, Q=3)
+//   • Trump length bonus (each trump beyond 3 = +10 extra trick equity)
+//   • Trump quality (J+9 combo, J+9+A combo)
+//   • Side aces (each ≈ 11 pts captured)
+//   • Side 10s with K-support or short suit (likely captured)
+//   • Sequences in the hand (20 / 50 / 100)
+//   • Belote K+Q of trump (+20)
+//   • Voids/singletons in non-trump (ruffing potential)
+// Returns expected total raw points for the round under that trump.
+// ---------------------------------------------------------------------------
+
+const findHandSequenceBonus = (hand: CardType[]): number => {
+  const seqs = findSequences(hand, 1);
+  return seqs.reduce((s, q) => s + q.points, 0);
+};
+
+export const estimateHandPoints = (hand: CardType[], trump: Suit): number => {
+  let trumpCount = 0;
+  let trumpRawPts = 0;
+  let hasJ = false, has9 = false, hasA = false, hasK = false, hasQ = false;
+
+  for (const c of hand) {
+    if (c.suit === trump) {
+      trumpCount++;
+      trumpRawPts += getCardPoints(c, trump);
+      if (c.rank === 'J') hasJ = true;
+      if (c.rank === '9') has9 = true;
+      if (c.rank === 'A') hasA = true;
+      if (c.rank === 'K') hasK = true;
+      if (c.rank === 'Q') hasQ = true;
+    }
+  }
+
+  let est = trumpRawPts;
+
+  // Length / quality bonuses for trumps (each extra trump = ~9 pts of ruffs).
+  if (trumpCount >= 4) est += (trumpCount - 3) * 9;
+  if (hasJ && has9) est += 8;          // dominant trump pair
+  if (hasJ && has9 && hasA) est += 6;  // crushing top three
+  if (hasK && hasQ) est += 20;         // Belote bonus
+
+  // Side suits: aces, 10s, voids/singletons.
+  const sideSuits: Suit[] = SUITS.filter(s => s !== trump);
+  let voidCount = 0;
+  let singletonCount = 0;
+
+  for (const s of sideSuits) {
+    const cards = hand.filter(c => c.suit === s);
+    if (cards.length === 0) { voidCount++; continue; }
+    if (cards.length === 1) singletonCount++;
+    const hasAceS = cards.some(c => c.rank === 'A');
+    const has10S = cards.some(c => c.rank === '10');
+    const hasKS  = cards.some(c => c.rank === 'K');
+
+    if (hasAceS) est += 13;                            // ace + likely follow points
+    if (has10S && (hasKS || hasAceS || cards.length <= 2)) est += 9;
+    if (hasKS && cards.length <= 3 && hasAceS) est += 3;
+  }
+
+  // Ruff potential — only useful if we have trumps to ruff with.
+  if (trumpCount >= 3) {
+    est += voidCount * 10;
+    est += singletonCount * 5;
+  }
+
+  // Sequences in hand are worth their full bonus value (provided we win them
+  // — bidder team usually does because they control trumps).
+  est += findHandSequenceBonus(hand);
+
+  // Floor when trump is too short — risky bid.
+  if (trumpCount <= 2) est = Math.max(0, est - 25);
+  if (trumpCount === 0) est = Math.max(0, est - 60);
+
+  return est;
+};
+
+// Backwards-compatible export, now using the stronger model.
 export const evaluateAIBid = (
   hand: CardType[],
   suit: Suit,
   currentBid: BidLevel,
 ): BidLevel | 0 => {
-  const estimatedPoints = hand.reduce((total, card) => {
-    let pts = 0;
-    if (card.suit === suit) {
-      // Trump cards are strong
-      if (card.rank === 'J') pts = 20;
-      else if (card.rank === '9') pts = 14;
-      else if (card.rank === 'A') pts = 11;
-      else if (card.rank === '10') pts = 10;
-      else pts = 3;
-    } else {
-      if (card.rank === 'A') pts = 9;
-      else if (card.rank === '10') pts = 7;
-      else if (card.rank === 'K') pts = 3;
-      else if (card.rank === 'Q') pts = 2;
-    }
-    return total + pts;
-  }, 0);
-
-  // Convert estimated card points to a bid level with some conservatism
-  const estimatedBid = Math.floor(estimatedPoints / 10) as BidLevel;
-  const minBid = (currentBid + 1) as BidLevel;
-  if (estimatedBid >= minBid && estimatedBid <= 16) return estimatedBid;
-  return 0;
+  const est = estimateHandPoints(hand, suit);
+  // Aggressive conversion: a hand worth ~95 raw should bid 10 (target 100),
+  // accepting it must squeeze the last 5 from play. Round to nearest 10
+  // instead of floor.
+  let level = Math.round(est / 10);
+  if (level < 8) return 0;
+  if (level > 16) level = 16;
+  const min = (currentBid + 1) as BidLevel;
+  if (level < min) return 0;
+  return level as BidLevel;
 };
 
-/**
- * AI decides whether to bid and at what level/suit.
- * Tries all suits and picks the best.
- */
 export const chooseAIBid = (
   player: Player,
   currentBid: BidLevel,
   passedPlayers: number[],
 ): { bid: BidLevel; suit: Suit } | null => {
-  let bestBid: BidLevel | null = null;
+  // Pick the trump suit with the highest expected score.
   let bestSuit: Suit = 'hearts';
-
+  let bestEst = -Infinity;
   for (const suit of SUITS) {
-    const bid = evaluateAIBid(player.hand, suit, currentBid);
-    if (bid !== 0 && (bestBid === null || bid > bestBid)) {
-      bestBid = bid;
-      bestSuit = suit;
-    }
+    const est = estimateHandPoints(player.hand, suit);
+    if (est > bestEst) { bestEst = est; bestSuit = suit; }
   }
 
-  if (bestBid === null) return null; // pass
-  return { bid: bestBid, suit: bestSuit };
+  // Aggression: open the bidding readily when we have a real hand.
+  // The minimum legal bid is currentBid + 1; we'll bid that minimum even
+  // when our estimate is only ~5 pts below its target, because trumping
+  // and sequences typically pull the actual score upward.
+  const min = (currentBid + 1) as BidLevel;
+  const target = min * 10;
+
+  // Strong open: estimate ≥ target → bid at our estimate level.
+  if (bestEst >= target) {
+    let level = Math.round(bestEst / 10);
+    if (level > 16) level = 16;
+    if (level < min) level = min;
+    return { bid: level as BidLevel, suit: bestSuit };
+  }
+
+  // Pushy open: estimate within 5 of target → still take the contract.
+  if (bestEst >= target - 5 && min <= 11) {
+    return { bid: min, suit: bestSuit };
+  }
+
+  // Competitive: if nobody else has bid yet (currentBid === 8 and no taker),
+  // open with our best suit even on a slightly thin hand.
+  if (currentBid === 8 && passedPlayers.length >= 1 && bestEst >= 70) {
+    return { bid: 8 as BidLevel, suit: bestSuit };
+  }
+
+  return null;
 };
 
 // ---------------------------------------------------------------------------

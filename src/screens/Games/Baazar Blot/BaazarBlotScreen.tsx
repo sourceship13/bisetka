@@ -376,7 +376,7 @@ const BaazarBlotScreen = ({ navigation }: any) => {
         // Ensure player has valid cards
         if (!player.hand || player.hand.length === 0) return prev;
         
-        const card = chooseAICard(player, prev.currentTrick, prev.trump, prev.players);
+        const card = chooseAICard(player, prev.currentTrick, prev.trump, prev.players, prev, prev.bidderTeam);
         
         // Ensure AI selected a valid card
         if (!card || !card.suit || !card.rank) return prev;
