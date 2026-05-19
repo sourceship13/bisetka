@@ -10,6 +10,7 @@ import DailyPointsRewardModal from './src/components/DailyPointsRewardModal';
 import AppVersionFooter from './src/components/global/AppVersionFooter';
 import pushNotificationService from './src/services/pushNotification.service';
 import { startAvatarSync } from './src/services/avatarSync';
+import { initIAP, endIAP } from './src/services/iap.service';
 import { seedDefaultOutfitIfMissing } from './src/utils/seedDefaultOutfit';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -53,6 +54,16 @@ const NotificationTapBridge: React.FC = () => {
 function App(): React.JSX.Element {
   useEffect(() => {
     BootSplash.hide({ fade: true });
+  }, []);
+
+  // Initialise the StoreKit / Play Billing connection at app start so the
+  // store screens can fetch localised prices instantly. Tear it down on
+  // unmount.
+  useEffect(() => {
+    initIAP();
+    return () => {
+      endIAP();
+    };
   }, []);
 
   // Push the local avatar appearance to the backend on boot and on every

@@ -19,6 +19,7 @@ import { ClothingItem, ClothingType, Rarity } from '../../../types/avatar2d';
 import { ALL_CLOTHING_ITEMS, filterClothingForAvatar, getAvatarBuildById, getAvatarGenderById, STARTER_ITEM_IDS } from '../../../data/clothingItems';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { useAuth } from '../../../libs/hooks/useAuth';
+import { buyClothingItem } from '../../../services/iap.service';
 
 const STORE_OWNED_KEY = 'ownedClothing';
 const STORE_EQUIPPED_KEY = '@bisetka_equipped_clothing';
@@ -136,6 +137,14 @@ const ClothingStoreScreen: React.FC<any> = ({ navigation }) => {
       if (!out[it.type]) out[it.type] = [];
       out[it.type]!.push(it);
     });
+    // Sort each section so the cheapest items show first (free → most
+    // expensive). Stable secondary sort by name keeps things deterministic.
+    Object.keys(out).forEach(type => {
+      out[type as ClothingType]!.sort((a, b) => {
+        if (a.price !== b.price) return a.price - b.price;
+        return a.name.localeCompare(b.name);
+      });
+    });
     return out;
   }, [items]);
 
@@ -170,22 +179,49 @@ const ClothingStoreScreen: React.FC<any> = ({ navigation }) => {
       claimFree(item);
       return;
     }
+    // Real in-app purchase via App Store / Play Billing. The backend
+    // validates the receipt, records the purchase in `in_app_purchases`,
+    // grants the item, AND auto-equips it (so the avatar puts it on
+    // immediately).
     BisetkaAlert({
       title: 'Purchase Item',
-      message: `Buy ${item.name} for $${(item.price / 100).toFixed(2)}?\n\n(Payment integration coming soon!)`,
+      message: `Buy ${item.name} for $${(item.price / 100).toFixed(2)}?`,
       type: 'confirm',
       confirmText: 'Purchase',
       onConfirm: async () => {
         setBusyId(item.id);
-        const next = new Set(owned);
-        next.add(item.id);
-        await persistOwned(next);
-        setBusyId(null);
-        BisetkaAlert({
-          title: 'Success!',
-          message: `${item.name} added to your wardrobe.`,
-          type: 'success',
-        });
+        try {
+          const result = await buyClothingItem({
+            clothingId: item.id,
+            clothingType: item.type,
+            priceCents: item.price,
+          });
+          if (!result.success) {
+            throw new Error(result.error || 'Purchase failed');
+          }
+          // Mirror server state into the local cache used for offline
+          // rendering and instant UI updates.
+          const nextOwned = new Set(owned);
+          nextOwned.add(item.id);
+          await persistOwned(nextOwned);
+          const nextEquipped = { ...equipped, [item.type]: item.id };
+          await persistEquipped(nextEquipped);
+          BisetkaAlert({
+            title: result.alreadyApplied ? 'Restored' : 'Purchased!',
+            message: `${item.name} is now in your wardrobe and equipped.`,
+            type: 'success',
+          });
+        } catch (err: any) {
+          if (!err?.cancelled) {
+            BisetkaAlert({
+              title: 'Purchase Failed',
+              message: err?.message || 'Could not complete the purchase.',
+              type: 'error',
+            });
+          }
+        } finally {
+          setBusyId(null);
+        }
       },
     });
   };
@@ -195,6 +231,9 @@ const ClothingStoreScreen: React.FC<any> = ({ navigation }) => {
     const next = new Set(owned);
     next.add(item.id);
     await persistOwned(next);
+    // Auto-equip free items too so a tap is always meaningful.
+    const nextEquipped = { ...equipped, [item.type]: item.id };
+    await persistEquipped(nextEquipped);
     setBusyId(null);
   };
 
@@ -338,7 +377,20 @@ const StoreCardImpl: React.FC<StoreCardProps> = ({
   onUse,
   onBuy,
 }) => {
+  // Tapping anywhere on the card is the primary action:
+  //   - not owned → buy (real IAP for paid items, instant claim for free)
+  //   - owned     → equip / use
+  const onCardPress = () => {
+    if (isBusy) return;
+    if (isOwned) {
+      if (!isEquipped) onUse(item);
+    } else {
+      onBuy(item);
+    }
+  };
+
   return (
+    <TouchableOpacity activeOpacity={0.88} onPress={onCardPress} disabled={isBusy}>
     <LinearGradient
       colors={['#7a6cf5', '#5b4ae0']}
       start={{ x: 0, y: 0 }}
@@ -402,6 +454,7 @@ const StoreCardImpl: React.FC<StoreCardProps> = ({
         </TouchableOpacity>
       )}
     </LinearGradient>
+    </TouchableOpacity>
   );
 };
 
