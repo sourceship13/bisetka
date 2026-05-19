@@ -415,10 +415,22 @@ const StoreCardImpl: React.FC<StoreCardProps> = ({
         {item.name}
       </Text>
 
-      <View style={styles.priceRow}>
-        <Text style={styles.coin}>🪙</Text>
-        <Text style={styles.priceText}>
-          {item.price === 0 ? 'FREE' : `$${(item.price / 100).toFixed(2)}`}
+      <View
+        style={[
+          styles.priceRow,
+          item.price === 0 ? styles.priceRowFree : styles.priceRowPaid,
+        ]}>
+        <Text
+          style={[
+            styles.priceText,
+            item.price === 0 ? styles.priceTextFree : styles.priceTextPaid,
+          ]}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.7}>
+          {item.price === 0
+            ? 'FREE'
+            : `$${(item.price / 100).toFixed(2)}`}
         </Text>
       </View>
 
@@ -593,8 +605,8 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     paddingHorizontal: 12,
     paddingTop: 12,
-    paddingBottom: 14,
-    minHeight: 290,
+    paddingBottom: 16,
+    minHeight: 330,
   },
   rarityPill: {
     alignSelf: 'flex-start',
@@ -645,11 +657,37 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    marginTop: 4,
+    alignSelf: 'center',
+    marginTop: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 5,
+    borderRadius: 999,
+    minWidth: 80,
+  },
+  priceRowFree: {
+    backgroundColor: 'rgba(34, 197, 94, 0.25)',
+    borderWidth: 1,
+    borderColor: 'rgba(74, 222, 128, 0.8)',
+  },
+  priceRowPaid: {
+    backgroundColor: 'rgba(20, 14, 60, 0.55)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.18)',
   },
   coin: { fontSize: 14 },
-  priceText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+  priceText: {
+    color: '#fff',
+    fontWeight: '900',
+    fontSize: 17,
+    letterSpacing: 0.3,
+    textAlign: 'center',
+  },
+  priceTextFree: {
+    color: '#bbf7d0',
+  },
+  priceTextPaid: {
+    color: '#ffe9a8',
+  },
 
   actionBtn: {
     marginTop: 10,

@@ -118,10 +118,7 @@ const StoreScreen = ({navigation}: any) => {
       activeOpacity={0.85}
       onPress={() => handleBuy(item)}
       style={styles.tileWrapper}>
-      <LinearGradient
-        colors={['#1e1b4b', '#312e81']}
-        start={{x: 0, y: 0}}
-        end={{x: 1, y: 1}}
+      <View
         style={styles.tile}>
         <View style={styles.tileEmoji}>
           <Text style={styles.emojiText}>{item.emoji}</Text>
@@ -133,7 +130,7 @@ const StoreScreen = ({navigation}: any) => {
           <Text style={styles.priceIcon}>⭐</Text>
           <Text style={styles.priceText}>{item.price.toLocaleString()}</Text>
         </View>
-      </LinearGradient>
+      </View>
     </TouchableOpacity>
   );
 
@@ -355,6 +352,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: '#312e81',
   },
   tileEmoji: {
     width: 64,
