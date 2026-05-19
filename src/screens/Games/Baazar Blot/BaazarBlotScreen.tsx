@@ -748,7 +748,7 @@ const BaazarBlotScreen = ({ navigation }: any) => {
 
         <View style={styles.handContainer}>
           <CardHandFan
-            cards={myPlayer.hand.filter(c => c && c.suit && c.rank)}
+            cards={sortHandForDisplay(myPlayer.hand.filter(c => c && c.suit && c.rank))}
             renderCard={(card, idx) => (
               <View key={`${card.suit}-${card.rank}-${idx}`} style={styles.cardWrapper}>
                 <BlotCard suit={card.suit as any} rank={card.rank as any} faceDown={false} size={72} />
