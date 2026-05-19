@@ -88,10 +88,13 @@ const StoreScreen = ({navigation}: any) => {
   const {user} = useAuth();
   const [selectedCategory, setSelectedCategory] = useState<Category | 'all'>('all');
 
-  const filteredItems =
+  const filteredItems = (
     selectedCategory === 'all'
       ? STORE_ITEMS
-      : STORE_ITEMS.filter(item => item.category === selectedCategory);
+      : STORE_ITEMS.filter(item => item.category === selectedCategory)
+  )
+    .slice()
+    .sort((a, b) => a.price - b.price);
 
   const handleBuy = (item: StoreItem) => {
     Alert.alert(

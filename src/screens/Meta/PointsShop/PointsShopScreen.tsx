@@ -16,6 +16,7 @@ import {colors, spacing} from '../../../theme';
 import {BisetkaAlert} from '../../../utils/BisetkaAlert';
 import {useAuth} from '../../../libs/hooks/useAuth';
 import apiService from '../../../services/api.service';
+import {buyPointsPack, buyClothingItem, PointsSKU} from '../../../services/iap.service';
 import {ClothingItem, ClothingType, Rarity} from '../../../types/avatar2d';
 import {ALL_CLOTHING_ITEMS} from '../../../data/clothingItems';
 import AssetImage from '../../../components/AssetImage';
@@ -58,7 +59,7 @@ interface PointPack {
 
 const POINT_PACKS: PointPack[] = [
   {
-    id: 'starter',
+    id: 'points_starter',
     points: 500,
     price: 0.99,
     icon: 'diamond',
@@ -66,7 +67,7 @@ const POINT_PACKS: PointPack[] = [
     glowColor: '#667eea',
   },
   {
-    id: 'value',
+    id: 'points_value',
     points: 1500,
     price: 2.99,
     bonus: 300,
@@ -76,7 +77,7 @@ const POINT_PACKS: PointPack[] = [
     glowColor: '#f093fb',
   },
   {
-    id: 'premium',
+    id: 'points_premium',
     points: 3500,
     price: 4.99,
     bonus: 1000,
@@ -85,7 +86,7 @@ const POINT_PACKS: PointPack[] = [
     glowColor: '#fa709a',
   },
   {
-    id: 'mega',
+    id: 'points_mega',
     points: 10000,
     price: 9.99,
     bonus: 5000,
@@ -163,8 +164,13 @@ const PointsShopScreen = ({navigation, route}: any) => {
           require('@react-native-async-storage/async-storage').default;
         const newOwned = new Set([...ownedItems, item.id]);
         await AsyncStorage.setItem('ownedClothing', JSON.stringify([...newOwned]));
+        // Auto-equip free items too.
+        const eqStr = await AsyncStorage.getItem('@bisetka_equipped_clothing');
+        const eq = eqStr ? JSON.parse(eqStr) : {};
+        eq[item.type] = item.id;
+        await AsyncStorage.setItem('@bisetka_equipped_clothing', JSON.stringify(eq));
         setOwnedItems(newOwned);
-        BisetkaAlert({title: 'Claimed!', message: `${item.name} added to your wardrobe`, type: 'success'});
+        BisetkaAlert({title: 'Claimed!', message: `${item.name} added & equipped`, type: 'success'});
       } catch {
         BisetkaAlert({title: 'Error', message: 'Failed to claim item', type: 'error'});
       } finally {
@@ -174,20 +180,42 @@ const PointsShopScreen = ({navigation, route}: any) => {
     }
     BisetkaAlert({
       title: 'Purchase Item',
-      message: `Buy ${item.name} for $${(item.price / 100).toFixed(2)}?\n\n(Payment integration coming soon!)`,
+      message: `Buy ${item.name} for $${(item.price / 100).toFixed(2)}?`,
       type: 'confirm',
       confirmText: 'Purchase',
       onConfirm: async () => {
         try {
           setPurchasing(item.id);
+          const result = await buyClothingItem({
+            clothingId: item.id,
+            clothingType: item.type,
+            priceCents: item.price,
+          });
+          if (!result.success) {
+            throw new Error(result.error || 'Purchase failed');
+          }
           const AsyncStorage =
             require('@react-native-async-storage/async-storage').default;
           const newOwned = new Set([...ownedItems, item.id]);
           await AsyncStorage.setItem('ownedClothing', JSON.stringify([...newOwned]));
+          const eqStr = await AsyncStorage.getItem('@bisetka_equipped_clothing');
+          const eq = eqStr ? JSON.parse(eqStr) : {};
+          eq[item.type] = item.id;
+          await AsyncStorage.setItem('@bisetka_equipped_clothing', JSON.stringify(eq));
           setOwnedItems(newOwned);
-          BisetkaAlert({title: 'Success!', message: `${item.name} purchased!`, type: 'success'});
-        } catch {
-          BisetkaAlert({title: 'Purchase Failed', message: 'Failed to purchase', type: 'error'});
+          BisetkaAlert({
+            title: result.alreadyApplied ? 'Restored' : 'Success!',
+            message: `${item.name} is now equipped on your avatar!`,
+            type: 'success',
+          });
+        } catch (err: any) {
+          if (!err?.cancelled) {
+            BisetkaAlert({
+              title: 'Purchase Failed',
+              message: err?.message || 'Failed to purchase',
+              type: 'error',
+            });
+          }
         } finally {
           setPurchasing(null);
         }
@@ -195,9 +223,10 @@ const PointsShopScreen = ({navigation, route}: any) => {
     });
   };
 
-  const filteredClothingItems = clothingItems.filter(
-    item => selectedCategory === 'all' || item.type === selectedCategory,
-  );
+  const filteredClothingItems = clothingItems
+    .filter(item => selectedCategory === 'all' || item.type === selectedCategory)
+    // Cheapest first (free items appear at the top), name as stable tie-break.
+    .sort((a, b) => (a.price - b.price) || a.name.localeCompare(b.name));
 
   const syncUserBalance = (pointsAdded: number, newBalance: number) => {
     setUser(currentUser => {
@@ -240,7 +269,12 @@ const PointsShopScreen = ({navigation, route}: any) => {
     setLoading(pack.id);
 
     try {
-      const purchaseResult = await apiService.purchasePoints(pack.id);
+      // Real in-app purchase via App Store / Play Billing. The backend
+      // validates the receipt before crediting the user's balance.
+      const purchaseResult = await buyPointsPack(pack.id as PointsSKU);
+      if (!purchaseResult.success) {
+        throw new Error(purchaseResult.error || 'Receipt verification failed');
+      }
       syncUserBalance(purchaseResult.pointsAdded, purchaseResult.newBalance);
       setHasPurchased(true);
       setIsSyncingProfile(true);
@@ -248,14 +282,16 @@ const PointsShopScreen = ({navigation, route}: any) => {
       await refreshUser();
 
       BisetkaAlert.success(
-        '🎉 Jackpot!',
-        `You won ${purchaseResult.basePoints.toLocaleString()}${purchaseResult.bonusPoints ? ` + ${purchaseResult.bonusPoints.toLocaleString()} BONUS` : ''} points!\n\n💰 New balance: ${purchaseResult.newBalance.toLocaleString()}`
+        purchaseResult.alreadyApplied ? '✅ Restored' : '🎉 Jackpot!',
+        `You won ${(purchaseResult.basePoints || 0).toLocaleString()}${purchaseResult.bonusPoints ? ` + ${purchaseResult.bonusPoints.toLocaleString()} BONUS` : ''} points!\n\n💰 New balance: ${purchaseResult.newBalance.toLocaleString()}`,
       );
     } catch (error: any) {
-      BisetkaAlert.error(
-        'Purchase Failed',
-        error?.message || 'Unable to complete your points purchase.'
-      );
+      if (!error?.cancelled) {
+        BisetkaAlert.error(
+          'Purchase Failed',
+          error?.message || 'Unable to complete your points purchase.',
+        );
+      }
     } finally {
       setLoading(null);
       setIsSyncingProfile(false);

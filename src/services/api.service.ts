@@ -604,6 +604,52 @@ class ApiService {
     );
   }
 
+  /**
+   * Verify an Apple/Google receipt for a points-pack IAP and credit
+   * the user's balance server-side. Idempotent: replaying the same
+   * receipt returns alreadyApplied=true.
+   */
+  async verifyPointsPurchase(body: {
+    productId: string;
+    platform: 'ios' | 'android';
+    appleReceipt?: string;
+    googlePurchaseToken?: string;
+  }): Promise<PointsPurchaseResponse & { alreadyApplied?: boolean }> {
+    return this.request<PointsPurchaseResponse & { alreadyApplied?: boolean }>(
+      '/iap/verify-points',
+      { method: 'POST', body: JSON.stringify(body) },
+      true,
+    );
+  }
+
+  /**
+   * Verify an Apple/Google receipt for a clothing-tier IAP and grant + auto-equip
+   * the chosen clothing item.
+   */
+  async verifyClothingPurchase(body: {
+    productId: string;
+    clothingId: string;
+    clothingType: string;
+    clothingPriceCents: number;
+    platform: 'ios' | 'android';
+    appleReceipt?: string;
+    googlePurchaseToken?: string;
+  }): Promise<{
+    success: boolean;
+    productId: string;
+    clothingId: string;
+    clothingType: string | null;
+    equipped: boolean;
+    alreadyApplied?: boolean;
+    error?: string;
+  }> {
+    return this.request(
+      '/iap/verify-clothing',
+      { method: 'POST', body: JSON.stringify(body) },
+      true,
+    );
+  }
+
   // ========== GAME ENDPOINTS ==========
 
   /**
