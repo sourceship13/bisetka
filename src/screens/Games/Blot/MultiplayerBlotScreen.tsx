@@ -21,6 +21,7 @@ import SyncedYouTubePlayer from '../../../components/SyncedYouTubePlayer';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { socketService } from '../../../services/SocketService';
 import { blotAIService, LocalGameState, Card } from '../../../services/blotAI.service';
+import { sortHandForDisplay } from '../../../game/blotLogic';
 import { gameResultService } from '../../../services/gameResult.service';
 import { aiMoveLogService } from '../../../services/aiMoveLog.service';
 import tokenService from '../../../services/token.service';
@@ -1473,7 +1474,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
         <View style={[styles.handContainer, showRiffleDealAnimation && { opacity: 0 }]}>
           <Text style={styles.handLabel}>Your Hand:</Text>
           <CardHandFan
-            cards={localGameState.playerHand as any}
+            cards={sortHandForDisplay(localGameState.playerHand as any) as any}
             maxWidth={width - 32}
             renderCard={(card, index) => renderCard(card as any, index)}
           />
@@ -1723,7 +1724,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
                 <>
                   <Text style={styles.handLabel}>Your Hand:</Text>
                   <CardHandFan
-                    cards={playerHand as any}
+                    cards={sortHandForDisplay(playerHand as any) as any}
                     maxWidth={width - 32}
                     renderCard={(card, index) => renderCard(card as any, index)}
                   />

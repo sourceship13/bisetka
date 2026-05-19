@@ -49,6 +49,7 @@ import {
   chooseAICard,
   chooseAIBid,
   findSequences,
+  sortHandForDisplay,
 } from '../../../game/baazarBlotLogic';
 import SyncedYouTubePlayer from '../../../components/SyncedYouTubePlayer';
 import InGameChat from '../../../components/InGameChat';
@@ -883,7 +884,7 @@ const BaazarBlotScreen = ({ navigation }: any) => {
         <View style={[styles.handContainer, { paddingTop: 12 }]}>
           <Text style={styles.handLabel}>Your Hand:</Text>
           <CardHandFan
-            cards={gameState.players[0].hand.filter(c => c && c.suit && c.rank)}
+            cards={sortHandForDisplay(gameState.players[0].hand.filter(c => c && c.suit && c.rank))}
             renderCard={(card, idx) => (
               <View key={`bid-${card.suit}-${card.rank}-${idx}`} style={styles.cardWrapper}>
                 <BlotCard suit={card.suit as any} rank={card.rank as any} faceDown={false} size={72} />
@@ -986,7 +987,7 @@ const BaazarBlotScreen = ({ navigation }: any) => {
         <View style={styles.handContainer}>
           <Text style={styles.handLabel}>Your Hand:</Text>
           <CardHandFan
-            cards={myPlayer.hand.filter(c => c && c.suit && c.rank)}
+            cards={sortHandForDisplay(myPlayer.hand.filter(c => c && c.suit && c.rank))}
             renderCard={(card, idx) => {
               const legal = canPlayCard(
                 card,

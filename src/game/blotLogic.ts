@@ -78,6 +78,30 @@ export const getCardStrength = (card: CardType, trump: Suit | null): number => {
 // Legacy alias
 export const getCardRank = getCardStrength;
 
+// ---------------------------------------------------------------------------
+// Hand display sort
+// ---------------------------------------------------------------------------
+// Order cards in a player's hand from smallest → greatest within each suit so
+// the hand reads naturally left-to-right. Suits are grouped together. We use
+// the standard non-trump rank order (9 < 10 < J < Q < K < A) because the
+// trump suit is a per-round concept and players want a stable visual order.
+const DISPLAY_SUIT_ORDER: Suit[] = ['clubs', 'diamonds', 'spades', 'hearts'];
+const DISPLAY_RANK_ORDER: Rank[] = ['9', '10', 'J', 'Q', 'K', 'A'];
+
+export const sortHandForDisplay = <T extends { suit: Suit; rank: Rank }>(
+  hand: readonly T[],
+): T[] => {
+  return [...hand].sort((a, b) => {
+    const suitDiff =
+      DISPLAY_SUIT_ORDER.indexOf(a.suit) - DISPLAY_SUIT_ORDER.indexOf(b.suit);
+    if (suitDiff !== 0) return suitDiff;
+    return (
+      DISPLAY_RANK_ORDER.indexOf(a.rank as Rank) -
+      DISPLAY_RANK_ORDER.indexOf(b.rank as Rank)
+    );
+  });
+};
+
 // Create and shuffle the 24-card Armenian Blot deck (9–Ace only)
 export const createDeck = (): CardType[] => {
   const suits: Suit[] = ['hearts', 'diamonds', 'clubs', 'spades'];
