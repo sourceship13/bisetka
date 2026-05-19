@@ -104,6 +104,161 @@ function deserializeBoard(raw: any[][]): (Piece | null)[][] {
   return raw.map(row=>row.map(cell=>cell?{color:cell.color as PieceColor,type:cell.type as PieceType}:null));
 }
 
+// ─── AI (minimax + alpha-beta) ───────────────────────────────────────────────
+//
+// We use the same move generator the UI uses (`getPossibleMoves`) so the AI
+// can only play moves the rules allow on this screen (single steps or single
+// jumps in any direction; kings move both ways). Although the screen does not
+// enforce mandatory captures, the search heavily rewards them via material
+// gain. Depth 6 with alpha-beta + move ordering is comfortably stronger than
+// most casual human players.
+
+type AIMove = { from: Position; to: Position; isJump: boolean };
+
+function getAllMovesForColor(board: (Piece|null)[][], color: PieceColor): AIMove[] {
+  const moves: AIMove[] = [];
+  for (let r = 0; r < 8; r++) {
+    for (let c = 0; c < 8; c++) {
+      const p = board[r][c];
+      if (!p || p.color !== color) continue;
+      const from = { row: r, col: c };
+      for (const to of getPossibleMoves(board, from)) {
+        moves.push({ from, to, isJump: Math.abs(to.row - r) === 2 });
+      }
+    }
+  }
+  return moves;
+}
+
+// Static evaluation from RED's perspective (CPU is RED, player is BLACK).
+// Positive → good for RED.
+function evaluateBoard(board: (Piece|null)[][]): number {
+  const PAWN = 100;
+  const KING = 280;
+  // Positional bonus for advancing pawns toward promotion.
+  // RED promotes at row 0, BLACK promotes at row 7.
+  const ROW_BONUS_RED   = [0, 4, 8, 12, 18, 26, 34, 0];
+  const ROW_BONUS_BLACK = [0, 34, 26, 18, 12, 8, 4, 0];
+  // Center columns are worth a small bonus (control & mobility).
+  const COL_BONUS = [0, 2, 4, 6, 6, 4, 2, 0];
+  // Edge files are safer (can't be jumped from outside the board).
+  const EDGE_SAFETY = 6;
+  // Back-rank pawns block opponent promotion.
+  const BACK_RANK_BONUS = 10;
+
+  let score = 0;
+  let redCount = 0, blackCount = 0;
+
+  for (let r = 0; r < 8; r++) {
+    for (let c = 0; c < 8; c++) {
+      const p = board[r][c];
+      if (!p) continue;
+      const isKing = p.type === 'king';
+      const sign = p.color === 'red' ? 1 : -1;
+
+      let v = isKing ? KING : PAWN;
+      if (!isKing) {
+        v += p.color === 'red' ? ROW_BONUS_RED[r] : ROW_BONUS_BLACK[r];
+        // Defend back rank to deny opponent kings.
+        if (p.color === 'red' && r === 7) v += BACK_RANK_BONUS;
+        if (p.color === 'black' && r === 0) v += BACK_RANK_BONUS;
+      }
+      v += COL_BONUS[c];
+      if (c === 0 || c === 7) v += EDGE_SAFETY;
+
+      score += sign * v;
+      if (p.color === 'red') redCount++; else blackCount++;
+    }
+  }
+
+  // Endgame: when ahead in material, push toward the opponent (king activity).
+  if (redCount + blackCount <= 8) {
+    let redKingActivity = 0, blackKingActivity = 0;
+    for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) {
+      const p = board[r][c];
+      if (!p || p.type !== 'king') continue;
+      // Bonus for being centralized in endgame
+      const centralization = 6 - (Math.abs(3.5 - r) + Math.abs(3.5 - c));
+      if (p.color === 'red') redKingActivity += centralization;
+      else blackKingActivity += centralization;
+    }
+    score += (redKingActivity - blackKingActivity) * 3;
+  }
+
+  return score;
+}
+
+const WIN_SCORE = 1_000_000;
+
+function minimax(
+  board: (Piece|null)[][],
+  depth: number,
+  alpha: number,
+  beta: number,
+  toMove: PieceColor,
+): number {
+  const moves = getAllMovesForColor(board, toMove);
+  // Terminal: no moves = current side loses.
+  if (moves.length === 0) {
+    return toMove === 'red' ? -WIN_SCORE - depth : WIN_SCORE + depth;
+  }
+  if (depth === 0) return evaluateBoard(board);
+
+  // Move ordering: captures first for better alpha-beta pruning.
+  moves.sort((a, b) => Number(b.isJump) - Number(a.isJump));
+
+  const maximizing = toMove === 'red';
+  const next: PieceColor = toMove === 'red' ? 'black' : 'red';
+
+  if (maximizing) {
+    let best = -Infinity;
+    for (const m of moves) {
+      const nb = applyMove(board, m.from, m.to);
+      const v = minimax(nb, depth - 1, alpha, beta, next);
+      if (v > best) best = v;
+      if (best > alpha) alpha = best;
+      if (alpha >= beta) break;
+    }
+    return best;
+  } else {
+    let best = Infinity;
+    for (const m of moves) {
+      const nb = applyMove(board, m.from, m.to);
+      const v = minimax(nb, depth - 1, alpha, beta, next);
+      if (v < best) best = v;
+      if (best < beta) beta = best;
+      if (alpha >= beta) break;
+    }
+    return best;
+  }
+}
+
+function chooseBestMoveForRed(board: (Piece|null)[][], depth: number): AIMove | null {
+  const moves = getAllMovesForColor(board, 'red');
+  if (moves.length === 0) return null;
+  // Captures first for pruning effectiveness.
+  moves.sort((a, b) => Number(b.isJump) - Number(a.isJump));
+
+  let bestScore = -Infinity;
+  let best: AIMove[] = [];
+  let alpha = -Infinity;
+  const beta = Infinity;
+
+  for (const m of moves) {
+    const nb = applyMove(board, m.from, m.to);
+    const score = minimax(nb, depth - 1, alpha, beta, 'black');
+    if (score > bestScore) {
+      bestScore = score;
+      best = [m];
+    } else if (score === bestScore) {
+      best.push(m);
+    }
+    if (bestScore > alpha) alpha = bestScore;
+  }
+  // Randomise among equally-good moves so the AI isn't deterministic.
+  return best[Math.floor(Math.random() * best.length)];
+}
+
 // ─── component ───────────────────────────────────────────────────────────────
 
 const CheckersScreen = ({ navigation, route }: any) => {
@@ -483,14 +638,11 @@ const CheckersScreen = ({ navigation, route }: any) => {
     if (isMultiplayer || mode !== 'ai') return;
     if (gameState.currentPlayer !== 'red' || gameState.isGameOver) return;
     const timer = setTimeout(() => {
-      const moves: {from:Position;to:Position}[] = [];
-      for (let r=0;r<8;r++) for (let c=0;c<8;c++) {
-        const p = gameState.board[r][c];
-        if (p && p.color==='red')
-          getPossibleMoves(gameState.board,{row:r,col:c}).forEach(m=>moves.push({from:{row:r,col:c},to:m}));
-      }
-      if (!moves.length) return;
-      const mv = moves[Math.floor(Math.random()*moves.length)];
+      // Stronger AI: minimax with alpha-beta pruning. Depth 6 is comfortably
+      // ahead of casual play while still returning in well under a second
+      // even on mid-range phones.
+      const mv = chooseBestMoveForRed(gameState.board, 6);
+      if (!mv) return;
       setGameState(prev => {
         const nb = applyMove(prev.board, mv.from, mv.to);
         playPieceMoveSound();
