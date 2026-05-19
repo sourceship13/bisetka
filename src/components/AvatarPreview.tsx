@@ -116,10 +116,10 @@ const BUILD_OVERRIDES: Record<string, BuildOverrides> = {
   'female-athletic': {
     top:    { left: 0.39, width: 0.19, top: 0.17, height: 0.32 },
     jacket: { left: 0.245, width: 0.51, top: 0.225, height: 0.30 },
-    bottom: { left: 0.305, width: 0.39, top: 0.48,  height: 0.40 },
-    shorts: { left: 0.30,  width: 0.40, top: 0.495, height: 0.22 },
-    shoes:  { left: 0.28,  width: 0.44, top: 0.88,  height: 0.10 },
-    hair:   { left: 0.205, width: 0.59, top: 0.0,   height: 0.13 },
+    bottom: { left: 0.071, width: 0.85, top: 0.456,  height: 0.48 },
+    shorts: { left: 0.30,  width: 0.45, top: 0.495, height: 0.22 },
+    shoes:  { left: 0.36,  width: 0.25, top: 0.919,  height: 0.10 },
+    hair:   { left: 0.09, width: 0.8, top: -0.03,   height: 0.23 },
     jewelry:{ left: 0.34,  width: 0.32, top: 0.20,  height: 0.10 },
   },
   'female-slim': {
