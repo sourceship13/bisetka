@@ -40,6 +40,7 @@ import {
   detectBeloteTeam,
   chooseAICard,
   dealCards,
+  sortHandForDisplay,
 } from '../../../game/blotLogic';
 import SyncedYouTubePlayer from '../../../components/SyncedYouTubePlayer';
 import InGameChat from '../../../components/InGameChat';

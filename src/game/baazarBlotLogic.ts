@@ -86,6 +86,24 @@ export interface BaazarGameState {
 const RANKS: Rank[] = ['7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
 const SUITS: Suit[] = ['hearts', 'diamonds', 'clubs', 'spades'];
 
+// Display order for a player's hand: group by suit, ascending rank within suit
+const DISPLAY_SUIT_ORDER: Suit[] = ['clubs', 'diamonds', 'spades', 'hearts'];
+const DISPLAY_RANK_ORDER: Rank[] = ['7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
+
+export const sortHandForDisplay = <T extends { suit: Suit; rank: Rank }>(
+  hand: readonly T[],
+): T[] => {
+  return [...hand].sort((a, b) => {
+    const suitDiff =
+      DISPLAY_SUIT_ORDER.indexOf(a.suit) - DISPLAY_SUIT_ORDER.indexOf(b.suit);
+    if (suitDiff !== 0) return suitDiff;
+    return (
+      DISPLAY_RANK_ORDER.indexOf(a.rank as Rank) -
+      DISPLAY_RANK_ORDER.indexOf(b.rank as Rank)
+    );
+  });
+};
+
 export const createBaazarDeck = (): CardType[] => {
   const deck: CardType[] = [];
   for (const suit of SUITS) {
