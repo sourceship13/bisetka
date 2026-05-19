@@ -84,7 +84,7 @@ interface SpinResult {
 }
 
 const SlotsScreen = ({ navigation }: any) => {
-  const { user, refreshUser } = useAuth();
+  const { user, setUser, refreshUser } = useAuth();
   const { refreshOnGameEnd } = useGameEndRefresh(undefined, 'slots');
   // Use user's actual balance - no entry fee, real money gameplay
   const [balance, setBalance] = useState(Math.floor((user as any)?.balance || 0));
@@ -121,6 +121,22 @@ const SlotsScreen = ({ navigation }: any) => {
       setBalance(Math.floor(user.balance));
     }
   }, [user?.balance]);
+
+  // Mirror local balance into the auth user so global UI (e.g. GameToolbar
+  // points pill) updates immediately after each spin, without waiting for the
+  // backend refresh round-trip.
+  const syncUserBalance = (newBalance: number) => {
+    setUser(curr => {
+      if (!curr) return curr;
+      return {
+        ...curr,
+        balance: newBalance,
+        playerStats: curr.playerStats
+          ? { ...curr.playerStats, available_points: newBalance }
+          : curr.playerStats,
+      };
+    });
+  };
 
   // Neon flickering effect
   useEffect(() => {
@@ -161,7 +177,11 @@ const SlotsScreen = ({ navigation }: any) => {
 
     setSpinning(true);
     setWinnings(null);
-    setBalance((prev: number) => prev - betAmount);
+    setBalance((prev: number) => {
+      const next = prev - betAmount;
+      syncUserBalance(next);
+      return next;
+    });
 
     // Reset each reel to the top of its strip
     REEL_ANIMS.forEach(anim => anim.setValue(0));
@@ -202,7 +222,11 @@ const SlotsScreen = ({ navigation }: any) => {
       
       // Update local balance
       if (data.totalPayout > 0) {
-        setBalance((prev: number) => prev + data.totalPayout);
+        setBalance((prev: number) => {
+          const next = prev + data.totalPayout;
+          syncUserBalance(next);
+          return next;
+        });
       }
       
       // Sync user balance from backend
@@ -210,7 +234,11 @@ const SlotsScreen = ({ navigation }: any) => {
       refreshOnGameEnd().catch(console.error);
     } catch (error) {
       console.error('Spin failed:', error);
-      setBalance((prev: number) => prev + betAmount);
+      setBalance((prev: number) => {
+        const next = prev + betAmount;
+        syncUserBalance(next);
+        return next;
+      });
     } finally {
       setSpinning(false);
     }
