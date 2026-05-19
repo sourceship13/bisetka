@@ -39,6 +39,7 @@ import {
   calculateRunningScore,
   detectBeloteTeam,
   chooseAICard,
+  chooseAIBid,
   dealCards,
   sortHandForDisplay,
 } from '../../../game/blotLogic';
@@ -303,20 +304,12 @@ const BlotScreen = ({ navigation }: any) => {
     if (showRiffleDealAnimation || isRoundTransitioningRef.current) return;
     if (!gameState || gameState.phase !== 'bidding' || gameState.currentPlayer === 0) return;
     const timer = setTimeout(() => {
-      // AI strategy: take if they hold J or 9 of proposed suit, else pass in round 1
-      //              in round 2 AI always passes (could be improved)
       const aiPlayer = gameState.players[gameState.currentPlayer];
-      const proposed = gameState.proposalCard?.suit;
-      if (gameState.bidRound === 1 && proposed) {
-        const hasStrong = aiPlayer.hand.some(
-          c =>
-            c.suit === proposed &&
-            (c.rank === 'J' || c.rank === '9' || c.rank === 'A'),
-        );
-        if (hasStrong) {
-          acceptTrump(proposed);
-          return;
-        }
+      const proposed = gameState.proposalCard?.suit ?? null;
+      const decision = chooseAIBid(aiPlayer.hand, proposed, gameState.bidRound);
+      if (decision.action === 'accept' && decision.suit) {
+        acceptTrump(decision.suit);
+        return;
       }
       passBid();
     }, 600);
@@ -345,6 +338,8 @@ const BlotScreen = ({ navigation }: any) => {
         gameState.currentTrick,
         gameState.trump,
         gameState.players,
+        gameState,
+        gameState.takerTeam,
       );
       playCard(card);
     }, 700);
