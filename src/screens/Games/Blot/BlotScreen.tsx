@@ -892,7 +892,7 @@ const BlotScreen = ({ navigation }: any) => {
               <View style={[styles.handContainer, showRiffleDealAnimation && { opacity: 0 }]}>
                   <Text style={styles.handLabel}>Your Hand:</Text>
                   <CardHandFan
-                    cards={gameState.players[0].hand}
+                    cards={sortHandForDisplay(gameState.players[0].hand)}
                     renderCard={(card, index) => {
                       const isMyTurn = gameState.currentPlayer === 0;
                       const playable =
