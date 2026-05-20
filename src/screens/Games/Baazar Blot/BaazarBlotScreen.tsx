@@ -22,6 +22,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../../../libs/hooks/useAuth';
 import { useAchievements } from '../../../contexts/AchievementContext';
 import { resolveAvatar } from '../../../utils/avatars';
+import { getCardImage, getCardBackImage } from '../../../data/cardsNew';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AraratBackground from '../../../components/AraratBackground';
 import AR3DOverlay, {type AR3DOverlayHandle, type ARCard} from '../../../components/AR3DOverlay';
@@ -418,6 +419,8 @@ const BaazarBlotScreen = ({ navigation }: any) => {
           faceDown: false,
           backgroundImageUri: customTheme?.backgroundImage ?? undefined,
           cardBackImageUri:   customTheme?.cardBackImage   ?? undefined,
+          cardFaceImageUri:     Image.resolveAssetSource(getCardImage({ rank: cp.card.rank, suit: cp.card.suit }))?.uri,
+          cardBackFaceImageUri: Image.resolveAssetSource(getCardBackImage('red'))?.uri,
           font:               customTheme?.font             ?? undefined,
         },
       }));
@@ -942,7 +945,7 @@ const BaazarBlotScreen = ({ navigation }: any) => {
                         .filter(cardPlay => cardPlay && cardPlay.card && cardPlay.card.suit)
                         .map((cardPlay, idx) => (
                         <View key={idx} style={[styles.trickSlot, positionStyle[cardPlay.playerId] ?? styles.trickSlotTop]}>
-                          <BlotCard suit={(cardPlay.card as any).suit} rank={(cardPlay.card as any).rank} faceDown={false} size={44} />
+                          <BlotCard suit={(cardPlay.card as any).suit} rank={(cardPlay.card as any).rank} faceDown={false} size={62} />
                         </View>
                       ))}
                     </View>
@@ -973,7 +976,7 @@ const BaazarBlotScreen = ({ navigation }: any) => {
                         .filter(cardPlay => cardPlay && cardPlay.card && cardPlay.card.suit)
                         .map((cardPlay, idx) => (
                         <View key={idx} style={[styles.trickSlot, positionStyle[cardPlay.playerId] ?? styles.trickSlotTop]}>
-                          <BlotCard suit={(cardPlay.card as any).suit} rank={(cardPlay.card as any).rank} faceDown={false} size={44} />
+                          <BlotCard suit={(cardPlay.card as any).suit} rank={(cardPlay.card as any).rank} faceDown={false} size={62} />
                         </View>
                       ))}
                     </View>

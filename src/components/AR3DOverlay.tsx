@@ -84,6 +84,10 @@ export interface ARCard {
     backgroundImageUri?: string;
     /** URI to custom card back image (from CardTheme.cardBackImage) */
     cardBackImageUri?: string;
+    /** URI to full pre-rendered card face image (cards_new pack). Overrides procedural drawing. */
+    cardFaceImageUri?: string;
+    /** URI to full pre-rendered card back image (cards_new pack). Overrides procedural drawing. */
+    cardBackFaceImageUri?: string;
     /** Font family for rank/suit text (from CardTheme.font) */
     font?: string;
   };
@@ -271,7 +275,59 @@ const GLB_ASSET_MAP: Record<string, any> = {
   'glb/chess/bishop.glb':                      require('../../assets/glb/chess/bishop.glb'),
   'glb/chess/queen.glb':                       require('../../assets/glb/chess/queen.glb'),
   'glb/chess/king.glb':                        require('../../assets/glb/chess/king.glb'),
-  'glb/cards/card-template.glb':                require('../../assets/glb/cards/card-template.glb'),
+  // High-quality per-card GLBs (cards_new pack — 52 textured meshes)
+  'glb/cards_new/Spades_A.glb':   require('../../assets/cards_new/Spades_A.glb'),
+  'glb/cards_new/Spades_2.glb':   require('../../assets/cards_new/Spades_2.glb'),
+  'glb/cards_new/Spades_3.glb':   require('../../assets/cards_new/Spades_3.glb'),
+  'glb/cards_new/Spades_4.glb':   require('../../assets/cards_new/Spades_4.glb'),
+  'glb/cards_new/Spades_5.glb':   require('../../assets/cards_new/Spades_5.glb'),
+  'glb/cards_new/Spades_6.glb':   require('../../assets/cards_new/Spades_6.glb'),
+  'glb/cards_new/Spades_7.glb':   require('../../assets/cards_new/Spades_7.glb'),
+  'glb/cards_new/Spades_8.glb':   require('../../assets/cards_new/Spades_8.glb'),
+  'glb/cards_new/Spades_9.glb':   require('../../assets/cards_new/Spades_9.glb'),
+  'glb/cards_new/Spades_10.glb':  require('../../assets/cards_new/Spades_10.glb'),
+  'glb/cards_new/Spades_J.glb':   require('../../assets/cards_new/Spades_J.glb'),
+  'glb/cards_new/Spades_Q.glb':   require('../../assets/cards_new/Spades_Q.glb'),
+  'glb/cards_new/Spades_K.glb':   require('../../assets/cards_new/Spades_K.glb'),
+  'glb/cards_new/Hearts_A.glb':   require('../../assets/cards_new/Hearts_A.glb'),
+  'glb/cards_new/Hearts_2.glb':   require('../../assets/cards_new/Hearts_2.glb'),
+  'glb/cards_new/Hearts_3.glb':   require('../../assets/cards_new/Hearts_3.glb'),
+  'glb/cards_new/Hearts_4.glb':   require('../../assets/cards_new/Hearts_4.glb'),
+  'glb/cards_new/Hearts_5.glb':   require('../../assets/cards_new/Hearts_5.glb'),
+  'glb/cards_new/Hearts_6.glb':   require('../../assets/cards_new/Hearts_6.glb'),
+  'glb/cards_new/Hearts_7.glb':   require('../../assets/cards_new/Hearts_7.glb'),
+  'glb/cards_new/Hearts_8.glb':   require('../../assets/cards_new/Hearts_8.glb'),
+  'glb/cards_new/Hearts_9.glb':   require('../../assets/cards_new/Hearts_9.glb'),
+  'glb/cards_new/Hearts_10.glb':  require('../../assets/cards_new/Hearts_10.glb'),
+  'glb/cards_new/Hearts_J.glb':   require('../../assets/cards_new/Hearts_J.glb'),
+  'glb/cards_new/Hearts_Q.glb':   require('../../assets/cards_new/Hearts_Q.glb'),
+  'glb/cards_new/Hearts_K.glb':   require('../../assets/cards_new/Hearts_K.glb'),
+  'glb/cards_new/Diamonds_A.glb': require('../../assets/cards_new/Diamonds_A.glb'),
+  'glb/cards_new/Diamonds_2.glb': require('../../assets/cards_new/Diamonds_2.glb'),
+  'glb/cards_new/Diamonds_3.glb': require('../../assets/cards_new/Diamonds_3.glb'),
+  'glb/cards_new/Diamonds_4.glb': require('../../assets/cards_new/Diamonds_4.glb'),
+  'glb/cards_new/Diamonds_5.glb': require('../../assets/cards_new/Diamonds_5.glb'),
+  'glb/cards_new/Diamonds_6.glb': require('../../assets/cards_new/Diamonds_6.glb'),
+  'glb/cards_new/Diamonds_7.glb': require('../../assets/cards_new/Diamonds_7.glb'),
+  'glb/cards_new/Diamonds_8.glb': require('../../assets/cards_new/Diamonds_8.glb'),
+  'glb/cards_new/Diamonds_9.glb': require('../../assets/cards_new/Diamonds_9.glb'),
+  'glb/cards_new/Diamonds_10.glb':require('../../assets/cards_new/Diamonds_10.glb'),
+  'glb/cards_new/Diamonds_J.glb': require('../../assets/cards_new/Diamonds_J.glb'),
+  'glb/cards_new/Diamonds_Q.glb': require('../../assets/cards_new/Diamonds_Q.glb'),
+  'glb/cards_new/Diamonds_K.glb': require('../../assets/cards_new/Diamonds_K.glb'),
+  'glb/cards_new/Clubs_A.glb':    require('../../assets/cards_new/Clubs_A.glb'),
+  'glb/cards_new/Clubs_2.glb':    require('../../assets/cards_new/Clubs_2.glb'),
+  'glb/cards_new/Clubs_3.glb':    require('../../assets/cards_new/Clubs_3.glb'),
+  'glb/cards_new/Clubs_4.glb':    require('../../assets/cards_new/Clubs_4.glb'),
+  'glb/cards_new/Clubs_5.glb':    require('../../assets/cards_new/Clubs_5.glb'),
+  'glb/cards_new/Clubs_6.glb':    require('../../assets/cards_new/Clubs_6.glb'),
+  'glb/cards_new/Clubs_7.glb':    require('../../assets/cards_new/Clubs_7.glb'),
+  'glb/cards_new/Clubs_8.glb':    require('../../assets/cards_new/Clubs_8.glb'),
+  'glb/cards_new/Clubs_9.glb':    require('../../assets/cards_new/Clubs_9.glb'),
+  'glb/cards_new/Clubs_10.glb':   require('../../assets/cards_new/Clubs_10.glb'),
+  'glb/cards_new/Clubs_J.glb':    require('../../assets/cards_new/Clubs_J.glb'),
+  'glb/cards_new/Clubs_Q.glb':    require('../../assets/cards_new/Clubs_Q.glb'),
+  'glb/cards_new/Clubs_K.glb':    require('../../assets/cards_new/Clubs_K.glb'),
   'glb/checkers/nyu_red_checker.glb':           require('../../assets/glb/checkers/nyu_red_checker.glb'),
   'glb/checkers/nyu_black_checker.glb':         require('../../assets/glb/checkers/nyu_black_checker.glb'),
   'glb/checkers/Bisetka_Checkers.glb':          require('../../assets/glb/checkers/Bisetka_Checkers.glb'),
@@ -2223,8 +2279,8 @@ boardGroup.add(cardGroup);
 // Bigger than a real card so they read clearly on the 3D table from phone distance
 // ─── Card dimensions ──────────────────────────────────────────────────────────
 // ─── Card dimensions ──────────────────────────────────────────────────────────
-const CARD_W = 0.16;
-const CARD_H = 0.22;
+const CARD_W = 0.192;
+const CARD_H = 0.264;
 
 const SUIT_COLORS_3D = { hearts:'#cc0000', diamonds:'#cc0000', clubs:'#111111', spades:'#111111' };
 
@@ -2426,8 +2482,12 @@ function _paintCardBack(ctx, W, H) {
 
 // ── Texture builder ───────────────────────────────────────────────────────────
 function makeCardTexture(suit, rank, faceDown, opts) {
-  var imageUri = faceDown ? ((opts||{}).cardBackImageUri || CARD_BACK_URI || '') : ((opts||{}).backgroundImageUri||'');
-  var cacheKey = ['v3', faceDown ? '__back__' : suit+'-'+rank, (opts||{}).font||'', imageUri].join('|');
+  var o = opts || {};
+  // cards_new pack — when a high-res face/back image is supplied, draw the image
+  // alone (no procedural rank/suit overlay).
+  var fullFaceUri = faceDown ? (o.cardBackFaceImageUri || '') : (o.cardFaceImageUri || '');
+  var imageUri = faceDown ? (o.cardBackImageUri || CARD_BACK_URI || '') : (o.backgroundImageUri || '');
+  var cacheKey = ['v5', faceDown ? '__back__' : suit+'-'+rank, o.font||'', imageUri, fullFaceUri].join('|');
   if (_cardTextureCache.has(cacheKey)) return _cardTextureCache.get(cacheKey);
 
   var W = 1024, H = 1434;
@@ -2443,16 +2503,28 @@ function makeCardTexture(suit, rank, faceDown, opts) {
   tex.anisotropy = 4;
   _cardTextureCache.set(cacheKey, tex);
 
-  if (imageUri) {
+  // Prefer the full pre-rendered card art when available.
+  var primaryUri = fullFaceUri || imageUri;
+  if (primaryUri) {
     var img = new window.Image();
-    img.crossOrigin = 'anonymous';
+    // NOTE: do NOT set img.crossOrigin — Metro's asset server does not send
+    // CORS headers in dev, and crossOrigin='anonymous' would cause the load
+    // to fail. CanvasTexture upload still works for cross-origin images in
+    // the RN WebView WebGL context.
     img.onload = function() {
       ctx.clearRect(0,0,W,H);
-      ctx.drawImage(img,0,0,W,H);
-      if (!faceDown) _paintCardFace(ctx,W,H,suit,rank);
+      // Letterbox-fit (preserve aspect ratio) on a white background.
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0,0,W,H);
+      var iw = img.width, ih = img.height;
+      var scale = Math.min(W/iw, H/ih);
+      var dw = iw*scale, dh = ih*scale;
+      var dx = (W-dw)/2, dy = (H-dh)/2;
+      ctx.drawImage(img, dx, dy, dw, dh);
+      if (!fullFaceUri && !faceDown) _paintCardFace(ctx,W,H,suit,rank);
       tex.needsUpdate = true;
     };
-    img.src = imageUri;
+    img.src = primaryUri;
   }
   return tex;
 }
@@ -2496,15 +2568,6 @@ function makeCardMesh(suit, rank, faceDown, opts) {
   back.renderOrder = 998;
   group.add(back);
 
-  // Gold border ring — makes the card unmissable
-  var border = new THREE.Mesh(
-    new THREE.PlaneGeometry(CARD_W + 0.012, CARD_H + 0.012),
-    new THREE.MeshBasicMaterial({ color: 0xd4af37, depthTest: false })
-  );
-  border.position.z = 0.003;
-  border.renderOrder = 997;
-  group.add(border);
-
   group.renderOrder = 995;
   return group;
 }
@@ -2521,8 +2584,12 @@ function updateCards(cards) {
   cards.forEach(card => {
     const cd = card.cardData || {};
     const { suit='spades', rank='A', faceDown=false,
-            backgroundImageUri, cardBackImageUri, font } = cd;
-    var grp = makeCardMesh(suit, rank, faceDown, { font, backgroundImageUri, cardBackImageUri });
+            backgroundImageUri, cardBackImageUri,
+            cardFaceImageUri, cardBackFaceImageUri, font } = cd;
+    var grp = makeCardMesh(suit, rank, faceDown, {
+      font, backgroundImageUri, cardBackImageUri,
+      cardFaceImageUri, cardBackFaceImageUri,
+    });
     grp.userData.cardKey = card.key;
     cardGroup.add(grp);
     _cardMeshMap.set(card.key, grp);
