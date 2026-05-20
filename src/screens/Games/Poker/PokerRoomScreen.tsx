@@ -18,6 +18,7 @@ import type { CardTheme } from '../../../components/global/GameCustomizationModa
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import AraratBackground from '../../../components/AraratBackground';
 import AR3DOverlay, {type AR3DOverlayHandle, type ARCard} from '../../../components/AR3DOverlay';
+import { getCardImage, getCardBackImage } from '../../../data/cardsNew';
 
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {RootStackParamList} from '../../../navigation/AppNavigator';
@@ -247,6 +248,8 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
             faceDown: !isMe,
             backgroundImageUri: customTheme?.backgroundImage ?? undefined,
             cardBackImageUri:   customTheme?.cardBackImage   ?? undefined,
+            cardFaceImageUri:     Image.resolveAssetSource(getCardImage({ rank: card.rank, suit: card.suit }))?.uri,
+            cardBackFaceImageUri: Image.resolveAssetSource(getCardBackImage('red'))?.uri,
             font:               customTheme?.font             ?? undefined,
           },
         });

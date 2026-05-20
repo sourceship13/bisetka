@@ -23,6 +23,7 @@ import { socketService } from '../../../services/SocketService';
 import { blotAIService, LocalGameState, Card } from '../../../services/blotAI.service';
 import { sortHandForDisplay } from '../../../game/blotLogic';
 import { gameResultService } from '../../../services/gameResult.service';
+import { getCardImage, getCardBackImage } from '../../../data/cardsNew';
 import { aiMoveLogService } from '../../../services/aiMoveLog.service';
 import tokenService from '../../../services/token.service';
 import { v4 as uuidv4 } from 'uuid';
@@ -281,6 +282,8 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
               faceDown: false,
               backgroundImageUri: customTheme?.backgroundImage ?? undefined,
               cardBackImageUri:   customTheme?.cardBackImage   ?? undefined,
+              cardFaceImageUri:     Image.resolveAssetSource(getCardImage({ rank: card.rank, suit: card.suit }))?.uri,
+              cardBackFaceImageUri: Image.resolveAssetSource(getCardBackImage('red'))?.uri,
               font:               customTheme?.font             ?? undefined,
             },
           };
@@ -307,6 +310,8 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
               faceDown: false,
               backgroundImageUri: customTheme?.backgroundImage ?? undefined,
               cardBackImageUri:   customTheme?.cardBackImage   ?? undefined,
+              cardFaceImageUri:     Image.resolveAssetSource(getCardImage({ rank: cp.card.rank, suit: cp.card.suit }))?.uri,
+              cardBackFaceImageUri: Image.resolveAssetSource(getCardBackImage('red'))?.uri,
               font:               customTheme?.font             ?? undefined,
             },
           };
@@ -333,6 +338,8 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
               faceDown: false,
               backgroundImageUri: customTheme?.backgroundImage ?? undefined,
               cardBackImageUri:   customTheme?.cardBackImage   ?? undefined,
+              cardFaceImageUri:     Image.resolveAssetSource(getCardImage({ rank: cp.card.rank, suit: cp.card.suit }))?.uri,
+              cardBackFaceImageUri: Image.resolveAssetSource(getCardBackImage('red'))?.uri,
               font:               customTheme?.font             ?? undefined,
             },
           };

@@ -18,6 +18,7 @@ import ExpandableView from '../../../components/global/ExpandableView';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../../../libs/hooks/useAuth';
 import { resolveAvatar } from '../../../utils/avatars';
+import { getCardImage, getCardBackImage } from '../../../data/cardsNew';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AraratBackground from '../../../components/AraratBackground';
@@ -269,7 +270,7 @@ const BlotScreen = ({ navigation }: any) => {
         setTimeout(() => setShowRiffleDealAnimation(true), 300);
         setTimeout(() => setShowRiffleDealAnimation(false), 2800); // 300ms start delay + 2500ms animation
         setTimeout(() => setShowBiddingModal(true), 4800); // Show bidding modal after cards shown for 2s
-        
+
         const { players: dealt, proposalCard } = dealCards(prev.players);
         const newDealer = (prev.dealer + 1) % TOTAL_PLAYERS;
         return {
@@ -379,6 +380,8 @@ const BlotScreen = ({ navigation }: any) => {
           faceDown: false,
           backgroundImageUri: customTheme?.backgroundImage ?? undefined,
           cardBackImageUri:   customTheme?.cardBackImage   ?? undefined,
+          cardFaceImageUri:     Image.resolveAssetSource(getCardImage({ rank: cp.card.rank, suit: cp.card.suit }))?.uri,
+          cardBackFaceImageUri: Image.resolveAssetSource(getCardBackImage('red'))?.uri,
           font:               customTheme?.font             ?? undefined,
         },
       }));
@@ -455,7 +458,7 @@ const BlotScreen = ({ navigation }: any) => {
       setTimeout(() => setShowRiffleDealAnimation(true), 300);
       setTimeout(() => setShowRiffleDealAnimation(false), 2800); // 300ms start delay + 2500ms animation
       setTimeout(() => setShowBiddingModal(true), 4800); // Show bidding modal after cards shown for 2s
-      
+
       const { players: dealt, proposalCard } = dealCards(prev.players);
       const newDealer = (prev.dealer + 1) % TOTAL_PLAYERS;
       return {
@@ -548,23 +551,16 @@ const BlotScreen = ({ navigation }: any) => {
     onPress?: () => void,
     playable = true,
   ) => {
-    const suitColor = SUIT_COLOR[card.suit] ?? '#000';
-    const suitIcon  = SUIT_ICON[card.suit]  ?? card.suit;
-    // Native card — always legible regardless of background
+    const sizeStyle = isTrickCard ? styles.nativeCardTrick : styles.nativeCard;
+    const cardW = isTrickCard ? 62 : 72;
+    const cardH = isTrickCard ? 86 : 100;
     const cardContent = (
-      <View style={isTrickCard ? styles.nativeCardTrick : styles.nativeCard}>
-        {/* Top-left */}
-        <View style={styles.nativeCardCorner}>
-          <Text style={[styles.nativeCardRank, { color: suitColor }]}>{card.rank}</Text>
-          <Text style={[styles.nativeCardSuit, { color: suitColor }]}>{suitIcon}</Text>
-        </View>
-        {/* Center suit */}
-        <Text style={[styles.nativeCardCenter, { color: suitColor }]}>{suitIcon}</Text>
-        {/* Bottom-right (rotated) */}
-        <View style={[styles.nativeCardCorner, { alignSelf: 'flex-end', transform: [{ rotate: '180deg' }] }]}>
-          <Text style={[styles.nativeCardRank, { color: suitColor }]}>{card.rank}</Text>
-          <Text style={[styles.nativeCardSuit, { color: suitColor }]}>{suitIcon}</Text>
-        </View>
+      <View style={[sizeStyle, { width: cardW, height: cardH }]}>
+        <Image
+          source={getCardImage(card)}
+          style={{ width: cardW, height: cardH }}
+          resizeMode="contain"
+        />
       </View>
     );
     if (!onPress) {
@@ -807,7 +803,7 @@ const BlotScreen = ({ navigation }: any) => {
 
           {/* Bidding Modal - transparent overlay */}
           {gameState.phase === 'bidding' && showBiddingModal && (
-            <View style={styles.biddingModalOverlay}>
+            <View style={styles.biddingModalOverlay} pointerEvents="box-none">
               <View style={styles.biddingModalContent}>
                 {renderTrumpSelection()}
               </View>
@@ -1015,7 +1011,7 @@ const BlotScreen = ({ navigation }: any) => {
         playerPositions={blotPlayerPositions}
         dealerPosition={{ x: centerX, y: centerY }}
         cardsPerPlayer={6}
-        onComplete={() => { 
+        onComplete={() => {
           setShowRiffleDealAnimation(false);
           isRoundTransitioningRef.current = false;
           // Wait 2 seconds showing cards, then show bidding modal
@@ -1082,21 +1078,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#FFD700',
     marginTop: 4,
-  },
-  biddingModalOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.7)', // Semi-transparent shade
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 1000,
-  },
-  biddingModalContent: {
-    width: '90%',
-    maxWidth: 400,
   },
   header: {
     flexDirection: 'row',
@@ -1347,10 +1328,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1.5,
     borderColor: '#cccccc',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 6,
-    paddingHorizontal: 6,
+    overflow: 'hidden',
     marginHorizontal: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -1365,10 +1343,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     borderWidth: 1.5,
     borderColor: '#cccccc',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 4,
-    paddingHorizontal: 4,
+    overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
@@ -1440,17 +1415,42 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     textAlign: 'center',
   },
-  trumpSelection: {
-    flex: 1,
+  biddingModalOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.78)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 24,
+    zIndex: 1000,
+  },
+  biddingModalContent: {
+    width: '90%',
+    maxWidth: 420,
+    backgroundColor: 'rgba(20, 20, 30, 0.95)',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 215, 0, 0.35)',
+    paddingVertical: 22,
+    paddingHorizontal: 18,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.5,
+    shadowRadius: 10,
+    elevation: 12,
+  },
+  trumpSelection: {
+    alignItems: 'center',
+    paddingVertical: 4,
   },
   trumpTitle: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: 'bold',
     color: '#FFD700',
-    marginBottom: 32,
+    marginBottom: 16,
+    textAlign: 'center',
   },
   suitButtons: {
     flexDirection: 'row',
