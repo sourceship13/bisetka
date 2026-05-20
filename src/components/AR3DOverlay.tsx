@@ -2604,47 +2604,61 @@ function _drawSuitShape(ctx, suit, cx, cy, size, color) {
   ctx.lineWidth = Math.max(2, size * 0.06);
   ctx.lineJoin = 'round';
   var s = size;
-  ctx.beginPath();
   if (suit === 'hearts') {
-    // Heart shape centered at (cx, cy)
+    ctx.beginPath();
     var top = cy - s * 0.25;
     ctx.moveTo(cx, cy + s * 0.45);
     ctx.bezierCurveTo(cx + s * 0.75, cy, cx + s * 0.5, top - s * 0.45, cx, top);
     ctx.bezierCurveTo(cx - s * 0.5, top - s * 0.45, cx - s * 0.75, cy, cx, cy + s * 0.45);
     ctx.closePath();
+    ctx.stroke(); ctx.fill();
   } else if (suit === 'diamonds') {
+    ctx.beginPath();
     ctx.moveTo(cx, cy - s * 0.5);
     ctx.lineTo(cx + s * 0.4, cy);
     ctx.lineTo(cx, cy + s * 0.5);
     ctx.lineTo(cx - s * 0.4, cy);
     ctx.closePath();
+    ctx.stroke(); ctx.fill();
   } else if (suit === 'clubs') {
-    var lr = s * 0.22; // lobe radius
-    ctx.arc(cx, cy - s * 0.22, lr, 0, Math.PI * 2);
-    ctx.moveTo(cx - s * 0.22 + lr, cy + s * 0.05);
-    ctx.arc(cx - s * 0.22, cy + s * 0.05, lr, 0, Math.PI * 2);
-    ctx.moveTo(cx + s * 0.22 + lr, cy + s * 0.05);
-    ctx.arc(cx + s * 0.22, cy + s * 0.05, lr, 0, Math.PI * 2);
-    // Stem
-    ctx.moveTo(cx - s * 0.12, cy + s * 0.5);
-    ctx.quadraticCurveTo(cx, cy + s * 0.1, cx + s * 0.12, cy + s * 0.5);
+    // Three lobes (top, bottom-left, bottom-right) + trapezoid stem
+    var lr = s * 0.22;
+    var topY  = cy - s * 0.22;
+    var blX = cx - s * 0.26, blY = cy + s * 0.08;
+    var brX = cx + s * 0.26, brY = cy + s * 0.08;
+    // Stem first (under the lobes)
+    ctx.beginPath();
+    ctx.moveTo(cx - s * 0.06, cy);
+    ctx.lineTo(cx + s * 0.06, cy);
+    ctx.lineTo(cx + s * 0.22, cy + s * 0.5);
+    ctx.lineTo(cx - s * 0.22, cy + s * 0.5);
     ctx.closePath();
+    ctx.stroke(); ctx.fill();
+    // Lobes (each a separate fill)
+    [[cx, topY], [blX, blY], [brX, brY]].forEach(function (p) {
+      ctx.beginPath();
+      ctx.arc(p[0], p[1], lr, 0, Math.PI * 2);
+      ctx.closePath();
+      ctx.stroke(); ctx.fill();
+    });
   } else {
-    // spades
-    var top2 = cy - s * 0.5;
-    ctx.moveTo(cx, top2);
-    ctx.bezierCurveTo(cx + s * 0.55, cy - s * 0.1, cx + s * 0.5, cy + s * 0.2, cx, cy + s * 0.2);
-    ctx.bezierCurveTo(cx - s * 0.5, cy + s * 0.2, cx - s * 0.55, cy - s * 0.1, cx, top2);
+    // spades — heart shape flipped vertically + trapezoid stem
+    ctx.beginPath();
+    var bottom = cy + s * 0.25;
+    ctx.moveTo(cx, cy - s * 0.45);
+    ctx.bezierCurveTo(cx + s * 0.75, cy, cx + s * 0.5, bottom + s * 0.45, cx, bottom);
+    ctx.bezierCurveTo(cx - s * 0.5, bottom + s * 0.45, cx - s * 0.75, cy, cx, cy - s * 0.45);
     ctx.closePath();
-    ctx.fill();
+    ctx.stroke(); ctx.fill();
     // Stem
     ctx.beginPath();
-    ctx.moveTo(cx - s * 0.14, cy + s * 0.5);
-    ctx.quadraticCurveTo(cx, cy + s * 0.15, cx + s * 0.14, cy + s * 0.5);
+    ctx.moveTo(cx - s * 0.08, bottom);
+    ctx.lineTo(cx + s * 0.08, bottom);
+    ctx.lineTo(cx + s * 0.22, cy + s * 0.55);
+    ctx.lineTo(cx - s * 0.22, cy + s * 0.55);
     ctx.closePath();
+    ctx.stroke(); ctx.fill();
   }
-  ctx.stroke();
-  ctx.fill();
   ctx.restore();
 }
 
