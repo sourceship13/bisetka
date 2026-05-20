@@ -2568,8 +2568,117 @@ function makeCardMesh(suit, rank, faceDown, opts) {
   back.renderOrder = 998;
   group.add(back);
 
+  // Floating rank+suit label above the card (in suit color)
+  if (!faceDown) {
+    var labelSprite = _makeCardLabelSprite(suit, rank);
+    if (labelSprite) {
+      labelSprite.position.set(0, 0, 0.25);
+      labelSprite.renderOrder = 1001;
+      group.add(labelSprite);
+    }
+  }
+
   group.renderOrder = 995;
   return group;
+}
+
+function _normalizeRank(rank) {
+  if (rank == null) return '?';
+  var r = String(rank).trim().toLowerCase();
+  if (r === 'ace' || r === 'a') return 'A';
+  if (r === 'king' || r === 'k') return 'K';
+  if (r === 'queen' || r === 'q') return 'Q';
+  if (r === 'jack' || r === 'j') return 'J';
+  if (r === '10' || r === 't' || r === 'ten') return '10';
+  // Numeric ranks 2-9
+  var n = parseInt(r, 10);
+  if (!isNaN(n) && n >= 2 && n <= 9) return String(n);
+  // Fallback: take first character, uppercased
+  return r.charAt(0).toUpperCase();
+}
+
+function _drawSuitShape(ctx, suit, cx, cy, size, color) {
+  ctx.save();
+  ctx.fillStyle = color;
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = Math.max(2, size * 0.06);
+  ctx.lineJoin = 'round';
+  var s = size;
+  ctx.beginPath();
+  if (suit === 'hearts') {
+    // Heart shape centered at (cx, cy)
+    var top = cy - s * 0.25;
+    ctx.moveTo(cx, cy + s * 0.45);
+    ctx.bezierCurveTo(cx + s * 0.75, cy, cx + s * 0.5, top - s * 0.45, cx, top);
+    ctx.bezierCurveTo(cx - s * 0.5, top - s * 0.45, cx - s * 0.75, cy, cx, cy + s * 0.45);
+    ctx.closePath();
+  } else if (suit === 'diamonds') {
+    ctx.moveTo(cx, cy - s * 0.5);
+    ctx.lineTo(cx + s * 0.4, cy);
+    ctx.lineTo(cx, cy + s * 0.5);
+    ctx.lineTo(cx - s * 0.4, cy);
+    ctx.closePath();
+  } else if (suit === 'clubs') {
+    var lr = s * 0.22; // lobe radius
+    ctx.arc(cx, cy - s * 0.22, lr, 0, Math.PI * 2);
+    ctx.moveTo(cx - s * 0.22 + lr, cy + s * 0.05);
+    ctx.arc(cx - s * 0.22, cy + s * 0.05, lr, 0, Math.PI * 2);
+    ctx.moveTo(cx + s * 0.22 + lr, cy + s * 0.05);
+    ctx.arc(cx + s * 0.22, cy + s * 0.05, lr, 0, Math.PI * 2);
+    // Stem
+    ctx.moveTo(cx - s * 0.12, cy + s * 0.5);
+    ctx.quadraticCurveTo(cx, cy + s * 0.1, cx + s * 0.12, cy + s * 0.5);
+    ctx.closePath();
+  } else {
+    // spades
+    var top2 = cy - s * 0.5;
+    ctx.moveTo(cx, top2);
+    ctx.bezierCurveTo(cx + s * 0.55, cy - s * 0.1, cx + s * 0.5, cy + s * 0.2, cx, cy + s * 0.2);
+    ctx.bezierCurveTo(cx - s * 0.5, cy + s * 0.2, cx - s * 0.55, cy - s * 0.1, cx, top2);
+    ctx.closePath();
+    ctx.fill();
+    // Stem
+    ctx.beginPath();
+    ctx.moveTo(cx - s * 0.14, cy + s * 0.5);
+    ctx.quadraticCurveTo(cx, cy + s * 0.15, cx + s * 0.14, cy + s * 0.5);
+    ctx.closePath();
+  }
+  ctx.stroke();
+  ctx.fill();
+  ctx.restore();
+}
+
+function _makeCardLabelSprite(suit, rank) {
+  var cw = 256, ch = 256;
+  var canvas = document.createElement('canvas');
+  canvas.width = cw; canvas.height = ch;
+  var ctx = canvas.getContext('2d');
+  var color = (suit === 'hearts' || suit === 'diamonds') ? '#c8102e' : '#0d0d10';
+  var rankText = _normalizeRank(rank);
+  ctx.clearRect(0, 0, cw, ch);
+  // Soft shadow halo for legibility
+  ctx.shadowColor = 'rgba(0,0,0,0.7)';
+  ctx.shadowBlur = 12;
+  ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 2;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  // Rank letter on top — white stroke for halo, then coloured fill
+  ctx.font = 'bold 140px Arial, Helvetica, sans-serif';
+  ctx.lineWidth = 12;
+  ctx.strokeStyle = '#ffffff';
+  ctx.strokeText(rankText, cw / 2, ch * 0.30);
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = color;
+  ctx.fillText(rankText, cw / 2, ch * 0.30);
+  // Suit shape below — drawn with paths so it always renders correctly
+  _drawSuitShape(ctx, suit, cw / 2, ch * 0.72, 110, color);
+
+  var tex = new THREE.CanvasTexture(canvas);
+  tex.needsUpdate = true;
+  var mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false });
+  var sprite = new THREE.Sprite(mat);
+  sprite.scale.set(CARD_W * 0.9, CARD_W * 0.9, 1);
+  return sprite;
 }
 
 
