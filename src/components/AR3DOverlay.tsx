@@ -2977,12 +2977,44 @@ function updatePieces(pieces) {
         n.node.position[ckHeightK] += lift;
       }
       n.node.visible = true;
-      // ── King visual: stack a second disc on top by cloning the node.
+      // ── King visual: stack a second disc on top by cloning the node, and
+      // paint BOTH discs bright gold so a crowned piece is unmistakable.
       if (d.isKing) {
         if (!n._kingClone) {
           try {
             var clone = n.node.clone(true);
             clone.name = n.name + '_KingTop';
+            // Save originals on the BASE disc so we can revert if the slot
+            // is later repurposed for a non-king piece.
+            if (!n._origMaterials) {
+              n._origMaterials = [];
+              n.node.traverse(function (ch) {
+                if (!ch.isMesh || !ch.material) return;
+                n._origMaterials.push({ mesh: ch, mat: ch.material });
+              });
+            }
+            function _paintGold(root) {
+              root.traverse(function (ch) {
+                if (!ch.isMesh || !ch.material) return;
+                var mats = Array.isArray(ch.material) ? ch.material : [ch.material];
+                var painted = mats.map(function (m) {
+                  var gm = m.clone();
+                  if (gm.color && gm.color.setHex) gm.color.setHex(0xFFD700);
+                  if ('metalness' in gm) gm.metalness = 0.95;
+                  if ('roughness' in gm) gm.roughness = 0.18;
+                  if (gm.emissive && gm.emissive.setHex) {
+                    gm.emissive.setHex(0x6b4a00);
+                    gm.emissiveIntensity = 0.35;
+                  }
+                  if (gm.map) gm.map = null;
+                  gm.needsUpdate = true;
+                  return gm;
+                });
+                ch.material = Array.isArray(ch.material) ? painted : painted[0];
+              });
+            }
+            _paintGold(n.node);
+            _paintGold(clone);
             // Match starting height-axis offset like the base disc.
             clone.position[ckFileK]   = n.node.position[ckFileK];
             clone.position[ckRankK]   = n.node.position[ckRankK];
@@ -3004,6 +3036,10 @@ function updatePieces(pieces) {
         }
       } else if (n._kingClone) {
         n._kingClone.visible = false;
+        // Revert base disc to its original side material(s).
+        if (n._origMaterials) {
+          n._origMaterials.forEach(function (r) { r.mesh.material = r.mat; });
+        }
       }
     });
     // 4. Hide unused (captured) pieces.
