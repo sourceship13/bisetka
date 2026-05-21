@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,8 @@ import {
   StatusBar,
   Animated,
   Easing,
+  Modal,
+  Pressable,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../libs/hooks/useAuth';
@@ -21,6 +23,12 @@ interface GameToolbarProps {
   /** Override the toolbar background colour. Defaults to '#1C1917'. */
   backgroundColor?: string;
   style?: object;
+  /** When true (default) tapping Back shows a confirmation modal before invoking onBack. */
+  confirmBack?: boolean;
+  /** Optional override for the confirmation title. */
+  confirmTitle?: string;
+  /** Optional override for the confirmation message. */
+  confirmMessage?: string;
 }
 
 const GameToolbar: React.FC<GameToolbarProps> = ({
@@ -29,11 +37,28 @@ const GameToolbar: React.FC<GameToolbarProps> = ({
   rightElement,
   backgroundColor = '#1C1917',
   style,
+  confirmBack = true,
+  confirmTitle = 'Leave Game?',
+  confirmMessage = 'Are you sure you want to close this game? Your progress will be lost.',
 }) => {
   const navigation = useNavigation<any>();
   const { user } = useAuth();
   const { flashCounter } = useDailyPoints();
   const balance = Math.floor(user?.balance ?? 0);
+  const [confirmVisible, setConfirmVisible] = useState(false);
+
+  const handleBackPress = () => {
+    if (confirmBack) {
+      setConfirmVisible(true);
+    } else {
+      onBack();
+    }
+  };
+
+  const handleConfirmLeave = () => {
+    setConfirmVisible(false);
+    onBack();
+  };
 
   // 0 = yellow (#fbbf24), 1 = white. Animated between them when flashCounter
   // increments (i.e. points were just credited).
@@ -66,7 +91,7 @@ const GameToolbar: React.FC<GameToolbarProps> = ({
   return (
     <View style={[styles.toolbar, { backgroundColor }, style]}>
       <TouchableOpacity
-        onPress={onBack}
+        onPress={handleBackPress}
         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         style={styles.backButton}>
         <Text style={styles.backText}>← Back</Text>
@@ -88,6 +113,31 @@ const GameToolbar: React.FC<GameToolbarProps> = ({
         </TouchableOpacity>
         {rightElement ?? null}
       </View>
+
+      <Modal
+        visible={confirmVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setConfirmVisible(false)}>
+        <Pressable style={styles.modalBackdrop} onPress={() => setConfirmVisible(false)}>
+          <Pressable style={styles.modalCard} onPress={() => {}}>
+            <Text style={styles.modalTitle}>{confirmTitle}</Text>
+            <Text style={styles.modalMessage}>{confirmMessage}</Text>
+            <View style={styles.modalButtonRow}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalCancelButton]}
+                onPress={() => setConfirmVisible(false)}>
+                <Text style={styles.modalCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalLeaveButton]}
+                onPress={handleConfirmLeave}>
+                <Text style={styles.modalLeaveText}>Leave</Text>
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 };
@@ -160,5 +210,65 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '800',
     letterSpacing: 0.3,
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.65)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 32,
+  },
+  modalCard: {
+    width: '100%',
+    maxWidth: 360,
+    backgroundColor: '#1C1917',
+    borderRadius: 16,
+    paddingHorizontal: 22,
+    paddingVertical: 22,
+    borderWidth: 1,
+    borderColor: 'rgba(251,191,36,0.3)',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#fff',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  modalMessage: {
+    fontSize: 14,
+    color: '#d1d5db',
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 18,
+  },
+  modalButtonRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalCancelButton: {
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  modalCancelText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  modalLeaveButton: {
+    backgroundColor: '#dc2626',
+  },
+  modalLeaveText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '800',
   },
 });
