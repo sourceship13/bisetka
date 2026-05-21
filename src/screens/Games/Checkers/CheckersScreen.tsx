@@ -664,7 +664,7 @@ const CheckersScreen = ({ navigation, route }: any) => {
         return { ...prev, board:nb, currentPlayer:'black', selectedSquare:null, possibleMoves:[], isGameOver:!hasLeft, winner:!hasLeft?'red':null };
       });
     // Slow down AI so the player can clearly see which piece moved (1800-2500ms)
-    }, 1800 + Math.floor(Math.random() * 700));
+    }, 800 + Math.floor(Math.random() * 700));
     return () => clearTimeout(timer);
   }, [gameState.currentPlayer, gameState.isGameOver]);
 
@@ -1054,8 +1054,19 @@ const styles = StyleSheet.create({
   piece:              { width:'70%', height:'70%', borderRadius:100, justifyContent:'center', alignItems:'center', borderWidth:2, borderColor:'#000' },
   redPiece:           { backgroundColor:'#e74c3c' },
   blackPiece:         { backgroundColor:'#2c3e50' },
-  kingPiece:          { borderColor:'#f39c12', borderWidth:3 },
-  kingText:           { fontSize:24, color:'#f39c12' },
+  kingPiece:          {
+    backgroundColor: '#FFD700',
+    width: '90%',
+    height: '90%',
+    borderColor: '#8B6914',
+    borderWidth: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.55,
+    shadowRadius: 5,
+    elevation: 10,
+  },
+  kingText:           { fontSize:28, color:'#8B4513', fontWeight:'900', textShadowColor:'#fff8d6', textShadowOffset:{width:0,height:1}, textShadowRadius:2 },
   moveIndicator:      { width:12, height:12, borderRadius:6, backgroundColor:'rgba(255,255,255,0.6)' },
   recenterBtn: {
     position: 'absolute',
