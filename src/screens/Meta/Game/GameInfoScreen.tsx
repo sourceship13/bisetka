@@ -18,7 +18,6 @@ import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import apiConfig from '../../../libs/utils/api.utils';
 import tokenService from '../../../services/token.service';
 import { apiService } from '../../../services/api.service';
-import bisetkaService, { Bisetka } from '../../../services/bisetka.service';
 import { gameSessionsService } from '../../../services/gameSessions.service';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'GameInfo'>;
@@ -105,14 +104,12 @@ const GameInfoScreen: React.FC<Props> = ({ route, navigation }) => {
   const [selectedMode, setSelectedMode] = useState<GameMode>(preferredMode ?? 'ai');
   const isTeamGame = gameType === 'blot' || gameType === 'baazar-blot';
   const [selectedTeamMode, setSelectedTeamMode] = useState<TeamMode>('hybrid');
-  const [bisetka, setBisetka] = useState<Bisetka | null>(null);
   const [showPointsModal, setShowPointsModal] = useState(false);
   const [liveBalance, setLiveBalance] = useState<number | null>(null);
   const [checkingBalance, setCheckingBalance] = useState(false);
 
   useEffect(() => {
     fetchGameInfo();
-    loadBisetka();
   }, [gameType]);
 
   const fetchGameInfo = async () => {
@@ -134,30 +131,6 @@ const GameInfoScreen: React.FC<Props> = ({ route, navigation }) => {
       setError(err.message || 'Failed to load game info');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const loadBisetka = async () => {
-    try {
-      const myBisetka = await bisetkaService.getMyBisetka();
-      if (myBisetka) {
-        setBisetka(myBisetka);
-        return;
-      }
-      if (user?.bisetka) {
-        setBisetka({
-          id: user.bisetka.id,
-          neighborhood_id: user.bisetka.id,
-          neighborhood_name: user.bisetka.neighborhood,
-          city: user.bisetka.city,
-          country: user.bisetka.country,
-          active_users: user.bisetka.active_users || 0,
-          created_at: '',
-          updated_at: '',
-        });
-      }
-    } catch {
-      /* non-fatal */
     }
   };
 
@@ -287,26 +260,7 @@ const GameInfoScreen: React.FC<Props> = ({ route, navigation }) => {
     } as any);
   };
 
-  const cityCountry = bisetka
-    ? `${bisetka.city}, ${bisetka.country}`
-    : bisetkaName || 'Unknown location';
 
-  // Secondary info line — adapt per game while still being meaningful for all.
-  const secondaryLine = useMemo(() => {
-    if (!gameInfo) return '';
-    const playersStr = `${bisetka?.active_users || 0} players`;
-    const meta: string[] = [];
-    if (gameType === 'nardi' || gameType === 'checkers') {
-      meta.push(`${gameInfo.maxPlayers} kings`);
-    } else if (gameType === 'chess') {
-      meta.push('classic rules');
-    } else if (gameInfo.categories?.length) {
-      meta.push(gameInfo.categories[0]);
-    } else {
-      meta.push(`~${gameInfo.estimatedDuration} min`);
-    }
-    return `${playersStr}  •  ${meta[0]}`;
-  }, [gameInfo, bisetka, gameType]);
 
   if (loading) {
     return (
@@ -378,22 +332,6 @@ const GameInfoScreen: React.FC<Props> = ({ route, navigation }) => {
                 <Icon name="earth" size={22} color="#fff" />
               </TouchableOpacity>
             </View>
-          </View>
-
-          {/* Location row */}
-          <View style={styles.locationRow}>
-            <View style={{ flex: 1 }}>
-              <View style={styles.locationLine}>
-                <Icon name="map-marker" size={20} color="#fff" />
-                <Text style={styles.locationText}>{cityCountry}</Text>
-              </View>
-              <Text style={styles.locationSubtext}>{secondaryLine}</Text>
-            </View>
-            <TouchableOpacity
-              onPress={() => navigation.navigate('Travel')}
-              activeOpacity={0.7}>
-              <Text style={styles.changeLocation}>Change Location</Text>
-            </TouchableOpacity>
           </View>
 
           {/* Rules Summary card */}

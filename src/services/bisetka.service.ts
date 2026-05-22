@@ -342,7 +342,10 @@ class BisetkaService {
       );
       return response.bisetka || null;
     } catch (error) {
-      console.error('Failed to find/create Bisetka:', error);
+      // Non-fatal: bundled neighborhood IDs may not exist in the backend's
+      // neighborhoods table. The parallel autoConnect() call covers the
+      // canonical path, so we just fall back silently here.
+      console.warn('[bisetka] find-or-create fallback skipped:', (error as any)?.message || error);
       return null;
     }
   }

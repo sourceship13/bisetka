@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -12,25 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useAuth } from '../../../libs/hooks/useAuth';
-import bisetkaService, { Bisetka } from '../../../services/bisetka.service';
 import BottomTabBar from '../../../components/global/BottomTabBar';
-
-const buildAccountBisetka = (accountBisetka: {
-  id: string;
-  neighborhood: string;
-  city: string;
-  country: string;
-  active_users: number;
-}): Bisetka => ({
-  id: accountBisetka.id,
-  neighborhood_id: accountBisetka.id,
-  neighborhood_name: accountBisetka.neighborhood,
-  city: accountBisetka.city,
-  country: accountBisetka.country,
-  active_users: accountBisetka.active_users,
-  created_at: '',
-  updated_at: '',
-});
 
 type GameConfig = {
   id: string;
@@ -160,33 +142,6 @@ const GAMES: GameConfig[] = [
 
 const GameSelectionScreen = ({ navigation }: any) => {
   const { user } = useAuth();
-  const [bisetka, setBisetka] = useState<Bisetka | null>(
-    user?.bisetka ? buildAccountBisetka(user.bisetka) : null,
-  );
-
-  useEffect(() => {
-    let isMounted = true;
-
-    const loadBisetka = async () => {
-      if (user?.bisetka) {
-        setBisetka(buildAccountBisetka(user.bisetka));
-        return;
-      }
-
-      const currentBisetka = await bisetkaService.getMyBisetka();
-      const ipResult = currentBisetka
-        ? null
-        : await bisetkaService.getByIpBisetka();
-
-      if (!isMounted) return;
-      setBisetka(currentBisetka || ipResult?.bisetka || null);
-    };
-
-    void loadBisetka();
-    return () => {
-      isMounted = false;
-    };
-  }, [user?.bisetka]);
 
   const handleGamePress = (game: GameConfig) => {
     navigation.navigate('GameInfo', {
@@ -255,14 +210,6 @@ const GameSelectionScreen = ({ navigation }: any) => {
     );
   };
 
-  const cityLabel = bisetka
-    ? `${bisetka.city}${bisetka.country ? `, ${bisetka.country}` : ''}`
-    : user?.bisetka
-    ? `${user.bisetka.city}, ${user.bisetka.country}`
-    : 'Locating...';
-
-  const activeUsers = bisetka?.active_users || 0;
-
   return (
     <View style={styles.container}>
       <StatusBar
@@ -301,24 +248,6 @@ const GameSelectionScreen = ({ navigation }: any) => {
                 <Icon name="earth" size={22} color="#fff" />
               </TouchableOpacity>
             </View>
-          </View>
-
-          {/* Location row */}
-          <View style={styles.locationRow}>
-            <View style={styles.locationLeft}>
-              <View style={styles.locationTitleRow}>
-                <Icon name="map-marker" size={18} color="#fff" />
-                <Text style={styles.locationTitle}>{cityLabel}</Text>
-              </View>
-              <Text style={styles.locationSub}>
-                {activeUsers} players  •  2 kings
-              </Text>
-            </View>
-            <TouchableOpacity
-              onPress={() => navigation.navigate('Travel')}
-              activeOpacity={0.7}>
-              <Text style={styles.changeLocation}>Change Location</Text>
-            </TouchableOpacity>
           </View>
 
           {/* Game list */}
