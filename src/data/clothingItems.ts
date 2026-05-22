@@ -8,26 +8,36 @@ export const ALL_CLOTHING_ITEMS: AvatarClothing[] = NEW_CLOTHING_ITEMS;
 export const ALL_BASE_AVATARS: BaseAvatar[] = NEW_BASE_AVATARS;
 
 /**
+ * Item types whose shape is body-agnostic (hair, shoes, hats, jewelry,
+ * misc accessories). These don't need to be tagged per-build — a single
+ * "standard" version works for every avatar build.
+ */
+const BODY_AGNOSTIC_TYPES = new Set(['hair', 'shoes', 'hat', 'jewelry', 'other']);
+
+/**
  * Filter clothing items to those compatible with a given avatar build.
- * - Fat avatars only see items tagged `build === 'fat'`.
- * - Muscle avatars only see items tagged `build === 'muscle'`.
- * - All other avatars (slim/athletic/old/standard/undefined) see only items
- *   that are NOT fat- or muscle-specific.
+ * - Body-shaped items (top/bottom/jacket/shorts) must match the build tag.
+ * - Body-agnostic items (hair/shoes/hat/jewelry/other) are shown regardless,
+ *   as long as they aren't explicitly tagged for a different build.
  */
 export function filterClothingForBuild(
   items: AvatarClothing[],
   build: string | undefined | null,
 ): AvatarClothing[] {
-  if (build === 'fat') {
-    return items.filter(i => (i as any).build === 'fat');
-  }
-  if (build === 'muscle') {
-    return items.filter(i => (i as any).build === 'muscle');
-  }
-  return items.filter(i => {
+  const matchesBuild = (i: AvatarClothing): boolean => {
     const b = (i as any).build;
+    const t = (i as any).type;
+    // Body-agnostic items: allow if not tagged for a *different* specialty build.
+    if (BODY_AGNOSTIC_TYPES.has(t)) {
+      if (b === 'fat' || b === 'muscle') return b === build;
+      return true;
+    }
+    // Body-shaped items: enforce build match.
+    if (build === 'fat') return b === 'fat';
+    if (build === 'muscle') return b === 'muscle';
     return b !== 'fat' && b !== 'muscle';
-  });
+  };
+  return items.filter(matchesBuild);
 }
 
 /**
