@@ -88,22 +88,22 @@ const BUILD_OVERRIDES: Record<string, BuildOverrides> = {
   },
   // ───── FEMALE MUSCLE ───────────────────────────────────────────────────
   'female-muscle': {
-    top:    { left: 0.20, width: 0.60, top: 0.145 },
+    top:    { left: 0.389, width: 0.2, top: 0.08 },
     jacket: { left: 0.16, width: 0.68, top: 0.210 },
-    bottom: { left: 0.28, width: 0.44, top: 0.5066 },
+    bottom: { left: 0.28, width: 0.44, top: 0.46, height:0.5 },
     shorts: { left: 0.27, width: 0.46 },
-    shoes:  { left: 0.21, width: 0.54, top: 0.88 },
-    hair:    { left: 0.155, width: 0.69, top: 0.0,   height: 0.150 },
+    shoes:  { left: 0.21, width: 0.54, top: 0.93, height: 0.10 },
+    hair:    { left: 0.145, width: 0.70, top: -0.031,   height: 0.24 },
     jewelry: { left: 0.31,  width: 0.38, top: 0.180, height: 0.12 },
   },
   // ───── FEMALE FAT ──────────────────────────────────────────────────────
   'female-fat': {
-    top:    { left: 0.32, width: 0.33, top: -0.1, height: 0.8 },
+    top:    { left: 0.326, width: 0.32, top: -0.06, height: 0.8 },
     jacket: { left: 0.13, width: 0.74, top: 0.215 },
     bottom: { left: -0.012, width: 1, top: 0.51, height: 0.42 },
     shorts: { left: 0.245, width: 0.51, top: 0.525 },
-    shoes:  { left: 0.215, width: 0.53, top: 0.885 },
-    hair:    { left: 0.145, width: 0.71, top: 0.0,   height: 0.150 },
+    shoes:  { left: 0.28, width: 0.4, top: 0.92 },
+    hair:    { left: 0.06, width: 0.9, top: -0.03,   height: 0.23 },
     jewelry: { left: 0.295, width: 0.41, top: 0.185, height: 0.13 },
   },
   // ───── FEMALE ATHLETIC / SLIM / OLD ────────────────────────────────────
