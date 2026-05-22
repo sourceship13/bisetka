@@ -167,11 +167,7 @@ const ClothingStoreScreen: React.FC<any> = ({ navigation }) => {
     const next = { ...equipped, [item.type]: item.id };
     await persistEquipped(next);
     setBusyId(null);
-    BisetkaAlert({
-      title: 'Equipped',
-      message: `${item.name} is now equipped.`,
-      type: 'success',
-    });
+    BisetkaAlert.success('Equipped', `${item.name} is now equipped.`);
   };
 
   const handleBuy = (item: ClothingItem) => {
@@ -183,47 +179,49 @@ const ClothingStoreScreen: React.FC<any> = ({ navigation }) => {
     // validates the receipt, records the purchase in `in_app_purchases`,
     // grants the item, AND auto-equips it (so the avatar puts it on
     // immediately).
-    BisetkaAlert({
-      title: 'Purchase Item',
-      message: `Buy ${item.name} for $${(item.price / 100).toFixed(2)}?`,
-      type: 'confirm',
-      confirmText: 'Purchase',
-      onConfirm: async () => {
-        setBusyId(item.id);
-        try {
-          const result = await buyClothingItem({
-            clothingId: item.id,
-            clothingType: item.type,
-            priceCents: item.price,
-          });
-          if (!result.success) {
-            throw new Error(result.error || 'Purchase failed');
-          }
-          // Mirror server state into the local cache used for offline
-          // rendering and instant UI updates.
-          const nextOwned = new Set(owned);
-          nextOwned.add(item.id);
-          await persistOwned(nextOwned);
-          const nextEquipped = { ...equipped, [item.type]: item.id };
-          await persistEquipped(nextEquipped);
-          BisetkaAlert({
-            title: result.alreadyApplied ? 'Restored' : 'Purchased!',
-            message: `${item.name} is now in your wardrobe and equipped.`,
-            type: 'success',
-          });
-        } catch (err: any) {
-          if (!err?.cancelled) {
-            BisetkaAlert({
-              title: 'Purchase Failed',
-              message: err?.message || 'Could not complete the purchase.',
-              type: 'error',
-            });
-          }
-        } finally {
-          setBusyId(null);
-        }
-      },
-    });
+    BisetkaAlert.alert(
+      'Purchase Item',
+      `Buy ${item.name} for $${(item.price / 100).toFixed(2)}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Purchase',
+          onPress: async () => {
+            setBusyId(item.id);
+            try {
+              const result = await buyClothingItem({
+                clothingId: item.id,
+                clothingType: item.type,
+                priceCents: item.price,
+              });
+              if (!result.success) {
+                throw new Error(result.error || 'Purchase failed');
+              }
+              // Mirror server state into the local cache used for offline
+              // rendering and instant UI updates.
+              const nextOwned = new Set(owned);
+              nextOwned.add(item.id);
+              await persistOwned(nextOwned);
+              const nextEquipped = { ...equipped, [item.type]: item.id };
+              await persistEquipped(nextEquipped);
+              BisetkaAlert.success(
+                result.alreadyApplied ? 'Restored' : 'Purchased!',
+                `${item.name} is now in your wardrobe and equipped.`,
+              );
+            } catch (err: any) {
+              if (!err?.cancelled) {
+                BisetkaAlert.error(
+                  'Purchase Failed',
+                  err?.message || 'Could not complete the purchase.',
+                );
+              }
+            } finally {
+              setBusyId(null);
+            }
+          },
+        },
+      ],
+    );
   };
 
   const claimFree = async (item: ClothingItem) => {
@@ -289,26 +287,6 @@ const ClothingStoreScreen: React.FC<any> = ({ navigation }) => {
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}>
-          {/* Avatar preview area */}
-          <View style={styles.avatarStage}>
-            <Text style={styles.playerNameBg} numberOfLines={1}>
-              [{user?.username || 'Player Name'}]
-            </Text>
-            <View style={styles.avatarFrame}>
-            {user?.avatarUrl ? (
-              <AssetImage
-                source={user.avatarUrl}
-                width="100%"
-                height="100%"
-              />
-            ) : (
-              <View style={styles.avatarPlaceholder}>
-                <Icon name="account" size={90} color="#fff" />
-              </View>
-            )}
-          </View>
-          </View>
-
           {!genderHydrated ? (
             <View style={{ paddingVertical: 40, alignItems: 'center' }}>
               <ActivityIndicator color="#7c4dff" />

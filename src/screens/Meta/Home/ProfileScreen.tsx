@@ -256,7 +256,7 @@ const ProfileScreen = ({ navigation }: any) => {
             onPress={() => navigation.navigate('ClothingStore')}
             activeOpacity={0.7}
             style={styles.linkRow}>
-            <Text style={styles.linkRowText}>Asset Gallery</Text>
+            <Text style={styles.linkRowText}>Store</Text>
             <Icon name="chevron-right" size={26} color="#fff" />
           </TouchableOpacity>
 
