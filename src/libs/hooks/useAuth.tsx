@@ -109,8 +109,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             if (isMounted) {
               setUser(mapBackendUser(freshUser));
             }
-          } catch (error) {
-            console.warn('⚠️ Using cached user, server refresh failed:', error);
+          } catch (error: any) {
+            // 404 = the cached token belongs to a user that no longer exists
+            // on this backend (e.g. backend URL switched). Clear the stale
+            // session so the app drops back to the sign-in screen instead of
+            // looping with a dead token.
+            if (error?.status === 404) {
+              console.warn('⚠️ getProfile 404 — clearing stale session');
+              try { await tokenService.clearSession(); } catch (_) {}
+              if (isMounted) setUser(null);
+            } else {
+              console.warn('⚠️ Using cached user, server refresh failed:', error);
+            }
           }
         }
       } catch (error) {

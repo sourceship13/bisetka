@@ -259,6 +259,7 @@ const GLB_ASSET_MAP: Record<string, any> = {
   'glb/checkers/chess_board_v2.glb':            require('../../assets/glb/checkers/chess_board_v2.glb'),
   'glb/game_assets/round_table.glb':            require('../../assets/glb/game_assets/round_table.glb'),
   'glb/game_assets/octagon_table.glb':          require('../../assets/glb/game_assets/octagon_table.glb'),
+  'glb/game_assets/armenia_table.glb':          require('../../assets/glb/game_assets/armenia_table.glb'),
   'glb/game_assets/poker_table2.glb':            require('../../assets/glb/game_assets/poker_table2.glb'),
   'glb/game_assets/casino_table_level2_textured.glb': require('../../assets/glb/game_assets/casino_table_level2_textured.glb'),
   'glb/chess/chess-board/source/ui.glb':        require('../../assets/glb/chess/chess-board/source/ui.glb'),

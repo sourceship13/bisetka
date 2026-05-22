@@ -181,9 +181,11 @@ class ApiService {
       return data as T;
     } catch (error: any) {
       if (!behavior.suppressErrorLogging) {
-        console.error('❌ API Error:', error);
+        const method = (options.method || 'GET').toUpperCase();
+        console.error(`❌ API Error [${method} ${endpoint}]:`, error);
       }
       if (error.message && error.status !== undefined) {
+        error.endpoint = endpoint;
         throw error;
       }
 
