@@ -78,9 +78,9 @@ const BUILD_OVERRIDES: Record<string, BuildOverrides> = {
     jewelry: { left: 0.30, width: 0.40, top: 0.175, height: 0.13 },  },
   // ───── MALE FAT ────────────────────────────────────────────────────────
   'male-fat': {
-    top:    { left: 0.16, width: 0.68, top: 0.150, height: 0.52 },
+    top:    { left: 0.31, width: 0.4, top: 0.150, height: 0.52 },
     jacket: { left: 0.12, width: 0.76, top: 0.215 },
-    bottom: { left: 0.25, width: 0.50, top: 0.515,  height: 0.42 },
+    bottom: { left: 0.25, width: 0.45, top: 0.518,  height: 0.42 },
     shorts: { left: 0.24, width: 0.52, top: 0.525 },
     shoes:  { left: 0.21, width: 0.54, top: 0.885 },
     hair:    { left: 0.14, width: 0.72, top: 0.0,   height: 0.155 },

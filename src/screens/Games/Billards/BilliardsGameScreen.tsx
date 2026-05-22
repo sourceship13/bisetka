@@ -2208,7 +2208,7 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
     <View style={{flex: 1}}>
     <AraratBackground  />
     <View style={styles.overlay} pointerEvents="box-none">
-    <GamePlayerOverlay opponent={isMultiplayer ? null : 'ai'} />
+    <GamePlayerOverlay opponent={isMultiplayer ? null : 'ai'} transparentBackground />
     <SafeAreaView style={styles.safeArea}>
       <View>
         <GameToolbar
