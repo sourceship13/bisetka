@@ -32,10 +32,10 @@ def shared_pods
   # Explicitly enable modular headers for GoogleUtilities to fix Firebase
   pod 'GoogleUtilities', :modular_headers => true
 
-
-  # ViroReact -- AR/VR scene rendering
-  pod 'ViroReact', :path => '../node_modules/@viro-community/react-viro/ios'
-  pod 'ViroKit', :path => '../node_modules/@viro-community/react-viro/ios/dist/ViroRenderer'
+  # NOTE: Viro (@viro-community/react-viro) was removed on 2026-05-21.
+  # The games use the WebView+Three.js based AR3DOverlay.tsx, not Viro.
+  # Viro's prebuilt static lib also blocked iOS-simulator builds on Apple
+  # Silicon. The ARViroOverlay.tsx component was disabled (see that file).
 
   use_react_native!(
     :path => config[:reactNativePath],
@@ -123,13 +123,6 @@ post_install do |installer|
         config.build_settings['DEFINES_MODULE'] = 'YES'
       end
 
-      # ViroKit has C++ headers that can't be compiled as a clang module
-      if target.name == 'ViroKit' || target.name == 'ViroReact'
-        config.build_settings['DEFINES_MODULE'] = 'NO'
-        config.build_settings['CLANG_ENABLE_MODULES'] = 'NO'
-        config.build_settings['CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES'] = 'YES'
-      end
-
       # Apply fmt consteval fix to every pod target (fmt headers are included
       # by React-RuntimeHermes, React-jserrorhandler, React-utils, RCT-Folly ...)
       flags = config.build_settings['OTHER_CPLUSPLUSFLAGS'] || '$(inherited)'
@@ -139,34 +132,6 @@ post_install do |installer|
     end
   end
 
-
-  # -- ViroKit framework search path fix --------------------------------------
-  # ViroReact source files use #import <ViroKit/ViroKit.h> (framework-style).
-  # The xcconfig for ViroReact won't have FRAMEWORK_SEARCH_PATHS pointing at
-  # ViroKit.framework, so we patch it in directly after pod install.
-  virokit_fsp = '"${PODS_ROOT}/../../node_modules/@viro-community/react-viro/ios/dist/ViroRenderer"'
-  ['debug', 'release'].each do |cfg|
-    xcconfig_path = "#{installer.sandbox.root}/Target Support Files/ViroReact/ViroReact.#{cfg}.xcconfig"
-    next unless File.exist?(xcconfig_path)
-    lines = File.readlines(xcconfig_path)
-    # Remove any stray bare-path line from a prior botched run
-    lines.reject! { |l| l.strip == virokit_fsp.delete('"') }
-    if lines.any? { |l| l.start_with?('FRAMEWORK_SEARCH_PATHS') }
-      # Append to existing key
-      lines.map! do |l|
-        if l.start_with?('FRAMEWORK_SEARCH_PATHS') && !l.include?('ViroRenderer')
-          l.chomp + " #{virokit_fsp}\n"
-        else
-          l
-        end
-      end
-    else
-      # Add new key
-      lines << "FRAMEWORK_SEARCH_PATHS = $(inherited) #{virokit_fsp}\n"
-    end
-    File.write(xcconfig_path, lines.join)
-    Pod::UI.puts "  [ViroKit fix] Patched FRAMEWORK_SEARCH_PATHS in ViroReact.#{cfg}.xcconfig".green
-  end
 
   # -- JitsiWebRTC / CocoaPods script sandboxing fix (Xcode 15+) --------------
   # Xcode 15+ introduced "User Script Sandboxing" which restricts what build
