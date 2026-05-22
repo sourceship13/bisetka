@@ -82,7 +82,7 @@ const BUILD_OVERRIDES: Record<string, BuildOverrides> = {
     jacket: { left: 0.12, width: 0.76, top: 0.215 },
     bottom: { left: 0.25, width: 0.45, top: 0.518,  height: 0.42 },
     shorts: { left: 0.24, width: 0.52, top: 0.525 },
-    shoes:  { left: 0.21, width: 0.54, top: 0.885 },
+    shoes:  { left: 0.009, width: 0.9, top: 0.885, height: 0.15 },
     hair:    { left: 0.14, width: 0.72, top: 0.0,   height: 0.155 },
     jewelry: { left: 0.28, width: 0.44, top: 0.185, height: 0.13 },
   },
