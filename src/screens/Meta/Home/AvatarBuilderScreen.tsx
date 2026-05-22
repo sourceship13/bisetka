@@ -28,6 +28,8 @@ import {
   getStarterPantsIdForAvatar,
   getStarterHairIdForAvatar,
   getStarterShoeIdForAvatar,
+  remapEquippedForAvatar,
+  STARTER_ITEM_IDS,
 } from '../../../data/clothingItems';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { useAuth } from '../../../libs/hooks/useAuth';
@@ -127,6 +129,13 @@ const AvatarBuilderScreen = ({ navigation }: any) => {
       const loadedOwned: Set<string> = ownedStr
         ? new Set<string>(JSON.parse(ownedStr))
         : new Set<string>(defaults);
+
+      // Every player owns the complete starter set (both genders, all builds)
+      // from the moment they install. This way switching avatars later never
+      // leaves the wardrobe empty for the new body type.
+      for (const sid of STARTER_ITEM_IDS) {
+        loadedOwned.add(sid);
+      }
 
       // Defensive starter-wardrobe seed: anyone whose equipped slots don't yet
       // include a top/bottom (e.g. legacy users from before the new onboarding,
@@ -283,6 +292,30 @@ const AvatarBuilderScreen = ({ navigation }: any) => {
       setSelectedAvatarId(a.id);
       await AsyncStorage.setItem(SELECTED_AVATAR_KEY, a.id);
       await AsyncStorage.setItem(SELECTED_AVATAR_OBJ_KEY, JSON.stringify(a));
+
+      // Remap currently-equipped body-shaped clothes (top/bottom/jacket/shorts)
+      // to the matching variant for the new avatar's gender + build so the
+      // preview shows correctly-fit clothing on the new body.
+      const newGender = (a.gender as string | undefined) ?? genderTab;
+      const newBuild = (a as any).build as string | undefined;
+      // Make sure missing starter slots are filled for the new build too.
+      const seeded: Record<string, AvatarClothing> = { ...equipped };
+      const starterIds = [
+        getStarterShirtIdForAvatar(newGender, newBuild),
+        getStarterPantsIdForAvatar(newGender, newBuild),
+        getStarterHairIdForAvatar(newGender),
+        getStarterShoeIdForAvatar(newGender),
+      ];
+      for (const sid of starterIds) {
+        const item = ALL_CLOTHING_ITEMS.find(i => i.id === sid);
+        if (item && !seeded[item.type]) seeded[item.type] = item;
+      }
+      const remapped = remapEquippedForAvatar(seeded, newGender, newBuild);
+      setEquipped(remapped);
+      try {
+        await AsyncStorage.setItem(EQUIPPED_KEY, JSON.stringify(remapped));
+      } catch {}
+
       // Auto-collapse + re-lock the selector after a pick.
       setChangeUnlocked(false);
       await AsyncStorage.setItem(AVATAR_UNLOCKED_KEY, '0');

@@ -184,3 +184,82 @@ export function getStarterHairIdForAvatar(
     ? 'hairstyle-female-hair-style-5'
     : 'hairstyle-male-hairstyle-5';
 }
+
+/**
+ * Given a clothing item id, find the equivalent variant cut for a different
+ * gender / build. Used when the user switches avatars so the body-shaped
+ * clothes they're wearing (shirts / pants / jackets / shorts) automatically
+ * swap to the version drawn for the new body.
+ *
+ * Item id convention in `avatarsNew.ts`:
+ *   <category>-[<gender>?-][<build>?-]<kind>-style-<N>
+ * Examples:
+ *   shirts-shirt-style-5                 → male / standard
+ *   shirts-female-shirt-style-5          → female / standard
+ *   shirts-muscle-shirt-style-5          → male  / muscle
+ *   shirts-female-fat-shirt-style-5      → female / fat
+ *
+ * The function extracts `<category>` and the trailing `style-<N>` from the
+ * source id, then scans the catalog for the item with the same type whose
+ * gender + build match the target. If no exact match exists, the original
+ * item is returned unchanged.
+ */
+export function getEquivalentItemForBuild(
+  itemId: string,
+  gender: string | undefined | null,
+  build: string | undefined | null,
+): AvatarClothing | undefined {
+  const source = NEW_CLOTHING_ITEMS.find(i => i.id === itemId);
+  if (!source) return undefined;
+  const sourceBuild = (source as any).build as string | undefined;
+  const sourceGender = (source as any).gender as string | undefined;
+  // Body-agnostic types don't have per-build cuts, so just return the source.
+  if ((source as any).type && BODY_AGNOSTIC_TYPES.has((source as any).type)) {
+    return source;
+  }
+  const targetGender = gender === 'female' ? 'female' : 'male';
+  const targetBuild =
+    build === 'muscle' ? 'muscle' : build === 'fat' ? 'fat' : 'standard';
+  // Already correct.
+  if (sourceGender === targetGender && (sourceBuild ?? 'standard') === targetBuild) {
+    return source;
+  }
+  const styleMatch = itemId.match(/-style-(\d+)$/);
+  if (!styleMatch) return source;
+  const styleSuffix = `style-${styleMatch[1]}`;
+  const sourceType = (source as any).type;
+  const candidate = NEW_CLOTHING_ITEMS.find(i => {
+    if ((i as any).type !== sourceType) return false;
+    const g = (i as any).gender;
+    const b = ((i as any).build as string | undefined) ?? 'standard';
+    if (g !== targetGender) return false;
+    if (b !== targetBuild) return false;
+    return i.id.endsWith(`-${styleSuffix}`);
+  });
+  return candidate ?? source;
+}
+
+/**
+ * Remap an entire `equipped` map to a new avatar's gender/build by swapping
+ * every body-shaped item to its matching build variant. Body-agnostic items
+ * (hair / shoes / hat / jewelry / other) are left in place.
+ */
+export function remapEquippedForAvatar(
+  equipped: Record<string, AvatarClothing>,
+  gender: string | undefined | null,
+  build: string | undefined | null,
+): Record<string, AvatarClothing> {
+  const next: Record<string, AvatarClothing> = {};
+  for (const slot of Object.keys(equipped)) {
+    const item = equipped[slot];
+    if (!item) continue;
+    if (BODY_AGNOSTIC_TYPES.has(slot)) {
+      next[slot] = item;
+      continue;
+    }
+    const swapped = getEquivalentItemForBuild(item.id, gender, build);
+    if (swapped) next[slot] = swapped;
+    else next[slot] = item;
+  }
+  return next;
+}
