@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,8 @@ import {
   ActivityIndicator,
   Image,
   Dimensions,
+  FlatList,
+  ListRenderItem,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -119,23 +121,25 @@ const PointsShopScreen = ({navigation, route}: any) => {
   const {setUser, refreshUser} = useAuth();
 
   // ── Clothing tab state ────────────────────────────────────────────────────
-  const [clothingItems, setClothingItems] = useState<ClothingItem[]>([]);
+  const [clothingItems, setClothingItems] = useState<ClothingItem[]>(ALL_CLOTHING_ITEMS);
   const [ownedItems, setOwnedItems] = useState<Set<string>>(new Set());
   const [selectedCategory, setSelectedCategory] = useState<ClothingType | 'all'>('all');
-  const [clothingLoading, setClothingLoading] = useState(true);
+  const [clothingLoading, setClothingLoading] = useState(false);
   const [purchasing, setPurchasing] = useState<string | null>(null);
 
+  // Pagination: render a small batch first, grow as user scrolls.
+  const CLOTHING_PAGE_SIZE = 12;
+  const [visibleClothingCount, setVisibleClothingCount] = useState(CLOTHING_PAGE_SIZE);
+
   useEffect(() => {
-    loadClothingStore();
     loadUserInventory();
   }, []);
 
-  const loadClothingStore = () => {
-    setTimeout(() => {
-      setClothingItems(ALL_CLOTHING_ITEMS);
-      setClothingLoading(false);
-    }, 300);
-  };
+  // Reset paging when the category filter changes so users don't have to
+  // scroll back to the top of a long list.
+  useEffect(() => {
+    setVisibleClothingCount(CLOTHING_PAGE_SIZE);
+  }, [selectedCategory]);
 
   const loadUserInventory = async () => {
     try {
@@ -223,10 +227,73 @@ const PointsShopScreen = ({navigation, route}: any) => {
     });
   };
 
-  const filteredClothingItems = clothingItems
-    .filter(item => selectedCategory === 'all' || item.type === selectedCategory)
-    // Cheapest first (free items appear at the top), name as stable tie-break.
-    .sort((a, b) => (a.price - b.price) || a.name.localeCompare(b.name));
+  const filteredClothingItems = useMemo(
+    () =>
+      clothingItems
+        .filter(item => selectedCategory === 'all' || item.type === selectedCategory)
+        // Cheapest first (free items appear at the top), name as stable tie-break.
+        .sort((a, b) => (a.price - b.price) || a.name.localeCompare(b.name)),
+    [clothingItems, selectedCategory],
+  );
+
+  const visibleClothingItems = useMemo(
+    () => filteredClothingItems.slice(0, visibleClothingCount),
+    [filteredClothingItems, visibleClothingCount],
+  );
+
+  const handleLoadMoreClothing = useCallback(() => {
+    setVisibleClothingCount(prev => {
+      if (prev >= filteredClothingItems.length) return prev;
+      return Math.min(prev + CLOTHING_PAGE_SIZE, filteredClothingItems.length);
+    });
+  }, [filteredClothingItems.length]);
+
+  const renderClothingItem: ListRenderItem<ClothingItem> = useCallback(
+    ({item}) => {
+      const owned = ownedItems.has(item.id);
+      const isPurchasing = purchasing === item.id;
+      const rarityColor = RARITY_COLORS[item.rarity] ?? '#9ca3af';
+      return (
+        <TouchableOpacity
+          style={[styles.itemCard, {borderColor: rarityColor + '55'}]}
+          onPress={() => !owned && !isPurchasing && handleClothingPurchase(item)}
+          disabled={owned || isPurchasing}>
+          <View style={styles.itemContent}>
+            <View style={styles.itemImageWrapper}>
+              <AssetImage
+                source={item.thumbnailUrl || item.imageUrl}
+                width="100%"
+                height="100%"
+              />
+            </View>
+
+            {owned && (
+              <View style={styles.ownedBadge}>
+                <Text style={styles.ownedText}>✓ Owned</Text>
+              </View>
+            )}
+
+            <View style={styles.itemInfo}>
+              <Text style={styles.itemName} numberOfLines={1}>{item.name}</Text>
+              <Text style={[styles.itemRarity, {color: rarityColor}]}>
+                {item.rarity.toUpperCase()}
+              </Text>
+              {isPurchasing ? (
+                <ActivityIndicator size="small" color="#a78bfa" />
+              ) : (
+                <View style={styles.itemPriceContainer}>
+                  <Text style={styles.itemPriceText}>
+                    {item.price === 0 ? 'FREE' : `$${(item.price / 100).toFixed(2)}`}
+                  </Text>
+                </View>
+              )}
+            </View>
+          </View>
+        </TouchableOpacity>
+      );
+    },
+    [ownedItems, purchasing, handleClothingPurchase],
+  );
 
   const syncUserBalance = (pointsAdded: number, newBalance: number) => {
     setUser(currentUser => {
@@ -529,54 +596,29 @@ const PointsShopScreen = ({navigation, route}: any) => {
                   <ActivityIndicator size="large" color="#a78bfa" />
                 </View>
               ) : (
-                <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-                  <View style={styles.itemsGrid}>
-                    {filteredClothingItems.map(item => {
-                      const owned = ownedItems.has(item.id);
-                      const isPurchasing = purchasing === item.id;
-                      const rarityColor = RARITY_COLORS[item.rarity] ?? '#9ca3af';
-                      return (
-                        <TouchableOpacity
-                          key={item.id}
-                          style={[styles.itemCard, {borderColor: rarityColor + '55'}]}
-                          onPress={() => !owned && !isPurchasing && handleClothingPurchase(item)}
-                          disabled={owned || isPurchasing}>
-                          <View style={styles.itemContent}>
-                            <View style={styles.itemImageWrapper}>
-                              <AssetImage
-                                source={item.thumbnailUrl || item.imageUrl}
-                                width="100%"
-                                height="100%"
-                              />
-                            </View>
-
-                            {owned && (
-                              <View style={styles.ownedBadge}>
-                                <Text style={styles.ownedText}>✓ Owned</Text>
-                              </View>
-                            )}
-
-                            <View style={styles.itemInfo}>
-                              <Text style={styles.itemName} numberOfLines={1}>{item.name}</Text>
-                              <Text style={[styles.itemRarity, {color: rarityColor}]}>
-                                {item.rarity.toUpperCase()}
-                              </Text>
-                              {isPurchasing ? (
-                                <ActivityIndicator size="small" color="#a78bfa" />
-                              ) : (
-                                <View style={styles.itemPriceContainer}>
-                                  <Text style={styles.itemPriceText}>
-                                    {item.price === 0 ? 'FREE' : `$${(item.price / 100).toFixed(2)}`}
-                                  </Text>
-                                </View>
-                              )}
-                            </View>
-                          </View>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
-                </ScrollView>
+                <FlatList
+                  style={styles.scrollView}
+                  data={visibleClothingItems}
+                  renderItem={renderClothingItem}
+                  keyExtractor={item => item.id}
+                  numColumns={2}
+                  columnWrapperStyle={styles.itemsGridRow}
+                  contentContainerStyle={styles.itemsGridContent}
+                  showsVerticalScrollIndicator={false}
+                  initialNumToRender={CLOTHING_PAGE_SIZE}
+                  maxToRenderPerBatch={CLOTHING_PAGE_SIZE}
+                  windowSize={5}
+                  removeClippedSubviews
+                  onEndReached={handleLoadMoreClothing}
+                  onEndReachedThreshold={0.5}
+                  ListFooterComponent={
+                    visibleClothingCount < filteredClothingItems.length ? (
+                      <View style={styles.loadMoreFooter}>
+                        <ActivityIndicator size="small" color="#a78bfa" />
+                      </View>
+                    ) : null
+                  }
+                />
               )}
             </>
           )}
@@ -723,6 +765,18 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     padding: spacing.lg,
     gap: 14,
+  },
+  itemsGridContent: {
+    padding: spacing.lg,
+    gap: 14,
+  },
+  itemsGridRow: {
+    gap: 14,
+    marginBottom: 14,
+  },
+  loadMoreFooter: {
+    paddingVertical: spacing.lg,
+    alignItems: 'center',
   },
   itemCard: {
     width: CARD_WIDTH,
