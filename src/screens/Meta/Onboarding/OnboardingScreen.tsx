@@ -148,9 +148,11 @@ const OnboardingScreen: React.FC<{navigation: any; route?: any}> = ({navigation}
   const [usernameMessage, setUsernameMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
   
-  // Gender + avatar slide state
-  const [selectedGender, setSelectedGender] = useState<'male' | 'female' | null>(null);
-  const [selectedAvatarId, setSelectedAvatarId] = useState<string | null>(null);
+  // Gender + avatar slide state. Default to male and preselect the first
+  // male avatar so the user lands on a valid selection without tapping.
+  const firstMaleAvatarId = ALL_BASE_AVATARS.find(a => a.gender === 'male')?.id ?? null;
+  const [selectedGender, setSelectedGender] = useState<'male' | 'female' | null>('male');
+  const [selectedAvatarId, setSelectedAvatarId] = useState<string | null>(firstMaleAvatarId);
 
   const flatListRef = useRef<FlatList>(null);
   const scrollX = useRef(new Animated.Value(0)).current;
@@ -444,7 +446,7 @@ const OnboardingScreen: React.FC<{navigation: any; route?: any}> = ({navigation}
     // 3-column avatar grid using the SVG "yellow" avatars from
     // assets/avatars_new/Avatars (delivered via NEW_BASE_AVATARS).
     if (item.isCharacterSlide) {
-      const activeGender: 'male' | 'female' = selectedGender ?? 'female';
+      const activeGender: 'male' | 'female' = selectedGender ?? 'male';
       const charAvatars = ALL_BASE_AVATARS.filter(a => a.gender === activeGender);
       const cellSize = Math.floor((screenWidth - 24 * 2 - 12 * 2) / 3);
       const canContinue = !!selectedGender && !!selectedAvatarId;
@@ -474,7 +476,7 @@ const OnboardingScreen: React.FC<{navigation: any; route?: any}> = ({navigation}
             <Text style={slideStyles.charSubtitle}>{item.description}</Text>
 
             <View style={slideStyles.genderToggle}>
-              {(['female', 'male'] as const).map(g => {
+              {(['male', 'female'] as const).map(g => {
                 const active = activeGender === g;
                 return (
                   <TouchableOpacity
@@ -482,7 +484,8 @@ const OnboardingScreen: React.FC<{navigation: any; route?: any}> = ({navigation}
                     activeOpacity={0.85}
                     onPress={() => {
                       setSelectedGender(g);
-                      setSelectedAvatarId(null);
+                      const firstForGender = ALL_BASE_AVATARS.find(a => a.gender === g)?.id ?? null;
+                      setSelectedAvatarId(firstForGender);
                     }}
                     style={[
                       slideStyles.genderToggleItem,
@@ -643,13 +646,9 @@ const OnboardingScreen: React.FC<{navigation: any; route?: any}> = ({navigation}
                   activeOpacity={0.85}
                   onPress={handleEnableNotifications}
                   style={slideStyles.notifEnableWrap}>
-                  <LinearGradient
-                    colors={['#ff8a00', '#ffd200']}
-                    start={{x: 0, y: 0}}
-                    end={{x: 1, y: 0}}
-                    style={slideStyles.notifEnable}>
+                  <View style={slideStyles.notifEnable}>
                     <Text style={slideStyles.notifEnableText}>ENABLE NOTIFICATIONS</Text>
-                  </LinearGradient>
+                  </View>
                 </TouchableOpacity>
               )}
               {notificationStatus === 'granted' && (
@@ -1567,6 +1566,7 @@ const slideStyles = StyleSheet.create({
     marginTop: 2,
   },
   notifEnableWrap: {
+    backgroundColor: '#ff8a00',
     alignSelf: 'center',
     marginTop: 24,
     borderRadius: 999,

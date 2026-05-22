@@ -1114,7 +1114,7 @@ const BaazarBlotScreen = ({ navigation }: any) => {
   return (
     <View style={styles.bg} {...(arEnabled ? arPinchResponder.panHandlers : {})}>
       <AraratBackground>
-        <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/game_boards/Poker_table.glb" hideCheckerboard boardFixed boardFixedZoom={1.0} boardScale={1.9} tableDist={0.9} boardY={-1.5} boardTiltX={0} cardGlbPath="glb/cards/card-template.glb" cards={arCards} />
+        <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/game_assets/armenia_table.glb" hideCheckerboard boardFixed boardFixedZoom={1.0} boardScale={1.9} tableDist={0.9} boardY={-1.5} boardTiltX={0} cardGlbPath="glb/cards/card-template.glb" cards={arCards} />
       </AraratBackground>
       <View style={styles.overlay} pointerEvents="box-none">
       <GamePlayerOverlay opponent="ai" topOffset={260} size={100}/>
