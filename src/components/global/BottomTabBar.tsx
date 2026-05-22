@@ -23,7 +23,7 @@ type TabDef = {
 
 const TABS: TabDef[] = [
   { key: 'Community', label: 'Community', icon: 'home-outline', route: 'Home' },
-  { key: 'Store', label: 'Store', icon: 'basket-outline', route: 'ClothingStore' },
+  { key: 'Store', label: 'Store', icon: 'basket-outline', route: 'PointsShop', params: { initialTab: 'points' } },
   { key: 'GameHub', label: 'Game Hub', icon: 'play', route: 'GameSelection' },
   { key: 'Messages', label: 'Messages', icon: 'chat-outline', route: 'DMList' },
   { key: 'Profile', label: 'Profile', icon: 'account-outline', route: 'Profile' },
