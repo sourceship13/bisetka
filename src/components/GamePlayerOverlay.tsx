@@ -24,12 +24,15 @@ interface Props {
   size?: number;
   /** Vertical offset from the top (to clear toolbars). */
   topOffset?: number;
+  /** Hide the dark backdrop behind each chip (used by 8/9-ball pool). */
+  transparentBackground?: boolean;
 }
 
 const GamePlayerOverlay: React.FC<Props> = ({
   opponent,
   size = 100,
   topOffset = 150,
+  transparentBackground = false,
 }) => {
   return (
     <View
@@ -37,17 +40,18 @@ const GamePlayerOverlay: React.FC<Props> = ({
       style={[styles.container, { top: topOffset }]}
     >
       <View style={styles.left}>
-        <PlayerChip mode="self" size={size} />
+        <PlayerChip mode="self" size={size} transparentBackground={transparentBackground} />
       </View>
       <View style={styles.right}>
         {opponent === 'ai' ? (
-          <PlayerChip mode="ai" size={size} />
+          <PlayerChip mode="ai" size={size} transparentBackground={transparentBackground} />
         ) : opponent ? (
           <PlayerChip
             mode="opponent"
             userId={opponent.userId ?? undefined}
             username={opponent.username ?? undefined}
             size={size}
+            transparentBackground={transparentBackground}
           />
         ) : null}
       </View>

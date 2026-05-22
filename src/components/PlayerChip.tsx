@@ -19,6 +19,9 @@ interface Props {
   username?: string | null;
   /** Avatar pixel size. */
   size?: number;
+  /** When true, drops the dark backdrop behind the avatar + name so the chip
+   *  reads as a transparent floating avatar (used by 8/9-ball pool HUDs). */
+  transparentBackground?: boolean;
 }
 
 const PlayerChip: React.FC<Props> = ({
@@ -26,6 +29,7 @@ const PlayerChip: React.FC<Props> = ({
   userId,
   username,
   size = 56,
+  transparentBackground = false,
 }) => {
   let label = 'You';
   let avatar: React.ReactNode = null;
@@ -65,12 +69,21 @@ const PlayerChip: React.FC<Props> = ({
         style={[
           styles.avatarRing,
           { width: size + 8, height: size + 8, borderRadius: 14 },
+          transparentBackground && styles.avatarRingTransparent,
         ]}
       >
         {avatar}
       </View>
-      <View style={styles.labelWrap}>
-        <Text style={styles.label} numberOfLines={1}>
+      <View
+        style={[
+          styles.labelWrap,
+          transparentBackground && styles.labelWrapTransparent,
+        ]}
+      >
+        <Text
+          style={[styles.label, transparentBackground && styles.labelOnTransparent]}
+          numberOfLines={1}
+        >
           {label}
         </Text>
       </View>
@@ -89,6 +102,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.55)',
     overflow: 'hidden',
   },
+  avatarRingTransparent: {
+    backgroundColor: 'transparent',
+  },
   labelWrap: {
     marginTop: 4,
     paddingHorizontal: 8,
@@ -97,11 +113,21 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.6)',
     maxWidth: 110,
   },
+  labelWrapTransparent: {
+    backgroundColor: 'transparent',
+    paddingHorizontal: 0,
+    paddingVertical: 0,
+  },
   label: {
     color: '#fff',
     fontSize: 12,
     fontWeight: '700',
     textAlign: 'center',
+  },
+  labelOnTransparent: {
+    textShadowColor: 'rgba(0,0,0,0.85)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
   robot: {
     alignItems: 'center',
