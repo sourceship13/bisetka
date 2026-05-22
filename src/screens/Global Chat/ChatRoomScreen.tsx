@@ -12,7 +12,6 @@ import {
 } from 'react-native';
 import { BisetkaAlert } from '../../utils/BisetkaAlert';
 import {SafeAreaView} from 'react-native-safe-area-context';
-import LinearGradient from 'react-native-linear-gradient';
 import {colors, spacing} from '../../theme';
 import chatRoomService, {ChatRoom, ChatRoomMessage, ChatRoomMember} from '../../services/chatRoom.service';
 import {useAuth} from '../../libs/hooks/useAuth';
@@ -290,11 +289,14 @@ const ChatRoomScreen = ({route, navigation}: any) => {
             style={[styles.sendButton, !inputText.trim() && styles.sendButtonDisabled]}
             onPress={handleSend}
             disabled={!inputText.trim()}>
-            <LinearGradient
-              colors={inputText.trim() ? ['#10b981', '#34d399'] : ['#374151', '#4b5563']}
-              style={styles.sendGradient}>
+            <View
+              style={[
+                styles.sendGradient,
+                { backgroundColor: inputText.trim() ? '#10b981' : '#374151' },
+              ]}
+            >
               <Text style={styles.sendButtonText}>Send</Text>
-            </LinearGradient>
+            </View>
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>

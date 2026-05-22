@@ -8,7 +8,6 @@ import {
 } from 'react-native';
 import { useNavigation, useNavigationState } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 type TabKey = 'Community' | 'Store' | 'GameHub' | 'Messages' | 'Profile';

@@ -13,7 +13,6 @@ import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-na
 import ExpandableView from '../components/global/ExpandableView';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { BisetkaAlert } from '../utils/BisetkaAlert';
-import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { socketService } from '../services/SocketService';
 import tokenService from '../services/token.service';
@@ -598,9 +597,8 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
       source={require('../../assets/blot/park-background.png')}
       style={styles.bg}
       resizeMode="cover">
-      <LinearGradient
-        colors={['rgba(15,15,35,0.7)', 'rgba(26,23,66,0.6)']}
-        style={StyleSheet.absoluteFill}
+      <View
+        style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(15,15,35,0.7)' }]}
       />
       <SafeAreaView style={styles.safe}>
         <GameToolbar
@@ -635,9 +633,8 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
       source={require('../../assets/blot/park-background.png')}
       style={styles.bg}
       resizeMode="cover">
-      <LinearGradient
-        colors={['rgba(15,15,35,0.7)', 'rgba(26,23,66,0.6)']}
-        style={StyleSheet.absoluteFill}
+      <View
+        style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(15,15,35,0.7)' }]}
       />
       <SafeAreaView style={styles.safe}>
         <GameToolbar
@@ -666,9 +663,8 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
       source={require('../../assets/blot/park-background.png')}
       style={styles.bg}
       resizeMode="cover">
-      <LinearGradient
-        colors={['rgba(15,15,35,0.7)', 'rgba(26,23,66,0.6)']}
-        style={StyleSheet.absoluteFill}
+      <View
+        style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(15,15,35,0.7)' }]}
       />
       <SafeAreaView style={styles.safe}>
         <GameToolbar
@@ -1033,9 +1029,8 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
           source={require('../../assets/blot/park-background.png')}
           style={styles.bg}
           resizeMode="cover">
-          <LinearGradient
-            colors={['transparent', 'transparent']}
-            style={StyleSheet.absoluteFill}
+          <View
+            style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(15,15,35,0.7)' }]}
           />
           <SafeAreaView style={styles.safe}>
             <View>
@@ -1086,9 +1081,8 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
         source={require('../../assets/blot/park-background.png')}
         style={styles.bg}
         resizeMode="cover">
-        <LinearGradient
-          colors={['transparent', 'transparent']}
-          style={StyleSheet.absoluteFill}
+        <View
+          style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(15,15,35,0.7)' }]}
         />
         <SafeAreaView style={styles.safe}>
           <View>

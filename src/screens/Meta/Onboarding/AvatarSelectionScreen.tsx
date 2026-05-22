@@ -9,7 +9,6 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import LinearGradient from 'react-native-linear-gradient';
 import { BaseAvatar } from '../../../types/avatar2d';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import AssetImage from '../../../components/AssetImage';
@@ -142,9 +141,8 @@ export const AvatarSelectionScreen = ({ navigation }: any) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <LinearGradient
-        colors={['#1a1a2e', '#16213e']}
-        style={styles.gradient}
+      <View
+        style={[styles.gradient, { backgroundColor: '#1a1a2e' }]}
       >
         <ScrollView contentContainerStyle={styles.scrollContent}>
           {/* Header */}
@@ -219,23 +217,21 @@ export const AvatarSelectionScreen = ({ navigation }: any) => {
             onPress={selectAvatar}
             disabled={saving || !selectedAvatar}
           >
-            <LinearGradient
-              colors={
-                selectedAvatar
-                  ? ['#6366f1', '#8b5cf6']
-                  : ['#4b5563', '#6b7280']
-              }
-              style={styles.continueGradient}
+            <View
+              style={[
+                styles.continueGradient,
+                { backgroundColor: selectedAvatar ? '#6366f1' : '#4b5563' },
+              ]}
             >
               {saving ? (
                 <ActivityIndicator color="#fff" />
               ) : (
                 <Text style={styles.continueText}>Continue</Text>
               )}
-            </LinearGradient>
+            </View>
           </TouchableOpacity>
         </View>
-      </LinearGradient>
+      </View>
     </SafeAreaView>
   );
 };

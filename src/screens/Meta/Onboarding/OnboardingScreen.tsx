@@ -16,7 +16,6 @@ import {
   DeviceEventEmitter,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
-import LinearGradient from 'react-native-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import pushNotificationService from '../../../services/pushNotification.service';
 import apiService from '../../../services/api.service';
@@ -492,11 +491,11 @@ const OnboardingScreen: React.FC<{navigation: any; route?: any}> = ({navigation}
                       active && slideStyles.genderToggleItemActive,
                     ]}>
                     {active && (
-                      <LinearGradient
-                        colors={['#a78bfa', '#7c3aed']}
-                        start={{x: 0, y: 0}}
-                        end={{x: 1, y: 0}}
-                        style={StyleSheet.absoluteFill}
+                      <View
+                        style={[
+                          StyleSheet.absoluteFill,
+                          { backgroundColor: '#a78bfa' },
+                        ]}
                       />
                     )}
                     <Text style={slideStyles.genderToggleText}>
@@ -668,13 +667,13 @@ const OnboardingScreen: React.FC<{navigation: any; route?: any}> = ({navigation}
                   activeOpacity={0.85}
                   onPress={handleOpenSettings}
                   style={slideStyles.notifEnableWrap}>
-                  <LinearGradient
-                    colors={['#ff8a00', '#ffd200']}
-                    start={{x: 0, y: 0}}
-                    end={{x: 1, y: 0}}
-                    style={slideStyles.notifEnable}>
+                  <View
+                    style={[
+                      slideStyles.notifEnable,
+                      { backgroundColor: '#ff8a00' },
+                    ]}>
                     <Text style={slideStyles.notifEnableText}>⚙️ OPEN SETTINGS</Text>
-                  </LinearGradient>
+                  </View>
                 </TouchableOpacity>
               )}
             </View>
@@ -720,11 +719,13 @@ const OnboardingScreen: React.FC<{navigation: any; route?: any}> = ({navigation}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <View style={slideStyles.slideContent}>
         {/* Emoji Icon */}
-        <LinearGradient
-          colors={item.gradient}
-          style={slideStyles.iconContainer}>
+        <View
+          style={[
+            slideStyles.iconContainer,
+            { backgroundColor: item.gradient?.[0] },
+          ]}>
           <Text style={slideStyles.emojiIcon}>{item.emoji}</Text>
-        </LinearGradient>
+        </View>
 
         {/* Text */}
         <Text style={slideStyles.slideTitle}>{item.title}</Text>
@@ -736,13 +737,15 @@ const OnboardingScreen: React.FC<{navigation: any; route?: any}> = ({navigation}
             style={slideStyles.notifButton}
             onPress={handleEnableNotifications}
             activeOpacity={0.8}>
-            <LinearGradient
-              colors={['#ee0979', '#ff6a00']}
-              style={slideStyles.notifButtonGradient}>
+            <View
+              style={[
+                slideStyles.notifButtonGradient,
+                { backgroundColor: '#ee0979' },
+              ]}>
               <Text style={slideStyles.notifButtonText}>
                 🔔 Enable Notifications
               </Text>
-            </LinearGradient>
+            </View>
           </TouchableOpacity>
         )}
         {item.isNotificationSlide && notificationStatus === 'granted' && (
@@ -771,11 +774,13 @@ const OnboardingScreen: React.FC<{navigation: any; route?: any}> = ({navigation}
               style={slideStyles.notifButton}
               onPress={handleOpenSettings}
               activeOpacity={0.8}>
-              <LinearGradient
-                colors={['#ee0979', '#ff6a00']}
-                style={slideStyles.notifButtonGradient}>
+              <View
+                style={[
+                  slideStyles.notifButtonGradient,
+                  { backgroundColor: '#ee0979' },
+                ]}>
                 <Text style={slideStyles.notifButtonText}>⚙️ Open Settings</Text>
-              </LinearGradient>
+              </View>
             </TouchableOpacity>
           </View>
         )}
@@ -915,9 +920,11 @@ const OnboardingScreen: React.FC<{navigation: any; route?: any}> = ({navigation}
   const hidesGlobalChrome = isWelcome || isUsernameStep || isCharacterStep || isNotificationStep;
 
   return (
-    <LinearGradient
-      colors={[colors.background.primary, colors.background.secondary, colors.background.tertiary]}
-      style={slideStyles.container}>
+    <View
+      style={[
+        slideStyles.container,
+        { backgroundColor: colors.background.primary },
+      ]}>
       {/* Slides render full-screen behind any chrome so background images
           extend edge-to-edge under notches and home indicators. */}
       <FlatList
@@ -968,7 +975,7 @@ const OnboardingScreen: React.FC<{navigation: any; route?: any}> = ({navigation}
 
         {/* Slides */}
       </SafeAreaView>
-    </LinearGradient>
+    </View>
   );
 };
 

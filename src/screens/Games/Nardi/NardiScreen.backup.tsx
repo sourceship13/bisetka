@@ -18,7 +18,7 @@ import RoomNameModal from '../../../components/RoomNameModal';
 import ReAnimated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import ExpandableView from '../../../components/global/ExpandableView';
 import { useGameEndRefresh } from '../../../libs/hooks/useGameEndRefresh';
-import LinearGradient from 'react-native-linear-gradient';
+
 import {
   GameMode,
   NardiGameState,
@@ -42,6 +42,7 @@ import { apiService } from '../../../services/api.service';
 import { useAuth } from '../../../libs/hooks/useAuth';
 import { useAchievements } from '../../../contexts/AchievementContext';
 import { v4 as uuidv4 } from 'uuid';
+
 
 const { width, height } = Dimensions.get('window');
 // Must match getGameBoardSize(false, false, 600, 32) so piece coordinates
@@ -956,9 +957,11 @@ const NardiScreen = ({ navigation, route }: any) => {
       source={require('../../../../assets/nardi/park-background.png')}
       style={styles.container}
       blurRadius={showBlur ? 3 : 0}>
-      <LinearGradient
-        colors={showBlur ? ['rgba(15,15,35,0.7)', 'rgba(26,23,66,0.6)'] : ['transparent', 'transparent']}
-        style={styles.overlay}>
+      <View
+        style={[
+          styles.overlay,
+          { backgroundColor: showBlur ? 'rgba(15,15,35,0.7)' : 'transparent' },
+        ]}>
         
         <SafeAreaView style={styles.safeArea}>
           <View>
@@ -1258,11 +1261,11 @@ const NardiScreen = ({ navigation, route }: any) => {
                   onPress={() => {
                     setGameState(prev => prev ? switchPlayer(prev) : prev);
                   }}>
-                  <LinearGradient
-                    colors={['#ef4444', '#dc2626']}
-                    style={{ paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12, alignItems: 'center' }}>
+                  <View
+                    style={{ backgroundColor: '#ef4444', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12, alignItems: 'center' }}
+                    >
                     <Text style={{ color: '#fff', fontSize: 15, fontWeight: '700' }}>End Turn Now</Text>
-                  </LinearGradient>
+                  </View>
                 </TouchableOpacity>
               </View>
             )}
@@ -1347,7 +1350,7 @@ const NardiScreen = ({ navigation, route }: any) => {
             onSave={handleSaveRoomName}
             gameType="Nardi"
           />
-      </LinearGradient>
+      </View>
 
       {/* In-game chat overlay (multiplayer only) */}
       <InGameChat

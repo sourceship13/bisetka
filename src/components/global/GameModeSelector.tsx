@@ -9,7 +9,6 @@ import {
   Dimensions,
   Switch,
 } from 'react-native';
-import LinearGradient from 'react-native-linear-gradient';
 import {colors, spacing, typography} from '../../theme';
 
 const {width} = Dimensions.get('window');
@@ -92,11 +91,7 @@ const GameModeSelector: React.FC<GameModeSelectorProps> = ({
         disabled={isDisabled}
         onPress={action}
         style={[styles.cardWrapper, isDisabled && styles.cardDisabled]}>
-        <LinearGradient
-          colors={config.gradient as [string, string]}
-          start={{x: 0, y: 0}}
-          end={{x: 1, y: 1}}
-          style={styles.modeCard}>
+        <View style={[styles.modeCard, { backgroundColor: config.gradient[0] }]}> 
           <View style={styles.cardContent}>
             <Text style={styles.cardIcon}>{config.icon}</Text>
             <View style={styles.cardText}>
@@ -112,7 +107,7 @@ const GameModeSelector: React.FC<GameModeSelectorProps> = ({
           <View style={styles.cardArrow}>
             <Text style={styles.arrowText}>→</Text>
           </View>
-        </LinearGradient>
+        </View>
       </TouchableOpacity>
     );
   };
@@ -159,11 +154,7 @@ const GameModeSelector: React.FC<GameModeSelectorProps> = ({
             activeOpacity={0.85}
             onPress={() => setShowJoinInput(true)}
             style={styles.cardWrapper}>
-            <LinearGradient
-              colors={MODE_STYLES.join.gradient as [string, string]}
-              start={{x: 0, y: 0}}
-              end={{x: 1, y: 1}}
-              style={styles.modeCard}>
+            <View style={[styles.modeCard, { backgroundColor: MODE_STYLES.join.gradient[0] }]}>
               <View style={styles.cardContent}>
                 <Text style={styles.cardIcon}>{MODE_STYLES.join.icon}</Text>
                 <View style={styles.cardText}>
@@ -174,12 +165,11 @@ const GameModeSelector: React.FC<GameModeSelectorProps> = ({
               <View style={styles.cardArrow}>
                 <Text style={styles.arrowText}>→</Text>
               </View>
-            </LinearGradient>
+            </View>
           </TouchableOpacity>
         ) : (
           <View style={styles.joinExpanded}>
-            <LinearGradient
-              colors={MODE_STYLES.join.gradient as [string, string]}
+            <View style={[styles.modeCard, { backgroundColor: MODE_STYLES.join.gradient[0] }]}>
               start={{x: 0, y: 0}}
               end={{x: 1, y: 1}}
               style={styles.joinGradient}>
@@ -220,7 +210,7 @@ const GameModeSelector: React.FC<GameModeSelectorProps> = ({
                 style={styles.cancelButton}>
                 <Text style={styles.cancelText}>Cancel</Text>
               </TouchableOpacity>
-            </LinearGradient>
+            </View>
           </View>
         )}
       </View>

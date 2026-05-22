@@ -12,7 +12,6 @@ import {
 } from 'react-native';
 import { BisetkaAlert } from '../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import LinearGradient from 'react-native-linear-gradient';
 import { colors, spacing } from '../../theme';
 import chatRoomService, { ChatRoom } from '../../services/chatRoom.service';
 import { useAuth } from '../../libs/hooks/useAuth';
@@ -119,10 +118,7 @@ const ChatRoomsListScreen = ({ navigation }: any) => {
       onPress={() => handleRoomPress(item)}
       style={styles.roomCard}
     >
-      <LinearGradient
-        colors={['#1f2937', '#374151']}
-        style={styles.roomGradient}
-      >
+      <View style={[styles.roomGradient, { backgroundColor: '#1f2937' }]}>
         <View style={styles.roomHeader}>
           <Text style={styles.roomName}>{item.name}</Text>
           <TouchableOpacity
@@ -151,7 +147,7 @@ const ChatRoomsListScreen = ({ navigation }: any) => {
         </View>
 
         <Text style={styles.shareCode}>Code: {item.share_code}</Text>
-      </LinearGradient>
+      </View>
     </TouchableOpacity>
   );
 
@@ -184,24 +180,18 @@ const ChatRoomsListScreen = ({ navigation }: any) => {
           onPress={() => setShowCreateModal(true)}
           style={styles.createBtn}
         >
-          <LinearGradient
-            colors={['#10b981', '#34d399']}
-            style={styles.btnGradient}
-          >
+          <View style={[styles.btnGradient, { backgroundColor: '#10b981' }]}>
             <Text style={styles.btnText}>+ Create Room</Text>
-          </LinearGradient>
+          </View>
         </TouchableOpacity>
 
         <TouchableOpacity
           onPress={() => setShowJoinModal(true)}
           style={styles.joinBtn}
         >
-          <LinearGradient
-            colors={['#6366f1', '#8b5cf6']}
-            style={styles.btnGradient}
-          >
+          <View style={[styles.btnGradient, { backgroundColor: '#6366f1' }]}>
             <Text style={styles.btnText}>Join by Code</Text>
-          </LinearGradient>
+          </View>
         </TouchableOpacity>
       </View>
 
@@ -261,14 +251,11 @@ const ChatRoomsListScreen = ({ navigation }: any) => {
                 style={styles.modalCreateBtn}
                 disabled={creating}
               >
-                <LinearGradient
-                  colors={['#10b981', '#34d399']}
-                  style={styles.modalBtnGradient}
-                >
+                <View style={[styles.modalBtnGradient, { backgroundColor: '#10b981' }]}>
                   <Text style={styles.modalCreateText}>
                     {creating ? 'Creating...' : 'Create'}
                   </Text>
-                </LinearGradient>
+                </View>
               </TouchableOpacity>
             </View>
           </View>
@@ -303,12 +290,9 @@ const ChatRoomsListScreen = ({ navigation }: any) => {
                 onPress={handleJoinByCode}
                 style={styles.modalCreateBtn}
               >
-                <LinearGradient
-                  colors={['#6366f1', '#8b5cf6']}
-                  style={styles.modalBtnGradient}
-                >
+                <View style={[styles.modalBtnGradient, { backgroundColor: '#6366f1' }]}>
                   <Text style={styles.modalCreateText}>Join</Text>
-                </LinearGradient>
+                </View>
               </TouchableOpacity>
             </View>
           </View>

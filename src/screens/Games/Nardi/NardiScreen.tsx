@@ -23,7 +23,7 @@ import ExpandableView from '../../../components/global/ExpandableView';
 import { useGameEndRefresh } from '../../../libs/hooks/useGameEndRefresh';
 import AraratBackground from '../../../components/AraratBackground';
 import AR3DOverlay, {type AR3DOverlayHandle, type ARPiece} from '../../../components/AR3DOverlay';
-import LinearGradient from 'react-native-linear-gradient';
+
 import {
   GameMode,
   NardiGameState,
@@ -2055,11 +2055,10 @@ const NardiScreen = ({ navigation, route }: any) => {
                   onPress={() => {
                     setGameState(prev => prev ? switchPlayer(prev) : prev);
                   }}>
-                  <LinearGradient
-                    colors={['#ef4444', '#dc2626']}
-                    style={{ paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12, alignItems: 'center' }}>
+                  <View
+                    style={{ backgroundColor: '#ef4444',   paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12, alignItems: 'center' }}>
                     <Text style={{ color: '#fff', fontSize: 15, fontWeight: '700' }}>End Turn Now</Text>
-                  </LinearGradient>
+                  </View>
                 </TouchableOpacity>
               </View>
             )}
@@ -2110,15 +2109,12 @@ const NardiScreen = ({ navigation, route }: any) => {
                       shadowRadius: 10,
                       elevation: 8,
                     }}>
-                    <LinearGradient
-                      colors={['#10b981', '#059669']}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
+                    <View
                       style={{ paddingHorizontal: 26, paddingVertical: 10 }}>
                       <Text style={{ color: '#fff', fontWeight: '800', fontSize: 14, letterSpacing: 0.8 }}>
                         🏁 Bear Off{selectedPoint !== null ? ` (Point ${selectedPoint + 1})` : ''}
                       </Text>
-                    </LinearGradient>
+                    </View>
                   </TouchableOpacity>
                 )}
               </>

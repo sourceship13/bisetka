@@ -9,7 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import LinearGradient from 'react-native-linear-gradient';
+
 
 interface RoomNameModalProps {
   visible: boolean;
@@ -59,11 +59,7 @@ const RoomNameModal: React.FC<RoomNameModalProps> = ({
         
         <View style={styles.modalContainer}>
           {/* Header */}
-          <LinearGradient
-            colors={['#6366f1', '#8b5cf6']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.header}>
+          <View style={[styles.header, { backgroundColor: '#6366f1' }]}>
             <Text style={styles.headerTitle}>Rename Room</Text>
             <TouchableOpacity
               onPress={handleClose}
@@ -71,7 +67,7 @@ const RoomNameModal: React.FC<RoomNameModalProps> = ({
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
               <Text style={styles.closeButtonText}>✕</Text>
             </TouchableOpacity>
-          </LinearGradient>
+          </View>
 
           {/* Content */}
           <View style={styles.content}>
@@ -104,13 +100,9 @@ const RoomNameModal: React.FC<RoomNameModalProps> = ({
               onPress={handleSave}
               activeOpacity={0.8}
               disabled={roomName.trim().length === 0}>
-              <LinearGradient
-                colors={['#10b981', '#34d399']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.saveButtonGradient}>
+              <View style={[styles.saveButtonGradient, { backgroundColor: '#10b981' }]}>
                 <Text style={styles.saveButtonText}>Save</Text>
-              </LinearGradient>
+              </View>
             </TouchableOpacity>
           </View>
         </View>

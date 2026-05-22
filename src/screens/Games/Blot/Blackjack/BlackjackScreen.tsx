@@ -12,7 +12,6 @@ import {
   Animated,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import LinearGradient from 'react-native-linear-gradient';
 import { useAuth } from '../../../../libs/hooks/useAuth';
 import { BisetkaAlert } from '../../../../utils/BisetkaAlert';
 import GameToolbar from '../../../../components/global/GameToolbar';
@@ -491,11 +490,7 @@ const BlackjackScreen = ({ navigation }: any) => {
           </View>
 
           {/* Casino Felt Table */}
-          <LinearGradient
-            colors={['#0d4f2c', '#0a3d22', '#062817']}
-            start={{ x: 0.5, y: 0 }}
-            end={{ x: 0.5, y: 1 }}
-            style={styles.cardTable}>
+          <View>
             {/* Felt arc legend */}
             <Text style={styles.feltArcText}>BLACKJACK PAYS 3 TO 2</Text>
             <Text style={styles.feltSubText}>Dealer must draw to 16 and stand on all 17s</Text>
@@ -545,7 +540,7 @@ const BlackjackScreen = ({ navigation }: any) => {
                 </View>
               )}
             </View>
-          </LinearGradient>
+          </View>
 
           {/* Game Messages */}
           {gameState.resultMessage && (
@@ -573,13 +568,11 @@ const BlackjackScreen = ({ navigation }: any) => {
                         key={chip}
                         activeOpacity={0.85}
                         onPress={() => setBetAmount(Math.min(gameState.balance, betAmount + chip))}>
-                        <LinearGradient
-                          colors={[c1, c2]}
-                          style={styles.chip}>
+                        <View style={[ { backgroundColor: c2 }]}>
                           <View style={styles.chipInner}>
                             <Text style={[styles.chipText, { color: txt }]}>${chip}</Text>
                           </View>
-                        </LinearGradient>
+                        </View>
                       </TouchableOpacity>
                     );
                   })}

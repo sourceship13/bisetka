@@ -11,7 +11,6 @@ import {
 } from 'react-native';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import {SafeAreaView} from 'react-native-safe-area-context';
-import LinearGradient from 'react-native-linear-gradient';
 import apiService from '../../../services/api.service';
 import {colors, spacing, typography} from '../../../theme';
 import {useAuth} from '../../../libs/hooks/useAuth';
@@ -98,9 +97,8 @@ const UsernameSelectionScreen: React.FC<UsernameSelectionScreenProps> = ({
   };
 
   return (
-    <LinearGradient
-      colors={[colors.background.primary, colors.background.secondary]}
-      style={styles.container}>
+    <View
+      style={[styles.container, { backgroundColor: colors.background.primary }]}>
       <SafeAreaView style={styles.safeArea}>
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -152,19 +150,20 @@ const UsernameSelectionScreen: React.FC<UsernameSelectionScreenProps> = ({
                 onPress={handleSubmit}
                 disabled={!available || submitting}
                 activeOpacity={0.8}>
-                <LinearGradient
-                  colors={
-                    available && !submitting
-                      ? ['#667eea', '#764ba2']
-                      : [colors.text.tertiary, colors.text.tertiary]
-                  }
-                  style={styles.submitButtonGradient}>
+                <View
+                  style={[
+                    styles.submitButtonGradient,
+                    {
+                      backgroundColor:
+                        available && !submitting ? '#667eea' : colors.text.tertiary,
+                    },
+                  ]}>
                   {submitting ? (
                     <ActivityIndicator color={colors.text.primary} />
                   ) : (
                     <Text style={styles.submitButtonText}>Continue</Text>
                   )}
-                </LinearGradient>
+                </View>
               </TouchableOpacity>
             </View>
 
@@ -176,7 +175,7 @@ const UsernameSelectionScreen: React.FC<UsernameSelectionScreenProps> = ({
           </View>
         </KeyboardAvoidingView>
       </SafeAreaView>
-    </LinearGradient>
+    </View>
   );
 };
 

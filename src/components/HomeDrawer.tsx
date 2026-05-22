@@ -11,7 +11,6 @@ import {
   Image,
 } from 'react-native';
 import AppVersionFooter from './global/AppVersionFooter';
-import LinearGradient from 'react-native-linear-gradient';
 import {useAuth} from '../libs/hooks/useAuth';
 import {colors, spacing} from '../theme';
 import AVATARS, {resolveAvatar} from '../utils/avatars';
@@ -179,11 +178,8 @@ const HomeDrawer: React.FC<HomeDrawerProps> = ({visible, onClose, onOpen, onNavi
         style={[styles.drawer, {transform: [{translateX}]}]}
         {...drawerPan.panHandlers}>
         {/* User header */}
-        <LinearGradient
-          colors={['#6366f1', '#8b5cf6']}
-          start={{x: 0, y: 0}}
-          end={{x: 1, y: 1}}
-          style={styles.userHeader}>
+        <View
+          style={[styles.userHeader, { backgroundColor: '#6366f1' }]}>
           <View style={styles.avatarWrap}>
             <UserAvatar size={100} avatarUrl={user?.avatar_url} />
           </View>
@@ -191,7 +187,7 @@ const HomeDrawer: React.FC<HomeDrawerProps> = ({visible, onClose, onOpen, onNavi
           {user?.username && (
             <Text style={styles.drawerUsername}>@{user.username}</Text>
           )}
-        </LinearGradient>
+        </View>
 
         {/* Menu items */}
         <View style={styles.menuList}>
@@ -204,13 +200,10 @@ const HomeDrawer: React.FC<HomeDrawerProps> = ({visible, onClose, onOpen, onNavi
                 onClose();
                 onNavigate(item.key);
               }}>
-              <LinearGradient
-                colors={item.gradient}
-                start={{x: 0, y: 0}}
-                end={{x: 1, y: 1}}
-                style={styles.menuIconWrap}>
+              <View
+                style={[styles.menuIconWrap, { backgroundColor: item.gradient[0] }] }>
                 <Text style={styles.menuIcon}>{item.icon}</Text>
-              </LinearGradient>
+              </View  >
               <Text style={styles.menuLabel}>{item.label}</Text>
               <Text style={styles.menuChevron}>›</Text>
             </TouchableOpacity>
