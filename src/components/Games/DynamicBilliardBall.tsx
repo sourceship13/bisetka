@@ -19,7 +19,6 @@ import Svg, {
   Circle,
   Defs,
   RadialGradient,
-  LinearGradient,
   Stop,
   ClipPath,
   Rect,

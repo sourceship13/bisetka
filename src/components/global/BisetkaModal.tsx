@@ -8,7 +8,6 @@ import {
   Dimensions,
   Animated,
 } from 'react-native';
-import LinearGradient from 'react-native-linear-gradient';
 import { colors } from '../../theme/colors';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -168,17 +167,14 @@ const BisetkaModal: React.FC<BisetkaModalProps> = ({
         {type === 'success' && <ConfettiRain />}
         <View style={styles.modalContainer}>
           {/* Gradient header with icon */}
-          <LinearGradient
-            colors={getGradientColors()}
-            style={styles.header}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
+          <View
+            style={[styles.header, { backgroundColor: getGradientColors()[0] }]}
           >
             <View style={styles.iconCircle}>
               <Text style={styles.icon}>{getIcon()}</Text>
             </View>
             <Text style={styles.title}>{title}</Text>
-          </LinearGradient>
+          </View>
 
           {/* Content */}
           <View style={styles.content}>
@@ -200,14 +196,11 @@ const BisetkaModal: React.FC<BisetkaModalProps> = ({
                 ]}
                 activeOpacity={0.8}
               >
-                <LinearGradient
-                  colors={getButtonGradient(button.style)}
-                  style={styles.button}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
+                <View
+                  style={[styles.button, { backgroundColor: getButtonGradient(button.style)[0] }]}
                 >
                   <Text style={styles.buttonText}>{button.text}</Text>
-                </LinearGradient>
+                </View>
               </TouchableOpacity>
             ))}
           </View>

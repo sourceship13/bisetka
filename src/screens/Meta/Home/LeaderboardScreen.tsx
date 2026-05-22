@@ -10,7 +10,6 @@ import {
   StatusBar,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
-import LinearGradient from 'react-native-linear-gradient';
 import {colors, spacing, typography} from '../../../theme';
 import apiConfig from '../../../libs/utils/api.utils';
 import {useAuth} from '../../../libs/hooks/useAuth';
@@ -92,17 +91,18 @@ const LeaderboardScreen = ({navigation}: any) => {
 
     return (
       <View style={styles.itemContainer}>
-        <LinearGradient
-          colors={
-            isCurrentUser
-              ? ['#10b981', '#34d399']
-              : index < 3
-              ? getRankColor(index)
-              : ['#1f2937', '#374151']
-          }
-          start={{x: 0, y: 0}}
-          end={{x: 1, y: 0}}
-          style={[styles.itemGradient, isCurrentUser && styles.currentUserItem]}>
+        <View
+          style={[
+            styles.itemGradient,
+            isCurrentUser && styles.currentUserItem,
+            {
+              backgroundColor: isCurrentUser
+                ? '#10b981'
+                : index < 3
+                ? getRankColor(index)[0]
+                : '#1f2937',
+            },
+          ]}>
           <View style={styles.rankContainer}>
             <Text style={styles.rankNumber}>
               {rankEmoji || `#${rank}`}
@@ -141,7 +141,7 @@ const LeaderboardScreen = ({navigation}: any) => {
             </Text>
             <Text style={styles.pointsLabel}>pts</Text>
           </View>
-        </LinearGradient>
+        </View>
       </View>
     );
   };

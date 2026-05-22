@@ -10,7 +10,6 @@ import {
   Alert,
   Image,
 } from 'react-native';
-import LinearGradient from 'react-native-linear-gradient';
 import AraratBackground from '../../../components/AraratBackground';
 import { useAuth } from '../../../libs/hooks/useAuth';
 import { useGameEndRefresh } from '../../../libs/hooks/useGameEndRefresh';
@@ -354,11 +353,8 @@ const SlotsScreen = ({ navigation }: any) => {
         </View>
 
         <View style={styles.balanceCard}>
-          <LinearGradient
-            colors={['#10b981', '#34d399']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={StyleSheet.absoluteFill}
+          <View
+            style={[StyleSheet.absoluteFill, { backgroundColor: '#10b981' }]}
           />
           <Text style={styles.balanceLabel}>Balance</Text>
           <Text style={styles.balanceText}>💰 {balance.toLocaleString()}</Text>
@@ -370,11 +366,8 @@ const SlotsScreen = ({ navigation }: any) => {
         </Animated.View>
 
         <View style={styles.machine}>
-          <LinearGradient
-            colors={['#6366f1', '#8b5cf6', '#ec4899']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.machineFrame}
+          <View
+            style={[styles.machineFrame, { backgroundColor: '#6366f1' }]}
           >
             <View style={styles.reelsWrapper}>
               <View style={styles.reelsInner}>
@@ -386,14 +379,13 @@ const SlotsScreen = ({ navigation }: any) => {
             </View>
 
             {renderPaylineIndicators()}
-          </LinearGradient>
+          </View>
         </View>
 
         {winnings && winnings.totalPayout > 0 && (
           <View style={styles.winCard}>
-            <LinearGradient
-              colors={['#fbbf24', '#f59e0b']}
-              style={StyleSheet.absoluteFill}
+            <View
+              style={[StyleSheet.absoluteFill, { backgroundColor: '#fbbf24' }]}
             />
             <Text style={styles.winTitle}>🎉 WIN!</Text>
             <Text style={styles.winAmount}>
@@ -460,14 +452,16 @@ const SlotsScreen = ({ navigation }: any) => {
           disabled={spinning || balance < betAmount}
           activeOpacity={0.8}
         >
-          <LinearGradient
-            colors={spinning ? ['#666', '#444'] : ['#ec4899', '#f472b6']}
-            style={styles.spinGradient}
+          <View
+            style={[
+              styles.spinGradient,
+              { backgroundColor: spinning ? '#666' : '#ec4899' },
+            ]}
           >
             <Text style={styles.spinText}>
               {spinning ? '🎰 SPINNING...' : '🎰 SPIN'}
             </Text>
-          </LinearGradient>
+          </View>
         </TouchableOpacity>
       </SafeAreaView>
       </View>

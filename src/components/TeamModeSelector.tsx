@@ -6,7 +6,7 @@ import {
   TouchableOpacity,
   Dimensions,
 } from 'react-native';
-import LinearGradient from 'react-native-linear-gradient';
+
 import {colors, spacing, typography} from '../theme';
 
 const {width} = Dimensions.get('window');
@@ -52,11 +52,7 @@ const TeamModeSelector: React.FC<TeamModeSelectorProps> = ({
         activeOpacity={0.85}
         onPress={() => onSelectTeamMode(mode)}
         style={styles.cardWrapper}>
-        <LinearGradient
-          colors={config.gradient}
-          start={{x: 0, y: 0}}
-          end={{x: 1, y: 1}}
-          style={styles.teamCard}>
+        <View style={[styles.teamCard, { backgroundColor: config.gradient[0] }]}>
           <View style={styles.cardContent}>
             <Text style={styles.cardIcon}>{config.icon}</Text>
             <View style={styles.cardText}>
@@ -71,7 +67,7 @@ const TeamModeSelector: React.FC<TeamModeSelectorProps> = ({
           <View style={styles.cardArrow}>
             <Text style={styles.arrowText}>→</Text>
           </View>
-        </LinearGradient>
+        </View>
       </TouchableOpacity>
     );
   };

@@ -8,7 +8,6 @@ import {
   Dimensions,
   Animated,
 } from 'react-native';
-import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 const { width } = Dimensions.get('window');
@@ -118,9 +117,8 @@ export default function AchievementUnlockModal({ visible, achievement, onClose }
             },
           ]}
         >
-          <LinearGradient
-            colors={['#1a1a1a', '#0f0f0f']}
-            style={styles.card}
+          <View
+            style={[styles.card, { backgroundColor: '#1a1a1a' }]}
           >
             {/* Glow Effect */}
             <Animated.View
@@ -141,12 +139,11 @@ export default function AchievementUnlockModal({ visible, achievement, onClose }
 
             {/* Icon */}
             <View style={styles.iconContainer}>
-              <LinearGradient
-                colors={tierColors}
-                style={styles.iconGradient}
+              <View
+                style={[styles.iconGradient, { backgroundColor: tierColors[0] }]}
               >
                 <Icon name={achievement.icon} size={64} color="#fff" />
-              </LinearGradient>
+              </View>
             </View>
 
             {/* Achievement Info */}
@@ -166,7 +163,7 @@ export default function AchievementUnlockModal({ visible, achievement, onClose }
 
             {/* Tap to close hint */}
             <Text style={styles.tapHint}>Tap anywhere to close</Text>
-          </LinearGradient>
+          </View>
         </Animated.View>
       </TouchableOpacity>
     </Modal>

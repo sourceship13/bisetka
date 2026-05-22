@@ -21,7 +21,7 @@ import {
   Dimensions,
   Platform,
 } from 'react-native';
-import LinearGradient from 'react-native-linear-gradient';
+
 import {
   generateChessPieceSet,
   generateCheckersPieceSet,
@@ -208,7 +208,7 @@ const GameThemeCustomizer: React.FC<GameThemeCustomizerProps> = ({
         <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose} />
 
         <View style={styles.sheet}>
-          <LinearGradient colors={['#0f0f1a', '#1a1a2e']} style={styles.sheetInner}>
+          <View style={[styles.content, { backgroundColor:'#0f0f1a' }]}>
             {/* Handle */}
             <View style={styles.handle} />
 
@@ -328,10 +328,8 @@ const GameThemeCustomizer: React.FC<GameThemeCustomizerProps> = ({
                     onPress={handleGenerateBoard}
                     disabled={isGenBoard}
                     activeOpacity={0.8}>
-                    <LinearGradient
-                      colors={isGenBoard ? ['#333', '#444'] : ['#6366f1', '#818cf8']}
-                      style={styles.genBtnGradient}
-                      start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+                    <View
+                      style={[styles.genBtnGradient, { backgroundColor: isGenBoard ? '#333' : '#6366f1' }]}>
                       {isGenBoard ? (
                         <View style={styles.genBtnRow}>
                           <ActivityIndicator color="#fff" size="small" />
@@ -340,7 +338,7 @@ const GameThemeCustomizer: React.FC<GameThemeCustomizerProps> = ({
                       ) : (
                         <Text style={styles.genBtnText}>🎲 Generate Board → Slot {selectedBoardSlot + 1}</Text>
                       )}
-                    </LinearGradient>
+                    </View>
                   </TouchableOpacity>
 
                   {/* Cost note */}
@@ -459,10 +457,8 @@ const GameThemeCustomizer: React.FC<GameThemeCustomizerProps> = ({
                     onPress={handleGeneratePieces}
                     disabled={isGenPieces}
                     activeOpacity={0.8}>
-                    <LinearGradient
-                      colors={isGenPieces ? ['#333', '#444'] : ['#7c3aed', '#a78bfa']}
-                      style={styles.genBtnGradient}
-                      start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+                    <View
+                      style={[styles.genBtnGradient, { backgroundColor: isGenPieces ? '#333' : '#7c3aed' }]}>
                       {isGenPieces ? (
                         <View style={styles.genBtnRow}>
                           <ActivityIndicator color="#fff" size="small" />
@@ -478,7 +474,7 @@ const GameThemeCustomizer: React.FC<GameThemeCustomizerProps> = ({
                           ✨ Generate {totalPieces} Pieces → Slot {selectedPieceSlot + 1}
                         </Text>
                       )}
-                    </LinearGradient>
+                    </View>
                   </TouchableOpacity>
 
                   {/* Preview strip of active set */}
@@ -510,17 +506,15 @@ const GameThemeCustomizer: React.FC<GameThemeCustomizerProps> = ({
 
               {/* ══ APPLY button (always visible at bottom) ═══════════════ */}
               <TouchableOpacity style={styles.applyBtn} onPress={handleApply} activeOpacity={0.85}>
-                <LinearGradient
-                  colors={['#10b981', '#34d399']}
-                  style={styles.applyGradient}
-                  start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+                <View
+                  style={[styles.applyGradient, { backgroundColor: '#10b981' }]}>
                   <Text style={styles.applyText}>✓ Apply to Game</Text>
-                </LinearGradient>
+                </View>
               </TouchableOpacity>
 
               <View style={{ height: Platform.OS === 'ios' ? 40 : 24 }} />
             </ScrollView>
-          </LinearGradient>
+          </View>
         </View>
       </View>
     </Modal>

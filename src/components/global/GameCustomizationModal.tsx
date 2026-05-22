@@ -10,7 +10,6 @@ import {
   ActivityIndicator,
   Image,
 } from 'react-native';
-import LinearGradient from 'react-native-linear-gradient';
 import {
   generateChessPieceSet,
   generateCheckersPieceSet,
@@ -258,7 +257,7 @@ const GameCustomizationModal: React.FC<CardCustomizationModalProps> = ({
     <Modal visible={visible} animationType="slide" transparent={true}>
       <View style={styles.modalOverlay}>
         <View style={styles.modalContainer}>
-          <LinearGradient colors={['#1a1a2e', '#16213e']} style={styles.modalContent}>
+          <View style={styles.modalContent}>
             {/* Header */}
             <View style={styles.header}>
               <Text style={styles.title}>
@@ -596,9 +595,9 @@ const GameCustomizationModal: React.FC<CardCustomizationModalProps> = ({
 
               {/* Save Button */}
               <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-                <LinearGradient colors={['#10b981', '#34d399']} style={styles.saveButtonGradient}>
+                <View style={[styles.saveButtonGradient, { backgroundColor: '#10b981' }]}>
                   <Text style={styles.saveButtonText}>💾 Save Theme</Text>
-                </LinearGradient>
+                </View>
               </TouchableOpacity>
               <View style={{ height: 40 }} />
             </ScrollView>
@@ -724,7 +723,7 @@ const GameCustomizationModal: React.FC<CardCustomizationModalProps> = ({
               <View style={{ height: 40 }} />
             </ScrollView>
             )}
-          </LinearGradient>
+          </View>
         </View>
       </View>
     </Modal>

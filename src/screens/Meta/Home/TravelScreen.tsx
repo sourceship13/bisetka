@@ -12,7 +12,6 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -207,13 +206,11 @@ export default function TravelScreen() {
         onPress={() => handleTravel(item)}
         activeOpacity={0.85}
         style={styles.locationCardWrap}>
-        <LinearGradient
-          colors={
-            isCurrent ? ['#22c55e', '#16a34a'] : ['#7a6cf5', '#5b4ae0']
-          }
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.locationCard}>
+        <View
+          style={[
+            styles.locationCard,
+            { backgroundColor: isCurrent ? '#22c55e' : '#7a6cf5' },
+          ]}> 
           <Icon name="map-marker" size={36} color="#fff" />
           <View style={styles.locationText}>
             <Text style={styles.locationName} numberOfLines={1}>
@@ -228,16 +225,13 @@ export default function TravelScreen() {
               <Text style={styles.currentPillText}>Current</Text>
             </View>
           ) : (
-            <LinearGradient
-              colors={['#fbbf24', '#f59e0b']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.travelPill}>
+            <View
+              style={[styles.travelPill, { backgroundColor: '#fbbf24' }]}>
               <Icon name="airplane" size={18} color="#fff" />
               <Text style={styles.travelPillText}>{TRAVEL_COST}</Text>
-            </LinearGradient>
+            </View>
           )}
-        </LinearGradient>
+        </View>
       </TouchableOpacity>
     );
   };
@@ -340,13 +334,9 @@ export default function TravelScreen() {
             onPress={handleCreateYours}
             activeOpacity={0.85}
             style={styles.createBtnWrap}>
-            <LinearGradient
-              colors={['#fbbf24', '#f59e0b']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.createBtn}>
+            <View style={[styles.createBtn, { backgroundColor: '#f59e0b' }]}>
               <Text style={styles.createBtnText}>CREATE YOURS</Text>
-            </LinearGradient>
+            </View>
           </TouchableOpacity>
         </View>
 

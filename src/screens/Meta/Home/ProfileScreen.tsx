@@ -14,7 +14,6 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
-import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../../../libs/hooks/useAuth';
@@ -312,18 +311,12 @@ const ProfileScreen = ({ navigation }: any) => {
                 const requirement = a.requirement_value || 1;
                 const progress = Math.min(a.progress || 0, requirement);
                 return (
-                  <LinearGradient
+                  <View
                     key={a.achievement_id}
-                    colors={
-                      a.unlocked
-                        ? ['#7a6cf5', '#5b4ae0']
-                        : ['#3a2f8f', '#1f1860']
-                    }
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
                     style={[
                       styles.trophyCard,
                       !a.unlocked && styles.trophyCardLocked,
+                      { backgroundColor: a.unlocked ? '#7a6cf5' : '#3a2f8f' },
                     ]}>
                     <View style={styles.trophyBadge}>
                       <Icon name="star" size={12} color="#fbbf24" />
@@ -338,7 +331,7 @@ const ProfileScreen = ({ navigation }: any) => {
                     <Text style={styles.trophyProgress}>
                       {progress}/{requirement}
                     </Text>
-                  </LinearGradient>
+                  </View>
                 );
               })}
             </ScrollView>

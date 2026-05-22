@@ -10,7 +10,6 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import LinearGradient from 'react-native-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AvatarClothing, CompleteAvatar, BaseAvatar } from '../../../types/avatar2d';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
@@ -149,7 +148,7 @@ export const WardrobeScreen = ({ navigation }: any) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <LinearGradient colors={['#1a1a2e', '#16213e']} style={styles.gradient}>
+      <View style={[styles.gradient, { backgroundColor: '#1a1a2e' }]}>
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
@@ -253,7 +252,7 @@ export const WardrobeScreen = ({ navigation }: any) => {
             </View>
           </View>
         </ScrollView>
-      </LinearGradient>
+      </View>
 
       <TryOnModal
         visible={tryOnModalVisible}

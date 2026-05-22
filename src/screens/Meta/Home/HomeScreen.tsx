@@ -16,7 +16,6 @@ import {
 } from 'react-native';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import LinearGradient from 'react-native-linear-gradient';
 import { useAuth } from '../../../libs/hooks/useAuth';
 import apiService from '../../../services/api.service';
 import pushNotificationService from '../../../services/pushNotification.service';
@@ -434,15 +433,15 @@ const HomeScreen = ({ navigation, route }: any) => {
           onPress={handleNearestBisetkaPress}
           style={styles.closestBisetkaButton}
         >
-          <LinearGradient
-            colors={
-              hasNearestBisetka
-                ? ['rgba(0, 0 , 0, 0.75)', 'rgba(100, 92, 222, 0.65)']
-                : ['rgba(0, 0, 0, 0.72)', 'rgba(18, 52, 46, 0.72)']
-            }
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.closestBisetkaGradient}
+          <View
+            style={[
+              styles.closestBisetkaGradient,
+              {
+                backgroundColor: hasNearestBisetka
+                  ? 'rgba(0, 0 , 0, 0.75)'
+                  : 'rgba(0, 0, 0, 0.72)',
+              },
+            ]}
           >
             <View style={styles.closestBisetkaIconWrap}>
               <Icon
@@ -471,7 +470,7 @@ const HomeScreen = ({ navigation, route }: any) => {
                 <Text style={styles.actionButtonText}>{actionText}</Text>
               </View>
             </View>
-          </LinearGradient>
+          </View>
         </TouchableOpacity>
       </View>
     );
@@ -493,11 +492,11 @@ const HomeScreen = ({ navigation, route }: any) => {
           isComingSoon && styles.cardDisabled,
         ]}
       >
-        <LinearGradient
-          colors={game.gradient as unknown as string[]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.gameCard}
+        <View
+          style={[
+            styles.gameCard,
+            { backgroundColor: (game.gradient as unknown as string[])[0] },
+          ]}
         >
           {(game as any).isImage ? (
             <Image
@@ -515,7 +514,7 @@ const HomeScreen = ({ navigation, route }: any) => {
               <Text style={styles.comingSoonText}>Soon</Text>
             </View>
           )}
-        </LinearGradient>
+        </View>
       </TouchableOpacity>
     );
   };

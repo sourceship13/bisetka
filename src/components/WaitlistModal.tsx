@@ -8,7 +8,7 @@ import {
   FlatList,
   ActivityIndicator,
 } from 'react-native';
-import LinearGradient from 'react-native-linear-gradient';
+
 
 interface WaitlistPlayer {
   id: string;
@@ -125,11 +125,7 @@ const WaitlistModal: React.FC<WaitlistModalProps> = ({
       <View style={styles.modalOverlay}>
         <View style={styles.modalContainer}>
           {/* Header */}
-          <LinearGradient
-            colors={['#6366f1', '#8b5cf6']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.header}>
+          <View style={[styles.header, { backgroundColor: '#6366f1' }]}>
             <View style={styles.headerContent}>
               <Text style={styles.headerTitle}>Player Waitlist</Text>
               <Text style={styles.headerSubtitle}>
@@ -143,7 +139,7 @@ const WaitlistModal: React.FC<WaitlistModalProps> = ({
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
               <Text style={styles.closeButtonText}>✕</Text>
             </TouchableOpacity>
-          </LinearGradient>
+          </View>
 
           {/* Waitlist */}
           {loading ? (
@@ -168,26 +164,18 @@ const WaitlistModal: React.FC<WaitlistModalProps> = ({
                 style={styles.leaveButton}
                 onPress={onLeaveWaitlist}
                 activeOpacity={0.8}>
-                <LinearGradient
-                  colors={['#ef4444', '#f87171']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={styles.buttonGradient}>
+                <View style={[styles.buttonGradient, { backgroundColor: '#ef4444' }]}>
                   <Text style={styles.buttonText}>Leave Waitlist</Text>
-                </LinearGradient>
+                </View>
               </TouchableOpacity>
             ) : (
               <TouchableOpacity
                 style={styles.joinButton}
                 onPress={onJoinWaitlist}
                 activeOpacity={0.8}>
-                <LinearGradient
-                  colors={['#10b981', '#34d399']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={styles.buttonGradient}>
+                <View style={[styles.buttonGradient, { backgroundColor: '#10b981' }]}>
                   <Text style={styles.buttonText}>Join Waitlist</Text>
-                </LinearGradient>
+                </View>
               </TouchableOpacity>
             )}
           </View>
