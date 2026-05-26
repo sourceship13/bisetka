@@ -2547,7 +2547,7 @@ const styles = StyleSheet.create({
     borderRadius: 0,
     position: 'relative',
     overflow: 'hidden',
-    backgroundColor: 'rgba(12,90,44,0.20)', // green felt @ 20% opacity
+    backgroundColor: 'rgba(12,90,44,0.70when )', // green felt @ 20% opacity
     borderWidth: 1,
     borderColor: 'rgba(10,68,34,0.4)',
   },

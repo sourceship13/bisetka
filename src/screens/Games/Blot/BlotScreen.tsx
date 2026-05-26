@@ -12,6 +12,7 @@ import {
   Animated,
   ScrollView,
   PanResponder,
+  Alert,
 } from 'react-native';
 import ReAnimated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import ExpandableView from '../../../components/global/ExpandableView';
@@ -47,6 +48,8 @@ import {
 import SyncedYouTubePlayer from '../../../components/SyncedYouTubePlayer';
 import InGameChat from '../../../components/InGameChat';
 import { playCardFlipSound } from '../../../utils/nardiSound';
+import apiService from '../../../services/api.service';
+import { v4 as uuidv4 } from 'uuid';
 
 const SUIT_ICON: Record<string, string> = {
   hearts: '♥',
@@ -80,13 +83,7 @@ const BlotScreen = ({ navigation }: any) => {
     undefined,
   );
 
-  // Handle score selection and start game
-  const handleScoreSelection = useCallback((score: number) => {
-    setTargetScore(score);
-    const newGame = initializeGame();
-    setGameState(newGame);
-    // Don't start dealing yet - wait for board layout
-  }, []);
+  // Handle score selection and start game (defined later, after deductBlotEntry is in scope)
 
   // Trigger initial deal animation only after the game board is laid out
   const handleBoardLayout = useCallback(() => {
@@ -170,7 +167,59 @@ const BlotScreen = ({ navigation }: any) => {
   const chevronStyle = useAnimatedStyle(() => ({
     transform: [{ rotate: withTiming(toolbarExpanded.value ? '180deg' : '0deg', { duration: 250 }) }],
   }));
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, setUser, refreshUser } = useAuth();
+
+  // Entry fee deduction (single-player Blot)
+  const blotGameIdRef = useRef<string>(uuidv4());
+  const [entryDeducted, setEntryDeducted] = useState(false);
+
+  const syncUserBalance = useCallback((newBalance: number) => {
+    setUser(curr => {
+      if (!curr) return curr;
+      return {
+        ...curr,
+        balance: newBalance,
+        playerStats: curr.playerStats
+          ? { ...curr.playerStats, available_points: newBalance }
+          : curr.playerStats,
+      };
+    });
+  }, [setUser]);
+
+  const deductBlotEntry = useCallback(async () => {
+    if (entryDeducted || !currentUser?.id) return true;
+    try {
+      console.log('💰 Deducting blot entry fee...');
+      const result = await apiService.deductEntry('blot', blotGameIdRef.current);
+      if (result.success) {
+        console.log(`✅ Entry deducted. Balance: ${result.newBalance}`);
+        setEntryDeducted(true);
+        syncUserBalance(result.newBalance);
+        refreshUser().catch(console.error);
+        return true;
+      }
+      Alert.alert('Insufficient Points', result.error || 'You need 50 points to play blot.', [
+        { text: 'OK', onPress: () => navigation.goBack() },
+      ]);
+      return false;
+    } catch (err: any) {
+      console.error('❌ Entry deduction error:', err);
+      Alert.alert('Error', 'Failed to deduct entry fee.', [
+        { text: 'OK', onPress: () => navigation.goBack() },
+      ]);
+      return false;
+    }
+  }, [entryDeducted, currentUser?.id, syncUserBalance, refreshUser, navigation]);
+
+  // Handle score selection and start game
+  const handleScoreSelection = useCallback(async (score: number) => {
+    const ok = await deductBlotEntry();
+    if (!ok) return;
+    setTargetScore(score);
+    const newGame = initializeGame();
+    setGameState(newGame);
+    // Don't start dealing yet - wait for board layout
+  }, [deductBlotEntry]);
 
   const togglePanel = () => {
     const toValue = showPanel ? 0 : 1;
