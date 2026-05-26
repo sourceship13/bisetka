@@ -16,6 +16,7 @@ import { useAuth } from '../../../../libs/hooks/useAuth';
 import { BisetkaAlert } from '../../../../utils/BisetkaAlert';
 import GameToolbar from '../../../../components/global/GameToolbar';
 import Card3D from '../../../../components/Card3D';
+import { getCardImage, getCardBackImage } from '../../../../data/cardsNew';
 import CardCustomizationModal from '../../../../components/global/GameCustomizationModal';
 import type { CardTheme } from '../../../../components/global/GameCustomizationModal';
 import { gameResultService } from '../../../../services/gameResult.service';
@@ -27,6 +28,8 @@ import AraratBackground from '../../../../components/AraratBackground';
 import SyncedYouTubePlayer from '../../../../components/SyncedYouTubePlayer';
 import InGameChat from '../../../../components/InGameChat';
 import { playCardFlipSound } from '../../../../utils/nardiSound';
+import apiService from '../../../../services/api.service';
+import { v4 as uuidv4 } from 'uuid';
 
 interface Card {
   suit: 'hearts' | 'diamonds' | 'clubs' | 'spades';
@@ -54,8 +57,22 @@ interface GameState {
 }
 
 const BlackjackScreen = ({ navigation }: any) => {
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, setUser, refreshUser } = useAuth();
   const { refreshOnGameEnd } = useGameEndRefresh(undefined, 'blackjack');
+
+  // Mirror local balance to auth user so the top-bar points pill updates immediately.
+  const syncUserBalance = useCallback((newBalance: number) => {
+    setUser(curr => {
+      if (!curr) return curr;
+      return {
+        ...curr,
+        balance: newBalance,
+        playerStats: curr.playerStats
+          ? { ...curr.playerStats, available_points: newBalance }
+          : curr.playerStats,
+      };
+    });
+  }, [setUser]);
 
   const [showBlur, setShowBlur] = useState(false);
   const [showMusicPlayer, setShowMusicPlayer] = useState(false);
@@ -71,14 +88,24 @@ const BlackjackScreen = ({ navigation }: any) => {
     playerHand: { cards: [], value: 0, isBust: false, isBlackjack: false },
     dealerHand: { cards: [], value: 0, isBust: false, isBlackjack: false },
     deck: [],
-    balance: 1000,
+    balance: Math.floor((currentUser as any)?.balance ?? 0),
     currentBet: 0,
     gameStatus: 'betting',
     result: null,
     resultMessage: '',
   });
 
+  // Keep local balance in sync with the auth user's real points balance.
+  useEffect(() => {
+    if (currentUser?.balance !== undefined) {
+      const real = Math.floor(currentUser.balance);
+      setGameState(prev => (prev.balance === real ? prev : { ...prev, balance: real }));
+    }
+  }, [currentUser?.balance]);
+
   const [betAmount, setBetAmount] = useState(10);
+  const handGameIdRef = useRef<string>(uuidv4());
+  const settledRef = useRef(false);
   const [customTheme, setCustomTheme] = useState<CardTheme | undefined>(undefined);
   const [showCustomization, setShowCustomization] = useState(false);
   const gameStartTimeRef = useRef<Date | null>(null);
@@ -230,6 +257,8 @@ const BlackjackScreen = ({ navigation }: any) => {
     const dealerHand = createHand(dealerCards);
 
     gameStartTimeRef.current = new Date();
+    handGameIdRef.current = uuidv4();
+    settledRef.current = false;
 
     setGameState({
       ...gameState,
@@ -380,43 +409,67 @@ const BlackjackScreen = ({ navigation }: any) => {
   };
 
   /**
-   * Finish game and update balance
+   * Finish game and update balance (server-authoritative).
+   * customPrize = net change (positive on win, negative on loss, 0 on push).
    */
   const finishGame = (result: 'win' | 'lose' | 'push', message: string) => {
-    let newBalance = gameState.balance;
+    if (settledRef.current) return;
+    settledRef.current = true;
 
+    const bet = gameState.currentBet;
+    let net = 0;
     if (result === 'win') {
-      if (gameState.playerHand.isBlackjack && gameState.playerHand.cards.length === 2) {
-        newBalance += gameState.currentBet * 1.5; // Blackjack pays 3:2
-      } else {
-        newBalance += gameState.currentBet;
-      }
-    } else if (result === 'push') {
-      // No change
-    } else {
-      newBalance -= gameState.currentBet;
+      net = gameState.playerHand.isBlackjack && gameState.playerHand.cards.length === 2
+        ? Math.round(bet * 1.5) // Blackjack pays 3:2 net
+        : bet;
+    } else if (result === 'lose') {
+      net = -bet;
     }
 
+    const apiResult: 'win' | 'draw' | 'loss' =
+      result === 'win' ? 'win' : result === 'lose' ? 'loss' : 'draw';
+
+    // Optimistic local update so the UI feels instant.
+    const optimisticBalance = Math.max(0, gameState.balance + net);
     setGameState(prev => ({
       ...prev,
       gameStatus: 'finished',
       result,
       resultMessage: message,
-      balance: newBalance,
+      balance: optimisticBalance,
     }));
+    syncUserBalance(optimisticBalance);
 
-    // Log game result
+    // Server-authoritative settlement.
+    apiService
+      .awardPrize('blackjack', apiResult, handGameIdRef.current, net)
+      .then(res => {
+        if (res?.success && typeof res.newBalance === 'number') {
+          setGameState(prev => ({ ...prev, balance: res.newBalance }));
+          syncUserBalance(res.newBalance);
+        }
+      })
+      .catch(err => {
+        console.error('❌ blackjack awardPrize failed:', err);
+        // Roll back the optimistic change if the server call failed.
+        refreshUser().catch(() => {});
+      })
+      .finally(() => {
+        refreshOnGameEnd().catch(() => {});
+      });
+
+    // Log game result (separate from balance ledger).
     if (gameStartTimeRef.current) {
       const durationSeconds = (Date.now() - gameStartTimeRef.current.getTime()) / 1000;
       gameResultService.recordGameResult({
         gameType: 'blackjack',
         gameMode: 'solo',
-        result: result === 'win' ? 'win' : result === 'lose' ? 'loss' : 'draw',
+        result: apiResult,
         durationSeconds,
         difficulty: 'easy',
         gameData: {
-          betAmount: gameState.currentBet,
-          winnings: result === 'win' ? gameState.currentBet : 0,
+          betAmount: bet,
+          winnings: net > 0 ? net : 0,
         },
       }).catch(() => {});
     }
@@ -447,9 +500,15 @@ const BlackjackScreen = ({ navigation }: any) => {
 
   const renderCard = (card: Card | undefined, faceDown = false, key?: string) => {
     if (!card) return null;
+    const W = 72;
+    const H = 100;
     return (
       <View key={key || card.id} style={styles.cardWrapper}>
-        <Card3D suit={card.suit as any} rank={card.rank as any} faceDown={faceDown} size={90} />
+        <Image
+          source={faceDown ? getCardBackImage('red') : getCardImage({ rank: card.rank, suit: card.suit })}
+          style={{ width: W, height: H, borderRadius: 6 }}
+          resizeMode="contain"
+        />
       </View>
     );
   };
