@@ -174,8 +174,22 @@ const BaazarBlotScreen = ({ navigation }: any) => {
   const [showPanel, setShowPanel] = useState(false);
   const panelAnim = useRef(new Animated.Value(0)).current;
   const toolbarExpanded = useSharedValue(false);
-  const { user: currentUser, refreshUser } = useAuth();
+  const { user: currentUser, setUser, refreshUser } = useAuth();
   const { showAchievements } = useAchievements();
+
+  // Immediately mirror a new balance into the auth user so GameToolbar updates.
+  const syncUserBalance = (newBalance: number) => {
+    setUser(curr => {
+      if (!curr) return curr;
+      return {
+        ...curr,
+        balance: newBalance,
+        playerStats: curr.playerStats
+          ? { ...curr.playerStats, available_points: newBalance }
+          : curr.playerStats,
+      };
+    });
+  };
 
   // Entry fee deduction handler
   const handleGameStart = async () => {
@@ -188,6 +202,7 @@ const BaazarBlotScreen = ({ navigation }: any) => {
       if (result.success) {
         console.log(`✅ Entry deducted: -50 points. Balance: ${result.newBalance}`);
         setEntryDeducted(true);
+        syncUserBalance(result.newBalance);
         refreshUser().catch(console.error);
       } else {
         console.error('❌ Insufficient points:', result.error);
@@ -224,6 +239,7 @@ const BaazarBlotScreen = ({ navigation }: any) => {
       if (prizeResult.success) {
         console.log(`✅ ${prizeResult.message}`);
         setPrizeAwarded(true);
+        syncUserBalance(prizeResult.newBalance);
         if (prizeResult.unlockedAchievements?.length > 0) {
           showAchievements(prizeResult.unlockedAchievements);
         }

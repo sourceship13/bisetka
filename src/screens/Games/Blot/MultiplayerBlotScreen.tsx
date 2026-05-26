@@ -132,10 +132,24 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
   const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
 
   // Entry fee and prize tracking
-  const { user, refreshUser } = useAuth();
+  const { user, setUser, refreshUser } = useAuth();
   const { showAchievements } = useAchievements();
   const [entryDeducted, setEntryDeducted] = useState(false);
   const [prizeAwarded, setPrizeAwarded] = useState(false);
+
+  // Immediately mirror a new balance into the auth user so GameToolbar updates.
+  const syncUserBalance = (newBalance: number) => {
+    setUser(curr => {
+      if (!curr) return curr;
+      return {
+        ...curr,
+        balance: newBalance,
+        playerStats: curr.playerStats
+          ? { ...curr.playerStats, available_points: newBalance }
+          : curr.playerStats,
+      };
+    });
+  };
 
   // Entry fee deduction handler
   const handleGameStart = async () => {
@@ -148,6 +162,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
       if (result.success) {
         console.log(`✅ Entry deducted: -50 points. Balance: ${result.newBalance}`);
         setEntryDeducted(true);
+        syncUserBalance(result.newBalance);
         refreshUser().catch(console.error);
       } else {
         console.error('❌ Insufficient points:', result.error);
@@ -194,6 +209,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
         console.log(`   Game logged with ID: ${prizeResult.gameResultId}`);
         
         setPrizeAwarded(true);
+        syncUserBalance(prizeResult.newBalance);
         refreshUser().catch(console.error);
         
         if (didWin) {
