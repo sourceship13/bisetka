@@ -568,7 +568,7 @@ const BlackjackScreen = ({ navigation }: any) => {
                         key={chip}
                         activeOpacity={0.85}
                         onPress={() => setBetAmount(Math.min(gameState.balance, betAmount + chip))}>
-                        <View style={[ { backgroundColor: c2 }]}>
+                        <View style={[styles.chip, { backgroundColor: c1, borderColor: c2, borderRadius:28}]}>
                           <View style={styles.chipInner}>
                             <Text style={[styles.chipText, { color: txt }]}>${chip}</Text>
                           </View>
