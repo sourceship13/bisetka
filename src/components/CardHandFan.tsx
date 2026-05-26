@@ -27,8 +27,8 @@ const CardHandFan: React.FC<CardHandFanProps> = ({
   const cardCount = cards.length;
   
   // Card dimensions (adjust these based on your card size)
-  const CARD_WIDTH = 70;
-  const CARD_HEIGHT = 100;
+  const CARD_WIDTH = 75;
+  const CARD_HEIGHT = 107;
   
   // Calculate spacing and rotation
   const totalCardsWidth = cardCount * CARD_WIDTH;
