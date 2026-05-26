@@ -552,8 +552,8 @@ const BlotScreen = ({ navigation }: any) => {
     playable = true,
   ) => {
     const sizeStyle = isTrickCard ? styles.nativeCardTrick : styles.nativeCard;
-    const cardW = isTrickCard ? 62 : 72;
-    const cardH = isTrickCard ? 86 : 100;
+    const cardW = isTrickCard ? 62 : 77;
+    const cardH = isTrickCard ? 86 : 107;
     const cardContent = (
       <View style={[sizeStyle, { width: cardW, height: cardH }]}>
         <Image
@@ -679,7 +679,7 @@ const BlotScreen = ({ navigation }: any) => {
   return (
     <View style={styles.container}>
       <AraratBackground  />
-      <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/game_assets/armenia_table.glb" hideCheckerboard boardFixed boardFixedZoom={1.0} boardScale={1.9} tableDist={0.9} boardY={-1.5} boardTiltX={0.35} cardGlbPath="glb/cards/card-template.glb" cards={arCards} />
+      <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/game_assets/marble_circle_table.glb" hideCheckerboard boardFixed boardFixedZoom={1.0} boardScale={1.9} tableDist={0.9} boardY={-1.5} boardTiltX={0.35} cardGlbPath="glb/cards/card-template.glb" cards={arCards} />
       {/* Always mount SyncedYouTubePlayer alongside the other WebViews so all
           three hardware-accelerated layers are created together at screen open.
           Adding a new WebView after the others are running kills them on Android. */}
@@ -1322,8 +1322,8 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   nativeCard: {
-    width: 72,
-    height: 100,
+    width: 77,
+    height: 107,
     backgroundColor: '#ffffff',
     borderRadius: 8,
     borderWidth: 1.5,

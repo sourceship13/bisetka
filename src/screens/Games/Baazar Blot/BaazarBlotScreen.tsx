@@ -754,7 +754,7 @@ const BaazarBlotScreen = ({ navigation }: any) => {
             cards={sortHandForDisplay(myPlayer.hand.filter(c => c && c.suit && c.rank))}
             renderCard={(card, idx) => (
               <View key={`${card.suit}-${card.rank}-${idx}`} style={styles.cardWrapper}>
-                <BlotCard suit={card.suit as any} rank={card.rank as any} faceDown={false} size={72} />
+                <BlotCard suit={card.suit as any} rank={card.rank as any} faceDown={false} size={77} />
               </View>
             )}
           />
@@ -890,7 +890,7 @@ const BaazarBlotScreen = ({ navigation }: any) => {
             cards={sortHandForDisplay(gameState.players[0].hand.filter(c => c && c.suit && c.rank))}
             renderCard={(card, idx) => (
               <View key={`bid-${card.suit}-${card.rank}-${idx}`} style={styles.cardWrapper}>
-                <BlotCard suit={card.suit as any} rank={card.rank as any} faceDown={false} size={72} />
+                <BlotCard suit={card.suit as any} rank={card.rank as any} faceDown={false} size={77} />
               </View>
             )}
           />
@@ -1010,7 +1010,7 @@ const BaazarBlotScreen = ({ navigation }: any) => {
                   ]}
                   disabled={!canPlay}
                 >
-                  <BlotCard suit={card.suit as any} rank={card.rank as any} faceDown={false} size={72} />
+                  <BlotCard suit={card.suit as any} rank={card.rank as any} faceDown={false} size={77} />
                 </TouchableOpacity>
               );
             }}
@@ -1114,7 +1114,7 @@ const BaazarBlotScreen = ({ navigation }: any) => {
   return (
     <View style={styles.bg} {...(arEnabled ? arPinchResponder.panHandlers : {})}>
       <AraratBackground>
-        <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/game_assets/armenia_table.glb" hideCheckerboard boardFixed boardFixedZoom={1.0} boardScale={1.9} tableDist={0.9} boardY={-1.5} boardTiltX={0} cardGlbPath="glb/cards/card-template.glb" cards={arCards} />
+        <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/game_assets/marble_circle_table.glb" hideCheckerboard boardFixed boardFixedZoom={1.0} boardScale={1.9} tableDist={0.9} boardY={-1.5} boardTiltX={0} cardGlbPath="glb/cards/card-template.glb" cards={arCards} />
       </AraratBackground>
       <View style={styles.overlay} pointerEvents="box-none">
       <GamePlayerOverlay opponent="ai" topOffset={260} size={100}/>
