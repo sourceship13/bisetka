@@ -332,7 +332,10 @@ const BaazarBlotScreen = ({ navigation }: any) => {
       setGameState(prev => {
         if (!prev || prev.phase !== 'bidding' || prev.currentPlayer === 0) return prev;
         const player = prev.players[prev.currentPlayer];
-        const result = chooseAIBid(player, prev.currentBid, prev.passedPlayers);
+        const result = chooseAIBid(player, prev.currentBid, prev.passedPlayers, {
+          bidderTeam: prev.bidderTeam,
+          bidderPlayer: prev.bidderPlayer,
+        });
 
         if (result) {
           const nextPlayer = (prev.currentPlayer + 1) % TOTAL_PLAYERS;
@@ -1130,7 +1133,7 @@ const BaazarBlotScreen = ({ navigation }: any) => {
   return (
     <View style={styles.bg} {...(arEnabled ? arPinchResponder.panHandlers : {})}>
       <AraratBackground>
-        <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/game_assets/marble_circle_table.glb" hideCheckerboard boardFixed boardFixedZoom={1.0} boardScale={1.9} tableDist={0.9} boardY={-1.5} boardTiltX={0} cardGlbPath="glb/cards/card-template.glb" cards={arCards} />
+        <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/game_boards/rounded_table_panel_v4.glb" boardSurfaceImagePath="blot/card-table.png" hideCheckerboard boardFixed boardFixedZoom={1.0} boardScale={1.9} tableDist={0.9} boardY={-1.5} boardTiltX={0} cardGlbPath="glb/cards/card-template.glb" cards={arCards} />
       </AraratBackground>
       <View style={styles.overlay} pointerEvents="box-none">
       <GamePlayerOverlay opponent="ai" topOffset={260} size={100}/>
@@ -1144,10 +1147,7 @@ const BaazarBlotScreen = ({ navigation }: any) => {
           <View>
             <GameToolbarControls
               buttons={[
-                { icon: '🎨', onPress: () => setShowCustomization(true) },
-                { icon: showBackground ? '🖼️' : '🔲', onPress: () => setShowBackground(!showBackground) },
-                { icon: arEnabled ? '🥽' : '🎮', onPress: () => setArEnabled(!arEnabled) },
-                { icon: showMusicPlayer ? '🎵' : '🎶', onPress: () => setShowMusicPlayer(s => !s) },
+                // { icon: '🎨', onPress: () => setShowCustomization(true) },
                 { icon: '👥', onPress: togglePanel },
               ]}
             />
@@ -1155,29 +1155,7 @@ const BaazarBlotScreen = ({ navigation }: any) => {
         </View>
 
         {/* Info strip — above scoreboard, only during playing phase */}
-        {gameState?.phase === 'playing' && (
-          <View style={styles.arInfoStrip}>
-            {gameState.currentTrick.cards.length > 0 ? (
-              <Text style={styles.arInfoText}>
-                Led: <Text style={{ color: SUIT_COLOR[gameState.currentTrick.cards[0].card.suit] }}>
-                  {SUIT_ICON[gameState.currentTrick.cards[0].card.suit]} {SUIT_NAME[gameState.currentTrick.cards[0].card.suit]}
-                </Text>
-              </Text>
-            ) : (
-              <Text style={styles.arInfoText}>New trick</Text>
-            )}
-            {gameState.trump && (
-              <Text style={styles.arInfoText}>
-                Trump: <Text style={{ color: SUIT_COLOR[gameState.trump] }}>
-                  {SUIT_ICON[gameState.trump]} {SUIT_NAME[gameState.trump]}
-                </Text>
-              </Text>
-            )}
-            <Text style={styles.arInfoText}>
-              T1 {gameState.scores?.team1 ?? 0} – T2 {gameState.scores?.team2 ?? 0}
-            </Text>
-          </View>
-        )}
+        
 
         {gameState && (
           <View style={styles.scoreBoard}>
@@ -1209,6 +1187,30 @@ const BaazarBlotScreen = ({ navigation }: any) => {
                 </Text>
               )}
             </View>
+          </View>
+        )}
+
+        {gameState?.phase === 'playing' && (
+          <View style={styles.arInfoStrip}>
+            {gameState.currentTrick.cards.length > 0 ? (
+              <Text style={styles.arInfoText}>
+                Led: <Text style={{ color: SUIT_COLOR[gameState.currentTrick.cards[0].card.suit] }}>
+                  {SUIT_ICON[gameState.currentTrick.cards[0].card.suit]} {SUIT_NAME[gameState.currentTrick.cards[0].card.suit]}
+                </Text>
+              </Text>
+            ) : (
+              <Text style={styles.arInfoText}>New trick</Text>
+            )}
+            {gameState.trump && (
+              <Text style={styles.arInfoText}>
+                Trump: <Text style={{ color: SUIT_COLOR[gameState.trump] }}>
+                  {SUIT_ICON[gameState.trump]} {SUIT_NAME[gameState.trump]}
+                </Text>
+              </Text>
+            )}
+            <Text style={styles.arInfoText}>
+              T1 {gameState.scores?.team1 ?? 0} – T2 {gameState.scores?.team2 ?? 0}
+            </Text>
           </View>
         )}
 
@@ -1489,6 +1491,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: 'transparent',
     paddingVertical: 4,
+    marginTop: -30,
   },
   trumpCardFace: {
     backgroundColor: '#ffffff',
@@ -1524,6 +1527,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     textAlign: 'center',
     paddingVertical: 6,
+    marginTop: -25,
     textShadowColor: 'rgba(0,0,0,0.7)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 3,
@@ -1740,8 +1744,8 @@ const styles = StyleSheet.create({
   panelPlayerName: { fontSize: 14, fontWeight: '600', color: '#fff' },
   panelTeamBadge: { alignSelf: 'flex-start', borderRadius: 6, borderWidth: 1, paddingHorizontal: 8, paddingVertical: 2 },
   panelTeamText: { fontSize: 11, fontWeight: '700' },
-  arInfoStrip: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 18, paddingVertical: 10, paddingHorizontal: 20, backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 14, marginHorizontal: 16, marginBottom: 8, marginTop: 4 },
-  arInfoText: { color: '#fff', fontSize: 14, fontWeight: '600' },
+  arInfoStrip: { position: 'absolute', top: 105, left: 12, flexDirection: 'column', alignItems: 'flex-start', gap: 4, paddingVertical: 8, paddingHorizontal: 12, backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 10, zIndex: 20, maxWidth: 180 },
+  arInfoText: { color: '#fff', fontSize: 12, fontWeight: '600' },
   recenterBtn: { position:'absolute', top:100, left:12, flexDirection:'row', alignItems:'center', gap:6, backgroundColor:'rgba(0,0,0,0.45)', borderWidth:1, borderColor:'rgba(255,255,255,0.25)', borderRadius:24, paddingHorizontal:16, paddingVertical:9 },
   recenterIcon: { fontSize:20, color:'#fff' },
   recenterLabel: { fontSize:13, color:'#fff', fontWeight:'600', letterSpacing:0.3 },

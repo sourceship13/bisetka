@@ -504,19 +504,61 @@ export const evaluateHandForTrump = (hand: CardType[], suit: Suit): number => {
   return score;
 };
 
+type AIBidContext = {
+  aiTeam?: 1 | 2;
+  humanTeam?: 1 | 2;
+  playerId?: number;
+  dealerId?: number;
+};
+
+const getSuitStats = (hand: CardType[], suit: Suit) => {
+  const trumpCards = hand.filter(c => c.suit === suit);
+  const trumpCount = trumpCards.length;
+  const hasJTrump = trumpCards.some(c => c.rank === 'J');
+  const has9Trump = trumpCards.some(c => c.rank === '9');
+  const highTrumpCount = trumpCards.filter(c => c.rank === 'J' || c.rank === '9' || c.rank === 'A').length;
+  const sideAces = hand.filter(c => c.suit !== suit && c.rank === 'A').length;
+  return { trumpCount, hasJTrump, has9Trump, highTrumpCount, sideAces };
+};
+
 // Pick the best suit to declare and an accept/pass recommendation.
 // Used by both round 1 (suit forced to proposalSuit) and round 2 (any suit).
 export const chooseAIBid = (
   hand: CardType[],
   proposalSuit: Suit | null,
   round: 1 | 2,
+  ctx?: AIBidContext,
 ): { action: 'accept' | 'pass'; suit?: Suit } => {
+  const isOpponent =
+    typeof ctx?.aiTeam === 'number' &&
+    typeof ctx?.humanTeam === 'number' &&
+    ctx.aiTeam !== ctx.humanTeam;
+  const isOpeningSeat =
+    typeof ctx?.playerId === 'number' &&
+    typeof ctx?.dealerId === 'number' &&
+    ctx.playerId === ((ctx.dealerId + 1) % 4);
+
   if (round === 1 && proposalSuit) {
     const s = evaluateHandForTrump(hand, proposalSuit);
-    // Round 1 accept threshold — bidding the proposed suit means partner
-    // hasn't volunteered, so we need a real hand.
-    return s >= 48 ? { action: 'accept', suit: proposalSuit } : { action: 'pass' };
+    const stats = getSuitStats(hand, proposalSuit);
+
+    // More active bidding: opponents challenge more often, but still avoid
+    // very short/weak trump shapes that tend to collapse in play.
+    let threshold = 45;
+    if (isOpponent) threshold -= 4;
+    if (isOpeningSeat) threshold -= 2;
+    if (stats.highTrumpCount >= 2 && stats.trumpCount >= 3) threshold -= 2;
+    if (stats.sideAces >= 2) threshold -= 1;
+    if (stats.trumpCount <= 2) threshold += 6;
+    if (!stats.hasJTrump && !stats.has9Trump) threshold += 2;
+
+    if (s >= threshold) return { action: 'accept', suit: proposalSuit };
+    if (isOpponent && stats.trumpCount >= 3 && (stats.hasJTrump || stats.has9Trump) && s >= threshold - 2) {
+      return { action: 'accept', suit: proposalSuit };
+    }
+    return { action: 'pass' };
   }
+
   // Round 2: any suit allowed. Pick best.
   let bestSuit: Suit | null = null;
   let bestScore = -Infinity;
@@ -525,8 +567,22 @@ export const chooseAIBid = (
     const sc = evaluateHandForTrump(hand, s);
     if (sc > bestScore) { bestScore = sc; bestSuit = s; }
   }
-  // Round 2 declare threshold — slightly lower because passing forces re-deal.
-  if (bestSuit && bestScore >= 42) return { action: 'accept', suit: bestSuit };
+
+  if (!bestSuit) return { action: 'pass' };
+
+  const bestStats = getSuitStats(hand, bestSuit);
+  // Round 2 is naturally more competitive because pass can force redeal.
+  let threshold = 40;
+  if (isOpponent) threshold -= 3;
+  if (isOpeningSeat) threshold -= 1;
+  if (bestStats.highTrumpCount >= 2) threshold -= 1;
+  if (bestStats.trumpCount <= 2) threshold += 4;
+  if (bestStats.trumpCount >= 4) threshold -= 2;
+
+  if (bestScore >= threshold) return { action: 'accept', suit: bestSuit };
+  if (isOpponent && bestStats.trumpCount >= 3 && bestScore >= threshold - 2) {
+    return { action: 'accept', suit: bestSuit };
+  }
   return { action: 'pass' };
 };
 

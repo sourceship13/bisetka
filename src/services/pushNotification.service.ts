@@ -20,6 +20,11 @@ class PushNotificationService {
   private hasPermission = false;
   /** Prevents duplicate onTokenRefresh and message handler setups */
   private listenersSetUp = false;
+  /** Deduplicates concurrent silentInit calls from multiple screens/focus events. */
+  private silentInitInFlight: Promise<void> | null = null;
+  /** Throttle window to avoid repeated silent init churn during rapid navigation. */
+  private lastSilentInitAt = 0;
+  private readonly SILENT_INIT_COOLDOWN_MS = 15000;
 
   /** Set up onTokenRefresh + message handlers exactly once. */
   private setupListeners(): void {
@@ -41,45 +46,64 @@ class PushNotificationService {
    * Safe to call on every login. Does NOT prompt the user.
    */
   async silentInit(): Promise<void> {
+    if (this.silentInitInFlight) {
+      return this.silentInitInFlight;
+    }
+
+    const now = Date.now();
+    if (now - this.lastSilentInitAt < this.SILENT_INIT_COOLDOWN_MS) {
+      console.log('ℹ️ [silentInit] skipped (cooldown)');
+      return;
+    }
+    this.lastSilentInitAt = now;
+
+    this.silentInitInFlight = (async () => {
+      try {
+        console.log('🔍 [silentInit] START');
+
+        const { status } = await checkNotifications();
+        console.log('🔍 [silentInit] permission status:', status);
+        const enabled = status === RESULTS.GRANTED || status === RESULTS.LIMITED;
+
+        if (!enabled) {
+          console.log('ℹ️ [silentInit] not granted — status:', status, '— aborting');
+          return;
+        }
+
+        this.hasPermission = true;
+        console.log('🔍 [silentInit] permission OK, calling registerDeviceForRemoteMessages...');
+
+        // iOS requires APNs registration before getToken() returns anything.
+        // Idempotent on iOS, no-op on Android.
+        await messaging().registerDeviceForRemoteMessages();
+        console.log('🔍 [silentInit] registerDeviceForRemoteMessages done');
+
+        const token = await messaging().getToken();
+        console.log('📲 [silentInit] FCM Token:', token ?? '⚠️ NULL');
+
+        if (!token) {
+          console.warn('⚠️ [silentInit] getToken() returned null — check Firebase/APNs config');
+          return;
+        }
+
+        console.log('🔍 [silentInit] registering token with backend...');
+        await this.registerToken(token);
+
+        this.setupListeners();
+        console.log('✅ [silentInit] DONE');
+      } catch (error: any) {
+        console.warn('⚠️ [silentInit] CAUGHT ERROR:', error?.message ?? error);
+        // Silently ignore Firebase-not-initialized errors (native rebuild needed)
+        if (error?.message?.includes('initializeApp') || error?.message?.includes('DEFAULT')) {
+          console.log('ℹ️ Firebase not initialized yet — skipping push init until rebuild');
+        }
+      }
+    })();
+
     try {
-      console.log('🔍 [silentInit] START');
-
-      const { status } = await checkNotifications();
-      console.log('🔍 [silentInit] permission status:', status);
-      const enabled = status === RESULTS.GRANTED || status === RESULTS.LIMITED;
-
-      if (!enabled) {
-        console.log('ℹ️ [silentInit] not granted — status:', status, '— aborting');
-        return;
-      }
-
-      this.hasPermission = true;
-      console.log('🔍 [silentInit] permission OK, calling registerDeviceForRemoteMessages...');
-
-      // iOS requires APNs registration before getToken() returns anything.
-      // Idempotent on iOS, no-op on Android.
-      await messaging().registerDeviceForRemoteMessages();
-      console.log('🔍 [silentInit] registerDeviceForRemoteMessages done');
-
-      const token = await messaging().getToken();
-      console.log('📲 [silentInit] FCM Token:', token ?? '⚠️ NULL');
-
-      if (!token) {
-        console.warn('⚠️ [silentInit] getToken() returned null — check Firebase/APNs config');
-        return;
-      }
-
-      console.log('🔍 [silentInit] registering token with backend...');
-      await this.registerToken(token);
-
-      this.setupListeners();
-      console.log('✅ [silentInit] DONE');
-    } catch (error: any) {
-      console.warn('⚠️ [silentInit] CAUGHT ERROR:', error?.message ?? error);
-      // Silently ignore Firebase-not-initialized errors (native rebuild needed)
-      if (error?.message?.includes('initializeApp') || error?.message?.includes('DEFAULT')) {
-        console.log('ℹ️ Firebase not initialized yet — skipping push init until rebuild');
-      }
+      await this.silentInitInFlight;
+    } finally {
+      this.silentInitInFlight = null;
     }
   }
 

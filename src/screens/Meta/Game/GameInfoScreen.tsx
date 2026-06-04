@@ -581,7 +581,7 @@ const PrizeCard: React.FC<{
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#100828' },
   safeArea: { flex: 1 },
-  scrollContent: { },
+  scrollContent: { paddingBottom: 140 },
 
   /* Header */
   topHeader: {
