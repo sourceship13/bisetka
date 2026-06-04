@@ -262,7 +262,6 @@ const GLB_ASSET_MAP: Record<string, any> = {
   'glb/game_assets/marble_circle_table.glb':    require('../../assets/glb/game_assets/marble_circle_table.glb'),
   'glb/game_assets/poker_table2.glb':            require('../../assets/glb/game_assets/poker_table2.glb'),
   'glb/game_assets/casino_table_level2_textured.glb': require('../../assets/glb/game_assets/casino_table_level2_textured.glb'),
-  'glb/game_assets/circle_luna.glb':            require('../../assets/glb/game_assets/circle_luna.glb'),
   'glb/game_assets/square_wooden_table.glb':    require('../../assets/glb/game_assets/square_wooden_table.glb'),
   'glb/chess/chess-board/source/ui.glb':        require('../../assets/glb/chess/chess-board/source/ui.glb'),
   'glb/game_boards/Untitled.glb':               require('../../assets/glb/game_boards/Untitled.glb'),
