@@ -149,4 +149,22 @@ post_install do |installer|
       config_file.save_as(xcconfig_path)
     end
   end
+
+  # -- Strip bitcode from Mapbox prebuilt frameworks --------------------------
+  # App Store Connect rejects binaries containing bitcode (deprecated in
+  # Xcode 14). Mapbox's vendored xcframeworks (MapboxCommon, MapboxCoreMaps,
+  # MapboxMaps, MapboxMobileEvents, MapboxDirections, …) still ship with
+  # bitcode embedded, so strip every Mach-O slice in their xcframeworks
+  # in-place before CocoaPods embeds them into the app bundle.
+  pods_root = installer.sandbox.root.to_s
+  Dir.glob("#{pods_root}/**/*.xcframework").each do |xcf|
+    next unless File.basename(xcf) =~ /Mapbox/i
+    Dir.glob("#{xcf}/**/*.framework").each do |fw|
+      bin = File.join(fw, File.basename(fw, '.framework'))
+      next unless File.file?(bin)
+      out = `xcrun bitcode_strip -r "#{bin}" -o "#{bin}" 2>&1`
+      Pod::UI.puts "  [bitcode strip] #{bin.sub(pods_root + '/', '')}".yellow
+      Pod::UI.puts "    #{out.strip}".red unless $?.success?
+    end
+  end
 end
