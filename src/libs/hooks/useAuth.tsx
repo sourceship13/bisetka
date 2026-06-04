@@ -114,8 +114,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             // on this backend (e.g. backend URL switched). Clear the stale
             // session so the app drops back to the sign-in screen instead of
             // looping with a dead token.
-            if (error?.status === 404) {
-              console.warn('⚠️ getProfile 404 — clearing stale session');
+            if (
+              error?.status === 404 ||
+              error?.status === 401 ||
+              error?.code === 'SESSION_EXPIRED'
+            ) {
+              console.warn(
+                '⚠️ getProfile rejected (',
+                error?.status,
+                error?.code,
+                ') — clearing stale session',
+              );
               try { await tokenService.clearSession(); } catch (_) {}
               if (isMounted) setUser(null);
             } else {

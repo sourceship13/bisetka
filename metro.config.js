@@ -34,6 +34,7 @@ const config = {
     assetExts: [
       ...defaultConfig.resolver.assetExts.filter(ext => ext !== 'svg'),
       'vrm',
+      'fbx',
       'glb',
       'gltf',
       'jsraw',

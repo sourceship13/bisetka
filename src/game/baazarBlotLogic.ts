@@ -843,6 +843,7 @@ export const chooseAIBid = (
   player: Player,
   currentBid: BidLevel,
   passedPlayers: number[],
+  opts?: { bidderTeam?: 1 | 2 | null; bidderPlayer?: number | null },
 ): { bid: BidLevel; suit: Suit } | null => {
   // Pick the trump suit with the highest expected score.
   let bestSuit: Suit = 'hearts';
@@ -852,14 +853,12 @@ export const chooseAIBid = (
     if (est > bestEst) { bestEst = est; bestSuit = suit; }
   }
 
-  // Aggression: open the bidding readily when we have a real hand.
-  // The minimum legal bid is currentBid + 1; we'll bid that minimum even
-  // when our estimate is only ~5 pts below its target, because trumping
-  // and sequences typically pull the actual score upward.
   const min = (currentBid + 1) as BidLevel;
   const target = min * 10;
+  const isCounter =
+    !!opts?.bidderTeam && opts.bidderTeam !== player.team;
 
-  // Strong open: estimate ≥ target → bid at our estimate level.
+  // Strong: estimate ≥ target → bid at our estimate level.
   if (bestEst >= target) {
     let level = Math.round(bestEst / 10);
     if (level > 16) level = 16;
@@ -867,14 +866,28 @@ export const chooseAIBid = (
     return { bid: level as BidLevel, suit: bestSuit };
   }
 
+  // Counter-bid: if the opposing team currently holds the contract, push
+  // harder so the AI actively contests instead of passing.
+  if (isCounter) {
+    if (bestEst >= target - 12 && min <= 12) {
+      return { bid: min, suit: bestSuit };
+    }
+    if (bestEst >= target - 18 && min <= 11) {
+      return { bid: min, suit: bestSuit };
+    }
+    // Last-ditch sabotage when we still have meaningful trump shape.
+    if (bestEst >= 60 && min <= 10) {
+      return { bid: min, suit: bestSuit };
+    }
+  }
+
   // Pushy open: estimate within 5 of target → still take the contract.
   if (bestEst >= target - 5 && min <= 11) {
     return { bid: min, suit: bestSuit };
   }
 
-  // Competitive: if nobody else has bid yet (currentBid === 8 and no taker),
-  // open with our best suit even on a slightly thin hand.
-  if (currentBid === 8 && passedPlayers.length >= 1 && bestEst >= 70) {
+  // Competitive open: nobody has bid yet and we have a workable hand.
+  if (currentBid === 8 && bestEst >= 60) {
     return { bid: 8 as BidLevel, suit: bestSuit };
   }
 

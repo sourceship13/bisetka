@@ -317,7 +317,10 @@ const BlotScreen = ({ navigation }: any) => {
         // Trigger riffle deal animation after board renders
         isRoundTransitioningRef.current = true;
         setTimeout(() => setShowRiffleDealAnimation(true), 300);
-        setTimeout(() => setShowRiffleDealAnimation(false), 2800); // 300ms start delay + 2500ms animation
+        setTimeout(() => {
+          setShowRiffleDealAnimation(false);
+          isRoundTransitioningRef.current = false;
+        }, 2800); // 300ms start delay + 2500ms animation
         setTimeout(() => setShowBiddingModal(true), 4800); // Show bidding modal after cards shown for 2s
 
         const { players: dealt, proposalCard } = dealCards(prev.players);
@@ -356,7 +359,12 @@ const BlotScreen = ({ navigation }: any) => {
     const timer = setTimeout(() => {
       const aiPlayer = gameState.players[gameState.currentPlayer];
       const proposed = gameState.proposalCard?.suit ?? null;
-      const decision = chooseAIBid(aiPlayer.hand, proposed, gameState.bidRound);
+      const decision = chooseAIBid(aiPlayer.hand, proposed, gameState.bidRound, {
+        aiTeam: aiPlayer.team,
+        humanTeam: 1,
+        playerId: aiPlayer.id,
+        dealerId: gameState.dealer,
+      });
       if (decision.action === 'accept' && decision.suit) {
         acceptTrump(decision.suit);
         return;
@@ -505,7 +513,10 @@ const BlotScreen = ({ navigation }: any) => {
       // Trigger riffle deal animation after board renders
       isRoundTransitioningRef.current = true;
       setTimeout(() => setShowRiffleDealAnimation(true), 300);
-      setTimeout(() => setShowRiffleDealAnimation(false), 2800); // 300ms start delay + 2500ms animation
+      setTimeout(() => {
+        setShowRiffleDealAnimation(false);
+        isRoundTransitioningRef.current = false;
+      }, 2800); // 300ms start delay + 2500ms animation
       setTimeout(() => setShowBiddingModal(true), 4800); // Show bidding modal after cards shown for 2s
 
       const { players: dealt, proposalCard } = dealCards(prev.players);
@@ -723,12 +734,14 @@ const BlotScreen = ({ navigation }: any) => {
     );
   };
 
+  const showHandDuringBiddingModal = gameState?.phase === 'bidding' && showBiddingModal;
+
   // Static ararat4 background image is used instead of the 360 photosphere.
   // AR3DOverlay is still mounted to preserve the existing layering behavior.
   return (
     <View style={styles.container}>
       <AraratBackground  />
-      <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/game_assets/marble_circle_table.glb" hideCheckerboard boardFixed boardFixedZoom={1.0} boardScale={1.9} tableDist={0.9} boardY={-1.5} boardTiltX={0.35} cardGlbPath="glb/cards/card-template.glb" cards={arCards} />
+      <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/game_boards/rounded_table_panel_v4.glb" boardSurfaceImagePath="blot/card-table.png" hideCheckerboard boardFixed boardFixedZoom={1.0} boardScale={1.7} tableDist={0.9} boardY={-1.5} boardTiltX={0} cards={arCards} />
       {/* Always mount SyncedYouTubePlayer alongside the other WebViews so all
           three hardware-accelerated layers are created together at screen open.
           Adding a new WebView after the others are running kills them on Android. */}
@@ -771,11 +784,8 @@ const BlotScreen = ({ navigation }: any) => {
             <View>
               <GameToolbarControls
                 buttons={[
-                  { icon: '🎨', onPress: () => setShowCustomization(true) },
-                  { icon: arEnabled ? '🥽' : '🎮', onPress: () => setArEnabled(!arEnabled) },
-                  { icon: showMusicPlayer ? '🎵' : '🎶', onPress: () => setShowMusicPlayer(s => !s) },
+                  // { icon: '🎨', onPress: () => setShowCustomization(true) },
                   { icon: '👥', onPress: togglePanel },
-                  { icon: '🚪', onPress: toggleLeave },
                 ]}
               />
             </View>
@@ -868,6 +878,16 @@ const BlotScreen = ({ navigation }: any) => {
             </View>
           )}
 
+          {showHandDuringBiddingModal && (
+            <View style={[styles.handContainer, showRiffleDealAnimation && { opacity: 0 }]}>
+              <Text style={styles.handLabel}>Your Hand:</Text>
+              <CardHandFan
+                cards={sortHandForDisplay(gameState.players[0].hand)}
+                renderCard={(card, index) => renderCard(card, index, false)}
+              />
+            </View>
+          )}
+
           {gameState.phase === 'playing' && (
             <>
               <View style={styles.playArea}>
@@ -882,7 +902,7 @@ const BlotScreen = ({ navigation }: any) => {
                   <ImageBackground
                     source={customTheme?.boardImage ? { uri: customTheme.boardImage } : require('../../../../assets/blot/card-table.png')}
                     style={styles.cardTable}
-                    imageStyle={{ borderRadius: 16, opacity: 0.20 }}
+                    imageStyle={{ borderRadius: 16, opacity: 1 }}
                   >
                       {/* Card placement placeholders */}
                       <View style={styles.trickArea}>
@@ -934,7 +954,7 @@ const BlotScreen = ({ navigation }: any) => {
                   <CardHandFan
                     cards={sortHandForDisplay(gameState.players[0].hand)}
                     renderCard={(card, index) => {
-                      const isMyTurn = gameState.currentPlayer === 0;
+                      const isMyTurn = gameState.phase === 'playing' && gameState.currentPlayer === 0;
                       const playable =
                         isMyTurn &&
                         canPlayCard(

@@ -262,6 +262,8 @@ const GLB_ASSET_MAP: Record<string, any> = {
   'glb/game_assets/marble_circle_table.glb':    require('../../assets/glb/game_assets/marble_circle_table.glb'),
   'glb/game_assets/poker_table2.glb':            require('../../assets/glb/game_assets/poker_table2.glb'),
   'glb/game_assets/casino_table_level2_textured.glb': require('../../assets/glb/game_assets/casino_table_level2_textured.glb'),
+  'glb/game_assets/circle_luna.glb':            require('../../assets/glb/game_assets/circle_luna.glb'),
+  'glb/game_assets/square_wooden_table.glb':    require('../../assets/glb/game_assets/square_wooden_table.glb'),
   'glb/chess/chess-board/source/ui.glb':        require('../../assets/glb/chess/chess-board/source/ui.glb'),
   'glb/game_boards/Untitled.glb':               require('../../assets/glb/game_boards/Untitled.glb'),
   'glb/game_boards/Backgammon.glb':             require('../../assets/glb/game_boards/Backgammon.glb'),
@@ -335,6 +337,8 @@ const GLB_ASSET_MAP: Record<string, any> = {
   'glb/checkers/Bisetka_Checkers.glb':          require('../../assets/glb/checkers/Bisetka_Checkers.glb'),
 };
 
+const MISSING_ASSET_WARNED = new Set<string>();
+
 /**
  * Turns a project-assets-relative path into a base64 data URI for the WebView.
  *
@@ -362,6 +366,9 @@ async function resolveAssetUri(assetPath: string): Promise<string | null> {
       if (assetRef != null) {
         const resolved = Image.resolveAssetSource(assetRef);
         metroUrl = resolved?.uri ?? null;
+      } else if (!MISSING_ASSET_WARNED.has(assetPath)) {
+        MISSING_ASSET_WARNED.add(assetPath);
+        console.warn('[AR3DOverlay] asset not registered in GLB_ASSET_MAP, trying URL fallback:', assetPath);
       }
 
       // If Image.resolveAssetSource didn't give us a URL (can happen for non-image
@@ -438,6 +445,7 @@ function buildSceneHTML(
   boardUri:        string | null,
   piecesUri:       string | null,
   chessPieceUris:  Record<string, string | null>,
+  squareWoodTextureUris: string[],
   tableUri:        string | null,
   spawnYaw:        number,
   pieceColorRed:   number,
@@ -463,6 +471,7 @@ function buildSceneHTML(
   const BOARD_URI_JS  = boardUri  ? JSON.stringify(boardUri)  : 'null';
   const PIECES_URI_JS = piecesUri ? JSON.stringify(piecesUri) : 'null';
   const CHESS_PIECE_URIS_JS = JSON.stringify(chessPieceUris ?? {});
+  const SQUARE_WOOD_TEXTURE_URIS_JS = JSON.stringify(squareWoodTextureUris ?? []);
   const CARD_URI_JS   = cardUri ? JSON.stringify(cardUri) : 'null';
   const CARD_BACK_URI_JS = cardBackUri ? JSON.stringify(cardBackUri) : 'null';
   
@@ -522,10 +531,12 @@ ${localThreePath && localGltfPath ? `
 ${localThreePath && localGltfPath ? `
 import * as THREE from '${localThreePath}';
 import { GLTFLoader } from '${localGltfPath}';
+import { FBXLoader } from 'https://esm.sh/three@0.166.1/examples/jsm/loaders/FBXLoader';
 const DRACOLoader = class { setDecoderPath(){return this;} preload(){return this;} dispose(){} };
 ` : `
 import * as THREE from 'https://esm.sh/three@0.166.1';
 import { GLTFLoader } from 'https://esm.sh/three@0.166.1/examples/jsm/loaders/GLTFLoader';
+import { FBXLoader } from 'https://esm.sh/three@0.166.1/examples/jsm/loaders/FBXLoader';
 import { DRACOLoader } from 'https://esm.sh/three@0.166.1/examples/jsm/loaders/DRACOLoader';
 `}
 
@@ -1179,6 +1190,7 @@ function buildProceduralBoard() {
 const BOARD_URI  = ${BOARD_URI_JS};
 const PIECES_URI = ${PIECES_URI_JS};
 const CHESS_PIECE_URIS = ${CHESS_PIECE_URIS_JS};
+const SQUARE_WOOD_TEXTURE_URIS = ${SQUARE_WOOD_TEXTURE_URIS_JS};
 const CARD_URI = ${CARD_URI_JS};
 const CARD_BACK_URI = ${CARD_BACK_URI_JS};
 // Use Google's Draco CDN with JS-only decoder to avoid WASM/Worker issues in WKWebView
@@ -1187,6 +1199,122 @@ dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5
 dracoLoader.setDecoderConfig({ type: 'js' });
 const loader     = new GLTFLoader();
 loader.setDRACOLoader(dracoLoader);
+const fbxLoader  = new FBXLoader();
+
+function _isFbxUri(uri) {
+  return /\.fbx(?:[?#].*)?$/i.test(uri || '');
+}
+
+function _loadModel(uri, onLoad, onError) {
+  if (_isFbxUri(uri)) {
+    fbxLoader.load(
+      uri,
+      function(obj) { onLoad({ scene: obj }); },
+      undefined,
+      onError,
+    );
+    return;
+  }
+  loader.load(uri, onLoad, undefined, onError);
+}
+
+const _IS_SQUARE_WOODEN_TABLE = /square_wooden_table\.(?:glb|fbx)(?:[?#].*)?$/i.test(BOARD_URI || '');
+let _squareWoodTex = null;
+const _texLoader = new THREE.TextureLoader();
+
+function _baseDirOfUri(uri) {
+  if (!uri) return '';
+  const q = uri.indexOf('?');
+  const clean = q >= 0 ? uri.slice(0, q) : uri;
+  const slash = clean.lastIndexOf('/');
+  return slash >= 0 ? clean.slice(0, slash + 1) : clean;
+}
+
+function _squareWoodTextureCandidates(uri) {
+  const dir = _baseDirOfUri(uri);
+  // Prefer explicitly resolved file URLs from React Native first.
+  const direct = (SQUARE_WOOD_TEXTURE_URIS || []).filter(Boolean);
+  const derived = [
+    dir + 'square_table_112_top_table_BaseColor.png',
+    dir + 'Texture_square_table_112/square_table_112_top_table_BaseColor.png',
+    dir + 'square_table_112_leg_table_BaseColor.png',
+    dir + 'Texture_square_table_112/square_table_112_leg_table_BaseColor.png',
+  ];
+  const merged = [];
+  const seen = {};
+  direct.concat(derived).forEach(function(u) {
+    if (!u || seen[u]) return;
+    seen[u] = true;
+    merged.push(u);
+  });
+  return merged;
+}
+
+function _loadFirstTexture(urls, onLoaded, onFailed, idx) {
+  const i = idx || 0;
+  if (i >= urls.length) {
+    _rnLog('[AR3D-HTML] square table textures exhausted; none loaded');
+    onFailed();
+    return;
+  }
+  const url = urls[i];
+  _rnLog('[AR3D-HTML] trying square table texture: ' + url);
+  _texLoader.load(
+    url,
+    function(tex) {
+      tex.colorSpace = THREE.SRGBColorSpace;
+      tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+      tex.repeat.set(2.2, 2.2);
+      tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+      tex.needsUpdate = true;
+      _rnLog('[AR3D-HTML] loaded square table texture: ' + url);
+      onLoaded(tex);
+    },
+    undefined,
+    function() {
+      _rnLog('[AR3D-HTML] failed square table texture: ' + url);
+      _loadFirstTexture(urls, onLoaded, onFailed, i + 1);
+    },
+  );
+}
+
+function _getSquareWoodTexture() {
+  if (_squareWoodTex) return _squareWoodTex;
+  const c = document.createElement('canvas');
+  c.width = 1024;
+  c.height = 1024;
+  const ctx = c.getContext('2d');
+  const grad = ctx.createLinearGradient(0, 0, 0, c.height);
+  grad.addColorStop(0, '#b97a49');
+  grad.addColorStop(0.5, '#a86a3f');
+  grad.addColorStop(1, '#bf8454');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, c.width, c.height);
+
+  // Layer streaks and subtle grain so missing PBR maps don't look flat grey.
+  for (let y = 0; y < c.height; y += 3) {
+    const shade = 80 + Math.floor(18 * Math.sin(y * 0.028)) + Math.floor(Math.random() * 16);
+    ctx.fillStyle = 'rgba(' + (shade + 90) + ', ' + (shade + 60) + ', ' + (shade + 25) + ', 0.10)';
+    ctx.fillRect(0, y, c.width, 2);
+  }
+  for (let i = 0; i < 1200; i++) {
+    const x = Math.random() * c.width;
+    const y = Math.random() * c.height;
+    const w = 12 + Math.random() * 50;
+    const h = 1 + Math.random() * 3;
+    ctx.fillStyle = 'rgba(30, 18, 8, ' + (0.01 + Math.random() * 0.02) + ')';
+    ctx.fillRect(x, y, w, h);
+  }
+
+  const tex = new THREE.CanvasTexture(c);
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(2.2, 2.2);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  tex.needsUpdate = true;
+  _squareWoodTex = tex;
+  return _squareWoodTex;
+}
 
 function _rnLog(msg) {
   if (window.ReactNativeWebView) {
@@ -1208,7 +1336,7 @@ if (BOARD_URI) {
       _gateDoneOne();
     }
   }, 120000);
-  loader.load(BOARD_URI, (gltf) => {
+  _loadModel(BOARD_URI, (gltf) => {
     const model = gltf.scene;
     const rawBox  = new THREE.Box3().setFromObject(model);
     const rawSize = rawBox.getSize(new THREE.Vector3());
@@ -1238,6 +1366,8 @@ if (BOARD_URI) {
     // board surface (not the pieces). Same regex used for embedded chess piece
     // extraction below.
     var _chessPieceRe = /^(King|Queen|Bishop|Knight|Rook|Pawn)_([AB])(?:_[LR])?(?:[._]?\\d+)?$/;
+    const _squareWoodMatsAll = [];
+    const _squareWoodMatsMissingMap = [];
     model.traverse(ch => {
       if (ch.isMesh) {
         ch.receiveShadow = true;
@@ -1259,6 +1389,21 @@ if (BOARD_URI) {
             } else {
               m.roughness = Math.max((m.roughness||0.5)*0.8, 0.35);
             }
+            if (_IS_SQUARE_WOODEN_TABLE && !BOARD_COLOR_OVERRIDE && !m.map) {
+              _squareWoodMatsAll.push(m);
+              _squareWoodMatsMissingMap.push(m);
+              m.color = new THREE.Color(0xffffff);
+              m.roughness = Math.max(m.roughness ?? 0.5, 0.55);
+              m.metalness = Math.min(m.metalness ?? 0.1, 0.1);
+            }
+            if (_IS_SQUARE_WOODEN_TABLE && !BOARD_COLOR_OVERRIDE && m.map) {
+              _squareWoodMatsAll.push(m);
+              m.color = new THREE.Color(0xffffff);
+              m.map.colorSpace = THREE.SRGBColorSpace;
+              m.map.needsUpdate = true;
+              m.roughness = Math.max(m.roughness ?? 0.5, 0.45);
+              m.metalness = Math.min(m.metalness ?? 0.1, 0.08);
+            }
             m.side = THREE.DoubleSide; // visible regardless of face orientation
             // Enable anisotropic filtering on all textures — prevents blur at oblique angles
             const texSlots = ['map','normalMap','roughnessMap','metalnessMap','aoMap'];
@@ -1274,6 +1419,29 @@ if (BOARD_URI) {
         });
       }
     });
+
+    if (_IS_SQUARE_WOODEN_TABLE && _squareWoodMatsAll.length > 0 && !BOARD_COLOR_OVERRIDE) {
+      _loadFirstTexture(
+        _squareWoodTextureCandidates(BOARD_URI),
+        function(tex) {
+          _squareWoodMatsAll.forEach(function(m) {
+            m.map = tex;
+            m.color = new THREE.Color(0xffffff);
+            m.roughness = Math.max(m.roughness ?? 0.5, 0.45);
+            m.metalness = Math.min(m.metalness ?? 0.1, 0.08);
+            m.needsUpdate = true;
+          });
+        },
+        function() {
+          const fallbackTex = _getSquareWoodTexture();
+          _squareWoodMatsAll.forEach(function(m) {
+            m.map = fallbackTex;
+            m.color = new THREE.Color(0xffffff);
+            m.needsUpdate = true;
+          });
+        },
+      );
+    }
 
     // Hide pre-placed checker pieces and embedded dice baked into the GLB.
     // The Backgammon material uses alphaMode:MASK so these sub-objects (e.g.
@@ -2262,7 +2430,7 @@ if (CARD_URI) {
   loader.load(CARD_URI, (gltf) => {
     baseCardScene = normalizeCardModel(gltf.scene);
     updateCards(window._cards || []);
-  }, undefined, (err) => {
+  }, (err) => {
     baseCardScene = null;
     console.warn('[AR3DOverlay] card GLB load failed, using procedural cards:', err && err.message ? err.message : String(err));
   });
@@ -3439,38 +3607,33 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
   const webViewRef = useRef<WebView>(null);
   const renderKey = useRef(0); // Force re-render on demand
 
+  const injectSceneMessage = useCallback((payload: unknown) => {
+    const msg = JSON.stringify(payload);
+    webViewRef.current?.injectJavaScript(
+      `(function(){var d=${msg};if(window.handleRNMessage){window.handleRNMessage(d);}else{window._rnMsgQueue=window._rnMsgQueue||[];window._rnMsgQueue.push(d);}true;})();`,
+    );
+  }, []);
+
   useImperativeHandle(ref, () => ({
     recenter() {
-      webViewRef.current?.injectJavaScript(
-        `window.handleRNMessage({type:'recenter'});true;`
-      );
+      injectSceneMessage({type: 'recenter'});
     },
     setScale(scale: number) {
-      webViewRef.current?.injectJavaScript(
-        `window.handleRNMessage({type:'scale',value:${scale}});true;`
-      );
+      injectSceneMessage({type: 'scale', value: scale});
     },
     rollDiceOnBoard(vx: number, vy: number, die1: number, die2: number) {
-      webViewRef.current?.injectJavaScript(
-        `window.handleRNMessage({type:'roll_dice',vx:${vx},vy:${vy},die1:${die1},die2:${die2}});true;`
-      );
+      injectSceneMessage({type: 'roll_dice', vx, vy, die1, die2});
     },
     useDieTint(value: number, movesRemaining: number, isDoubles: boolean) {
-      webViewRef.current?.injectJavaScript(
-        `window.handleRNMessage({type:'use_die',value:${value},movesRemaining:${movesRemaining},isDoubles:${isDoubles}});true;`
-      );
+      injectSceneMessage({type: 'use_die', value, movesRemaining, isDoubles});
     },
     resetDiceTint() {
-      webViewRef.current?.injectJavaScript(
-        `window.handleRNMessage({type:'reset_dice_tint'});true;`
-      );
+      injectSceneMessage({type: 'reset_dice_tint'});
     },
     updateBorneOff(white: number, black: number) {
-      webViewRef.current?.injectJavaScript(
-        `window.handleRNMessage({type:'update_borne_off',white:${white},black:${black}});true;`
-      );
+      injectSceneMessage({type: 'update_borne_off', white, black});
     },
-  }));
+  }), [injectSceneMessage]);
   
   // Increment key when visible changes from false to true (new AR session)
   useEffect(() => {
@@ -3505,6 +3668,9 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
   const [boardSurfaceImageUri, setBoardSurfaceImageUri] = useState<string | null | undefined>(boardSurfaceImagePath ? undefined : null);
   const [piecesUri, setPiecesUri] = useState<string | null | undefined>(piecesGlbPath ? undefined : null);
   const [chessPieceUris, setChessPieceUris] = useState<Record<string, string | null>>({});
+  const [squareWoodTextureUris, setSquareWoodTextureUris] = useState<string[] | undefined>(
+    boardGlbPath && /square_wooden_table\.(?:glb|fbx)$/i.test(boardGlbPath) ? undefined : [],
+  );
   const [tableUri,  setTableUri]  = useState<string | null | undefined>(tableGlbPath  ? undefined : null);
   const [cardUri,   setCardUri]   = useState<string | null | undefined>(cardGlbPath   ? undefined : null);
   const [cardBackUri, setCardBackUri] = useState<string | null | undefined>(cardBackTexturePath ? undefined : null);
@@ -3522,6 +3688,34 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
     resolveAssetUri(boardSurfaceImagePath).then(u => { if (!cancelled) setBoardSurfaceImageUri(u); });
     return () => { cancelled = true; };
   }, [boardSurfaceImagePath]);
+
+  useEffect(() => {
+    if (!boardGlbPath || !/square_wooden_table\.(?:glb|fbx)$/i.test(boardGlbPath)) {
+      setSquareWoodTextureUris([]);
+      return;
+    }
+    let cancelled = false;
+    const candidates = [
+      'glb/game_assets/square_table_112_top_table_BaseColor.png',
+      'glb/game_assets/Texture_square_table_112/square_table_112_top_table_BaseColor.png',
+      'glb/game_assets/square_table_112_leg_table_BaseColor.png',
+      'glb/game_assets/Texture_square_table_112/square_table_112_leg_table_BaseColor.png',
+      // Guaranteed in-repo fallbacks so the square table never renders as flat color.
+      'blot/card-table.png',
+      'poker/table.png',
+    ];
+
+    Promise.all(candidates.map(path => resolveAssetUri(path))).then((resolved) => {
+      if (cancelled) return;
+      const found = resolved.filter((u): u is string => !!u);
+      console.log('[AR3DOverlay] square table texture candidates found:', found.length, found);
+      setSquareWoodTextureUris(found);
+    }).catch(() => {
+      if (!cancelled) setSquareWoodTextureUris([]);
+    });
+
+    return () => { cancelled = true; };
+  }, [boardGlbPath]);
 
   useEffect(() => {
     if (!piecesGlbPath) { setPiecesUri(null); return; }
@@ -3609,6 +3803,7 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
     if (boardUri    === undefined) return null;
     if (boardSurfaceImageUri === undefined) return null;
     if (piecesUri   === undefined) return null;
+    if (squareWoodTextureUris === undefined) return null;
     if (tableUri    === undefined) return null;
     if (cardUri     === undefined) return null;
     if (cardBackUri === undefined) return null;
@@ -3618,7 +3813,7 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
     const redInt  = parseInt(pieceColorRed.replace(/^#/, ''), 16);
     const blackInt = parseInt(pieceColorBlack.replace(/^#/, ''), 16);
     const result = buildSceneHTML(
-      fov, boardUri, piecesUri, chessPieceUris, tableUri, spawnYaw,
+      fov, boardUri, piecesUri, chessPieceUris, squareWoodTextureUris, tableUri, spawnYaw,
       redInt, blackInt, cardUri, cardBackUri,
       localThreePath, localGltfPath, hideCheckerboard, boardScale, boardStyle,
       boardY, boardGlbForceFlat, boardTiltX, boardColorOverride ?? null, boardSurfaceImageUri ?? null,
@@ -3627,7 +3822,7 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
       boardGlbHasEmbeddedCheckersPieces,
     );
     return result;
-  }, [fov, boardUri, boardSurfaceImageUri, piecesUri, chessPieceUris, tableUri, spawnYaw, cardUri, cardBackUri, hideCheckerboard, boardScale, boardStyle, boardY, boardGlbForceFlat, boardTiltX, boardColorOverride, tableDist, boardFixed, boardFixedZoom, boardGlbHasEmbeddedChessPieces, boardGlbHasEmbeddedCheckersPieces]);
+  }, [fov, boardUri, boardSurfaceImageUri, piecesUri, chessPieceUris, squareWoodTextureUris, tableUri, spawnYaw, cardUri, cardBackUri, hideCheckerboard, boardScale, boardStyle, boardY, boardGlbForceFlat, boardTiltX, boardColorOverride, tableDist, boardFixed, boardFixedZoom, boardGlbHasEmbeddedChessPieces, boardGlbHasEmbeddedCheckersPieces]);
 
   // Write the HTML to a temp file and give WebView a file:// URI.
   // WKWebView.loadHTMLString silently fails on iOS with large strings (>5 MB).
@@ -3675,9 +3870,8 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
   useEffect(() => {
     if (!visible || !htmlFileUri) return;
     console.log('[AR3DOverlay] pushing scene — cards:', cards?.length ?? 0, 'pieces:', pieces?.length ?? 0);
-    const msg = JSON.stringify({type: 'scene', pieces, moves, cards, labels: arLabels});
-    webViewRef.current?.injectJavaScript(`window.handleRNMessage(${msg});true;`);
-  }, [pieces, moves, cards, arLabels, visible, htmlFileUri]);
+    injectSceneMessage({type: 'scene', pieces, moves, cards, labels: arLabels});
+  }, [pieces, moves, cards, arLabels, visible, htmlFileUri, injectSceneMessage]);
 
   // Re-send pieces once the WebView has finished loading (Three.js CDN async import).
   // The useEffect above may fire before handleRNMessage is registered, so this
@@ -3687,19 +3881,18 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
     // Don't reveal WebView here — Three.js CDN import is still in-flight.
     // We wait for the ar3d_ready postMessage instead (after first renderer.render).
     const sendScene = () => {
-      const msg = JSON.stringify({
+      injectSceneMessage({
         type: 'scene',
         pieces: latestPiecesRef.current,
         moves:  latestMovesRef.current,
         cards:  latestCardsRef.current,
         labels: latestLabelsRef.current,
       });
-      webViewRef.current?.injectJavaScript(`window.handleRNMessage(${msg});true;`);
     };
     sendScene();
     const retryDelays = [500, 1000, 1500, 2500, 4000];
     retryDelays.forEach(delay => setTimeout(sendScene, delay));
-  }, []);
+  }, [injectSceneMessage]);
 
   // Handle messages posted from Three.js (raycasted board taps)
   const handleMessage = useCallback((event: {nativeEvent: {data: string}}) => {

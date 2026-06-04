@@ -101,7 +101,7 @@ export async function endIAP(): Promise<void> {
 let productCache: Record<string, RNIap.Product> | null = null;
 
 export async function getProducts(): Promise<Record<string, RNIap.Product>> {
-  if (productCache) return productCache;
+  if (productCache && Object.keys(productCache).length > 0) return productCache;
   await initIAP();
   try {
     const products = await RNIap.getProducts({ skus: ALL_SKUS as unknown as string[] });
@@ -109,9 +109,10 @@ export async function getProducts(): Promise<Record<string, RNIap.Product>> {
     products.forEach((p) => {
       productCache![p.productId] = p;
     });
+    console.log(`🛍 getProducts: ${products.length}/${ALL_SKUS.length} SKUs returned`, products.map(p => p.productId));
     return productCache;
   } catch (e: any) {
-    console.warn('🛒 getProducts failed:', e?.message);
+    console.warn('🛍 getProducts failed:', e?.code, e?.message);
     return {};
   }
 }
@@ -184,16 +185,36 @@ function purchaseOnce(sku: string): Promise<IapResult> {
 
     errorSub = RNIap.purchaseErrorListener((err: RNIap.PurchaseError) => {
       // E_USER_CANCELLED is a normal flow; surface as a typed error.
-      const e: any = new Error(err.message || 'Purchase failed');
-      e.code = err.code;
-      e.cancelled = err.code === 'E_USER_CANCELLED';
+      const code = err.code || 'UNKNOWN';
+      const cancelled = code === 'E_USER_CANCELLED';
+      const baseMsg = err.message || 'Purchase failed';
+      const e: any = new Error(cancelled ? baseMsg : `${baseMsg} [${code}]`);
+      e.code = code;
+      e.cancelled = cancelled;
+      console.warn('🛍 purchaseErrorListener:', code, baseMsg, err);
       settleErr(e);
     });
 
     try {
       await initIAP();
+      // Pre-flight: make sure the SKU is actually in the store catalogue.
+      // If StoreKit/Play returns nothing for this SKU, requestPurchase will
+      // fail with a vague error — surface a clearer one instead.
+      const products = await getProducts();
+      if (!products[sku]) {
+        const missingErr: any = new Error(
+          `Product "${sku}" not available in the store. ` +
+          (Platform.OS === 'ios'
+            ? 'On iOS this usually means the SKU is missing/unapproved in App Store Connect, the device is a Simulator, or you are not signed into a Sandbox Apple ID.'
+            : 'On Android the app must be installed from a Play Store testing track (internal/closed/open) and the SKU must be Active in the Play Console.')
+        );
+        missingErr.code = 'E_SKU_NOT_FOUND';
+        settleErr(missingErr);
+        return;
+      }
       await RNIap.requestPurchase({ sku, andDangerouslyFinishTransactionAutomaticallyIOS: false });
-    } catch (e) {
+    } catch (e: any) {
+      console.warn('🛍 requestPurchase threw:', e?.code, e?.message);
       settleErr(e);
     }
   });
