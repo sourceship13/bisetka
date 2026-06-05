@@ -197,19 +197,22 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
         setPlayers(data.players);
         setMyPosition(data.myPosition);
         setMyTeam(data.myTeam);
-        setGameMode('game');
-        setIsConnecting(false);
 
-        // If rejoining (replace-AI), apply the current game state immediately
+        // If rejoining (replace-AI), the game is already active — switch into
+        // game view immediately. Otherwise stay on the "Finding opponent" modal
+        // and wait for `baazar_game_started` once all players are ready.
         if (data.isRejoining && data.gameState) {
           setGameState(data.gameState);
-          // Game is already active — no need for the ready handshake.
+          setGameMode('game');
+          setIsConnecting(false);
           // Request a fresh state sync after a short delay as a safety net.
           setTimeout(() => {
             socket.emit('baazar_request_sync', { roomId: data.roomId, userId });
           }, 2000);
         } else {
-          // Fresh game: mark player as ready so allReady can trigger game start
+          // Fresh game: mark player as ready so allReady can trigger game start.
+          // Keep `gameMode='matchmaking'` until `baazar_game_started` arrives
+          // so the player stays on the matchmaking modal until truly connected.
           socket.emit('baazar_player_ready', {
             roomId: data.roomId,
             userId
@@ -351,7 +354,29 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
           userId,
         });
       } else if (initialMode === 'random') {
-        if (teamMode === 'full-multiplayer') {
+        const preMatch = route.params?.preMatch;
+        if (preMatch) {
+          // Matchmaking already done on GameInfoScreen — replay the
+          // baazar_match_found payload locally so all the existing state setup
+          // runs identically, then send player_ready ourselves.
+          setRoomId(preMatch.roomId);
+          if (preMatch.players) setPlayers(preMatch.players);
+          setMyPosition(preMatch.myPosition ?? 0);
+          setMyTeam(preMatch.myTeam ?? 1);
+          if (preMatch.isRejoining && preMatch.gameState) {
+            setGameState(preMatch.gameState);
+            setGameMode('game');
+            setIsConnecting(false);
+            setTimeout(() => {
+              socket.emit('baazar_request_sync', { roomId: preMatch.roomId, userId });
+            }, 2000);
+          } else {
+            socket.emit('baazar_player_ready', {
+              roomId: preMatch.roomId,
+              userId,
+            });
+          }
+        } else if (teamMode === 'full-multiplayer') {
           socket.emit('find_baazar_teams_match', {
             userId,
           });

@@ -497,7 +497,30 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
         
         // Auto-find match if coming with random mode
         if (initialMode === 'random') {
-          await findMatchOnMount();
+          const preMatch = route.params?.preMatch;
+          if (preMatch) {
+            // Matchmaking already done on GameInfoScreen — use the data directly.
+            const isTeams = teamMode === 'full-multiplayer';
+            setGameState(null);
+            isGameStartedRef.current = false;
+            setIsGameStarted(false);
+            setIsReadySent(false);
+            setSelectedCard(null);
+            if (isTeams) {
+              updatePlayerPosition(preMatch.position ?? 0);
+              updatePlayerColor(preMatch.team ?? 'white');
+              setIsMyTurn((preMatch.position ?? 0) === 0);
+            } else {
+              updatePlayerColor(preMatch.color);
+              setOpponent(preMatch.opponent);
+              setIsMyTurn(preMatch.color === 'white');
+            }
+            setCurrentRoom({ roomId: preMatch.roomId });
+            setGameStatus('Match found! Waiting for game to start...');
+            socketService.playerReady(preMatch.roomId, userId);
+          } else {
+            await findMatchOnMount();
+          }
         }
 
         // Join a waiting room directly from the Active Rooms lobby

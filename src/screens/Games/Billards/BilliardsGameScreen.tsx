@@ -687,7 +687,7 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
   winnerRef.current = winner;
 
   // ── Multiplayer state ────────────────────────────────────────────────────────
-  const [mpStatus, setMpStatus] = useState<'idle'|'connecting'|'searching'|'waiting'|'playing'|'ended'>('idle');
+  const [mpStatus, setMpStatus] = useState<'idle'|'connecting'|'searching'|'waiting'|'playing'|'ended'>(isMultiplayer ? 'connecting' : 'idle');
   const [roomId, setRoomId] = useState<string | null>(null);
   const [myColor, setMyColor] = useState<'white' | 'black' | null>(null);
 
@@ -947,8 +947,18 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
 
         // Start matchmaking
         if (mode === 'random') {
-          const gameType = variant === '9-ball' ? '9-ball' : 'billiards';
-          socket.emit('find_match', { gameType, userId });
+          const preMatch = (route.params as any)?.preMatch;
+          if (preMatch) {
+            // Matchmaking already done on GameInfoScreen — replay locally.
+            resolvedRoomId = preMatch.roomId;
+            setRoomId(preMatch.roomId);
+            if (preMatch.color) setMyColor(preMatch.color as 'white' | 'black');
+            setMpStatus('waiting');
+            socket.emit('player_ready', { roomId: preMatch.roomId, userId });
+          } else {
+            const gameType = variant === '9-ball' ? '9-ball' : 'billiards';
+            socket.emit('find_match', { gameType, userId });
+          }
         }
       } catch (err) {
         if (!cancelled) {

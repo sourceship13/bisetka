@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -19,6 +19,7 @@ import apiConfig from '../../../libs/utils/api.utils';
 import tokenService from '../../../services/token.service';
 import { apiService } from '../../../services/api.service';
 import { gameSessionsService } from '../../../services/gameSessions.service';
+import { socketService } from '../../../services/SocketService';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'GameInfo'>;
 
@@ -107,10 +108,28 @@ const GameInfoScreen: React.FC<Props> = ({ route, navigation }) => {
   const [showPointsModal, setShowPointsModal] = useState(false);
   const [liveBalance, setLiveBalance] = useState<number | null>(null);
   const [checkingBalance, setCheckingBalance] = useState(false);
+  // Shown while we run matchmaking on this screen. We stay on this modal
+  // until the server reports a match (or the user cancels) — only then do we
+  // navigate to the actual gameplay screen.
+  const [showSearchingModal, setShowSearchingModal] = useState(false);
+  // Set to true when the user taps Cancel so the in-flight matchmaking
+  // promise resolution does not navigate after the fact.
+  const matchmakingCancelledRef = useRef(false);
+  // Track which user we sent into matchmaking so we can cancel server-side.
+  const matchmakingUserIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     fetchGameInfo();
   }, [gameType]);
+
+  // When the user navigates back to this screen (from a multiplayer game or
+  // GameMode), make sure the searching modal isn't still up.
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      setShowSearchingModal(false);
+    });
+    return unsubscribe;
+  }, [navigation]);
 
   const fetchGameInfo = async () => {
     try {
@@ -132,6 +151,73 @@ const GameInfoScreen: React.FC<Props> = ({ route, navigation }) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // ---------------------------------------------------------------------------
+  // Inline matchmaking: keeps the user on this screen (with the modal up) while
+  // we negotiate a match with the server. Only on success do we navigate to
+  // the actual multiplayer screen, passing the resolved match data via the
+  // `preMatch` route param so that screen can skip its own findMatch call.
+  // ---------------------------------------------------------------------------
+  const ensureSocketReady = async (userId: string) => {
+    const token = (await tokenService.getAccessToken()) || 'temp-token';
+    if (!socketService.isConnected()) {
+      await socketService.connect(userId, token);
+    }
+  };
+
+  // Custom Baazar Blot matchmaking — Baazar uses its own socket events instead
+  // of the generic findMatch flow.
+  const findBaazarMatch = (
+    userId: string,
+    isTeams: boolean,
+  ): Promise<any> => {
+    return new Promise((resolve, reject) => {
+      const socket = socketService.getSocket();
+      if (!socket?.connected) {
+        reject(new Error('Not connected to server'));
+        return;
+      }
+      socket.off('baazar_match_found');
+      socket.off('error');
+
+      const timer = setTimeout(() => {
+        socket.off('baazar_match_found');
+        socket.off('error');
+        reject(new Error('Matchmaking timeout'));
+      }, 60000);
+
+      socket.once('baazar_match_found', (data: any) => {
+        clearTimeout(timer);
+        socket.off('error');
+        resolve(data);
+      });
+      socket.once('error', (err: any) => {
+        clearTimeout(timer);
+        socket.off('baazar_match_found');
+        reject(new Error(err?.message || String(err) || 'Matchmaking failed'));
+      });
+
+      if (isTeams) {
+        socket.emit('find_baazar_teams_match', { userId });
+      } else {
+        socket.emit('find_baazar_match', { userId, allowReplaceAI: false });
+      }
+    });
+  };
+
+  const handleCancelMatchmaking = () => {
+    matchmakingCancelledRef.current = true;
+    setShowSearchingModal(false);
+    const uid = matchmakingUserIdRef.current;
+    if (uid) {
+      try {
+        socketService.cancelMatchmaking(uid);
+        const sock = socketService.getSocket();
+        sock?.emit('cancel_baazar_matchmaking', { userId: uid });
+      } catch {}
+    }
+    matchmakingUserIdRef.current = null;
   };
 
   // Pull win/draw/loss values from the configured prize structure (if any).
@@ -197,15 +283,56 @@ const GameInfoScreen: React.FC<Props> = ({ route, navigation }) => {
         navigation.navigate(target as any);
         return;
       }
-      // Random / private → multiplayer screen, which manages the socket flow.
-      const target =
-        gameType === 'baazar-blot' ? 'MultiplayerBaazarBlot' : 'MultiplayerBlot';
-      navigation.navigate(target as any, {
-        userId,
-        mode: selectedMode === 'private' ? 'private-create' : 'random',
-        difficulty: 'medium',
-        teamMode: selectedTeamMode,
-      });
+      if (selectedMode === 'private') {
+        // Private rooms have no "finding opponent" — navigate immediately so
+        // the multiplayer screen can show the room code / join UI.
+        const target =
+          gameType === 'baazar-blot' ? 'MultiplayerBaazarBlot' : 'MultiplayerBlot';
+        navigation.navigate(target as any, {
+          userId,
+          mode: 'private-create',
+          difficulty: 'medium',
+          teamMode: selectedTeamMode,
+        });
+        return;
+      }
+      // Random match — run matchmaking inline and navigate only when matched.
+      matchmakingCancelledRef.current = false;
+      matchmakingUserIdRef.current = userId;
+      setShowSearchingModal(true);
+      try {
+        await ensureSocketReady(userId);
+        const isTeams = selectedTeamMode === 'full-multiplayer';
+        let matchData: any;
+        if (gameType === 'baazar-blot') {
+          matchData = await findBaazarMatch(userId, isTeams);
+        } else {
+          matchData = await socketService.findMatch(
+            isTeams ? 'blot-teams' : 'blot',
+            userId,
+          );
+        }
+        if (matchmakingCancelledRef.current) return;
+        matchmakingUserIdRef.current = null;
+        setShowSearchingModal(false);
+        const target =
+          gameType === 'baazar-blot' ? 'MultiplayerBaazarBlot' : 'MultiplayerBlot';
+        navigation.navigate(target as any, {
+          userId,
+          mode: 'random',
+          difficulty: 'medium',
+          teamMode: selectedTeamMode,
+          preMatch: matchData,
+        });
+      } catch (err: any) {
+        if (matchmakingCancelledRef.current) return;
+        matchmakingUserIdRef.current = null;
+        setShowSearchingModal(false);
+        BisetkaAlert.error(
+          'Matchmaking failed',
+          err?.message || 'Please try again.',
+        );
+      }
       return;
     }
 
@@ -225,26 +352,147 @@ const GameInfoScreen: React.FC<Props> = ({ route, navigation }) => {
             'medium',
             false,
           );
-        } else if (selectedMode === 'private') {
+          navigation.navigate('BilliardsGame' as any, {
+            session: {
+              ...session,
+              gameType,
+              mode: 'ai',
+              difficulty: session?.difficulty || 'medium',
+            },
+          });
+          return;
+        }
+        if (selectedMode === 'private') {
           session = await gameSessionsService.createPrivateMatch(
             gameType as any,
           );
-        } else {
-          session = await gameSessionsService.createRandomMatch(
-            gameType as any,
-          );
+          setShowSearchingModal(true);
+          navigation.navigate('BilliardsGame' as any, {
+            session: {
+              ...session,
+              gameType,
+              mode: 'private-create',
+              difficulty: session?.difficulty || 'medium',
+            },
+          });
+          return;
         }
+        // Random match — run matchmaking inline so we only navigate when an
+        // opponent has actually been found.
+        const userId = user?.id || 'guest';
+        matchmakingCancelledRef.current = false;
+        matchmakingUserIdRef.current = userId;
+        setShowSearchingModal(true);
+        session = await gameSessionsService.createRandomMatch(
+          gameType as any,
+        );
+        await ensureSocketReady(userId);
+        const billiardsGameType =
+          gameType === '9-ball' ? '9-ball' : 'billiards';
+        const matchData = await socketService.findMatch(
+          billiardsGameType,
+          userId,
+        );
+        if (matchmakingCancelledRef.current) return;
+        matchmakingUserIdRef.current = null;
+        setShowSearchingModal(false);
         navigation.navigate('BilliardsGame' as any, {
           session: {
             ...session,
             gameType,
-            mode: selectedMode === 'private' ? 'private-create' : selectedMode,
+            mode: 'random',
             difficulty: session?.difficulty || 'medium',
           },
+          preMatch: matchData,
         });
       } catch (err: any) {
+        if (matchmakingCancelledRef.current) return;
+        matchmakingUserIdRef.current = null;
+        setShowSearchingModal(false);
         BisetkaAlert.error(
           'Unable to start game',
+          err?.message || 'Please try again.',
+        );
+      }
+      return;
+    }
+
+    // For dedicated socket-based multiplayer screens (chess / checkers /
+    // mrotsi / nardi / poker), we keep the player on this screen and only
+    // navigate after the server confirms a match. Private rooms (which have
+    // no opponent search) and games with bespoke flows (poker / nardi) still
+    // navigate directly so their own screens can drive the wait.
+    const SOCKET_MULTIPLAYER_TARGET: Record<string, string> = {
+      'chess': 'MultiplayerChess',
+      'chess-multiplayer': 'MultiplayerChess',
+      'checkers': 'MultiplayerCheckers',
+      'mrotsi': 'MultiplayerMrotsi',
+      'nardi': 'Nardi',
+      'poker': 'PokerRoom',
+    };
+    const isMultiplayerMode =
+      selectedMode === 'random' || selectedMode === 'private';
+    const directTarget = SOCKET_MULTIPLAYER_TARGET[gameType];
+    if (isMultiplayerMode && directTarget) {
+      const userId = user?.id || 'guest';
+      const navMode =
+        selectedMode === 'private' ? 'private-create' : 'random';
+
+      // Poker / Nardi / private rooms / unsupported — keep direct nav so the
+      // destination screen runs its own connect + wait flow.
+      const inlineSupported =
+        navMode === 'random' &&
+        (directTarget === 'MultiplayerChess' ||
+          directTarget === 'MultiplayerCheckers' ||
+          directTarget === 'MultiplayerMrotsi');
+
+      if (!inlineSupported) {
+        setShowSearchingModal(true);
+        if (directTarget === 'PokerRoom') {
+          const fn: any = (user as any)?.fullName;
+          const resolvedName: string =
+            typeof fn === 'string' && fn
+              ? fn
+              : (fn?.givenName || fn?.familyName)
+                ? [fn.givenName, fn.familyName].filter(Boolean).join(' ')
+                : (user as any)?.username || (user as any)?.email || 'Guest';
+          navigation.navigate('PokerRoom' as any, {
+            session: { userId, displayName: resolvedName },
+            gameType: gameType as any,
+            mode: navMode,
+          });
+        } else {
+          navigation.navigate(directTarget as any, { userId, mode: navMode });
+        }
+        return;
+      }
+
+      // Chess / Checkers / Mrotsi random match — inline matchmaking.
+      matchmakingCancelledRef.current = false;
+      matchmakingUserIdRef.current = userId;
+      setShowSearchingModal(true);
+      try {
+        await ensureSocketReady(userId);
+        const findGameType =
+          gameType === 'chess-multiplayer' ? 'chess' : gameType;
+        const matchData = await socketService.findMatch(
+          findGameType,
+          userId,
+        );
+        if (matchmakingCancelledRef.current) return;
+        matchmakingUserIdRef.current = null;
+        setShowSearchingModal(false);
+        navigation.navigate(directTarget as any, {
+          userId,
+          mode: 'random',
+          preMatch: matchData,
+        });
+      } catch (err: any) {
+        if (matchmakingCancelledRef.current) return;
+        matchmakingUserIdRef.current = null;
+        setShowSearchingModal(false);
+        BisetkaAlert.error(
+          'Matchmaking failed',
           err?.message || 'Please try again.',
         );
       }
@@ -546,6 +794,35 @@ const GameInfoScreen: React.FC<Props> = ({ route, navigation }) => {
               onPress={() => setShowPointsModal(false)}
               style={styles.modalDismiss}>
               <Text style={styles.modalDismissText}>Got It</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Searching for opponent modal — bridges the navigation hand-off so the
+          user gets immediate feedback when starting a multiplayer match. */}
+      <Modal
+        visible={showSearchingModal}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+        onRequestClose={() => setShowSearchingModal(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <ActivityIndicator size="large" color="#fbbf24" />
+            <Text style={[styles.modalTitle, { marginTop: 16 }]}>
+              {selectedMode === 'private'
+                ? 'Setting up private match...'
+                : 'Searching for opponent...'}
+            </Text>
+            <Text style={styles.modalBody}>
+              Hang tight — we'll drop you into the game as soon as a match is
+              ready.
+            </Text>
+            <TouchableOpacity
+              onPress={handleCancelMatchmaking}
+              style={[styles.modalDismiss, { backgroundColor: '#374151' }]}>
+              <Text style={styles.modalDismissText}>Cancel</Text>
             </TouchableOpacity>
           </View>
         </View>

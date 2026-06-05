@@ -273,15 +273,19 @@ const GameModeScreen: React.FC<Props> = ({route, navigation}) => {
 
   const handleSuccess = (mode: SessionMode, result: any) => {
     console.log('[GameMode] session response', {mode, result, gameType});
-    const {title, message} = formatSuccessMessage(mode, result, label.title);
-    
-    // For AI games, navigate directly without alert
-    if (mode === 'ai') {
+
+    // For AI, random matchmaking, and private-join we navigate straight to the
+    // target game screen. That screen owns the "Finding opponent..." modal and
+    // keeps it visible until the socket fires game_started — interposing a
+    // confirm-dialog here just blocks the flow and confuses the user (the REST
+    // call only reserves a session; no opponent has actually been found yet).
+    if (mode === 'ai' || mode === 'random' || mode === 'private-join') {
       navigateToGame(mode, result);
       return;
     }
-    
-    // For other modes, show brief alert then navigate
+
+    // Only private-create needs the popup — it surfaces the share code.
+    const {title, message} = formatSuccessMessage(mode, result, label.title);
     BisetkaAlert.alert(title, message, [
       {text: 'Let\'s Go!', onPress: () => navigateToGame(mode, result)},
     ]);

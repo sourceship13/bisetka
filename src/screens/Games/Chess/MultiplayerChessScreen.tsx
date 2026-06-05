@@ -65,9 +65,20 @@ const serverBoardToClient = (board: any[][]): (import('../../../game/chessLogic'
 };
 
 const MultiplayerChessScreen = ({navigation, route}: any) => {
-  const {userId, mode: routeMode, joinCode, dbSessionId} = route.params; // Get from auth context
+  const {userId, mode: routeMode, joinCode, dbSessionId, preMatch} = route.params; // Get from auth context
   const { refreshOnGameEnd } = useGameEndRefresh(undefined, 'chess');
-  const [mode, setMode] = useState<'menu' | 'matchmaking' | 'private' | 'game'>('menu');
+  // Match the route param so the matchmaking/private UI renders immediately on
+  // mount — otherwise the menu flashes before the socket-init useEffect runs.
+  const initialScreenMode: 'menu' | 'matchmaking' | 'private' | 'game' =
+    routeMode === 'random' ||
+    routeMode === 'private-join' ||
+    routeMode === 'join-from-lobby' ||
+    routeMode === 'spectate'
+      ? 'matchmaking'
+      : routeMode === 'private-create'
+        ? 'private'
+        : 'menu';
+  const [mode, setMode] = useState<'menu' | 'matchmaking' | 'private' | 'game'>(initialScreenMode);
   const [isSpectating, setIsSpectating] = useState(false);
   const [showBlur, setShowBlur] = useState(false);
   const [showCustomization, setShowCustomization] = useState(false);
@@ -93,7 +104,9 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
   const [opponentUsername, setOpponentUsername] = useState<string>('');
   const [currentTurn, setCurrentTurn] = useState<'white' | 'black'>('white');
   const [isMyTurn, setIsMyTurn] = useState<boolean>(false);
-  const [gameStatus, setGameStatus] = useState<string>('Waiting for opponent...');
+  const [gameStatus, setGameStatus] = useState<string>(
+    routeMode === 'random' ? 'Finding opponent...' : 'Waiting for opponent...',
+  );
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [roomName, setRoomName] = useState('Multiplayer Chess');
   const [showRoomNameModal, setShowRoomNameModal] = useState(false);
@@ -256,7 +269,26 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
       // ─────────────────────────────────────────────────────────────────────
 
       if (routeMode === 'random') {
-        handleFindMatch();
+        if (preMatch) {
+          // Matchmaking was already completed on GameInfoScreen — use the
+          // pre-fetched data directly so we don't double-queue and so the user
+          // doesn't sit on a second "Finding opponent..." screen.
+          roomIdRef.current = preMatch.roomId;
+          myColorRef.current = preMatch.color;
+          setRoomId(preMatch.roomId);
+          setMyColor(preMatch.color);
+          setOpponentId(preMatch.opponent?.id ?? '');
+          setOpponentUsername(
+            (preMatch.opponent as any)?.username ??
+              (preMatch.opponent as any)?.displayName ??
+              '',
+          );
+          setIsMyTurn(preMatch.color === 'white');
+          setGameStatus('Opponent found! Get ready...');
+          socketService.playerReady(preMatch.roomId, userId);
+        } else {
+          handleFindMatch();
+        }
       } else if (routeMode === 'private-create') {
         handleCreatePrivateRoom();
       } else if (routeMode === 'private-join' && joinCode) {
