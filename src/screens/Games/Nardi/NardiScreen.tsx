@@ -315,7 +315,7 @@ const NardiScreen = ({ navigation, route }: any) => {
   useGameEndRefresh(gameState?.winner != null, 'nardi');
 
   // ── multiplayer state ────────────────────────────────────────────
-  const [mpStatus, setMpStatus] = useState<'idle'|'connecting'|'searching'|'waiting'|'playing'|'ended'>('idle');
+  const [mpStatus, setMpStatus] = useState<'idle'|'connecting'|'searching'|'waiting'|'playing'|'ended'>(isMultiplayer ? 'connecting' : 'idle');
   const [roomId, setRoomId] = useState<string|null>(null);
   const roomIdRef = useRef<string|null>(null);
   const [myMpColor, setMyMpColor] = useState<'white'|'black'>('white');

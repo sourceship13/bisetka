@@ -181,11 +181,18 @@ interface RoundResult {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 const MultiplayerMrotsiScreen = ({navigation, route}: any) => {
-  const {userId, mode: routeMode, joinCode} = route.params ?? {};
+  const {userId, mode: routeMode, joinCode, preMatch} = route.params ?? {};
   const {refreshOnGameEnd} = useGameEndRefresh(undefined, 'mrotsi');
 
-  // UI state machine
-  const [screen, setScreen] = useState<'menu' | 'matchmaking' | 'game'>('menu');
+  // UI state machine — initialize from the route param so the matchmaking modal
+  // renders immediately on mount instead of flashing the menu first.
+  const initialScreenState: 'menu' | 'matchmaking' | 'game' =
+    routeMode === 'random' ||
+    routeMode === 'private-create' ||
+    routeMode === 'private-join'
+      ? 'matchmaking'
+      : 'menu';
+  const [screen, setScreen] = useState<'menu' | 'matchmaking' | 'game'>(initialScreenState);
   const [showBlur, setShowBlur] = useState(false);
   const [showBackground, setShowBackground] = useState(true);
   const [arEnabled, setArEnabled] = useState(true);
@@ -195,7 +202,9 @@ const MultiplayerMrotsiScreen = ({navigation, route}: any) => {
   const chevronStyle = useAnimatedStyle(() => ({
     transform: [{ rotate: withTiming(toolbarExpanded.value ? '180deg' : '0deg', { duration: 250 }) }],
   }));
-  const [gameStatus, setGameStatus] = useState('Waiting for opponent...');
+  const [gameStatus, setGameStatus] = useState(
+    routeMode === 'random' ? 'Finding opponent...' : 'Waiting for opponent...',
+  );
   const [roomId, setRoomId] = useState('');
   const roomIdRef = useRef('');
   const [roomCode, setRoomCode] = useState('');
@@ -369,7 +378,18 @@ const MultiplayerMrotsiScreen = ({navigation, route}: any) => {
 
       // Auto-start
       if (routeMode === 'random') {
-        handleFindMatch();
+        if (preMatch) {
+          roomIdRef.current = preMatch.roomId;
+          const slot: 'player1' | 'player2' =
+            preMatch.color === 'white' ? 'player1' : 'player2';
+          mySlotRef.current = slot;
+          setMySlot(slot);
+          setRoomId(preMatch.roomId);
+          setGameStatus('Opponent found! Get ready...');
+          socketService.playerReady(preMatch.roomId, userId);
+        } else {
+          handleFindMatch();
+        }
       } else if (routeMode === 'private-create') {
         handleCreatePrivateRoom();
       } else if (routeMode === 'private-join' && joinCode) {

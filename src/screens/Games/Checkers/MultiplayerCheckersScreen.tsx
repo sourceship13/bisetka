@@ -124,11 +124,22 @@ function hasAnyMoves(board: (Piece | null)[][], color: PieceColor): boolean {
 
 // ─── component ────────────────────────────────────────────────────────────────
 const MultiplayerCheckersScreen = ({navigation, route}: any) => {
-  const {userId, mode: routeMode, joinCode, dbSessionId} = route.params;
+  const {userId, mode: routeMode, joinCode, dbSessionId, preMatch} = route.params;
   const {refreshOnGameEnd} = useGameEndRefresh(undefined, 'checkers');
 
   // ── screen mode ────────────────────────────────────────────────────────────
-  const [mode, setMode] = useState<'menu' | 'matchmaking' | 'private' | 'game'>('menu');
+  // Match the route param so the matchmaking/private UI renders immediately on
+  // mount — otherwise the menu flashes before the socket-init useEffect runs.
+  const initialScreenMode: 'menu' | 'matchmaking' | 'private' | 'game' =
+    routeMode === 'random' ||
+    routeMode === 'private-join' ||
+    routeMode === 'join-from-lobby' ||
+    routeMode === 'spectate'
+      ? 'matchmaking'
+      : routeMode === 'private-create'
+        ? 'private'
+        : 'menu';
+  const [mode, setMode] = useState<'menu' | 'matchmaking' | 'private' | 'game'>(initialScreenMode);
   const [isSpectating, setIsSpectating] = useState(false);
   const [showBlur, setShowBlur] = useState(false);
   const [showBackground, setShowBackground] = useState(true);
@@ -163,7 +174,9 @@ const MultiplayerCheckersScreen = ({navigation, route}: any) => {
   const isMyTurn = mode === 'game' ? serverTurn === mySocketColor : false;
 
   // ── UI helpers ─────────────────────────────────────────────────────────────
-  const [gameStatus, setGameStatus] = useState<string>('');
+  const [gameStatus, setGameStatus] = useState<string>(
+    routeMode === 'random' ? 'Finding opponent...' : '',
+  );
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [roomName, setRoomName] = useState('Multiplayer Checkers');
   const [showRoomNameModal, setShowRoomNameModal] = useState(false);
@@ -276,7 +289,22 @@ const MultiplayerCheckersScreen = ({navigation, route}: any) => {
 
       // Auto-trigger mode from route params
       if (routeMode === 'random') {
-        handleFindMatch();
+        if (preMatch) {
+          roomIdRef.current = preMatch.roomId;
+          mySocketColorRef.current = preMatch.color;
+          setRoomId(preMatch.roomId);
+          setMySocketColor(preMatch.color);
+          setOpponentId(preMatch.opponent?.id ?? '');
+          setOpponentUsername(
+            ((preMatch.opponent as any)?.username ??
+              (preMatch.opponent as any)?.displayName) ??
+              '',
+          );
+          setGameStatus('Opponent found! Get ready...');
+          socketService.playerReady(preMatch.roomId, userId);
+        } else {
+          handleFindMatch();
+        }
       } else if (routeMode === 'private-create') {
         handleCreatePrivateRoom();
       } else if (routeMode === 'private-join' && joinCode) {
