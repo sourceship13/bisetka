@@ -4,7 +4,78 @@
 import { NEW_CLOTHING_ITEMS, NEW_BASE_AVATARS } from './avatarsNew';
 import { AvatarClothing, BaseAvatar } from '../types/avatar2d';
 
-export const ALL_CLOTHING_ITEMS: AvatarClothing[] = NEW_CLOTHING_ITEMS;
+// Items whose embedded SVG references a high-end brand (Balenciaga, Alo Yoga,
+// Louis Vuitton, Supreme). These are promoted to "legendary" rarity regardless
+// of what the auto-generated catalog assigned.
+const LEGENDARY_BRAND_ITEM_IDS = new Set<string>([
+  // Jackets
+  'jackets-female-fat-jacket-style-8',
+  'jackets-female-fat-jacket-style-9',
+  'jackets-female-jacket-style-8',
+  'jackets-female-jacket-style-9',
+  'jackets-female-muscle-jacket-style-8',
+  'jackets-female-muscle-jacket-style-9',
+  'jackets-jacket-style-8',
+  'jackets-fat-jacket-style-8',
+  'jackets-muscle-jacket-style-8',
+  // Pants
+  'pants-female-fat-pants-style-7',
+  'pants-female-fat-pants-style-9',
+  'pants-female-muscle-pants-style-7',
+  'pants-female-muscle-pants-style-9',
+  'pants-female-pants-style-7',
+  'pants-female-pants-style-9',
+  'pants-fat-pants-style-7',
+  'pants-fat-pants-style-9',
+  'pants-male-pants-style-7',
+  'pants-male-pants-style-9',
+  'pants-muscle-pants-style-7',
+  'pants-muscle-pants-style-9',
+  // Shirts
+  'shirts-female-fat-shirt-style-10',
+  'shirts-female-fat-shirt-style-7',
+  'shirts-female-muscle-shirt-style-10',
+  'shirts-female-muscle-shirt-style-7',
+  'shirts-female-shirt-style-10',
+  'shirts-female-shirt-style-7',
+  'shirts-fat-shirt-style-10',
+  'shirts-fat-shirt-style-8',
+  'shirts-muscle-shirt-style-10',
+  'shirts-muscle-shirt-style-8',
+  'shirts-shirt-style-10',
+  'shirts-shirt-style-8',
+  // Shorts
+  'shorts-female-fat-shorts-style-8',
+  'shorts-female-fat-shorts-style-9',
+  'shorts-female-muscle-shorts-style-8',
+  'shorts-female-muscle-shorts-style-9',
+  'shorts-female-shorts-style-8',
+  'shorts-female-shorts-style-9',
+  'shorts-fat-shorts-style-7',
+  'shorts-fat-shorts-style-9',
+  'shorts-male-short-style-8',
+  'shorts-male-short-style-9',
+  'shorts-muscle-shorts-style-7',
+  'shorts-muscle-shorts-style-9',
+]);
+
+// Fixed retail price (in cents) per rarity tier. Free defaults stay free.
+const RARITY_PRICE_CENTS: Record<string, number> = {
+  common: 199,
+  rare: 399,
+  epic: 599,
+  legendary: 1099,
+};
+
+export const ALL_CLOTHING_ITEMS: AvatarClothing[] = NEW_CLOTHING_ITEMS.map(i => {
+  const isLegendary =
+    LEGENDARY_BRAND_ITEM_IDS.has(i.id) || i.id.endsWith('-style-10');
+  const rarity = isLegendary ? 'legendary' : (i.rarity as string);
+  // Preserve free items (price 0 == starter/default), reprice everything else.
+  const price =
+    i.price === 0 ? 0 : (RARITY_PRICE_CENTS[rarity] ?? i.price);
+  return { ...i, rarity: rarity as any, price };
+});
 export const ALL_BASE_AVATARS: BaseAvatar[] = NEW_BASE_AVATARS;
 
 /**

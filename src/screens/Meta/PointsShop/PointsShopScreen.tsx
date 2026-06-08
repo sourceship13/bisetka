@@ -20,7 +20,12 @@ import {useAuth} from '../../../libs/hooks/useAuth';
 import apiService from '../../../services/api.service';
 import {buyPointsPack, buyClothingItem, PointsSKU} from '../../../services/iap.service';
 import {ClothingItem, ClothingType, Rarity} from '../../../types/avatar2d';
-import {ALL_CLOTHING_ITEMS} from '../../../data/clothingItems';
+import {
+  ALL_CLOTHING_ITEMS,
+  filterClothingForAvatar,
+  getAvatarBuildById,
+  getAvatarGenderById,
+} from '../../../data/clothingItems';
 import AssetImage from '../../../components/AssetImage';
 
 const {width} = Dimensions.get('window');
@@ -36,6 +41,14 @@ const RARITY_COLORS: Record<Rarity, string> = {
   epic: '#a78bfa',
   legendary: '#fbbf24',
 };
+
+const RARITY_TABS: {value: Rarity | 'all'; label: string; icon: string; color: string}[] = [
+  {value: 'all', label: 'All Tiers', icon: '✨', color: '#e5e7eb'},
+  {value: 'common', label: 'Common', icon: '⚪', color: '#9ca3af'},
+  {value: 'rare', label: 'Rare', icon: '🔵', color: '#60a5fa'},
+  {value: 'epic', label: 'Epic', icon: '🟣', color: '#a78bfa'},
+  {value: 'legendary', label: 'Legendary', icon: '👑', color: '#fbbf24'},
+];
 
 const CATEGORY_TABS: {type: ClothingType | 'all'; label: string; icon: string}[] = [
   {type: 'all', label: 'All', icon: '🛍️'},
@@ -121,9 +134,15 @@ const PointsShopScreen = ({navigation, route}: any) => {
   const {setUser, refreshUser} = useAuth();
 
   // ── Clothing tab state ────────────────────────────────────────────────────
-  const [clothingItems, setClothingItems] = useState<ClothingItem[]>(ALL_CLOTHING_ITEMS);
+  const [avatarGender, setAvatarGender] = useState<string | undefined>(undefined);
+  const [avatarBuild, setAvatarBuild] = useState<string | undefined>(undefined);
+  const clothingItems = useMemo<ClothingItem[]>(
+    () => filterClothingForAvatar(ALL_CLOTHING_ITEMS, avatarGender, avatarBuild) as ClothingItem[],
+    [avatarGender, avatarBuild],
+  );
   const [ownedItems, setOwnedItems] = useState<Set<string>>(new Set());
   const [selectedCategory, setSelectedCategory] = useState<ClothingType | 'all'>('all');
+  const [selectedRarity, setSelectedRarity] = useState<Rarity | 'all'>('all');
   const [clothingLoading, setClothingLoading] = useState(false);
   const [purchasing, setPurchasing] = useState<string | null>(null);
 
@@ -135,11 +154,33 @@ const PointsShopScreen = ({navigation, route}: any) => {
     loadUserInventory();
   }, []);
 
+  // Resolve the user's avatar gender + build so the clothing tab only shows
+  // items appropriate for their avatar. Falls back to 'male' / standard build
+  // so we never display a mixed-gender catalogue.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const AsyncStorage =
+          require('@react-native-async-storage/async-storage').default;
+        const selectedAvatarId = await AsyncStorage.getItem('selectedAvatarId');
+        if (cancelled) return;
+        setAvatarBuild(getAvatarBuildById(selectedAvatarId));
+        setAvatarGender(getAvatarGenderById(selectedAvatarId) ?? 'male');
+      } catch {
+        if (!cancelled) setAvatarGender('male');
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   // Reset paging when the category filter changes so users don't have to
   // scroll back to the top of a long list.
   useEffect(() => {
     setVisibleClothingCount(CLOTHING_PAGE_SIZE);
-  }, [selectedCategory]);
+  }, [selectedCategory, selectedRarity]);
 
   const loadUserInventory = async () => {
     try {
@@ -229,9 +270,10 @@ const PointsShopScreen = ({navigation, route}: any) => {
     () =>
       clothingItems
         .filter(item => selectedCategory === 'all' || item.type === selectedCategory)
+        .filter(item => selectedRarity === 'all' || item.rarity === selectedRarity)
         // Cheapest first (free items appear at the top), name as stable tie-break.
         .sort((a, b) => (a.price - b.price) || a.name.localeCompare(b.name)),
-    [clothingItems, selectedCategory],
+    [clothingItems, selectedCategory, selectedRarity],
   );
 
   const visibleClothingItems = useMemo(
@@ -587,6 +629,38 @@ const PointsShopScreen = ({navigation, route}: any) => {
                     </Text>
                   </TouchableOpacity>
                 ))}
+              </ScrollView>
+
+              {/* Rarity / tier filter */}
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.categoryScroll}
+                contentContainerStyle={styles.categoryContainer}>
+                {RARITY_TABS.map(tab => {
+                  const active = selectedRarity === tab.value;
+                  return (
+                    <TouchableOpacity
+                      key={tab.value}
+                      style={[
+                        styles.categoryTab,
+                        active && {
+                          backgroundColor: tab.color + '33',
+                          borderColor: tab.color,
+                        },
+                      ]}
+                      onPress={() => setSelectedRarity(tab.value)}>
+                      <Text style={styles.categoryIcon}>{tab.icon}</Text>
+                      <Text
+                        style={[
+                          styles.categoryLabel,
+                          active && {color: tab.color},
+                        ]}>
+                        {tab.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
               </ScrollView>
 
               {clothingLoading ? (
