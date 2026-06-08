@@ -104,11 +104,7 @@ export const AvatarSelectionScreen = ({ navigation }: any) => {
 
   const selectAvatar = async () => {
     if (!selectedAvatar) {
-      BisetkaAlert({
-        title: 'Select Avatar',
-        message: 'Please choose an avatar to continue',
-        type: 'warning',
-      });
+      BisetkaAlert.warning('Select Avatar', 'Please choose an avatar to continue');
       return;
     }
 
@@ -129,11 +125,7 @@ export const AvatarSelectionScreen = ({ navigation }: any) => {
       // Navigate back to home
       navigation.goBack();
     } catch (error: any) {
-      BisetkaAlert({
-        title: 'Error',
-        message: error.message || 'Failed to save avatar',
-        type: 'error',
-      });
+      BisetkaAlert.error('Error', error.message || 'Failed to save avatar');
     } finally {
       setSaving(false);
     }
