@@ -2,6 +2,9 @@
 <Workspace
    version = "1.0">
    <FileRef
+      location = "group:bisetka/Bisetka.storekit">
+   </FileRef>
+   <FileRef
       location = "group:bisetka.xcodeproj">
    </FileRef>
    <FileRef
