@@ -158,7 +158,7 @@ const PointsShopScreen = ({navigation, route}: any) => {
 
   const handleClothingPurchase = async (item: ClothingItem) => {
     if (ownedItems.has(item.id)) {
-      BisetkaAlert({title: 'Already Owned', message: 'You already own this item!', type: 'warning'});
+      BisetkaAlert.warning('Already Owned', 'You already own this item!');
       return;
     }
     if (item.price === 0) {
@@ -174,57 +174,55 @@ const PointsShopScreen = ({navigation, route}: any) => {
         eq[item.type] = item.id;
         await AsyncStorage.setItem('@bisetka_equipped_clothing', JSON.stringify(eq));
         setOwnedItems(newOwned);
-        BisetkaAlert({title: 'Claimed!', message: `${item.name} added & equipped`, type: 'success'});
+        BisetkaAlert.success('Claimed!', `${item.name} added & equipped`);
       } catch {
-        BisetkaAlert({title: 'Error', message: 'Failed to claim item', type: 'error'});
+        BisetkaAlert.error('Error', 'Failed to claim item');
       } finally {
         setPurchasing(null);
       }
       return;
     }
-    BisetkaAlert({
-      title: 'Purchase Item',
-      message: `Buy ${item.name} for $${(item.price / 100).toFixed(2)}?`,
-      type: 'confirm',
-      confirmText: 'Purchase',
-      onConfirm: async () => {
-        try {
-          setPurchasing(item.id);
-          const result = await buyClothingItem({
-            clothingId: item.id,
-            clothingType: item.type,
-            priceCents: item.price,
-          });
-          if (!result.success) {
-            throw new Error(result.error || 'Purchase failed');
-          }
-          const AsyncStorage =
-            require('@react-native-async-storage/async-storage').default;
-          const newOwned = new Set([...ownedItems, item.id]);
-          await AsyncStorage.setItem('ownedClothing', JSON.stringify([...newOwned]));
-          const eqStr = await AsyncStorage.getItem('@bisetka_equipped_clothing');
-          const eq = eqStr ? JSON.parse(eqStr) : {};
-          eq[item.type] = item.id;
-          await AsyncStorage.setItem('@bisetka_equipped_clothing', JSON.stringify(eq));
-          setOwnedItems(newOwned);
-          BisetkaAlert({
-            title: result.alreadyApplied ? 'Restored' : 'Success!',
-            message: `${item.name} is now equipped on your avatar!`,
-            type: 'success',
-          });
-        } catch (err: any) {
-          if (!err?.cancelled) {
-            BisetkaAlert({
-              title: 'Purchase Failed',
-              message: err?.message || 'Failed to purchase',
-              type: 'error',
-            });
-          }
-        } finally {
-          setPurchasing(null);
+    const runPurchase = async () => {
+      try {
+        setPurchasing(item.id);
+        const result = await buyClothingItem({
+          clothingId: item.id,
+          clothingType: item.type,
+          priceCents: item.price,
+        });
+        if (!result.success) {
+          throw new Error(result.error || 'Purchase failed');
         }
-      },
-    });
+        const AsyncStorage =
+          require('@react-native-async-storage/async-storage').default;
+        const newOwned = new Set([...ownedItems, item.id]);
+        await AsyncStorage.setItem('ownedClothing', JSON.stringify([...newOwned]));
+        const eqStr = await AsyncStorage.getItem('@bisetka_equipped_clothing');
+        const eq = eqStr ? JSON.parse(eqStr) : {};
+        eq[item.type] = item.id;
+        await AsyncStorage.setItem('@bisetka_equipped_clothing', JSON.stringify(eq));
+        setOwnedItems(newOwned);
+        BisetkaAlert.success(
+          result.alreadyApplied ? 'Restored' : 'Success!',
+          `${item.name} is now equipped on your avatar!`,
+        );
+      } catch (err: any) {
+        if (!err?.cancelled) {
+          BisetkaAlert.error('Purchase Failed', err?.message || 'Failed to purchase');
+        }
+      } finally {
+        setPurchasing(null);
+      }
+    };
+
+    BisetkaAlert.alert(
+      'Purchase Item',
+      `Buy ${item.name} for $${(item.price / 100).toFixed(2)}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Purchase', onPress: () => { void runPurchase(); } },
+      ],
+    );
   };
 
   const filteredClothingItems = useMemo(
