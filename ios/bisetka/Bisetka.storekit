@@ -1,0 +1,167 @@
+{
+  "identifier" : "BISETKA-LOCAL-STOREKIT",
+  "nonRenewingSubscriptions" : [],
+  "products" : [
+    {
+      "displayPrice" : "2.99",
+      "familyShareable" : false,
+      "internalID" : "P0001",
+      "localizations" : [
+        {
+          "description" : "Starter pack — 500 points.",
+          "displayName" : "Starter Points",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "points_starter",
+      "referenceName" : "Points Starter",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "3.99",
+      "familyShareable" : false,
+      "internalID" : "P0002",
+      "localizations" : [
+        {
+          "description" : "Value pack — 1500 points + 300 bonus.",
+          "displayName" : "Value Points",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "points_value",
+      "referenceName" : "Points Value",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "5.99",
+      "familyShareable" : false,
+      "internalID" : "P0003",
+      "localizations" : [
+        {
+          "description" : "Premium pack — 3500 points + 1000 bonus.",
+          "displayName" : "Premium Points",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "points_premium",
+      "referenceName" : "Points Premium",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "10.99",
+      "familyShareable" : false,
+      "internalID" : "P0004",
+      "localizations" : [
+        {
+          "description" : "Mega pack — 10000 points + 5000 bonus.",
+          "displayName" : "Mega Points",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "points_mega",
+      "referenceName" : "Points Mega",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "0.99",
+      "familyShareable" : false,
+      "internalID" : "P1001",
+      "localizations" : [
+        {
+          "description" : "Unlock a clothing item priced at $0.99 or less.",
+          "displayName" : "Clothing Tier $0.99",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "clothing_tier_099",
+      "referenceName" : "Clothing Tier 099",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "1.99",
+      "familyShareable" : false,
+      "internalID" : "P1002",
+      "localizations" : [
+        {
+          "description" : "Unlock a clothing item priced at $1.99 or less.",
+          "displayName" : "Clothing Tier $1.99",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "clothing_tier_199",
+      "referenceName" : "Clothing Tier 199",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "2.99",
+      "familyShareable" : false,
+      "internalID" : "P1003",
+      "localizations" : [
+        {
+          "description" : "Unlock a clothing item priced at $2.99 or less.",
+          "displayName" : "Clothing Tier $2.99",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "clothing_tier_299",
+      "referenceName" : "Clothing Tier 299",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "4.99",
+      "familyShareable" : false,
+      "internalID" : "P1004",
+      "localizations" : [
+        {
+          "description" : "Unlock a clothing item priced at $4.99 or less.",
+          "displayName" : "Clothing Tier $4.99",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "clothing_tier_499",
+      "referenceName" : "Clothing Tier 499",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "9.99",
+      "familyShareable" : false,
+      "internalID" : "P1005",
+      "localizations" : [
+        {
+          "description" : "Unlock a clothing item priced at $9.99 or less.",
+          "displayName" : "Clothing Tier $9.99",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "clothing_tier_999",
+      "referenceName" : "Clothing Tier 999",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "19.99",
+      "familyShareable" : false,
+      "internalID" : "P1006",
+      "localizations" : [
+        {
+          "description" : "Unlock a clothing item priced at $19.99 or less.",
+          "displayName" : "Clothing Tier $19.99",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "clothing_tier_1999",
+      "referenceName" : "Clothing Tier 1999",
+      "type" : "Consumable"
+    }
+  ],
+  "settings" : {
+    "_failTransactionsEnabled" : false,
+    "_locale" : "en_US",
+    "_storefront" : "USA",
+    "_storeKitErrors" : []
+  },
+  "subscriptionGroups" : [],
+  "version" : {
+    "major" : 3,
+    "minor" : 0
+  }
+}

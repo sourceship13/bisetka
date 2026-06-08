@@ -63,7 +63,7 @@ const POINT_PACKS: PointPack[] = [
   {
     id: 'points_starter',
     points: 500,
-    price: 0.99,
+    price: 2.99,
     icon: 'diamond',
     gradient: ['#667eea', '#764ba2'],
     glowColor: '#667eea',
@@ -71,7 +71,7 @@ const POINT_PACKS: PointPack[] = [
   {
     id: 'points_value',
     points: 1500,
-    price: 2.99,
+    price: 3.99,
     bonus: 300,
     popular: true,
     icon: 'diamond-stone',
@@ -81,7 +81,7 @@ const POINT_PACKS: PointPack[] = [
   {
     id: 'points_premium',
     points: 3500,
-    price: 4.99,
+    price: 5.99,
     bonus: 1000,
     icon: 'treasure-chest',
     gradient: ['#fa709a', '#fee140'],
@@ -90,11 +90,11 @@ const POINT_PACKS: PointPack[] = [
   {
     id: 'points_mega',
     points: 10000,
-    price: 9.99,
+    price: 10.99,
     bonus: 5000,
     icon: 'crown',
-    gradient: ['#ffd89b', '#19547b'],
-    glowColor: '#ffd89b',
+    gradient: ['#11998e', '#38ef7d'],
+    glowColor: '#38ef7d',
   },
 ];
 
