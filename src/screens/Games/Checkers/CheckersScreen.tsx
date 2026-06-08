@@ -263,6 +263,8 @@ function chooseBestMoveForRed(board: (Piece|null)[][], depth: number): AIMove | 
 
 const CheckersScreen = ({ navigation, route }: any) => {
   const { session, mode } = route.params;
+  const fakeOpponent = route?.params?.fakeOpponent ?? null;
+  const opponentLabel: string = fakeOpponent?.username || 'Computer';
   const { isTablet, isLandscape } = useDeviceType();
   
   // Calculate responsive board size
@@ -791,7 +793,19 @@ const CheckersScreen = ({ navigation, route }: any) => {
         boardScale={0.8}
       />
       <View style={styles.overlay} pointerEvents="box-none">
-        <GamePlayerOverlay opponent={isMultiplayer ? null : 'ai'} />
+        <GamePlayerOverlay
+          opponent={
+            isMultiplayer
+              ? null
+              : fakeOpponent
+                ? {
+                    userId: fakeOpponent.id,
+                    username: fakeOpponent.username,
+                    fakeAppearance: fakeOpponent.appearance,
+                  }
+                : 'ai'
+          }
+        />
         <SafeAreaView style={styles.safeArea} pointerEvents="box-none">
           <View>
             <GameToolbar
@@ -989,7 +1003,7 @@ const CheckersScreen = ({ navigation, route }: any) => {
             </View>
             {gameState.currentPlayer !== myPieceColor && <View style={styles.panelTurnDot} />}
             <View style={styles.panelPlayerInfo}>
-              <Text style={styles.panelPlayerName}>{isMultiplayer ? 'Opponent' : 'Computer'}</Text>
+              <Text style={styles.panelPlayerName}>{isMultiplayer ? 'Opponent' : opponentLabel}</Text>
               <View style={[styles.panelTeamBadge, { backgroundColor: myPieceColor === 'red' ? 'rgba(44,62,80,0.4)' : 'rgba(231,76,60,0.3)' }]}>
                 <Text style={styles.panelTeamText}>{myPieceColor === 'red' ? '⚫ Black' : '🔴 Red'}</Text>
               </View>

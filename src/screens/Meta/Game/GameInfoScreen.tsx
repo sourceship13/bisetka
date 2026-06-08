@@ -20,6 +20,7 @@ import tokenService from '../../../services/token.service';
 import { apiService } from '../../../services/api.service';
 import { gameSessionsService } from '../../../services/gameSessions.service';
 import { socketService } from '../../../services/SocketService';
+import { generateFakeOpponent } from '../../../utils/fakeOpponent';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'GameInfo'>;
 
@@ -220,6 +221,84 @@ const GameInfoScreen: React.FC<Props> = ({ route, navigation }) => {
     matchmakingUserIdRef.current = null;
   };
 
+  // Matchmaking timed out (or otherwise failed). Rather than throw an error in
+  // the user's face we silently swap in a bot dressed as a real player and
+  // start the AI version of the game. The destination screen sees a
+  // `fakeOpponent` route param and uses that for the displayed username +
+  // avatar so the player thinks they got matched.
+  const fallbackToFakeOpponent = () => {
+    if (matchmakingCancelledRef.current) return;
+    matchmakingUserIdRef.current = null;
+    setShowSearchingModal(false);
+    try {
+      socketService.cancelMatchmaking(user?.id || 'guest');
+      const sock = socketService.getSocket();
+      sock?.emit('cancel_baazar_matchmaking', { userId: user?.id || 'guest' });
+    } catch {}
+    const fakeOpponent = generateFakeOpponent();
+
+    if (gameType === 'baazar-blot') {
+      navigation.navigate('BaazarBlot' as any, { fakeOpponent });
+      return;
+    }
+    if (gameType === 'blot') {
+      navigation.navigate('Blot' as any, { fakeOpponent });
+      return;
+    }
+    if (
+      gameType === 'billiards' ||
+      gameType === '8-ball' ||
+      gameType === '9-ball'
+    ) {
+      // Re-create the AI session and route to BilliardsGame.
+      (async () => {
+        try {
+          const session = await gameSessionsService.createAiMatch(
+            gameType as any,
+            'medium',
+            false,
+          );
+          navigation.navigate('BilliardsGame' as any, {
+            session: {
+              ...session,
+              gameType,
+              mode: 'ai',
+              difficulty: session?.difficulty || 'medium',
+            },
+            fakeOpponent,
+          });
+        } catch {
+          navigation.navigate('GameMode', {
+            gameType: gameType as any,
+            bisetkaId,
+            bisetkaName,
+            preferredMode: 'ai',
+          } as any);
+        }
+      })();
+      return;
+    }
+    if (gameType === 'chess' || gameType === 'chess-multiplayer') {
+      navigation.navigate('Chess' as any, { mode: 'ai', fakeOpponent });
+      return;
+    }
+    if (gameType === 'checkers') {
+      navigation.navigate('Checkers' as any, { mode: 'ai', fakeOpponent });
+      return;
+    }
+    if (gameType === 'mrotsi') {
+      navigation.navigate('Mrotsi' as any, { mode: 'ai', fakeOpponent });
+      return;
+    }
+    // Unknown game — punt back to the game-mode picker rather than blocking.
+    navigation.navigate('GameMode', {
+      gameType: gameType as any,
+      bisetkaId,
+      bisetkaName,
+      preferredMode: 'ai',
+    } as any);
+  };
+
   // Pull win/draw/loss values from the configured prize structure (if any).
   const prizes = useMemo(() => {
     const result = { win: 0, draw: 0, loss: 0 };
@@ -326,12 +405,9 @@ const GameInfoScreen: React.FC<Props> = ({ route, navigation }) => {
         });
       } catch (err: any) {
         if (matchmakingCancelledRef.current) return;
-        matchmakingUserIdRef.current = null;
-        setShowSearchingModal(false);
-        BisetkaAlert.error(
-          'Matchmaking failed',
-          err?.message || 'Please try again.',
-        );
+        // Silently fall back to a bot dressed as a real player rather than
+        // surfacing the "Matchmaking timeout" error to the user.
+        fallbackToFakeOpponent();
       }
       return;
     }
@@ -407,12 +483,8 @@ const GameInfoScreen: React.FC<Props> = ({ route, navigation }) => {
         });
       } catch (err: any) {
         if (matchmakingCancelledRef.current) return;
-        matchmakingUserIdRef.current = null;
-        setShowSearchingModal(false);
-        BisetkaAlert.error(
-          'Unable to start game',
-          err?.message || 'Please try again.',
-        );
+        // Silent fallback so the user never sees a matchmaking-timeout error.
+        fallbackToFakeOpponent();
       }
       return;
     }
@@ -489,12 +561,9 @@ const GameInfoScreen: React.FC<Props> = ({ route, navigation }) => {
         });
       } catch (err: any) {
         if (matchmakingCancelledRef.current) return;
-        matchmakingUserIdRef.current = null;
-        setShowSearchingModal(false);
-        BisetkaAlert.error(
-          'Matchmaking failed',
-          err?.message || 'Please try again.',
-        );
+        // Silent fallback — the user is dropped into an AI game with a bot
+        // styled to look like a real opponent.
+        fallbackToFakeOpponent();
       }
       return;
     }

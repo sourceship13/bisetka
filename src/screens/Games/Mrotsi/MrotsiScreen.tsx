@@ -242,7 +242,7 @@ function freshGame(): YambGameState {
 
 const MrotsiScreen = ({ navigation, route }: any) => {
   // route params accepted for navigation compatibility (currently unused — Yamb is solo)
-  void route?.params;
+  const fakeOpponent = route?.params?.fakeOpponent ?? null;
 
   const [state, setState] = useState<YambGameState>(freshGame());
   const [showMusicPlayer, setShowMusicPlayer] = useState(false);
@@ -474,7 +474,17 @@ const MrotsiScreen = ({ navigation, route }: any) => {
         )}
       </ImageBackground>
       <View style={styles.overlay} pointerEvents="box-none">
-        <GamePlayerOverlay opponent={null} />
+        <GamePlayerOverlay
+          opponent={
+            fakeOpponent
+              ? {
+                  userId: fakeOpponent.id,
+                  username: fakeOpponent.username,
+                  fakeAppearance: fakeOpponent.appearance,
+                }
+              : null
+          }
+        />
         <SafeAreaView style={styles.container} pointerEvents="box-none">
           <View>
             <GameToolbar

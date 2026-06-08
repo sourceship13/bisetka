@@ -22,6 +22,12 @@ interface Props {
   /** When true, drops the dark backdrop behind the avatar + name so the chip
    *  reads as a transparent floating avatar (used by 8/9-ball pool HUDs). */
   transparentBackground?: boolean;
+  /** Pre-resolved appearance for fake bot opponents (skips API fetch). */
+  fakeAppearance?: {
+    baseAvatarId: string;
+    gender: 'male' | 'female' | null;
+    equipped: Record<string, string>;
+  } | null;
 }
 
 const PlayerChip: React.FC<Props> = ({
@@ -30,6 +36,7 @@ const PlayerChip: React.FC<Props> = ({
   username,
   size = 56,
   transparentBackground = false,
+  fakeAppearance,
 }) => {
   let label = 'You';
   let avatar: React.ReactNode = null;
@@ -52,7 +59,7 @@ const PlayerChip: React.FC<Props> = ({
   } else {
     label = (username && username.trim()) || 'Opponent';
     avatar = userId ? (
-      <RemoteUserAvatar userId={userId} size={size} />
+      <RemoteUserAvatar userId={userId} size={size} fakeAppearance={fakeAppearance ?? null} />
     ) : (
       <View
         style={[

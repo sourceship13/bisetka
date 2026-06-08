@@ -15,6 +15,12 @@ import PlayerChip from './PlayerChip';
 interface OpponentInfo {
   userId: string | null | undefined;
   username: string | null | undefined;
+  /** Pre-resolved appearance for fake bots (skips API fetch). */
+  fakeAppearance?: {
+    baseAvatarId: string;
+    gender: 'male' | 'female' | null;
+    equipped: Record<string, string>;
+  } | null;
 }
 
 interface Props {
@@ -52,6 +58,7 @@ const GamePlayerOverlay: React.FC<Props> = ({
             username={opponent.username ?? undefined}
             size={size}
             transparentBackground={transparentBackground}
+            fakeAppearance={opponent.fakeAppearance ?? null}
           />
         ) : null}
       </View>
