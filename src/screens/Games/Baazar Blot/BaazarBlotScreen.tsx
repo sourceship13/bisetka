@@ -69,7 +69,8 @@ const TOTAL_PLAYERS = 4;
 const { width: SW } = Dimensions.get('window');
 const GAME_TYPE = 'baazar-blot';
 
-const BaazarBlotScreen = ({ navigation }: any) => {
+const BaazarBlotScreen = ({ navigation, route }: any) => {
+  const fakeOpponent = route?.params?.fakeOpponent ?? null;
   const [gameState, setGameState] = useState<BaazarGameState | null>(null);
   const [showCustomization, setShowCustomization] = useState(false);
   const [customTheme, setCustomTheme] = useState<CardTheme | undefined>(undefined);
@@ -1136,7 +1137,19 @@ const BaazarBlotScreen = ({ navigation }: any) => {
         <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/game_boards/rounded_table_panel_v4.glb" boardSurfaceImagePath="blot/card-table.png" hideCheckerboard boardFixed boardFixedZoom={1.0} boardScale={1.9} tableDist={0.9} boardY={-1.5} boardTiltX={0} cardGlbPath="glb/cards/card-template.glb" cards={arCards} />
       </AraratBackground>
       <View style={styles.overlay} pointerEvents="box-none">
-      <GamePlayerOverlay opponent="ai" topOffset={260} size={100}/>
+      <GamePlayerOverlay
+        opponent={
+          fakeOpponent
+            ? {
+                userId: fakeOpponent.id,
+                username: fakeOpponent.username,
+                fakeAppearance: fakeOpponent.appearance,
+              }
+            : 'ai'
+        }
+        topOffset={260}
+        size={100}
+      />
       <SafeAreaView style={styles.safe}>
         <View>
           <GameToolbar

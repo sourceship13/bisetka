@@ -70,7 +70,8 @@ const SUIT_COLOR: Record<string, string> = {
   spades: '#1a1a1a',
 };
 
-const BlotScreen = ({ navigation }: any) => {
+const BlotScreen = ({ navigation, route }: any) => {
+  const fakeOpponent = route?.params?.fakeOpponent ?? null;
   const [targetScore, setTargetScore] = useState<number | null>(null); // 101, 201, or 301
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [showCustomization, setShowCustomization] = useState(false);
@@ -773,7 +774,19 @@ const BlotScreen = ({ navigation }: any) => {
         <>
           <View style={StyleSheet.absoluteFill} {...pinchResponder.panHandlers} pointerEvents="box-none" />
       <View style={styles.overlay} pointerEvents="box-none">
-        <GamePlayerOverlay opponent="ai" topOffset={260} size={100} />
+        <GamePlayerOverlay
+          opponent={
+            fakeOpponent
+              ? {
+                  userId: fakeOpponent.id,
+                  username: fakeOpponent.username,
+                  fakeAppearance: fakeOpponent.appearance,
+                }
+              : 'ai'
+          }
+          topOffset={260}
+          size={100}
+        />
         <SafeAreaView style={[styles.safeArea,]} onLayout={handleBoardLayout}>
           <View>
             <GameToolbar
@@ -1490,7 +1503,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.78)',
+    backgroundColor: 'transparent',
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 1000,

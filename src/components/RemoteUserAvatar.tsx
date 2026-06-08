@@ -19,6 +19,17 @@ interface Props {
   /** Optional gender hint when the remote user has no saved appearance. */
   genderHint?: 'male' | 'female' | null;
   style?: StyleProp<ViewStyle>;
+  /**
+   * Optional pre-resolved appearance config. When provided, the API fetch is
+   * skipped entirely — used by the fake-opponent matchmaking fallback so a
+   * bot's randomly generated outfit can be rendered without ever talking to
+   * the backend (and without a real userId to look up).
+   */
+  fakeAppearance?: {
+    baseAvatarId: string;
+    gender: 'male' | 'female' | null;
+    equipped: Record<string, string>;
+  } | null;
 }
 
 interface Resolved {
@@ -46,14 +57,14 @@ async function fetchAppearance(userId: string) {
   return data;
 }
 
-const RemoteUserAvatar: React.FC<Props> = ({ userId, size, genderHint, style }) => {
+const RemoteUserAvatar: React.FC<Props> = ({ userId, size, genderHint, style, fakeAppearance }) => {
   const [resolved, setResolved] = useState<Resolved | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const cfg = await fetchAppearance(userId);
+        const cfg = fakeAppearance ?? (await fetchAppearance(userId));
         if (cancelled) return;
 
         const base =
@@ -83,7 +94,7 @@ const RemoteUserAvatar: React.FC<Props> = ({ userId, size, genderHint, style }) 
     return () => {
       cancelled = true;
     };
-  }, [userId, genderHint]);
+  }, [userId, genderHint, fakeAppearance]);
 
   const wrapperStyle = useMemo(
     () => [{ width: size, height: size }, style] as StyleProp<ViewStyle>,

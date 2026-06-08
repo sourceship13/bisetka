@@ -52,7 +52,9 @@ const CHESS_BOARD_CONFIGS = [
 // position cannot produce a winner.
 const CHECK_DRAW_THRESHOLD = 5;
 
-const ChessScreen = ({navigation}: any) => {
+const ChessScreen = ({navigation, route}: any) => {
+  const fakeOpponent = route?.params?.fakeOpponent ?? null;
+  const opponentLabel: string = fakeOpponent?.username || 'Computer';
   const { width, height } = useWindowDimensions();
   const boardSize = Math.min(width, height - 200);
   const squareSize = boardSize / 8;
@@ -617,7 +619,17 @@ const ChessScreen = ({navigation}: any) => {
         }}
       />
       <View style={styles.overlay} pointerEvents="box-none">
-        <GamePlayerOverlay opponent="ai" />
+        <GamePlayerOverlay
+          opponent={
+            fakeOpponent
+              ? {
+                  userId: fakeOpponent.id,
+                  username: fakeOpponent.username,
+                  fakeAppearance: fakeOpponent.appearance,
+                }
+              : 'ai'
+          }
+        />
         <SafeAreaView style={styles.safeArea} pointerEvents="box-none">
           <View>
             <GameToolbar
@@ -641,7 +653,7 @@ const ChessScreen = ({navigation}: any) => {
 
       <View style={styles.statusBar}>
         <Text style={styles.turnText}>
-          {gameState.currentPlayer === 'white' ? "Your Turn (White)" : "Computer's Turn (Black)"}
+          {gameState.currentPlayer === 'white' ? "Your Turn (White)" : `${opponentLabel}'s Turn (Black)`}
         </Text>
         {gameState.isCheck && <Text style={styles.checkText}>CHECK!</Text>}
       </View>
@@ -698,7 +710,7 @@ const ChessScreen = ({navigation}: any) => {
             </Text>
             <Text style={styles.gameOverText}>
               {gameState.isCheckmate
-                ? gameState.currentPlayer === 'black' ? 'You Win!' : 'Computer Wins!'
+                ? gameState.currentPlayer === 'black' ? 'You Win!' : `${opponentLabel} Wins!`
                 : gameState.drawReason === 'insufficient-material'
                   ? 'Only kings remain. This is a draw.'
                   : gameState.drawReason === 'perpetual-check'

@@ -611,6 +611,7 @@ const GameOverOverlay: React.FC<{
 const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
   const { isTablet, isLandscape } = useDeviceType();
   const {session} = route.params;
+  const fakeOpponent = (route.params as any)?.fakeOpponent ?? null;
   const variant: GameVariant = session?.gameType === '9-ball' ? '9-ball' : '8-ball';
   const difficulty = session?.difficulty || 'medium';
   const mode = session?.mode;
@@ -2218,7 +2219,20 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
     <View style={{flex: 1}}>
     <AraratBackground  />
     <View style={styles.overlay} pointerEvents="box-none">
-    <GamePlayerOverlay opponent={isMultiplayer ? null : 'ai'} transparentBackground />
+    <GamePlayerOverlay
+      opponent={
+        isMultiplayer
+          ? null
+          : fakeOpponent
+            ? {
+                userId: fakeOpponent.id,
+                username: fakeOpponent.username,
+                fakeAppearance: fakeOpponent.appearance,
+              }
+            : 'ai'
+      }
+      transparentBackground
+    />
     <SafeAreaView style={styles.safeArea}>
       <View>
         <GameToolbar
