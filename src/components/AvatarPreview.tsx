@@ -32,23 +32,23 @@ const SLOT_REGION: Record<
   { top: number; left: number; width: number; height: number }
 > = {
   // Shirt / top: torso area
-  top:     { top: 0.145, left: 0.22,    width: 0.56,    height: 0.50    },
+  top: { top: 0.145, left: 0.22, width: 0.56, height: 0.5 },
   // Jacket: slightly larger than shirt to wrap arms
-  jacket:  { top: 0.21,  left: 0.18,    width: 0.64,    height: 0.38    },
+  jacket: { top: 0.21, left: 0.18, width: 0.64, height: 0.38 },
   // Pants (3% smaller than the original 44%×44% box, re-centered)
-  bottom:  { top: 0.5066,left: 0.2866,  width: 0.42,  height: 0.426  },
+  bottom: { top: 0.5066, left: 0.2866, width: 0.42, height: 0.426 },
   // Shorts
-  shorts:  { top: 0.52,  left: 0.28,    width: 0.44,    height: 0.24    },
+  shorts: { top: 0.52, left: 0.28, width: 0.44, height: 0.24 },
   // Shoes
-  shoes:   { top: 0.88,  left: 0.22,    width: 0.52,    height: 0.12    },
+  shoes: { top: 0.88, left: 0.22, width: 0.52, height: 0.12 },
   // Hair sits on head
-  hair:    { top: 0.0,   left: 0.16,    width: 0.67,    height: 0.145    },
+  hair: { top: 0.0, left: 0.16, width: 0.67, height: 0.145 },
   // Hat sits above the hair
-  hat:     { top: -0.02, left: 0.28,    width: 0.44,    height: 0.20    },
+  hat: { top: -0.02, left: 0.28, width: 0.44, height: 0.2 },
   // Jewelry around neckline
-  jewelry: { top: 0.18,  left: 0.32,    width: 0.36,    height: 0.12    },
+  jewelry: { top: 0.18, left: 0.32, width: 0.36, height: 0.12 },
   // Other = full overlay (accessories, props)
-  other:   { top: 0.0,   left: 0.0,     width: 1.0,     height: 1.0     },
+  other: { top: 0.0, left: 0.0, width: 1.0, height: 1.0 },
 };
 
 // ---------------------------------------------------------------------------
@@ -69,41 +69,74 @@ type BuildOverrides = Record<string, Partial<SlotRegion>>;
 const BUILD_OVERRIDES: Record<string, BuildOverrides> = {
   // ───── MALE MUSCLE ─────────────────────────────────────────────────────
   'male-muscle': {
-    top:    { left: 0.3, width: 0.4, top: 0.150 },
+    top: { left: 0.3, width: 0.4, top: 0.15 },
     jacket: { left: 0.14, width: 0.72, top: 0.205 },
     bottom: { left: 0.231, width: 0.5, top: 0.5066 },
     shorts: { left: 0.265, width: 0.47 },
-    shoes:  { left: 0.11,  width: 0.7, top: 0.878 },    
-    hair:    { left: -0.031, width: 1, top: 0.0, height: 0.14 },
-    jewelry: { left: 0.30, width: 0.40, top: 0.175, height: 0.13 },  },
+    shoes: { left: 0.11, width: 0.7, top: 0.878 },
+    hair: { left: -0.031, width: 1, top: 0.0, height: 0.14 },
+    jewelry: { left: 0.3, width: 0.4, top: 0.175, height: 0.13 },
+  },
   // ───── MALE FAT ────────────────────────────────────────────────────────
   'male-fat': {
-    top:    { left: 0.31, width: 0.4, top: 0.150, height: 0.52 },
+    top: { left: 0.31, width: 0.4, top: 0.15, height: 0.52 },
     jacket: { left: 0.12, width: 0.76, top: 0.215 },
-    bottom: { left: 0.25, width: 0.45, top: 0.518,  height: 0.42 },
+    bottom: { left: 0.25, width: 0.45, top: 0.518, height: 0.42 },
     shorts: { left: 0.24, width: 0.52, top: 0.525 },
-    shoes:  { left: 0.009, width: 0.9, top: 0.885, height: 0.15 },
-    hair:    { left: 0.14, width: 0.72, top: 0.0,   height: 0.155 },
+    shoes: { left: 0.009, width: 0.9, top: 0.885, height: 0.15 },
+    hair: { left: 0.14, width: 0.72, top: 0.0, height: 0.155 },
     jewelry: { left: 0.28, width: 0.44, top: 0.185, height: 0.13 },
+  },
+
+  'male-athletic': {
+    top: { left: 0.329, width: 0.36, top: 0.22, height: 0.34 },
+    jacket: { left: 0.18, width: 0.64, top: 0.21 },
+    bottom: { left: 0.2866, width: 0.42, top: 0.5066 },
+    shorts: { left: 0.28, width: 0.44, top: 0.52 },
+    shoes: { left: 0.22, width: 0.52, top: 0.88 },
+    hair: { left: 0.16, width: 0.67, top: 0.0, height: 0.145 },
+    hat: { left: 0.28, width: 0.44, top: -0.02, height: 0.2 },
+    jewelry: { left: 0.32, width: 0.36, top: 0.18 },
+  },
+
+  'male-slim': {
+    top: { left: 0.22, width: 0.56, top: 0.145 },
+    jacket: { left: 0.18, width: 0.64, top: 0.21 },
+    bottom: { left: 0.2866, width: 0.42, top: 0.5066 },
+    shorts: { left: 0.28, width: 0.44, top: 0.52 },
+    shoes: { left: 0.22, width: 0.52, top: 0.88 },
+    hair: { left: 0.16, width: 0.67, top: 0.0, height: 0.145 },
+    hat: { left: 0.28, width: 0.44, top: -0.02, height: 0.2 },
+    jewelry: { left: 0.32, width: 0.36, top: 0.18 },
+  },
+
+  'male-old': {
+    top: { left: 0.27, width: 0.46, top: 0.18, height: 0.32 },
+    jacket: { left: 0.235, width: 0.53, top: 0.23, height: 0.3 },
+    bottom: { left: 0.3, width: 0.4, top: 0.48, height: 0.4 },
+    shorts: { left: 0.295, width: 0.41, top: 0.495, height: 0.22 },
+    shoes: { left: 0.275, width: 0.45, top: 0.88, height: 0.1 },
+    hair: { left: 0.195, width: 0.61, top: 0.0, height: 0.13 },
+    jewelry: { left: 0.335, width: 0.33, top: 0.205, height: 0.1 },
   },
   // ───── FEMALE MUSCLE ───────────────────────────────────────────────────
   'female-muscle': {
-    top:    { left: 0.389, width: 0.2, top: 0.08 },
-    jacket: { left: 0.16, width: 0.68, top: 0.210 },
-    bottom: { left: 0.28, width: 0.44, top: 0.46, height:0.5 },
+    top: { left: 0.389, width: 0.2, top: 0.08 },
+    jacket: { left: 0.16, width: 0.68, top: 0.21 },
+    bottom: { left: 0.28, width: 0.44, top: 0.46, height: 0.5 },
     shorts: { left: 0.27, width: 0.46 },
-    shoes:  { left: 0.21, width: 0.54, top: 0.93, height: 0.10 },
-    hair:    { left: 0.145, width: 0.70, top: -0.031,   height: 0.24 },
-    jewelry: { left: 0.31,  width: 0.38, top: 0.180, height: 0.12 },
+    shoes: { left: 0.21, width: 0.54, top: 0.93, height: 0.1 },
+    hair: { left: 0.145, width: 0.7, top: -0.031, height: 0.24 },
+    jewelry: { left: 0.31, width: 0.38, top: 0.18, height: 0.12 },
   },
   // ───── FEMALE FAT ──────────────────────────────────────────────────────
   'female-fat': {
-    top:    { left: 0.326, width: 0.32, top: -0.06, height: 0.8 },
+    top: { left: 0.326, width: 0.32, top: -0.06, height: 0.8 },
     jacket: { left: 0.13, width: 0.74, top: 0.215 },
     bottom: { left: -0.012, width: 1, top: 0.51, height: 0.42 },
     shorts: { left: 0.245, width: 0.51, top: 0.525 },
-    shoes:  { left: 0.28, width: 0.4, top: 0.92 },
-    hair:    { left: 0.06, width: 0.9, top: -0.03,   height: 0.23 },
+    shoes: { left: 0.28, width: 0.4, top: 0.92 },
+    hair: { left: 0.06, width: 0.9, top: -0.03, height: 0.23 },
     jewelry: { left: 0.295, width: 0.41, top: 0.185, height: 0.13 },
   },
   // ───── FEMALE ATHLETIC / SLIM / OLD ────────────────────────────────────
@@ -114,31 +147,31 @@ const BUILD_OVERRIDES: Record<string, BuildOverrides> = {
   // with the waistline. Numbers below are tightened versions of the
   // defaults — adjust freely if any single build needs a nudge.
   'female-athletic': {
-    top:    { left: 0.39, width: 0.19, top: 0.17, height: 0.32 },
-    jacket: { left: 0.245, width: 0.51, top: 0.225, height: 0.30 },
-    bottom: { left: 0.071, width: 0.85, top: 0.456,  height: 0.48 },
-    shorts: { left: 0.30,  width: 0.45, top: 0.495, height: 0.22 },
-    shoes:  { left: 0.36,  width: 0.25, top: 0.919,  height: 0.10 },
-    hair:   { left: 0.09, width: 0.8, top: -0.03,   height: 0.23 },
-    jewelry:{ left: 0.34,  width: 0.32, top: 0.20,  height: 0.10 },
+    top: { left: 0.39, width: 0.19, top: 0.17, height: 0.32 },
+    jacket: { left: 0.245, width: 0.51, top: 0.225, height: 0.3 },
+    bottom: { left: 0.071, width: 0.85, top: 0.456, height: 0.48 },
+    shorts: { left: 0.3, width: 0.45, top: 0.495, height: 0.22 },
+    shoes: { left: 0.36, width: 0.25, top: 0.919, height: 0.1 },
+    hair: { left: 0.09, width: 0.8, top: -0.03, height: 0.23 },
+    jewelry: { left: 0.34, width: 0.32, top: 0.2, height: 0.1 },
   },
   'female-slim': {
-    top:    { left: 0.30, width: 0.40, top: 0.180, height: 0.30 },
-    jacket: { left: 0.265, width: 0.47, top: 0.230, height: 0.28 },
-    bottom: { left: 0.32,  width: 0.36, top: 0.475, height: 0.40 },
-    shorts: { left: 0.315, width: 0.37, top: 0.49,  height: 0.22 },
-    shoes:  { left: 0.295, width: 0.41, top: 0.88,  height: 0.10 },
-    hair:   { left: 0.215, width: 0.57, top: 0.0,   height: 0.13 },
-    jewelry:{ left: 0.35,  width: 0.30, top: 0.20,  height: 0.10 },
+    top: { left: 0.3, width: 0.4, top: 0.18, height: 0.3 },
+    jacket: { left: 0.265, width: 0.47, top: 0.23, height: 0.28 },
+    bottom: { left: 0.32, width: 0.36, top: 0.475, height: 0.4 },
+    shorts: { left: 0.315, width: 0.37, top: 0.49, height: 0.22 },
+    shoes: { left: 0.295, width: 0.41, top: 0.88, height: 0.1 },
+    hair: { left: 0.215, width: 0.57, top: 0.0, height: 0.13 },
+    jewelry: { left: 0.35, width: 0.3, top: 0.2, height: 0.1 },
   },
   'female-old': {
-    top:    { left: 0.27, width: 0.46, top: 0.180, height: 0.32 },
-    jacket: { left: 0.235, width: 0.53, top: 0.230, height: 0.30 },
-    bottom: { left: 0.30,  width: 0.40, top: 0.48,  height: 0.40 },
+    top: { left: 0.27, width: 0.46, top: 0.18, height: 0.32 },
+    jacket: { left: 0.235, width: 0.53, top: 0.23, height: 0.3 },
+    bottom: { left: 0.3, width: 0.4, top: 0.48, height: 0.4 },
     shorts: { left: 0.295, width: 0.41, top: 0.495, height: 0.22 },
-    shoes:  { left: 0.275, width: 0.45, top: 0.88,  height: 0.10 },
-    hair:   { left: 0.195, width: 0.61, top: 0.0,   height: 0.13 },
-    jewelry:{ left: 0.335, width: 0.33, top: 0.205, height: 0.10 },
+    shoes: { left: 0.275, width: 0.45, top: 0.88, height: 0.1 },
+    hair: { left: 0.195, width: 0.61, top: 0.0, height: 0.13 },
+    jewelry: { left: 0.335, width: 0.33, top: 0.205, height: 0.1 },
   },
 };
 
@@ -190,11 +223,7 @@ export const AvatarPreview: React.FC<AvatarPreviewProps> = ({
             }}
             pointerEvents="none"
           >
-            <AssetImage
-              source={item.imageUrl}
-              width={w}
-              height={h}
-            />
+            <AssetImage source={item.imageUrl} width={w} height={h} />
           </View>
         );
       })}
