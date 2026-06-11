@@ -11,6 +11,7 @@ import {
   FlatList,
   Modal,
   Dimensions,
+  DeviceEventEmitter,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -24,6 +25,7 @@ import BottomTabBar from '../../../components/global/BottomTabBar';
 import UserAvatar from '../../../components/UserAvatar';
 import AvatarPreview from '../../../components/AvatarPreview';
 import { ALL_BASE_AVATARS, ALL_CLOTHING_ITEMS } from '../../../data/clothingItems';
+import { seedDefaultOutfitIfMissing } from '../../../utils/seedDefaultOutfit';
 import type { BaseAvatar, AvatarClothing } from '../../../types/avatar2d';
 
 const SELECTED_AVATAR_KEY = 'selectedAvatarId';
@@ -56,6 +58,9 @@ const ProfileScreen = ({ navigation }: any) => {
 
   const loadBuilderAvatar = useCallback(async () => {
     try {
+      // Guarantees empty slots (top/bottom/hair/shoes) get the starter wardrobe
+      // before we read, so the avatar is never rendered undressed.
+      await seedDefaultOutfitIfMissing();
       const id = await AsyncStorage.getItem(SELECTED_AVATAR_KEY);
       const found = id ? ALL_BASE_AVATARS.find(a => a.id === id) ?? null : null;
       setBuilderAvatar(found);
@@ -109,6 +114,8 @@ const ProfileScreen = ({ navigation }: any) => {
     loadStats();
     loadAchievements();
     loadBuilderAvatar();
+    const sub = DeviceEventEmitter.addListener('bisetka:avatarUpdated', loadBuilderAvatar);
+    return () => sub.remove();
   }, [loadStats, loadAchievements, loadBuilderAvatar]);
 
   useFocusEffect(

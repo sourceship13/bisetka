@@ -31,6 +31,7 @@ import {
   remapEquippedForAvatar,
   STARTER_ITEM_IDS,
 } from '../../../data/clothingItems';
+import { seedDefaultOutfitIfMissing } from '../../../utils/seedDefaultOutfit';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { useAuth } from '../../../libs/hooks/useAuth';
 
@@ -104,6 +105,9 @@ const AvatarBuilderScreen = ({ navigation }: any) => {
 
   const load = useCallback(async () => {
     try {
+      // Make sure the starter wardrobe is seeded before we read so the avatar
+      // is never displayed undressed when AsyncStorage is empty/stale.
+      await seedDefaultOutfitIfMissing();
       const id = await AsyncStorage.getItem(SELECTED_AVATAR_KEY);
       setSelectedAvatarId(id);
 
@@ -224,6 +228,8 @@ const AvatarBuilderScreen = ({ navigation }: any) => {
 
   useEffect(() => {
     load();
+    const sub = DeviceEventEmitter.addListener('bisetka:avatarUpdated', load);
+    return () => sub.remove();
   }, [load]);
 
   // Refresh when returning from store / selection
