@@ -111,11 +111,11 @@ const BUILD_OVERRIDES: Record<string, BuildOverrides> = {
   },
 
   'male-old': {
-    top: { left: 0.27, width: 0.46, top: 0.18, height: 0.32 },
+    top: { left: 0.28, width: 0.46, top: 0.23, height: 0.33 },
     jacket: { left: 0.235, width: 0.53, top: 0.23, height: 0.3 },
-    bottom: { left: 0.3, width: 0.4, top: 0.48, height: 0.4 },
+    bottom: { left: 0.3, width: 0.4, top: 0.52, height: 0.41 },
     shorts: { left: 0.295, width: 0.41, top: 0.495, height: 0.22 },
-    shoes: { left: 0.275, width: 0.45, top: 0.88, height: 0.1 },
+    shoes: { left: 0.22, width: 0.52, top: 0.88 },
     hair: { left: 0.195, width: 0.61, top: 0.0, height: 0.13 },
     jewelry: { left: 0.335, width: 0.33, top: 0.205, height: 0.1 },
   },
