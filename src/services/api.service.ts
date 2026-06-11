@@ -289,9 +289,13 @@ class ApiService {
    * GET /api/auth/profile
    */
   async getProfile(): Promise<User> {
+    // Suppress the auto console.error: a 404 here is an expected, handled
+    // case (user row deleted from DB while a JWT is still cached) — useAuth
+    // bootstrap clears the session and routes back to sign-in. Logging it
+    // shows up as a red runtime error overlay every cold start in dev.
     return this.request<User>('/auth/profile', {
       method: 'GET',
-    }, true);
+    }, true, true, { suppressErrorLogging: true });
   }
 
   /**
