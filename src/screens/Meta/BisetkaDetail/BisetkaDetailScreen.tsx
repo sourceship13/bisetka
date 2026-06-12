@@ -134,10 +134,10 @@ const GAMES = [
 ] as const;
 
 const BisetkaDetailScreen: React.FC<BisetkaDetailScreenProps> = ({
-  const { translate } = useI18n();
   route,
   navigation,
 }) => {
+  const { translate } = useI18n();
   const { bisetkaId, bisetkaName, city, country } = route.params;
   const { imageSource: bisetkaBackgroundSource } = useBisetkaBackground({
     city,
