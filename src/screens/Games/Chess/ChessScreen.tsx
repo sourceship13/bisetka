@@ -1,6 +1,7 @@
 import React, {useState, useEffect, useRef, useMemo} from 'react';
 import {View, Text, StyleSheet, TouchableOpacity, Alert, Animated, ScrollView, Image, useWindowDimensions} from 'react-native';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
+import { useI18n } from '../../../hooks/useI18n';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AraratBackground from '../../../components/AraratBackground';
 import AR3DOverlay, {type AR3DOverlayHandle, type ARPiece} from '../../../components/AR3DOverlay';
@@ -53,6 +54,7 @@ const CHESS_BOARD_CONFIGS = [
 const CHECK_DRAW_THRESHOLD = 5;
 
 const ChessScreen = ({navigation, route}: any) => {
+  const { translate } = useI18n();
   const fakeOpponent = route?.params?.fakeOpponent ?? null;
   const opponentLabel: string = fakeOpponent?.username || 'Computer';
   const { width, height } = useWindowDimensions();
@@ -61,6 +63,7 @@ const ChessScreen = ({navigation, route}: any) => {
   const { user, refreshUser } = useAuth();
   const { showAchievements } = useAchievements();
   const [difficulty, setDifficulty] = useState<Difficulty | null>(null);
+  // Initialize game difficulty selector if not already selected
   const [gameState, setGameState] = useState<ChessGameState | null>(null);
   const gameIdRef = useRef<string | null>(null);
   const moveCountRef = useRef(0);

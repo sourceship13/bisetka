@@ -1,0 +1,193 @@
+{
+  "common": {
+    "loading": "Բեռնվում է...",
+    "error": "Սխալ",
+    "success": "Հաջողվեց",
+    "cancel": "Չեղարկել",
+    "ok": "ОК",
+    "save": "Պահպանել",
+    "delete": "Ջնջել",
+    "edit": "Խմբագրել",
+    "back": "Հետ",
+    "close": "Փակել",
+    "confirm": "Հաստատել",
+    "logout": "Ելք",
+    "points": "Միավորներ",
+    "getPoints": "Ստեղ Միավորներ",
+    "level": "Մակարդակ",
+    "rank": "Վարկանիշ",
+    "profile": "Պրոֆիլ",
+    "settings": "Կարգավորումներ",
+    "about": "Մասին",
+    "version": "Տարբերակ"
+  },
+  "home": {
+    "title": "Տուն",
+    "welcome": "Բարի գալուստ",
+    "availableGames": "Հասանելի խաղեր",
+    "onlineNow": "Վարակում է այժմ",
+    "playNow": "Խաղալ այժմ",
+    "viewLeaderboard": "Տեսեք լիդերներ",
+    "dailyRewards": "Օրական Պարգևներ",
+    "claimReward": "Պահանջել Պարգևը"
+  },
+  "games": {
+    "blot": {
+      "name": "Բլոտ",
+      "description": "Դասական քարտային խաղ"
+    },
+    "baazarBlot": {
+      "name": "Բազար Բլոտ",
+      "description": "Արագ տարբերակ"
+    },
+    "checkers": {
+      "name": "Շաշ",
+      "description": "Արագ խաղեր"
+    },
+    "chess": {
+      "name": "Շաչ",
+      "description": "Ստրատեգիա"
+    },
+    "poker": {
+      "name": "Պոկեր",
+      "description": "Տեխասի Hold'em"
+    },
+    "nardi": {
+      "name": "Նարդի",
+      "description": "Նարդի խաղ"
+    },
+    "billards": {
+      "name": "Բիլիարդ",
+      "description": "8-Ball Pool"
+    },
+    "slots": {
+      "name": "Սլոտներ",
+      "description": "Շարժիր և շահիր"
+    },
+    "mrotsi": {
+      "name": "Մրոցի",
+      "description": "Հայկական քարտային խաղ"
+    },
+    "blackjack": {
+      "name": "Թիւծ-Մեկ",
+      "description": "21 քարտային խաղ"
+    },
+    "gameMode": "Խաղի ռեժիմ",
+    "singlePlayer": "Մեկ խաղացող",
+    "multiplayer": "Բազմախաղ",
+    "difficulty": "Բարդություն",
+    "easy": "Հեշտ",
+    "medium": "Միջին",
+    "hard": "Բարդ",
+    "newGame": "Նոր խաղ",
+    "forfeit": "Հանձնել",
+    "replay": "Կրկին խաղալ",
+    "gameOver": "Խաղ ավարտ",
+    "youWon": "Դուք հաղթեցիք!",
+    "youLost": "Դուք պարտվեցիք",
+    "draw": "Ոչ ոքի",
+    "quit": "Ելք խաղից"
+  },
+  "chat": {
+    "title": "Հաղորդագրություններ",
+    "messages": "Հաղորդագրություններ",
+    "noConversations": "Հայտարարություն դեռ չկա",
+    "noConversationsSubtext": "Սկսեք զրուցել այլ խաղացողների հետ!",
+    "globalChat": "Ընդհանուր զրուցարան",
+    "privateChat": "Մասնական զրուցարան",
+    "sendMessage": "Ուղարկել հաղորդագրություն...",
+    "typing": "մուտքագրում է...",
+    "online": "Վար-Դրամ",
+    "offline": "Անշտ",
+    "leaveRoom": "Լքել սենյակը",
+    "joinRoom": "Մտեք սենյակ",
+    "createRoom": "Ստեղծել սենյակ"
+  },
+  "profile": {
+    "title": "Պրոֆիլ",
+    "username": "Օգտանվածի անուն",
+    "level": "Մակարդակ",
+    "totalPoints": "Ընդամենը Միավորներ",
+    "wins": "Հաղթանակներ",
+    "losses": "Պարտություններ",
+    "winRate": "Հաղթանակի գործակիցը",
+    "achievements": "Ձեռքբերումներ",
+    "statistics": "Վիճակագրություն",
+    "myAvatar": "Իմ Ճակատ",
+    "editProfile": "Խմբագրել Պրոֆիլ",
+    "changeAvatar": "Փոխել Ճակատ"
+  },
+  "achievements": {
+    "title": "Ձեռքբերումներ",
+    "locked": "Կողպված",
+    "unlocked": "Բացված",
+    "earnedPoints": "Ստացել {points} միավորներ",
+    "completedOn": "Ավարտված {date}"
+  },
+  "store": {
+    "title": "Խանութ",
+    "pointsShop": "Միավորի Խանութ",
+    "clothing": "Հագուստ",
+    "accessories": "Աքսեսուարներ",
+    "special": "Հատուկ առաջարկներ",
+    "purchase": "Գնել",
+    "notEnoughPoints": "Անհաստատ միավորներ",
+    "alreadyOwned": "Արդեն պատկանում է",
+    "sold": "Վաճառված"
+  },
+  "leaderboard": {
+    "title": "Լիդերների տախտակ",
+    "global": "Ընդհանուր",
+    "friends": "Ընկերներ",
+    "weekly": "Շաբաթային",
+    "allTime": "Ամբողջ ժամանակ",
+    "rank": "Վարկանիշ",
+    "player": "Խաղացող",
+    "score": "Միավոր"
+  },
+  "settings": {
+    "title": "Կարգավորումներ",
+    "language": "Լեզու",
+    "sound": "Ձայն",
+    "notifications": "Ծանուցումներ",
+    "privacy": "Գոհարիս",
+    "account": "Հաշիվ",
+    "changePassword": "Փոխել Գաղտնաբառ",
+    "deleteAccount": "Ջնջել Հաշիվ",
+    "aboutApp": "Կիրառման մասին",
+    "terms": "Ծառայության պայմաններ",
+    "privacy_policy": "Անձնական տվյալների քաղաքականություն"
+  },
+  "onboarding": {
+    "welcome": "Մուտք գործեք ձեր ճանապարհ սկսելու համար",
+    "selectAvatar": "Ընտրել ձեր ճակատ",
+    "selectUsername": "Ընտրել օգտանվածի անունը",
+    "next": "Հաջորդ",
+    "finish": "Ավարտ",
+    "skip": "Բաց թողնել"
+  },
+  "auth": {
+    "login": "Մուտք",
+    "register": "Գրանցում",
+    "email": "Էլեկտրոնային փոստ",
+    "password": "Գաղտնաբառ",
+    "confirmPassword": "Հաստատել Գաղտնաբառ",
+    "forgotPassword": "Մոռացել Գաղտնաբառ?",
+    "signInWithGoogle": "Միացեք Google-ի հետ",
+    "signInWithApple": "Միացեք Apple-ի հետ",
+    "dontHaveAccount": "Չունի՞ք հաշիվ?",
+    "alreadyHaveAccount": "Արդեն եք հաշիվ?",
+    "invalidEmail": "Անվավեր էլեկտրոնային փոստ",
+    "passwordTooShort": "Գաղտնաբառը պետք է լինի առնվազն 6 նիշ",
+    "passwordsDontMatch": "Գաղտնաբառերը չեն համընկնում"
+  },
+  "errors": {
+    "somethingWentWrong": "Ինչ-որ բան սխալ մեջ",
+    "tryAgain": "Փորձել կրկին",
+    "connectionError": "Միացման սխալ",
+    "timeout": "Հայտ ժամանակ",
+    "notFound": "Չ գտնված",
+    "unauthorized": "Արգելված",
+    "forbidden": "Արգելված"
+  }
+}

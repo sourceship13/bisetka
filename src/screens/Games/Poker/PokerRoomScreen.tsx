@@ -2,6 +2,7 @@ import React, {useState, useEffect, useRef, useCallback} from 'react';
 import {View, Text, StyleSheet, TouchableOpacity, ScrollView, ImageBackground, ActivityIndicator, Clipboard, TextInput, Dimensions, Animated, ViewStyle, Alert, Image, PanResponder} from 'react-native';
 import { Snackbar } from 'react-native-paper';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
+import { useI18n } from '../../../hooks/useI18n';
 import { apiService } from '../../../services/api.service';
 import { useAuth } from '../../../libs/hooks/useAuth';
 import { resolveAvatar } from '../../../utils/avatars';
@@ -107,6 +108,7 @@ const PlayerTurnTimer = React.memo(({ onExpire }: { onExpire: () => void }) => {
 });
 
 const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
+  const { translate } = useI18n();
   const {session, gameType, mode, joinCode} = route.params as any;
   const dbSessionId: string | undefined = (route.params as any)?.dbSessionId;
   const allowReplaceAI: boolean = session?.allowReplaceAI || false;
@@ -147,6 +149,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
 
   const toggleLeave = () => {
     BisetkaAlert.alert('Leave Game', 'Are you sure you want to leave the game?', [
+import { useI18n } from '../../../hooks/useI18n';
       { text: 'Cancel', style: 'cancel' },
       { text: 'Leave', style: 'destructive', onPress: () => navigation.goBack() },
     ]);
@@ -510,6 +513,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
         socketService.onPokerTurnTimeout((data) => {
           if (!mounted) return;
           BisetkaAlert.alert('Turn Timed Out', data.message || 'You were auto-folded for inactivity.');
+import { useI18n } from '../../../hooks/useI18n';
         });
 
         socketService.onPokerPlayerDisconnected((data) => {
@@ -544,6 +548,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
               if (!mounted) return;
               applyServerState(res);
               BisetkaAlert.success(
+import { useI18n } from '../../../hooks/useI18n';
                 `${res.winnerName} Won`,
                 `${res.winnerName} wins $${res.potAmount}!`
               );
@@ -564,6 +569,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
         if (mounted) {
           setIsConnecting(false);
           BisetkaAlert.error('Connection failed', 'Could not connect to server. Starting local game instead.');
+import { useI18n } from '../../../hooks/useI18n';
           initializeGame();
         }
       }

@@ -1,0 +1,193 @@
+{
+  "common": {
+    "loading": "Загрузка...",
+    "error": "Ошибка",
+    "success": "Успешно",
+    "cancel": "Отмена",
+    "ok": "ОК",
+    "save": "Сохранить",
+    "delete": "Удалить",
+    "edit": "Редактировать",
+    "back": "Назад",
+    "close": "Закрыть",
+    "confirm": "Подтвердить",
+    "logout": "Выход",
+    "points": "Очки",
+    "getPoints": "Получить Очки",
+    "level": "Уровень",
+    "rank": "Рейтинг",
+    "profile": "Профиль",
+    "settings": "Настройки",
+    "about": "О приложении",
+    "version": "Версия"
+  },
+  "home": {
+    "title": "Главная",
+    "welcome": "Добро пожаловать",
+    "availableGames": "Доступные игры",
+    "onlineNow": "Онлайн сейчас",
+    "playNow": "Играть сейчас",
+    "viewLeaderboard": "Просмотр таблицы лидеров",
+    "dailyRewards": "Ежедневные награды",
+    "claimReward": "Получить награду"
+  },
+  "games": {
+    "blot": {
+      "name": "Блот",
+      "description": "Классическая карточная игра"
+    },
+    "baazarBlot": {
+      "name": "Базар Блот",
+      "description": "Быстрый вариант"
+    },
+    "checkers": {
+      "name": "Шашки",
+      "description": "Быстрые матчи"
+    },
+    "chess": {
+      "name": "Шахматы",
+      "description": "Стратегия"
+    },
+    "poker": {
+      "name": "Покер",
+      "description": "Техасский Холдем"
+    },
+    "nardi": {
+      "name": "Нарди",
+      "description": "Длинные нарды"
+    },
+    "billards": {
+      "name": "Бильярд",
+      "description": "8-Ball Pool"
+    },
+    "slots": {
+      "name": "Слоты",
+      "description": "Вращай и выигрывай"
+    },
+    "mrotsi": {
+      "name": "Мротси",
+      "description": "Армянская карточная игра"
+    },
+    "blackjack": {
+      "name": "Блэкджек",
+      "description": "Игра на 21 карту"
+    },
+    "gameMode": "Режим игры",
+    "singlePlayer": "Одиночная игра",
+    "multiplayer": "Мультиплеер",
+    "difficulty": "Сложность",
+    "easy": "Легко",
+    "medium": "Средняя",
+    "hard": "Сложно",
+    "newGame": "Новая игра",
+    "forfeit": "Сдаться",
+    "replay": "Повторить",
+    "gameOver": "Игра окончена",
+    "youWon": "Вы выиграли!",
+    "youLost": "Вы проиграли",
+    "draw": "Ничья",
+    "quit": "Выход из игры"
+  },
+  "chat": {
+    "title": "Сообщения",
+    "messages": "Сообщения",
+    "noConversations": "Нет разговоров",
+    "noConversationsSubtext": "Начните общаться с другими игроками!",
+    "globalChat": "Глобальный чат",
+    "privateChat": "Приватный чат",
+    "sendMessage": "Отправить сообщение...",
+    "typing": "печатает...",
+    "online": "Онлайн",
+    "offline": "Оффлайн",
+    "leaveRoom": "Покинуть комнату",
+    "joinRoom": "Присоединиться к комнате",
+    "createRoom": "Создать комнату"
+  },
+  "profile": {
+    "title": "Профиль",
+    "username": "Имя пользователя",
+    "level": "Уровень",
+    "totalPoints": "Всего очков",
+    "wins": "Побед",
+    "losses": "Поражений",
+    "winRate": "Процент побед",
+    "achievements": "Достижения",
+    "statistics": "Статистика",
+    "myAvatar": "Мой аватар",
+    "editProfile": "Редактировать профиль",
+    "changeAvatar": "Изменить аватар"
+  },
+  "achievements": {
+    "title": "Достижения",
+    "locked": "Заблокировано",
+    "unlocked": "Разблокировано",
+    "earnedPoints": "Заработано {points} очков",
+    "completedOn": "Завершено {date}"
+  },
+  "store": {
+    "title": "Магазин",
+    "pointsShop": "Магазин очков",
+    "clothing": "Одежда",
+    "accessories": "Аксессуары",
+    "special": "Специальные предложения",
+    "purchase": "Купить",
+    "notEnoughPoints": "Недостаточно очков",
+    "alreadyOwned": "Уже куплено",
+    "sold": "Продано"
+  },
+  "leaderboard": {
+    "title": "Таблица лидеров",
+    "global": "Глобальная",
+    "friends": "Друзья",
+    "weekly": "Еженедельно",
+    "allTime": "За все время",
+    "rank": "Рейтинг",
+    "player": "Игрок",
+    "score": "Счет"
+  },
+  "settings": {
+    "title": "Настройки",
+    "language": "Язык",
+    "sound": "Звук",
+    "notifications": "Уведомления",
+    "privacy": "Приватность",
+    "account": "Аккаунт",
+    "changePassword": "Изменить пароль",
+    "deleteAccount": "Удалить аккаунт",
+    "aboutApp": "О приложении",
+    "terms": "Условия использования",
+    "privacy_policy": "Политика приватности"
+  },
+  "onboarding": {
+    "welcome": "Вход в приложение для начала пути",
+    "selectAvatar": "Выберите аватар",
+    "selectUsername": "Выберите имя пользователя",
+    "next": "Далее",
+    "finish": "Завершить",
+    "skip": "Пропустить"
+  },
+  "auth": {
+    "login": "Вход",
+    "register": "Регистрация",
+    "email": "Email",
+    "password": "Пароль",
+    "confirmPassword": "Подтвердите пароль",
+    "forgotPassword": "Забыли пароль?",
+    "signInWithGoogle": "Войти через Google",
+    "signInWithApple": "Войти через Apple",
+    "dontHaveAccount": "Нет аккаунта?",
+    "alreadyHaveAccount": "Уже есть аккаунт?",
+    "invalidEmail": "Неверный email",
+    "passwordTooShort": "Пароль должен быть не менее 6 символов",
+    "passwordsDontMatch": "Пароли не совпадают"
+  },
+  "errors": {
+    "somethingWentWrong": "Что-то пошло не так",
+    "tryAgain": "Попробовать снова",
+    "connectionError": "Ошибка соединения",
+    "timeout": "Истекло время ожидания",
+    "notFound": "Не найдено",
+    "unauthorized": "Не авторизовано",
+    "forbidden": "Доступ запрещен"
+  }
+}

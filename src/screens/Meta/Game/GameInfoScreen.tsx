@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Modal,
 } from 'react-native';
+import { useI18n } from '../../../hooks/useI18n';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -97,6 +98,7 @@ const GAME_MODE_OPTIONS: Array<{
 ];
 
 const GameInfoScreen: React.FC<Props> = ({ route, navigation }) => {
+  const { translate } = useI18n();
   const { gameType, gradient, bisetkaId, bisetkaName, preferredMode } = route.params;
   const { user } = useAuth();
   const [gameInfo, setGameInfo] = useState<GameInfoData | null>(null);

@@ -8,6 +8,7 @@ import {
   TextInput,
   StatusBar,
 } from 'react-native';
+import { useI18n } from '../../../hooks/useI18n';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 // ---------------------------------------------------------------------------
@@ -205,6 +206,7 @@ const PREVIEW_TEXT = 'The quick brown fox jumps over the lazy dog  0123456789';
 const FONT_SIZE = 18;
 
 const FontTestScreen = ({ navigation }: any) => {
+  const { translate } = useI18n();
   const [preview, setPreview] = useState(PREVIEW_TEXT);
   const [selectedFamily, setSelectedFamily] = useState<string | null>(null);
 

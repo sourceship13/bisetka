@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { useI18n } from '../../hooks/useI18n';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAchievements } from '../../contexts/AchievementContext';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';

@@ -262,6 +262,7 @@ function chooseBestMoveForRed(board: (Piece|null)[][], depth: number): AIMove | 
 // ─── component ───────────────────────────────────────────────────────────────
 
 const CheckersScreen = ({ navigation, route }: any) => {
+  const { translate } = useI18n();
   const { session, mode } = route.params;
   const fakeOpponent = route?.params?.fakeOpponent ?? null;
   const opponentLabel: string = fakeOpponent?.username || 'Computer';

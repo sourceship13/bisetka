@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Share,
 } from 'react-native';
+import { useI18n } from '../../hooks/useI18n';
 import { BisetkaAlert } from '../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing } from '../../theme';
@@ -17,6 +18,7 @@ import chatRoomService, { ChatRoom } from '../../services/chatRoom.service';
 import { useAuth } from '../../libs/hooks/useAuth';
 
 const ChatRoomsListScreen = ({ navigation }: any) => {
+  const { translate } = useI18n();
   const { user } = useAuth();
   const [rooms, setRooms] = useState<ChatRoom[]>([]);
   const [loading, setLoading] = useState(true);

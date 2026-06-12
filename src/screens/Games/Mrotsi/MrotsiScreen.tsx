@@ -18,6 +18,7 @@ import {
   ImageBackground,
 } from 'react-native';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
+import { useI18n } from '../../../hooks/useI18n';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import GameToolbar from '../../../components/global/GameToolbar';
 import GameToolbarControls from '../../../components/global/GameToolbarControls';
@@ -241,6 +242,7 @@ function freshGame(): YambGameState {
 // ─── Component ─────────────────────────────────────────────────────────────────
 
 const MrotsiScreen = ({ navigation, route }: any) => {
+  const { translate } = useI18n();
   // route params accepted for navigation compatibility (currently unused — Yamb is solo)
   const fakeOpponent = route?.params?.fakeOpponent ?? null;
 
@@ -344,6 +346,7 @@ const MrotsiScreen = ({ navigation, route }: any) => {
   const handleBackPress = () => {
     if (state.isGameOver && isPostGameSyncing) {
       BisetkaAlert.alert('Updating Profile', 'Finishing your points sync before returning home.');
+import { useI18n } from '../../../hooks/useI18n';
       return;
     }
     navigation.goBack();

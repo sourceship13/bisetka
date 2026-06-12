@@ -12,6 +12,7 @@ import {
   FlatList,
   ListRenderItem,
 } from 'react-native';
+import { useI18n } from '../../../hooks/useI18n';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import {colors, spacing} from '../../../theme';
@@ -122,6 +123,7 @@ const getGradientViewStyle = (
 });
 
 const PointsShopScreen = ({navigation, route}: any) => {
+  const { translate } = useI18n();
   // ── Shared state ─────────────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState<StoreTab>(
     route?.params?.initialTab ?? 'points',

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
@@ -13,137 +13,19 @@ import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useAuth } from '../../../libs/hooks/useAuth';
 import BottomTabBar from '../../../components/global/BottomTabBar';
+import { useI18n } from '../../../hooks/useI18n';
+import { GAMES_CONFIG, resolveAllGames } from '../../../utils/gamesConfig';
 
-type GameConfig = {
-  id: string;
-  name: string;
-  description: string;
-  icon: any;
-  gradient: [string, string];
-  gameType: string;
-  players: number;
-  entryFee: number;
-  comingSoon?: boolean;
-};
-
-const GAMES: GameConfig[] = [
-  {
-    id: 'blot',
-    name: 'Blot',
-    description: 'Classic Armenian card game',
-    icon: require('../../../../assets/game-icons/blot-icon.png'),
-    gradient: ['#7a6cf5', '#5b4ae0'],
-    gameType: 'blot',
-    players: 15,
-    entryFee: 50,
-  },
-  {
-    id: 'baazar-blot',
-    name: 'Baazar Blot',
-    description: 'Fast-paced Blot variant',
-    icon: require('../../../../assets/game-icons/baazar-blot-icon.png'),
-    gradient: ['#7a6cf5', '#5b4ae0'],
-    gameType: 'baazar-blot',
-    players: 15,
-    entryFee: 50,
-  },
-  {
-    id: 'checkers',
-    name: 'Checkers',
-    description: 'Classic jumping game',
-    icon: require('../../../../assets/game-icons/checkers-icon.png'),
-    gradient: ['#7a6cf5', '#5b4ae0'],
-    gameType: 'checkers',
-    players: 15,
-    entryFee: 50,
-  },
-  {
-    id: 'chess',
-    name: 'Chess',
-    description: 'Strategic board game',
-    icon: require('../../../../assets/game-icons/chess-icon.png'),
-    gradient: ['#7a6cf5', '#5b4ae0'],
-    gameType: 'chess',
-    players: 15,
-    entryFee: 50,
-  },
-  // Temporarily disabled
-  // {
-  //   id: 'poker',
-  //   name: 'Poker',
-  //   description: "Texas Hold'em Poker",
-  //   icon: require('../../../../assets/game-icons/poker-icon.png'),
-  //   gradient: ['#7a6cf5', '#5b4ae0'],
-  //   gameType: 'poker',
-  //   players: 15,
-  //   entryFee: 50,
-  // },
-  {
-    id: 'nardi',
-    name: 'Nardi',
-    description: 'Backgammon classic',
-    icon: require('../../../../assets/game-icons/nardi-icon.png'),
-    gradient: ['#7a6cf5', '#5b4ae0'],
-    gameType: 'nardi',
-    players: 15,
-    entryFee: 50,
-  },
-  {
-    id: 'billiards',
-    name: '8-Ball',
-    description: 'Pool — sink the 8 to win',
-    icon: require('../../../../assets/game-icons/8ball-icon.png'),
-    gradient: ['#7a6cf5', '#5b4ae0'],
-    gameType: 'billiards',
-    players: 15,
-    entryFee: 50,
-  },
-  {
-    id: '9-ball',
-    name: '9-Ball',
-    description: 'Race to the 9',
-    icon: require('../../../../assets/game-icons/9ball-icon.png'),
-    gradient: ['#7a6cf5', '#5b4ae0'],
-    gameType: '9-ball',
-    players: 15,
-    entryFee: 50,
-  },
-  {
-    id: 'mrotsi',
-    name: 'Mrotsi',
-    description: 'Classic dice game',
-    icon: require('../../../../assets/game-icons/mrotsi-icon.png'),
-    gradient: ['#7a6cf5', '#5b4ae0'],
-    gameType: 'mrotsi',
-    players: 15,
-    entryFee: 50,
-  },
-  {
-    id: 'blackjack',
-    name: 'Blackjack',
-    description: '21 — beat the dealer',
-    icon: require('../../../../assets/game-icons/blackjack-icon.png'),
-    gradient: ['#7a6cf5', '#5b4ae0'],
-    gameType: 'blackjack',
-    players: 15,
-    entryFee: 50,
-  },
-  {
-    id: 'slots',
-    name: 'Slots',
-    description: 'Spin and win',
-    icon: require('../../../../assets/game-icons/slots-icon.png'),
-    gradient: ['#7a6cf5', '#5b4ae0'],
-    gameType: 'slots',
-    players: 15,
-    entryFee: 50,
-  },
-];
+type GameConfig = ReturnType<typeof resolveAllGames>[number];
 
 const GameSelectionScreen = ({ navigation }: any) => {
   const { user } = useAuth();
+  const { translate } = useI18n();
+  
+  // Resolve games with current language
+  const games = useMemo(() => resolveAllGames(translate), [translate]);
 
-  const handleGamePress = (game: GameConfig) => {
+  const handleGamePress = (game: any) => {
     navigation.navigate('GameInfo', {
       gameType: game.gameType,
       gradient: game.gradient as unknown as string[],
@@ -251,7 +133,7 @@ const GameSelectionScreen = ({ navigation }: any) => {
           </View>
 
           {/* Game list */}
-          <View style={styles.gamesList}>{GAMES.map(renderGameCard)}</View>
+          <View style={styles.gamesList}>{games.map(renderGameCard)}</View>
         </ScrollView>
       </SafeAreaView>
       <BottomTabBar active="GameHub" />

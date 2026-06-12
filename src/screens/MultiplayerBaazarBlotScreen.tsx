@@ -9,6 +9,7 @@ import {
   Dimensions,
   Image,
 } from 'react-native';
+import { useI18n } from '../hooks/useI18n';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import ExpandableView from '../components/global/ExpandableView';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -72,6 +73,7 @@ interface BaazarGameState {
 }
 
 const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
+  const { translate } = useI18n();
   const userId = route.params?.userId || route.params?.session?.userId || 'test-user-' + Math.random().toString(36).substr(2, 9);
   const teamMode: 'hybrid' | 'full-multiplayer' = route.params?.teamMode ?? 'hybrid';
   const initialMode = route.params?.mode; // 'random' | 'private-create' | 'private-join' | 'replace-ai' | 'spectate'

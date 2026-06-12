@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState, useRef } from 'react';
+import React, { useCallback, useEffect, useState, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -42,118 +42,20 @@ import useBisetkaLocation from '../../../hooks/useBisetkaLocation';
 import useDeviceType from '../../../hooks/useDeviceType';
 import useStatusBarStyle from '../../../hooks/useStatusBarStyle';
 import { getGridColumns, getSpacing, getFontSize } from '../../../theme/responsive';
+import { useI18n } from '../../../hooks/useI18n';
+import { GAMES_CONFIG, resolveAllGames } from '../../../utils/gamesConfig';
 
-// Game configurations with PushBird-style colors
-const GAMES = [
-  {
-    id: 'blot',
-    name: 'Blot',
-    description: 'Classic card game',
-    icon: require('../../../../assets/game-icons/blot-icon.png'),
-    gradient: ['#6366f1', '#8b5cf6'],
-    gameType: 'blot',
-    isImage: true,
-  },
-  {
-    id: 'baazar-blot',
-    name: 'Baazar Blot',
-    description: 'Fast variant',
-    icon: require('../../../../assets/game-icons/baazar-blot-icon.png'),
-    gradient: ['#ec4899', '#f472b6'],
-    gameType: 'baazar-blot',
-    isImage: true,
-  },
-  {
-    id: 'checkers',
-    name: 'Checkers',
-    description: 'Quick matches',
-    icon: require('../../../../assets/game-icons/checkers-icon.png'),
-    gradient: ['#f59e0b', '#fbbf24'],
-    gameType: 'checkers',
-    isImage: true,
-  },
-  {
-    id: 'chess',
-    name: 'Chess',
-    description: 'Strategy',
-    icon: require('../../../../assets/game-icons/chess-icon.png'),
-    gradient: ['#3b82f6', '#60a5fa'],
-    gameType: 'chess',
-    isImage: true,
-  },
-  // Temporarily disabled
-  // {
-  //   id: 'poker',
-  //   name: 'Poker',
-  //   description: "Texas Hold'em",
-  //   icon: require('../../../../assets/game-icons/poker-icon.png'),
-  //   gradient: ['#10b981', '#34d399'],
-  //   gameType: 'poker',
-  //   isImage: true,
-  // },
-  {
-    id: 'nardi',
-    name: 'Nardi',
-    description: 'Backgammon',
-    icon: require('../../../../assets/game-icons/nardi-icon.png'),
-    gradient: ['#8b5cf6', '#a78bfa'],
-    gameType: 'nardi',
-    isImage: true,
-  },
-  {
-    id: 'billiards',
-    name: '8-Ball',
-    description: 'Pool',
-    icon: require('../../../../assets/game-icons/8ball-icon.png'),
-    gradient: ['#06b6d4', '#22d3ee'],
-    gameType: 'billiards',
-    isImage: true,
-  },
-  {
-    id: '9-ball',
-    name: '9-Ball',
-    description: 'Race to 9',
-    icon: require('../../../../assets/game-icons/9ball-icon.png'),
-    gradient: ['#f59e0b', '#fbbf24'],
-    gameType: '9-ball',
-    isImage: true,
-  },
-  {
-    id: 'mrotsi',
-    name: 'Mrotsi',
-    description: 'Dice game',
-    icon: require('../../../../assets/game-icons/mrotsi-icon.png'),
-    gradient: ['#14b8a6', '#2dd4bf'],
-    gameType: 'mrotsi',
-    isImage: true,
-  },
-  {
-    id: 'blackjack',
-    name: 'Blackjack',
-    description: '21 Card Game',
-    icon: require('../../../../assets/game-icons/blackjack-icon.png'),
-    gradient: ['#7c3aed', '#a78bfa'],
-    gameType: 'blackjack',
-    isImage: true,
-  },
-  {
-    id: 'slots',
-    name: 'Slots',
-    description: 'Arcade',
-    icon: require('../../../../assets/game-icons/slots-icon.png'),
-    gradient: ['#ef4444', '#f87171'],
-    gameType: 'slots',
-    isImage: true,
-  },
-] as const;
-
-type GameConfig = (typeof GAMES)[number];
+type GameConfig = ReturnType<typeof resolveAllGames>[number];
 
 const HomeScreen = ({ navigation, route }: any) => {
   const { user, signOut, refreshUser } = useAuth();
   const { flashCounter } = useDailyPoints();
+  const { translate, translateWithParams } = useI18n();
   const drawerNav = useNavigation();
   const refreshUserRef = useRef(refreshUser);
+  
+  // Resolve games with current language
+  const games = useMemo(() => resolveAllGames(translate), [translate]);
 
   // Flash the points number yellow→white→yellow when points are credited.
   const pointsFlash = useRef(new Animated.Value(0)).current;
@@ -279,12 +181,12 @@ const HomeScreen = ({ navigation, route }: any) => {
       } else if (status === 'blocked') {
         // Previously denied — prompt user to enable manually in Settings
         BisetkaAlert.alert(
-          'Enable Notifications',
-          'Turn on notifications in Settings to be notified when someone sends a message.',
+          translate('settings.notifications'),
+          translate('chat.privateChat'),
           [
-            { text: 'Not Now', style: 'cancel' },
+            { text: translate('common.cancel'), style: 'cancel' },
             {
-              text: 'Open Settings',
+              text: translate('common.settings'),
               onPress: async () => {
                 await pushNotificationService.openNotificationSettings();
               },
@@ -531,7 +433,7 @@ const HomeScreen = ({ navigation, route }: any) => {
           <View style={styles.backgroundLoadingOverlay}>
             <ActivityIndicator size="large" color="#fff" />
             <Text style={styles.backgroundLoadingText}>
-              Generating {resolvedBisetka?.city || user?.bisetka?.city} background...
+              {translate('common.loading')} {resolvedBisetka?.city || user?.bisetka?.city}...
             </Text>
           </View>
         )}
@@ -554,7 +456,7 @@ const HomeScreen = ({ navigation, route }: any) => {
               >
                 <Icon name="menu" size={26} color="#fff" />
               </TouchableOpacity>
-              <Text style={styles.topHeaderTitle}>Global Community</Text>
+              <Text style={styles.topHeaderTitle}>{translate('home.title')}</Text>
               <View style={styles.topHeaderRight}>
                 <TouchableOpacity
                   onPress={() => navigation.navigate('PointsShop')}
@@ -570,7 +472,7 @@ const HomeScreen = ({ navigation, route }: any) => {
                     </Animated.Text>
                     <View style={styles.pointsPlus}>
                       <Icon name="plus" size={12} color="#fff" />
-                      <Text style={styles.pointsPlusText}>Get Points</Text>
+                      <Text style={styles.pointsPlusText}>{translate('common.getPoints')}</Text>
                     </View>
                   </View>
                 </TouchableOpacity>
@@ -603,7 +505,7 @@ const HomeScreen = ({ navigation, route }: any) => {
               >
                 <View style={styles.greetingTextWrap}>
                   <Text style={styles.greetingHello}>
-                    Hello, {user?.username || 'Player'}!
+                    {translate('home.welcome')}, {user?.username || 'Player'}!
                   </Text>
                   <View style={styles.greetingLocationRow}>
                     <Icon name="map-marker" size={16} color="#fff" />
@@ -618,14 +520,14 @@ const HomeScreen = ({ navigation, route }: any) => {
                                 }`
                               : ''
                           }`
-                        : 'Locating...'}
+                        : translate('common.loading')}
                     </Text>
                   </View>
                   <TouchableOpacity
                     onPress={() => navigation.navigate('Travel')}
                     activeOpacity={0.7}
                   >
-                    <Text style={styles.changeLocation}>Change Location</Text>
+                    <Text style={styles.changeLocation}>{translate('home.title')}</Text>
                   </TouchableOpacity>
                 </View>
               </View>

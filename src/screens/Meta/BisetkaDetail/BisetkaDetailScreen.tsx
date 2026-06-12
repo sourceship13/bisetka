@@ -12,6 +12,7 @@ import {
   ImageBackground,
   Image,
 } from 'react-native';
+import { useI18n } from '../../../hooks/useI18n';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import LinearGradient from 'react-native-linear-gradient';
@@ -133,6 +134,7 @@ const GAMES = [
 ] as const;
 
 const BisetkaDetailScreen: React.FC<BisetkaDetailScreenProps> = ({
+  const { translate } = useI18n();
   route,
   navigation,
 }) => {

@@ -27,6 +27,7 @@ import {socketService} from '../../../services/SocketService';
 import tokenService from '../../../services/token.service';
 import InGameChat from '../../../components/InGameChat';
 import {BisetkaAlert} from '../../../utils/BisetkaAlert';
+import { useI18n } from '../../../hooks/useI18n';
 import {useGameEndRefresh} from '../../../libs/hooks/useGameEndRefresh';
 import {apiConfig} from '../../../libs/utils/api.utils';
 import Dice3DSimple from '../../../components/Games/Dice3DSimple';
@@ -181,6 +182,7 @@ interface RoundResult {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 const MultiplayerMrotsiScreen = ({navigation, route}: any) => {
+  const { translate } = useI18n();
   const {userId, mode: routeMode, joinCode, preMatch} = route.params ?? {};
   const {refreshOnGameEnd} = useGameEndRefresh(undefined, 'mrotsi');
 
@@ -278,6 +280,7 @@ const MultiplayerMrotsiScreen = ({navigation, route}: any) => {
         await connectToServer();
       } catch {
         BisetkaAlert.error('Connection Error', 'Failed to connect to server');
+import { useI18n } from '../../../hooks/useI18n';
         return;
       }
 
@@ -360,6 +363,7 @@ const MultiplayerMrotsiScreen = ({navigation, route}: any) => {
           : `Opponent won! ${finalScore?.player1 ?? 0} – ${finalScore?.player2 ?? 0}`;
 
         BisetkaAlert.alert(title, message, [
+import { useI18n } from '../../../hooks/useI18n';
           {text: 'Play Again', onPress: () => navigation.replace('GameMode', {gameType: 'mrotsi'})},
           {text: 'Exit', onPress: () => navigation.navigate('Home' as never)},
         ]);
@@ -368,12 +372,14 @@ const MultiplayerMrotsiScreen = ({navigation, route}: any) => {
       socketService.onOpponentDisconnected(() => {
         refreshOnGameEnd().catch(console.error);
         BisetkaAlert.warning('Opponent Disconnected', 'Your opponent has left the game.', [
+import { useI18n } from '../../../hooks/useI18n';
           {text: 'OK', onPress: () => navigation.replace('GameMode', {gameType: 'mrotsi'})},
         ]);
       });
 
       socketService.onError((error: any) => {
         BisetkaAlert.error('Error', error.message);
+import { useI18n } from '../../../hooks/useI18n';
       });
 
       // Auto-start
@@ -430,6 +436,7 @@ const MultiplayerMrotsiScreen = ({navigation, route}: any) => {
       socketService.playerReady(matchData.roomId, userId);
     } catch (err: any) {
       BisetkaAlert.error('Matchmaking Error', err.message);
+import { useI18n } from '../../../hooks/useI18n';
       setScreen('menu');
     }
   };
@@ -447,6 +454,7 @@ const MultiplayerMrotsiScreen = ({navigation, route}: any) => {
       socketService.playerReady(roomData.roomId, userId);
     } catch (err: any) {
       BisetkaAlert.error('Error', err?.message || String(err) || 'Failed to create room');
+import { useI18n } from '../../../hooks/useI18n';
     }
   };
 
@@ -462,6 +470,7 @@ const MultiplayerMrotsiScreen = ({navigation, route}: any) => {
       socketService.playerReady(roomData.roomId, userId);
     } catch (err: any) {
       BisetkaAlert.error('Error', err?.message || String(err) || 'Failed to join room');
+import { useI18n } from '../../../hooks/useI18n';
     }
   };
 
@@ -510,9 +519,11 @@ const MultiplayerMrotsiScreen = ({navigation, route}: any) => {
         socketService.setRoomName(roomIdRef.current, newName);
       }
       BisetkaAlert.success('Success', 'Room name updated!');
+import { useI18n } from '../../../hooks/useI18n';
     } catch (error) {
       console.error('Failed to update room name:', error);
       BisetkaAlert.error('Error', 'Failed to update room name');
+import { useI18n } from '../../../hooks/useI18n';
     }
   };
 
@@ -610,6 +621,7 @@ const MultiplayerMrotsiScreen = ({navigation, route}: any) => {
           title={`Mrotsi — Round ${gameState?.currentRound ?? 1}/${gameState?.totalRounds ?? 5}`}
           onBack={() =>
             BisetkaAlert.alert('Resign?', 'Leave the game?', [
+import { useI18n } from '../../../hooks/useI18n';
               {text: 'Stay', style: 'cancel'},
               {text: 'Leave', style: 'destructive', onPress: () => {
                 socketService.resignGame?.(roomIdRef.current, userId);

@@ -15,6 +15,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import chatService, { Chat } from '../../services/chat.service';
 import { useAuth } from '../../libs/hooks/useAuth';
+import { useI18n } from '../../hooks/useI18n';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/AppNavigator';
 import AVATARS, { resolveAvatar } from '../../utils/avatars';
@@ -35,6 +36,7 @@ const formatTime = (iso?: string): string => {
 
 const DMListScreen: React.FC<Props> = ({ navigation }) => {
   const { user } = useAuth();
+  const { translate } = useI18n();
   const [chats, setChats] = useState<Chat[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<FilterTab>('all');
@@ -67,7 +69,7 @@ const DMListScreen: React.FC<Props> = ({ navigation }) => {
   const handleChatPress = (chat: Chat) => {
     navigation.navigate('DMChat', {
       chatId: chat.id,
-      chatName: chat.name || 'Direct Message',
+      chatName: chat.name || translate('chat.messages'),
       avatarUrl: chat.avatar_url || null,
     });
   };
@@ -120,10 +122,10 @@ const DMListScreen: React.FC<Props> = ({ navigation }) => {
 
         <View style={styles.contentCol}>
           <Text style={styles.name} numberOfLines={1}>
-            {item.name || 'Direct Message'}
+            {item.name || translate('chat.messages')}
           </Text>
           <Text style={styles.preview} numberOfLines={1}>
-            {item.last_message_preview || 'Say hello 👋'}
+            {item.last_message_preview || translate('chat.sendMessage')}
           </Text>
         </View>
 
@@ -140,8 +142,8 @@ const DMListScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   const TABS: { key: FilterTab; label: string }[] = [
-    { key: 'all', label: 'All' },
-    { key: 'private', label: 'Private chats' },
+    { key: 'all', label: translate('leaderboard.allTime') },
+    { key: 'private', label: translate('chat.privateChat') },
     { key: 'group', label: 'Group chats' },
   ];
 
@@ -155,7 +157,7 @@ const DMListScreen: React.FC<Props> = ({ navigation }) => {
       <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
         {/* Header */}
         <View style={styles.topHeader}>
-          <Text style={styles.topHeaderTitle}>Messages</Text>
+          <Text style={styles.topHeaderTitle}>{translate('chat.title')}</Text>
           <View style={styles.topHeaderRight}>
             <TouchableOpacity
               onPress={() => navigation.navigate('PointsShop')}
@@ -167,7 +169,7 @@ const DMListScreen: React.FC<Props> = ({ navigation }) => {
                 </Text>
                 <View style={styles.pointsPlus}>
                   <Icon name="plus" size={11} color="#fff" />
-                  <Text style={styles.pointsPlusText}>Get Points</Text>
+                  <Text style={styles.pointsPlusText}>{translate('common.getPoints')}</Text>
                 </View>
               </View>
             </TouchableOpacity>

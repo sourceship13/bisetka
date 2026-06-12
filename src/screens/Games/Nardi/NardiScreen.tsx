@@ -14,6 +14,7 @@ import {
   Easing,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useI18n } from '../../../hooks/useI18n';
 import GameToolbar from '../../../components/global/GameToolbar';
 import GameToolbarControls from '../../../components/global/GameToolbarControls';
 import GamePlayerOverlay from '../../../components/GamePlayerOverlay';
@@ -42,6 +43,7 @@ import useDeviceType from '../../../hooks/useDeviceType';
 import { getGameBoardSize } from '../../../utils/gameBoardSize';
 import {BisetkaAlert} from '../../../utils/BisetkaAlert';
 import {apiConfig} from '../../../libs/utils/api.utils';
+// useI18n already imported above
 import NardiDice from '../../../components/Games/NardiDice';
 import Dice3DSimple from '../../../components/Games/Dice3DSimple';
 import { apiService } from '../../../services/api.service';
@@ -116,6 +118,7 @@ const getPointCoords = (pointNum: number): { x: number; y: number; isTop: boolea
 type OpponentType = 'ai' | 'local';
 
 const NardiScreen = ({ navigation, route }: any) => {
+  const { translate } = useI18n();
   const { isTablet, isLandscape } = useDeviceType();
   const boardSize = getGameBoardSize(isTablet, isLandscape, 600, 32);
   

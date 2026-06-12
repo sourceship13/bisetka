@@ -15,6 +15,7 @@ import {
   KeyboardAvoidingView,
   DeviceEventEmitter,
 } from 'react-native';
+import { useI18n } from '../../../hooks/useI18n';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import pushNotificationService from '../../../services/pushNotification.service';
@@ -123,6 +124,7 @@ const SELECTED_AVATAR_KEY = 'selectedAvatarId';
 const SELECTED_AVATAR_OBJ_KEY = '@bisetka_selected_avatar';
 
 const OnboardingScreen: React.FC<{navigation: any; route?: any}> = ({navigation}) => {
+  const { translate } = useI18n();
   const {user, setUser} = useAuth();
 
   // Derive directly from the live user object — never stale, no param-timing issues

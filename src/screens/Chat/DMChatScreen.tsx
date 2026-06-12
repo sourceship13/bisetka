@@ -7,6 +7,7 @@ import {
   Image,
   StatusBar,
 } from 'react-native';
+import { useI18n } from '../../hooks/useI18n';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import AraratBackground from '../../components/AraratBackground';
@@ -20,6 +21,7 @@ import AVATARS, { resolveAvatar } from '../../utils/avatars';
 type Props = NativeStackScreenProps<RootStackParamList, 'DMChat'>;
 
 const DMChatScreen: React.FC<Props> = ({ route, navigation }) => {
+  const { translate } = useI18n();
   const { chatId, chatName, avatarUrl, isOnline } = route.params;
   const { user } = useAuth();
 
