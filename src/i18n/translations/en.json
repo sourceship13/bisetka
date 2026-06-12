@@ -1,0 +1,193 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "cancel": "Cancel",
+    "ok": "OK",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "back": "Back",
+    "close": "Close",
+    "confirm": "Confirm",
+    "logout": "Logout",
+    "points": "Points",
+    "getPoints": "Get Points",
+    "level": "Level",
+    "rank": "Rank",
+    "profile": "Profile",
+    "settings": "Settings",
+    "about": "About",
+    "version": "Version"
+  },
+  "home": {
+    "title": "Home",
+    "welcome": "Welcome",
+    "availableGames": "Available Games",
+    "onlineNow": "Online Now",
+    "playNow": "Play Now",
+    "viewLeaderboard": "View Leaderboard",
+    "dailyRewards": "Daily Rewards",
+    "claimReward": "Claim Reward"
+  },
+  "games": {
+    "blot": {
+      "name": "Blot",
+      "description": "Classic card game"
+    },
+    "baazarBlot": {
+      "name": "Baazar Blot",
+      "description": "Fast variant"
+    },
+    "checkers": {
+      "name": "Checkers",
+      "description": "Quick matches"
+    },
+    "chess": {
+      "name": "Chess",
+      "description": "Strategy"
+    },
+    "poker": {
+      "name": "Poker",
+      "description": "Texas Hold'em"
+    },
+    "nardi": {
+      "name": "Nardi",
+      "description": "Backgammon"
+    },
+    "billards": {
+      "name": "Billiards",
+      "description": "8-Ball Pool"
+    },
+    "slots": {
+      "name": "Slots",
+      "description": "Spin & Win"
+    },
+    "mrotsi": {
+      "name": "Mrotsi",
+      "description": "Armenian Card Game"
+    },
+    "blackjack": {
+      "name": "Blackjack",
+      "description": "21 Card Game"
+    },
+    "gameMode": "Game Mode",
+    "singlePlayer": "Single Player",
+    "multiplayer": "Multiplayer",
+    "difficulty": "Difficulty",
+    "easy": "Easy",
+    "medium": "Medium",
+    "hard": "Hard",
+    "newGame": "New Game",
+    "forfeit": "Forfeit",
+    "replay": "Replay",
+    "gameOver": "Game Over",
+    "youWon": "You Won!",
+    "youLost": "You Lost",
+    "draw": "Draw",
+    "quit": "Quit Game"
+  },
+  "chat": {
+    "title": "Messages",
+    "messages": "Messages",
+    "noConversations": "No conversations yet",
+    "noConversationsSubtext": "Start chatting with other players!",
+    "globalChat": "Global Chat",
+    "privateChat": "Private Chat",
+    "sendMessage": "Send message...",
+    "typing": "typing...",
+    "online": "Online",
+    "offline": "Offline",
+    "leaveRoom": "Leave Room",
+    "joinRoom": "Join Room",
+    "createRoom": "Create Room"
+  },
+  "profile": {
+    "title": "Profile",
+    "username": "Username",
+    "level": "Level",
+    "totalPoints": "Total Points",
+    "wins": "Wins",
+    "losses": "Losses",
+    "winRate": "Win Rate",
+    "achievements": "Achievements",
+    "statistics": "Statistics",
+    "myAvatar": "My Avatar",
+    "editProfile": "Edit Profile",
+    "changeAvatar": "Change Avatar"
+  },
+  "achievements": {
+    "title": "Achievements",
+    "locked": "Locked",
+    "unlocked": "Unlocked",
+    "earnedPoints": "Earned {points} points",
+    "completedOn": "Completed on {date}"
+  },
+  "store": {
+    "title": "Store",
+    "pointsShop": "Points Shop",
+    "clothing": "Clothing",
+    "accessories": "Accessories",
+    "special": "Special Offers",
+    "purchase": "Purchase",
+    "notEnoughPoints": "Not enough points",
+    "alreadyOwned": "Already owned",
+    "sold": "Sold"
+  },
+  "leaderboard": {
+    "title": "Leaderboard",
+    "global": "Global",
+    "friends": "Friends",
+    "weekly": "Weekly",
+    "allTime": "All Time",
+    "rank": "Rank",
+    "player": "Player",
+    "score": "Score"
+  },
+  "settings": {
+    "title": "Settings",
+    "language": "Language",
+    "sound": "Sound",
+    "notifications": "Notifications",
+    "privacy": "Privacy",
+    "account": "Account",
+    "changePassword": "Change Password",
+    "deleteAccount": "Delete Account",
+    "aboutApp": "About App",
+    "terms": "Terms of Service",
+    "privacy_policy": "Privacy Policy"
+  },
+  "onboarding": {
+    "welcome": "Sign in to start your journey",
+    "selectAvatar": "Select Your Avatar",
+    "selectUsername": "Choose Username",
+    "next": "Next",
+    "finish": "Finish",
+    "skip": "Skip"
+  },
+  "auth": {
+    "login": "Login",
+    "register": "Register",
+    "email": "Email",
+    "password": "Password",
+    "confirmPassword": "Confirm Password",
+    "forgotPassword": "Forgot Password?",
+    "signInWithGoogle": "Continue with Google",
+    "signInWithApple": "Continue with Apple",
+    "dontHaveAccount": "Don't have an account?",
+    "alreadyHaveAccount": "Already have an account?",
+    "invalidEmail": "Invalid email",
+    "passwordTooShort": "Password must be at least 6 characters",
+    "passwordsDontMatch": "Passwords don't match"
+  },
+  "errors": {
+    "somethingWentWrong": "Something went wrong",
+    "tryAgain": "Try Again",
+    "connectionError": "Connection error",
+    "timeout": "Request timeout",
+    "notFound": "Not found",
+    "unauthorized": "Unauthorized",
+    "forbidden": "Forbidden"
+  }
+}

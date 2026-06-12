@@ -9,6 +9,7 @@ import {
   Platform,
   ActivityIndicator,
 } from 'react-native';
+import { useI18n } from '../../../hooks/useI18n';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import apiService from '../../../services/api.service';
@@ -21,6 +22,7 @@ interface UsernameSelectionScreenProps {
 }
 
 const UsernameSelectionScreen: React.FC<UsernameSelectionScreenProps> = ({
+  const { translate } = useI18n();
   navigation,
 }) => {
   const [username, setUsername] = useState('');

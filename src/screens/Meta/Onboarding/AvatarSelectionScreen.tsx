@@ -8,6 +8,7 @@ import {
   Dimensions,
   ActivityIndicator,
 } from 'react-native';
+import { useI18n } from '../../../hooks/useI18n';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { BaseAvatar } from '../../../types/avatar2d';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';

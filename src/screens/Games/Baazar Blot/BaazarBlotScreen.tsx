@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useGameEndRefresh } from '../../../libs/hooks/useGameEndRefresh';
 import { gameResultService } from '../../../services/gameResult.service';
+import { useI18n } from '../../../hooks/useI18n';
 import {
   View,
   Text,
@@ -70,6 +71,7 @@ const { width: SW } = Dimensions.get('window');
 const GAME_TYPE = 'baazar-blot';
 
 const BaazarBlotScreen = ({ navigation, route }: any) => {
+  const { translate } = useI18n();
   const fakeOpponent = route?.params?.fakeOpponent ?? null;
   const [gameState, setGameState] = useState<BaazarGameState | null>(null);
   const [showCustomization, setShowCustomization] = useState(false);

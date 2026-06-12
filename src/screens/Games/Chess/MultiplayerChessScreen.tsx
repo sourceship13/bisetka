@@ -34,6 +34,7 @@ import {
 import {socketService, GameMove} from '../../../services/SocketService';
 import tokenService from '../../../services/token.service';
 import { useGameEndRefresh } from '../../../libs/hooks/useGameEndRefresh';
+import { useI18n } from '../../../hooks/useI18n';
 import InGameChat from '../../../components/InGameChat';
 import {apiConfig} from '../../../libs/utils/api.utils';
 
@@ -65,6 +66,7 @@ const serverBoardToClient = (board: any[][]): (import('../../../game/chessLogic'
 };
 
 const MultiplayerChessScreen = ({navigation, route}: any) => {
+  const { translate } = useI18n();
   const {userId, mode: routeMode, joinCode, dbSessionId, preMatch} = route.params; // Get from auth context
   const { refreshOnGameEnd } = useGameEndRefresh(undefined, 'chess');
   // Match the route param so the matchmaking/private UI renders immediately on

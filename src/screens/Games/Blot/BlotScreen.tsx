@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useGameEndRefresh } from '../../../libs/hooks/useGameEndRefresh';
 import { gameResultService } from '../../../services/gameResult.service';
+import { useI18n } from '../../../hooks/useI18n';
 import {
   View,
   Text,
@@ -71,6 +72,7 @@ const SUIT_COLOR: Record<string, string> = {
 };
 
 const BlotScreen = ({ navigation, route }: any) => {
+  const { translate } = useI18n();
   const fakeOpponent = route?.params?.fakeOpponent ?? null;
   const [targetScore, setTargetScore] = useState<number | null>(null); // 101, 201, or 301
   const [gameState, setGameState] = useState<GameState | null>(null);
@@ -234,7 +236,7 @@ const BlotScreen = ({ navigation, route }: any) => {
   };
 
   const toggleLeave = () => {
-    BisetkaAlert.alert('Leave Game', 'Are you sure you want to leave the game?', [
+    BisetkaAlert.alert(translate('games.quit'), translate('common.confirm'), [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Leave', style: 'destructive', onPress: () => navigation.goBack() },
     ]);

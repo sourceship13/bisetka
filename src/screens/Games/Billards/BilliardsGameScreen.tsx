@@ -27,6 +27,7 @@ import {RootStackParamList} from '../../../navigation/AppNavigator';
 import {aiMoveLogService} from '../../../services/aiMoveLog.service';
 import {v4 as uuidv4} from 'uuid';
 import { useGameEndRefresh } from '../../../libs/hooks/useGameEndRefresh';
+import { useI18n } from '../../../hooks/useI18n';
 import {socketService} from '../../../services/SocketService';
 import {useAuth} from '../../../libs/hooks/useAuth';
 import {useAchievements} from '../../../contexts/AchievementContext';
@@ -609,6 +610,7 @@ const GameOverOverlay: React.FC<{
 };
 
 const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
+  const { translate } = useI18n();
   const { isTablet, isLandscape } = useDeviceType();
   const {session} = route.params;
   const fakeOpponent = (route.params as any)?.fakeOpponent ?? null;

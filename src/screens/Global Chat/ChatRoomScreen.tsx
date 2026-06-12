@@ -10,6 +10,7 @@ import {
   Platform,
   Share,
 } from 'react-native';
+import { useI18n } from '../../hooks/useI18n';
 import { BisetkaAlert } from '../../utils/BisetkaAlert';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {colors, spacing} from '../../theme';
@@ -18,6 +19,7 @@ import {useAuth} from '../../libs/hooks/useAuth';
 import {socketService} from '../../services/SocketService';
 
 const ChatRoomScreen = ({route, navigation}: any) => {
+  const { translate } = useI18n();
   const {roomId} = route.params;
   const {user} = useAuth();
   const [room, setRoom] = useState<ChatRoom | null>(null);

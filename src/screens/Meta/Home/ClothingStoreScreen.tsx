@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   InteractionManager,
 } from 'react-native';
+import { useI18n } from '../../../hooks/useI18n';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -56,6 +57,7 @@ const SECTION_META: Record<ClothingType, { label: string; icon: string }> = {
 };
 
 const ClothingStoreScreen: React.FC<any> = ({ navigation }) => {
+  const { translate } = useI18n();
   const { user } = useAuth();
   const [avatarBuild, setAvatarBuild] = useState<string | undefined>(undefined);
   const [avatarGender, setAvatarGender] = useState<string | undefined>(undefined);

@@ -4,6 +4,7 @@ import AppNavigator from './navigation/AppNavigator';
 import { AuthProvider } from './libs/hooks/useAuth';
 import { AchievementProvider } from './contexts/AchievementContext';
 import { DailyPointsProvider, useDailyPoints } from './contexts/DailyPointsContext';
+import { I18nProvider } from './contexts/I18nContext';
 import InAppNotificationBanner from './components/InAppNotificationBanner';
 import DailyPointsRewardModal from './components/DailyPointsRewardModal';
 import pushNotificationService from './services/pushNotification.service';
@@ -40,17 +41,19 @@ const NotificationTapBridge: React.FC = () => {
 function App(): React.JSX.Element {
   return (
     <View style={styles.root}>
-      <AuthProvider>
-        <AchievementProvider>
-          <DailyPointsProvider>
-            <AppNavigator />
-            {/* Renders above everything — shows push banners when app is foregrounded */}
-            <InAppNotificationBanner />
-            <DailyPointsRewardModal />
-            <NotificationTapBridge />
-          </DailyPointsProvider>
-        </AchievementProvider>
-      </AuthProvider>
+      <I18nProvider>
+        <AuthProvider>
+          <AchievementProvider>
+            <DailyPointsProvider>
+              <AppNavigator />
+              {/* Renders above everything — shows push banners when app is foregrounded */}
+              <InAppNotificationBanner />
+              <DailyPointsRewardModal />
+              <NotificationTapBridge />
+            </DailyPointsProvider>
+          </AchievementProvider>
+        </AuthProvider>
+      </I18nProvider>
     </View>
   );
 }

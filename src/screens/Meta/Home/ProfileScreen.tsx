@@ -18,6 +18,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../../../libs/hooks/useAuth';
+import { useI18n } from '../../../hooks/useI18n';
 import AVATARS, { resolveAvatar } from '../../../utils/avatars';
 import type { AvatarOption } from '../../../utils/avatars';
 import apiService from '../../../services/api.service';
@@ -48,6 +49,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const ProfileScreen = ({ navigation }: any) => {
   const { user, setUser } = useAuth();
+  const { translate } = useI18n();
   const [detailedStats, setDetailedStats] = useState<any>(null);
   const [loadingStats, setLoadingStats] = useState(true);
   const [achievements, setAchievements] = useState<AchievementItem[]>([]);
@@ -168,10 +170,10 @@ const ProfileScreen = ({ navigation }: any) => {
     })
     .slice(0, 6);
 
-  const renderStatTile = (label: string, value: string | number) => (
-    <View style={styles.statTile} key={label}>
+  const renderStatTile = (translationKey: string, value: string | number) => (
+    <View style={styles.statTile} key={translationKey}>
       <Text style={styles.statValue}>{value}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
+      <Text style={styles.statLabel}>{translate(translationKey)}</Text>
     </View>
   );
 
@@ -188,7 +190,7 @@ const ProfileScreen = ({ navigation }: any) => {
           showsVerticalScrollIndicator={false}>
           {/* Top header card */}
           <View style={styles.topHeader}>
-            <Text style={styles.topHeaderTitle}>Profile</Text>
+            <Text style={styles.topHeaderTitle}>{translate('profile.title')}</Text>
             <View style={styles.topHeaderRight}>
               <TouchableOpacity
                 onPress={() => navigation.navigate('PointsShop')}
@@ -275,31 +277,31 @@ const ProfileScreen = ({ navigation }: any) => {
           ) : (
             <>
               <View style={styles.statsRow}>
-                {renderStatTile('Games', totalGames)}
-                {renderStatTile('Wins', totalWins)}
-                {renderStatTile('Losses', totalLosses)}
-                {renderStatTile('Draws', totalDraws)}
+                {renderStatTile('profile.wins', totalGames)}
+                {renderStatTile('profile.wins', totalWins)}
+                {renderStatTile('profile.losses', totalLosses)}
+                {renderStatTile('games.draw', totalDraws)}
               </View>
               <View style={styles.statsRow}>
                 {renderStatTile(
-                  'Win Rate',
+                  'profile.winRate',
                   `${Math.round(Number(winRate) || 0)}%`,
                 )}
-                {renderStatTile('Current Streak', currentStreak)}
-                {renderStatTile('Best Streak', bestStreak)}
-                {renderStatTile('Achivements', achievementsUnlocked)}
+                {renderStatTile('home.playNow', currentStreak)}
+                {renderStatTile('achievements.title', bestStreak)}
+                {renderStatTile('profile.achievements', achievementsUnlocked)}
               </View>
             </>
           )}
 
           {/* Achievements */}
           <View style={styles.achievementsHeader}>
-            <Text style={styles.sectionHeading}>Achivements:</Text>
+            <Text style={styles.sectionHeading}>{translate('profile.achievements')}:</Text>
             <TouchableOpacity
               onPress={() => navigation.navigate('Achievements')}
               activeOpacity={0.85}
               style={styles.viewAllBtn}>
-              <Text style={styles.viewAllText}>View All</Text>
+              <Text style={styles.viewAllText}>{translate('common.back')}</Text>
             </TouchableOpacity>
           </View>
 

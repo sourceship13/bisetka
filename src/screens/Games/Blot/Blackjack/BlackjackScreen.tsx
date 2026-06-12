@@ -14,6 +14,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../../../../libs/hooks/useAuth';
 import { BisetkaAlert } from '../../../../utils/BisetkaAlert';
+import { useI18n } from '../../../../hooks/useI18n';
 import GameToolbar from '../../../../components/global/GameToolbar';
 import Card3D from '../../../../components/Card3D';
 import { getCardImage, getCardBackImage } from '../../../../data/cardsNew';
@@ -57,6 +58,7 @@ interface GameState {
 }
 
 const BlackjackScreen = ({ navigation }: any) => {
+  const { translate } = useI18n();
   const { user: currentUser, setUser, refreshUser } = useAuth();
   const { refreshOnGameEnd } = useGameEndRefresh(undefined, 'blackjack');
 
@@ -95,7 +97,7 @@ const BlackjackScreen = ({ navigation }: any) => {
     resultMessage: '',
   });
 
-  // Keep local balance in sync with the auth user's real points balance.
+  // Keep local balance in sync with the auth user's real points balance
   useEffect(() => {
     if (currentUser?.balance !== undefined) {
       const real = Math.floor(currentUser.balance);

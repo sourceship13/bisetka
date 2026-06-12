@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   DeviceEventEmitter,
 } from 'react-native';
+import { useI18n } from '../../../hooks/useI18n';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -90,6 +91,7 @@ const AVATAR_CHANGE_COST = 1000;
 type GenderTab = 'male' | 'female';
 
 const AvatarBuilderScreen = ({ navigation }: any) => {
+  const { translate } = useI18n();
   const { user, setUser } = useAuth();
   const [loading, setLoading] = useState(true);
   const [selectedAvatarId, setSelectedAvatarId] = useState<string | null>(null);

@@ -1,5 +1,6 @@
 import React, {useEffect, useRef, useState} from 'react';
 import {StyleSheet, StatusBar, View, ActivityIndicator, Text} from 'react-native';
+import { useI18n } from '../../../hooks/useI18n';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import GameModeSelector from '../../../components/global/GameModeSelector';
@@ -87,6 +88,7 @@ const formatSuccessMessage = (
 };
 
 const GameModeScreen: React.FC<Props> = ({route, navigation}) => {
+  const { translate } = useI18n();
   const {gameType, preferredMode, teamMode: teamModeParam} = route.params as any;
   const {user} = useAuth();
   const label = GAME_LABELS[gameType] || {title: 'Game', description: ''};

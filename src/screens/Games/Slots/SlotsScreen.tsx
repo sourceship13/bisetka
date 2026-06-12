@@ -13,6 +13,7 @@ import {
 import AraratBackground from '../../../components/AraratBackground';
 import { useAuth } from '../../../libs/hooks/useAuth';
 import { useGameEndRefresh } from '../../../libs/hooks/useGameEndRefresh';
+import { useI18n } from '../../../hooks/useI18n';
 import Svg, { Polyline } from 'react-native-svg';
 import apiConfig from '../../../libs/utils/api.utils';
 import tokenService from '../../../services/token.service';
@@ -83,6 +84,7 @@ interface SpinResult {
 }
 
 const SlotsScreen = ({ navigation }: any) => {
+  const { translate } = useI18n();
   const { user, setUser, refreshUser } = useAuth();
   const { refreshOnGameEnd } = useGameEndRefresh(undefined, 'slots');
   // Use user's actual balance - no entry fee, real money gameplay

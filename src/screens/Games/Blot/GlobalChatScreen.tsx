@@ -8,6 +8,7 @@ import {
   StatusBar,
   Platform,
 } from 'react-native';
+import { useI18n } from '../../../hooks/useI18n';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import AraratBackground from '../../../components/AraratBackground';
@@ -20,6 +21,7 @@ import { RootStackParamList } from '../../../navigation/AppNavigator';
 type Props = NativeStackScreenProps<RootStackParamList, 'GlobalChat'>;
 
 const GlobalChatScreen: React.FC<Props> = ({ navigation }) => {
+  const { translate } = useI18n();
   const { user } = useAuth();
   const [chatId, setChatId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);

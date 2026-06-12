@@ -9,6 +9,7 @@ import {
   RefreshControl,
   StatusBar,
 } from 'react-native';
+import { useI18n } from '../../../hooks/useI18n';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {colors, spacing, typography} from '../../../theme';
 import apiConfig from '../../../libs/utils/api.utils';
@@ -27,6 +28,7 @@ interface LeaderboardEntry {
 }
 
 const LeaderboardScreen = ({navigation}: any) => {
+  const { translate } = useI18n();
   const {user} = useAuth();
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);

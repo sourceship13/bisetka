@@ -10,6 +10,7 @@ import {
   Dimensions,
   Alert,
 } from 'react-native';
+import { useI18n } from '../../../hooks/useI18n';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useAuth} from '../../../libs/hooks/useAuth';
 import {colors, spacing} from '../../../theme';
@@ -84,6 +85,7 @@ const STORE_ITEMS: StoreItem[] = [
 ];
 
 const StoreScreen = ({navigation}: any) => {
+  const { translate } = useI18n();
   const {user} = useAuth();
   const [selectedCategory, setSelectedCategory] = useState<Category | 'all'>('all');
 

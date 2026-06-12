@@ -24,6 +24,7 @@ import RoomNameModal from '../../../components/RoomNameModal';
 import {socketService} from '../../../services/SocketService';
 import tokenService from '../../../services/token.service';
 import {useGameEndRefresh} from '../../../libs/hooks/useGameEndRefresh';
+import { useI18n } from '../../../hooks/useI18n';
 import InGameChat from '../../../components/InGameChat';
 import SyncedYouTubePlayer from '../../../components/SyncedYouTubePlayer';
 import {apiConfig} from '../../../libs/utils/api.utils';
@@ -124,6 +125,7 @@ function hasAnyMoves(board: (Piece | null)[][], color: PieceColor): boolean {
 
 // ─── component ────────────────────────────────────────────────────────────────
 const MultiplayerCheckersScreen = ({navigation, route}: any) => {
+  const { translate } = useI18n();
   const {userId, mode: routeMode, joinCode, dbSessionId, preMatch} = route.params;
   const {refreshOnGameEnd} = useGameEndRefresh(undefined, 'checkers');
 

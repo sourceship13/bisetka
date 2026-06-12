@@ -1,5 +1,6 @@
 import React from 'react';
 import {View, Text, StyleSheet, TouchableOpacity, ScrollView} from 'react-native';
+import { useI18n } from '../../hooks/useI18n';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {RootStackParamList} from '../../navigation/AppNavigator';
@@ -19,6 +20,7 @@ type SessionPayload = {
 };
 
 const SessionStatusScreen: React.FC<Props> = ({route, navigation}) => {
+  const { translate } = useI18n();
   const {gameType, session} = route.params;
   const labels = GAME_LABELS[gameType];
   const payload: SessionPayload = session || {};

@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
+import { useI18n } from '../../../hooks/useI18n';
 import AraratBackground from '../../../components/AraratBackground';
 import AR3DOverlay, {type AR3DOverlayHandle, type ARCard} from '../../../components/AR3DOverlay';
 import SyncedYouTubePlayer from '../../../components/SyncedYouTubePlayer';
@@ -67,6 +68,7 @@ interface GameState {
 }
 
 const MultiplayerBlotScreen = ({ navigation, route }: any) => {
+  const { translate } = useI18n();
   const userId = route.params?.userId || route.params?.session?.id || route.params?.session?.userId || 'test-user-' + Math.random().toString(36).substr(2, 9);
   const { refreshOnGameEnd } = useGameEndRefresh(undefined, 'blot');
   const initialMode = route.params?.mode; // 'ai', 'private-create', 'private-join', 'random', 'join-from-lobby', 'spectate', 'replace-ai'

@@ -23,6 +23,7 @@ import LogoWhite from '../../../assets/logo/logo-white.svg';
 import { BisetkaAlert } from '../../utils/BisetkaAlert';
 import { useAuth } from '../../libs/hooks/useAuth';
 import AuthService from '../../services/AuthService';
+import { useI18n } from '../../hooks/useI18n';
 
 const BG = require('../../../assets/backgrounds/bisetka.png');
 
@@ -45,13 +46,14 @@ const LoginScreen: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [showDevUsers, setShowDevUsers] = useState(false);
   const { signInWithApple, signInWithGoogle, signInWithEmail } = useAuth();
+  const { translate } = useI18n();
 
   const handleAppleSignIn = async () => {
     try {
       setLoading(true);
       await signInWithApple();
     } catch (error: any) {
-      BisetkaAlert.error('Sign In Failed', error?.message ?? 'Apple sign in failed');
+      BisetkaAlert.error(translate('common.error'), error?.message ?? translate('auth.signInWithApple'));
     } finally {
       setLoading(false);
     }
@@ -62,7 +64,7 @@ const LoginScreen: React.FC = () => {
       setLoading(true);
       await signInWithGoogle();
     } catch (error: any) {
-      BisetkaAlert.error('Sign In Failed', error?.message ?? 'Google sign in failed');
+      BisetkaAlert.error(translate('common.error'), error?.message ?? translate('auth.signInWithGoogle'));
     } finally {
       setLoading(false);
     }
@@ -74,7 +76,7 @@ const LoginScreen: React.FC = () => {
       setLoading(true);
       await signInWithEmail(email, DEV_PASSWORD);
     } catch (error: any) {
-      BisetkaAlert.error('Login Failed', error?.message ?? 'Dev login failed');
+      BisetkaAlert.error(translate('common.error'), error?.message ?? 'Dev login failed');
     } finally {
       setLoading(false);
     }
@@ -93,7 +95,7 @@ const LoginScreen: React.FC = () => {
       <SafeAreaView style={styles.safe} edges={['top', 'left', 'right', 'bottom']}>
         <View style={styles.center}>
           <LogoWhite width={240} height={110} style={styles.logo} />
-          <Text style={styles.tagline}>Sign in to start your journey</Text>
+          <Text style={styles.tagline}>{translate('onboarding.welcome')}</Text>
 
           {AuthService.isAppleAuthAvailable() && (
             <TouchableOpacity
@@ -106,7 +108,7 @@ const LoginScreen: React.FC = () => {
               ) : (
                 <>
                   <Icon name="apple" size={22} color="#000" style={styles.pillIcon} />
-                  <Text style={styles.pillText}>Continue with Apple</Text>
+                  <Text style={styles.pillText}>{translate('auth.signInWithApple')}</Text>
                 </>
               )}
             </TouchableOpacity>
@@ -122,15 +124,15 @@ const LoginScreen: React.FC = () => {
             ) : (
               <>
                 <Icon name="google" size={20} color="#4285F4" style={styles.pillIcon} />
-                <Text style={[styles.pillText, styles.pillTextMuted]}>Continue with Google</Text>
+                <Text style={[styles.pillText, styles.pillTextMuted]}>{translate('auth.signInWithGoogle')}</Text>
               </>
             )}
           </TouchableOpacity>
 
           <Text style={styles.tos}>
             By continuing, you agree to our{' '}
-            <Text style={styles.tosLink}>Terms of Service</Text> and{' '}
-            <Text style={styles.tosLink}>Privacy Policy</Text>.
+            <Text style={styles.tosLink}>{translate('settings.terms')}</Text> and{' '}
+            <Text style={styles.tosLink}>{translate('settings.privacy_policy')}</Text>.
           </Text>
         </View>
 
@@ -138,7 +140,7 @@ const LoginScreen: React.FC = () => {
           <View style={styles.devSection}>
             <TouchableOpacity onPress={() => setShowDevUsers(s => !s)}>
               <Text style={styles.devToggle}>
-                🧪 {showDevUsers ? 'Hide' : 'Dev'} test users
+                🧪 {showDevUsers ? translate('common.close') : 'Dev'} test users
               </Text>
             </TouchableOpacity>
             {showDevUsers && (

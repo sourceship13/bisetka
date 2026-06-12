@@ -17,15 +17,18 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import DeviceInfo from 'react-native-device-info';
 import packageJson from '../../../../package.json';
 import AppVersionFooter from '../../../components/global/AppVersionFooter';
+import {useI18n, Language} from '../../../hooks/useI18n';
 
 const SOUND_KEY = '@bisetka_sound_enabled';
 const HAPTIC_KEY = '@bisetka_haptic_enabled';
 
 const SettingsScreen = ({navigation}: any) => {
   const {user, signOut} = useAuth();
+  const {translate, language, setLanguage, supportedLanguages} = useI18n();
 
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [hapticEnabled, setHapticEnabled] = useState(true);
+  const [showLanguageMenu, setShowLanguageMenu] = useState(false);
 
   useEffect(() => {
     AsyncStorage.getItem(SOUND_KEY).then(v => {
@@ -82,17 +85,17 @@ const SettingsScreen = ({navigation}: any) => {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Text style={styles.backText}>←</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Settings</Text>
+        <Text style={styles.headerTitle}>{translate('settings.title')}</Text>
         <View style={styles.backBtn} />
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         {/* Preferences */}
-        <Text style={styles.sectionTitle}>Preferences</Text>
+        <Text style={styles.sectionTitle}>{translate('settings.title')}</Text>
         <View style={styles.card}>
           <SettingRow
             icon="🔊"
-            label="Sound Effects"
+            label={translate('settings.sound')}
             trailing={
               <Switch
                 value={soundEnabled}
@@ -105,7 +108,7 @@ const SettingsScreen = ({navigation}: any) => {
           <Divider />
           <SettingRow
             icon="📳"
-            label="Haptic Feedback"
+            label={translate('settings.notifications')}
             trailing={
               <Switch
                 value={hapticEnabled}
@@ -115,22 +118,45 @@ const SettingsScreen = ({navigation}: any) => {
               />
             }
           />
-        </View>
-
-        {/* Notifications */}
-        <Text style={styles.sectionTitle}>Notifications</Text>
-        <View style={styles.card}>
-          <TouchableOpacity onPress={handleOpenNotifSettings}>
+          <Divider />
+          <TouchableOpacity onPress={() => setShowLanguageMenu(!showLanguageMenu)}>
             <SettingRow
-              icon="🔔"
-              label="Notification Settings"
+              icon="🌐"
+              label={translate('settings.language')}
               trailing={<Text style={styles.chevron}>›</Text>}
             />
           </TouchableOpacity>
+          {showLanguageMenu && (
+            <View>
+              {supportedLanguages.map((lang) => {
+                const langNames: {[key: string]: string} = {
+                  'en': '🇺🇸 English',
+                  'ru': '🇷🇺 Русский',
+                  'hy': '🇦🇲 Հայերեն'
+                };
+                return (
+                  <TouchableOpacity
+                    key={lang}
+                    onPress={async () => {
+                      await setLanguage(lang);
+                      setShowLanguageMenu(false);
+                    }}
+                  >
+                    <View style={styles.langOption}>
+                      <Text style={[styles.langLabel, language === lang && styles.langLabelActive]}>
+                        {langNames[lang] || lang}
+                      </Text>
+                      {language === lang && <Text style={styles.checkmark}>✓</Text>}
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
         </View>
 
         {/* Account */}
-        <Text style={styles.sectionTitle}>Account</Text>
+        <Text style={styles.sectionTitle}>{translate('settings.account')}</Text>
         <View style={styles.card}>
           <SettingRow icon="👤" label={user?.username || 'Player'} trailing={null} />
           <Divider />
@@ -142,7 +168,7 @@ const SettingsScreen = ({navigation}: any) => {
           <TouchableOpacity onPress={handleSignOut}>
             <SettingRow
               icon="🚪"
-              label="Sign Out"
+              label={translate('common.logout')}
               trailing={<Text style={styles.chevron}>›</Text>}
               danger
             />
@@ -150,9 +176,9 @@ const SettingsScreen = ({navigation}: any) => {
         </View>
 
         {/* About */}
-        <Text style={styles.sectionTitle}>About</Text>
+        <Text style={styles.sectionTitle}>{translate('settings.aboutApp')}</Text>
         <View style={styles.card}>
-          <SettingRow icon="📱" label="Version" trailing={<Text style={styles.trailText}>{appVersion}</Text>} />
+          <SettingRow icon="📱" label={translate('common.version')} trailing={<Text style={styles.trailText}>{appVersion}</Text>} />
           <Divider />
           <SettingRow icon="🔨" label="Build" trailing={<Text style={styles.trailText}>{buildNumber}</Text>} />
           <Divider />
@@ -273,6 +299,31 @@ const styles = StyleSheet.create({
     height: StyleSheet.hairlineWidth,
     backgroundColor: colors.border.primary,
     marginLeft: spacing.md + 32,
+  },
+  langOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.md,
+    paddingVertical: 10,
+    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+    marginHorizontal: spacing.md,
+    marginVertical: 4,
+    borderRadius: 8,
+  },
+  langLabel: {
+    fontSize: 14,
+    color: colors.text.primary,
+    fontWeight: '500',
+  },
+  langLabelActive: {
+    color: '#6366f1',
+    fontWeight: '700',
+  },
+  checkmark: {
+    fontSize: 16,
+    color: '#6366f1',
+    fontWeight: '700',
   },
   footer: {
     marginTop: 32,

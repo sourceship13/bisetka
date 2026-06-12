@@ -11,6 +11,7 @@ import {
   NativeModules,
   InteractionManager,
 } from 'react-native';
+import { useI18n } from '../../../hooks/useI18n';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';

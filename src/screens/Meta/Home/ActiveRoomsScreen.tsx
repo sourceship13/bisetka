@@ -10,6 +10,7 @@ import {
   TextInput,
   Keyboard,
 } from 'react-native';
+import { useI18n } from '../../../hooks/useI18n';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import GameToolbar from '../../../components/global/GameToolbar';
@@ -78,6 +79,7 @@ interface GameRoom {
 }
 
 const ActiveRoomsScreen = ({ navigation }: any) => {
+  const { translate } = useI18n();
   const { user } = useAuth();
   const [rooms, setRooms] = useState<GameRoom[]>([]);
   const [loading, setLoading] = useState(true);
