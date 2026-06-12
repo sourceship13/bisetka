@@ -22,9 +22,9 @@ interface UsernameSelectionScreenProps {
 }
 
 const UsernameSelectionScreen: React.FC<UsernameSelectionScreenProps> = ({
-  const { translate } = useI18n();
   navigation,
 }) => {
+  const { translate } = useI18n();
   const [username, setUsername] = useState('');
   const [checking, setChecking] = useState(false);
   const [available, setAvailable] = useState<boolean | null>(null);
