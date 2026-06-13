@@ -29,7 +29,23 @@
     "playNow": "Play Now",
     "viewLeaderboard": "View Leaderboard",
     "dailyRewards": "Daily Rewards",
-    "claimReward": "Claim Reward"
+    "claimReward": "Claim Reward",
+    "nearestBisetka": "Closest Bisetka",
+    "nearestToYou": "Nearest To You",
+    "browse": "Browse",
+    "viewMap": "View Map",
+    "playGames": "Play Games",
+    "changeLocation": "Change Location",
+    "travel": "Travel"
+  },
+  "navigation": {
+    "community": "Community",
+    "store": "Store",
+    "gameHub": "Game Hub",
+    "messages": "Messages",
+    "profile": "Profile",
+    "home": "Home",
+    "settings": "Settings"
   },
   "games": {
     "blot": {

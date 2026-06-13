@@ -346,7 +346,6 @@ const MrotsiScreen = ({ navigation, route }: any) => {
   const handleBackPress = () => {
     if (state.isGameOver && isPostGameSyncing) {
       BisetkaAlert.alert('Updating Profile', 'Finishing your points sync before returning home.');
-import { useI18n } from '../../../hooks/useI18n';
       return;
     }
     navigation.goBack();

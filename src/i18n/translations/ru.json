@@ -29,7 +29,23 @@
     "playNow": "Играть сейчас",
     "viewLeaderboard": "Просмотр таблицы лидеров",
     "dailyRewards": "Ежедневные награды",
-    "claimReward": "Получить награду"
+    "claimReward": "Получить награду",
+    "nearestBisetka": "Ближайший Бисетка",
+    "nearestToYou": "Ближайший к вам",
+    "browse": "Просмотр",
+    "viewMap": "Просмотр карты",
+    "playGames": "Играть",
+    "changeLocation": "Изменить местоположение",
+    "travel": "Путешествие"
+  },
+  "navigation": {
+    "community": "Сообщество",
+    "store": "Магазин",
+    "gameHub": "Игры",
+    "messages": "Сообщения",
+    "profile": "Профиль",
+    "home": "Главная",
+    "settings": "Настройки"
   },
   "games": {
     "blot": {

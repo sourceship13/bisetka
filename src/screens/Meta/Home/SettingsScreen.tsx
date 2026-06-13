@@ -17,10 +17,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import DeviceInfo from 'react-native-device-info';
 import packageJson from '../../../../package.json';
 import AppVersionFooter from '../../../components/global/AppVersionFooter';
-import {useI18n, Language} from '../../../hooks/useI18n';
+import {useI18n} from '../../../hooks/useI18n';
+import type { Language } from '../../../i18n/index';
 
 const SOUND_KEY = '@bisetka_sound_enabled';
 const HAPTIC_KEY = '@bisetka_haptic_enabled';
+// Note: Language preference stored in i18n system (LANGUAGE_KEY, SCRIPT_KEY)
 
 const SettingsScreen = ({navigation}: any) => {
   const {user, signOut} = useAuth();
@@ -132,7 +134,8 @@ const SettingsScreen = ({navigation}: any) => {
                 const langNames: {[key: string]: string} = {
                   'en': '🇺🇸 English',
                   'ru': '🇷🇺 Русский',
-                  'hy': '🇦🇲 Հայերեն'
+                  'hy': '🇦🇲 Հայերեն (Native)',
+                  'hy-latin': '🇦🇲 Hayeren (Latin)'
                 };
                 return (
                   <TouchableOpacity

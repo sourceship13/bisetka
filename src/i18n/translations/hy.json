@@ -29,7 +29,23 @@
     "playNow": "Խաղալ այժմ",
     "viewLeaderboard": "Տեսեք լիդերներ",
     "dailyRewards": "Օրական Պարգևներ",
-    "claimReward": "Պահանջել Պարգևը"
+    "claimReward": "Պահանջել Պարգևը",
+    "nearestBisetka": "Մոտակա Բիսեթկա",
+    "nearestToYou": "Դրանց մոտակա",
+    "browse": "Դիտել",
+    "viewMap": "Տեսեք քարտեզ",
+    "playGames": "Խաղալ",
+    "changeLocation": "Փոխել տեղանիշ",
+    "travel": "Ճանապարհորդել"
+  },
+  "navigation": {
+    "community": "Համայնք",
+    "store": "Խանութ",
+    "gameHub": "Խաղերի կենտրոն",
+    "messages": "Հաղորդագրություններ",
+    "profile": "Պրոֆիլ",
+    "home": "Տուն",
+    "settings": "Կարգավորումներ"
   },
   "games": {
     "blot": {

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
@@ -9,23 +9,25 @@ import {
 import { useNavigation, useNavigationState } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { useI18n } from '../../hooks/useI18n';
 
 type TabKey = 'Community' | 'Store' | 'GameHub' | 'Messages' | 'Profile';
 
 type TabDef = {
   key: TabKey;
   label: string;
+  labelKey: string;
   icon: string;
   route: string;
   params?: any;
 };
 
-const TABS: TabDef[] = [
-  { key: 'Community', label: 'Community', icon: 'home-outline', route: 'Home' },
-  { key: 'Store', label: 'Store', icon: 'basket-outline', route: 'PointsShop', params: { initialTab: 'points' } },
-  { key: 'GameHub', label: 'Game Hub', icon: 'play', route: 'GameSelection' },
-  { key: 'Messages', label: 'Messages', icon: 'chat-outline', route: 'DMList' },
-  { key: 'Profile', label: 'Profile', icon: 'account-outline', route: 'Profile' },
+const getTabs = (translate: (key: string) => string): TabDef[] => [
+  { key: 'Community', label: translate('navigation.community'), labelKey: 'navigation.community', icon: 'home-outline', route: 'Home' },
+  { key: 'Store', label: translate('navigation.store'), labelKey: 'navigation.store', icon: 'basket-outline', route: 'PointsShop', params: { initialTab: 'points' } },
+  { key: 'GameHub', label: translate('navigation.gameHub'), labelKey: 'navigation.gameHub', icon: 'play', route: 'GameSelection' },
+  { key: 'Messages', label: translate('navigation.messages'), labelKey: 'navigation.messages', icon: 'chat-outline', route: 'DMList' },
+  { key: 'Profile', label: translate('navigation.profile'), labelKey: 'navigation.profile', icon: 'account-outline', route: 'Profile' },
 ];
 
 interface Props {
@@ -33,7 +35,10 @@ interface Props {
 }
 
 const BottomTabBar: React.FC<Props> = ({ active = 'Community' }) => {
+  const { translate } = useI18n();
   const navigation = useNavigation<any>();
+  const tabs = useMemo(() => getTabs(translate), [translate]);
+  
   // Derive current route name to highlight tab if not explicitly passed
   const currentRoute = useNavigationState(state => {
     if (!state) return undefined;
@@ -61,7 +66,7 @@ const BottomTabBar: React.FC<Props> = ({ active = 'Community' }) => {
       <View style={styles.barBg}>
         <SafeAreaView edges={['bottom']} style={styles.safe}>
           <View style={styles.row}>
-            {TABS.map(tab => {
+            {tabs.map(tab => {
               const active = isActive(tab);
               if (tab.key === 'GameHub') {
                 return (
