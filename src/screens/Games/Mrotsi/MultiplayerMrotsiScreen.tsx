@@ -280,7 +280,6 @@ const MultiplayerMrotsiScreen = ({navigation, route}: any) => {
         await connectToServer();
       } catch {
         BisetkaAlert.error('Connection Error', 'Failed to connect to server');
-import { useI18n } from '../../../hooks/useI18n';
         return;
       }
 
@@ -363,7 +362,6 @@ import { useI18n } from '../../../hooks/useI18n';
           : `Opponent won! ${finalScore?.player1 ?? 0} – ${finalScore?.player2 ?? 0}`;
 
         BisetkaAlert.alert(title, message, [
-import { useI18n } from '../../../hooks/useI18n';
           {text: 'Play Again', onPress: () => navigation.replace('GameMode', {gameType: 'mrotsi'})},
           {text: 'Exit', onPress: () => navigation.navigate('Home' as never)},
         ]);
@@ -372,14 +370,12 @@ import { useI18n } from '../../../hooks/useI18n';
       socketService.onOpponentDisconnected(() => {
         refreshOnGameEnd().catch(console.error);
         BisetkaAlert.warning('Opponent Disconnected', 'Your opponent has left the game.', [
-import { useI18n } from '../../../hooks/useI18n';
           {text: 'OK', onPress: () => navigation.replace('GameMode', {gameType: 'mrotsi'})},
         ]);
       });
 
       socketService.onError((error: any) => {
         BisetkaAlert.error('Error', error.message);
-import { useI18n } from '../../../hooks/useI18n';
       });
 
       // Auto-start
@@ -436,7 +432,6 @@ import { useI18n } from '../../../hooks/useI18n';
       socketService.playerReady(matchData.roomId, userId);
     } catch (err: any) {
       BisetkaAlert.error('Matchmaking Error', err.message);
-import { useI18n } from '../../../hooks/useI18n';
       setScreen('menu');
     }
   };
@@ -454,7 +449,6 @@ import { useI18n } from '../../../hooks/useI18n';
       socketService.playerReady(roomData.roomId, userId);
     } catch (err: any) {
       BisetkaAlert.error('Error', err?.message || String(err) || 'Failed to create room');
-import { useI18n } from '../../../hooks/useI18n';
     }
   };
 
@@ -470,7 +464,6 @@ import { useI18n } from '../../../hooks/useI18n';
       socketService.playerReady(roomData.roomId, userId);
     } catch (err: any) {
       BisetkaAlert.error('Error', err?.message || String(err) || 'Failed to join room');
-import { useI18n } from '../../../hooks/useI18n';
     }
   };
 
@@ -519,11 +512,9 @@ import { useI18n } from '../../../hooks/useI18n';
         socketService.setRoomName(roomIdRef.current, newName);
       }
       BisetkaAlert.success('Success', 'Room name updated!');
-import { useI18n } from '../../../hooks/useI18n';
     } catch (error) {
       console.error('Failed to update room name:', error);
       BisetkaAlert.error('Error', 'Failed to update room name');
-import { useI18n } from '../../../hooks/useI18n';
     }
   };
 
@@ -621,7 +612,6 @@ import { useI18n } from '../../../hooks/useI18n';
           title={`Mrotsi — Round ${gameState?.currentRound ?? 1}/${gameState?.totalRounds ?? 5}`}
           onBack={() =>
             BisetkaAlert.alert('Resign?', 'Leave the game?', [
-import { useI18n } from '../../../hooks/useI18n';
               {text: 'Stay', style: 'cancel'},
               {text: 'Leave', style: 'destructive', onPress: () => {
                 socketService.resignGame?.(roomIdRef.current, userId);

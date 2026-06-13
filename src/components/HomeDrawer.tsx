@@ -15,6 +15,7 @@ import {useAuth} from '../libs/hooks/useAuth';
 import {colors, spacing} from '../theme';
 import AVATARS, {resolveAvatar} from '../utils/avatars';
 import UserAvatar from './UserAvatar';
+import { useI18n } from '../hooks/useI18n';
 
 const {width: SCREEN_WIDTH} = Dimensions.get('window');
 const DRAWER_WIDTH = SCREEN_WIDTH * 0.75;
@@ -28,15 +29,17 @@ interface HomeDrawerProps {
   onNavigate: (screen: string) => void;
 }
 
-const MENU_ITEMS = [
-  {key: 'Home', icon: '🏠', label: 'Home', gradient: ['#10b981', '#34d399']},
-  {key: 'Profile', icon: '👤', label: 'Profile', gradient: ['#6366f1', '#8b5cf6']},
-  {key: 'Store', icon: '🛍️', label: 'Store', gradient: ['#f59e0b', '#fbbf24']},
-  {key: 'Settings', icon: '⚙️', label: 'Settings', gradient: ['#64748b', '#94a3b8']},
+const getMenuItems = (translate: (key: string) => string) => [
+  {key: 'Home', icon: '🏠', label: translate('navigation.home'), gradient: ['#10b981', '#34d399']},
+  {key: 'Profile', icon: '👤', label: translate('navigation.profile'), gradient: ['#6366f1', '#8b5cf6']},
+  {key: 'Store', icon: '🛍️', label: translate('navigation.store'), gradient: ['#f59e0b', '#fbbf24']},
+  {key: 'Settings', icon: '⚙️', label: translate('navigation.settings'), gradient: ['#64748b', '#94a3b8']},
 ];
 
 const HomeDrawer: React.FC<HomeDrawerProps> = ({visible, onClose, onOpen, onNavigate}) => {
   const {user} = useAuth();
+  const { translate } = useI18n();
+  const menuItems = useMemo(() => getMenuItems(translate), [translate]);
   const translateX = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
   const overlayOpacity = useRef(new Animated.Value(0)).current;
   const visibleRef = useRef(visible);
@@ -191,7 +194,7 @@ const HomeDrawer: React.FC<HomeDrawerProps> = ({visible, onClose, onOpen, onNavi
 
         {/* Menu items */}
         <View style={styles.menuList}>
-          {MENU_ITEMS.map(item => (
+          {menuItems.map(item => (
             <TouchableOpacity
               key={item.key}
               style={styles.menuItem}

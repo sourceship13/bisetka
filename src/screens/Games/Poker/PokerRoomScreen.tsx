@@ -149,7 +149,6 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
 
   const toggleLeave = () => {
     BisetkaAlert.alert('Leave Game', 'Are you sure you want to leave the game?', [
-import { useI18n } from '../../../hooks/useI18n';
       { text: 'Cancel', style: 'cancel' },
       { text: 'Leave', style: 'destructive', onPress: () => navigation.goBack() },
     ]);
@@ -513,7 +512,6 @@ import { useI18n } from '../../../hooks/useI18n';
         socketService.onPokerTurnTimeout((data) => {
           if (!mounted) return;
           BisetkaAlert.alert('Turn Timed Out', data.message || 'You were auto-folded for inactivity.');
-import { useI18n } from '../../../hooks/useI18n';
         });
 
         socketService.onPokerPlayerDisconnected((data) => {
@@ -548,7 +546,6 @@ import { useI18n } from '../../../hooks/useI18n';
               if (!mounted) return;
               applyServerState(res);
               BisetkaAlert.success(
-import { useI18n } from '../../../hooks/useI18n';
                 `${res.winnerName} Won`,
                 `${res.winnerName} wins $${res.potAmount}!`
               );
@@ -569,7 +566,6 @@ import { useI18n } from '../../../hooks/useI18n';
         if (mounted) {
           setIsConnecting(false);
           BisetkaAlert.error('Connection failed', 'Could not connect to server. Starting local game instead.');
-import { useI18n } from '../../../hooks/useI18n';
           initializeGame();
         }
       }

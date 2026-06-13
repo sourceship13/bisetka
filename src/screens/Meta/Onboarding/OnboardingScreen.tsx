@@ -18,8 +18,8 @@ import {
 import { useI18n } from '../../../hooks/useI18n';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import pushNotificationService from '../../../services/pushNotification.service';
 import apiService from '../../../services/api.service';
+import pushNotificationService from '../../../services/pushNotification.service';
 import {colors} from '../../../theme/colors';
 import {useAuth} from '../../../libs/hooks/useAuth';
 import AVATARS, { resolveAvatar } from '../../../utils/avatars';
@@ -47,6 +47,7 @@ interface Slide {
   emoji: string;
   gradient: [string, string];
   isWelcomeSlide?: boolean;
+  isLanguageSlide?: boolean;
   isNotificationSlide?: boolean;
   isUsernameSlide?: boolean;
   isGenderSlide?: boolean;
@@ -63,8 +64,25 @@ const WELCOME_SLIDE: Slide = {
   isWelcomeSlide: true,
 };
 
+const LANGUAGE_SLIDE: Slide = {
+  id: '1',
+  title: 'Choose Your Language',
+  description: 'Select your preferred language. You can change this anytime in Settings.',
+  emoji: '🌐',
+  gradient: ['#00d4ff', '#0099ff'],
+  isLanguageSlide: true,
+};
+
+const LANGUAGE_OPTIONS = [
+  { code: 'en', label: '🇺🇸 English', native: 'English' },
+  { code: 'ru', label: '🇷🇺 Русский', native: 'Russian' },
+  { code: 'hy', label: '🇦🇲 Հայերեն', native: 'Armenian (Native)' },
+  { code: 'hy-latin', label: '🇦🇲 Hayeren', native: 'Armenian (Latin)' },
+];
+
 const BASE_SLIDES: Slide[] = [
   WELCOME_SLIDE,
+  LANGUAGE_SLIDE,
   {
     id: '4',
     title: 'Never Miss a Game',
@@ -124,8 +142,9 @@ const SELECTED_AVATAR_KEY = 'selectedAvatarId';
 const SELECTED_AVATAR_OBJ_KEY = '@bisetka_selected_avatar';
 
 const OnboardingScreen: React.FC<{navigation: any; route?: any}> = ({navigation}) => {
-  const { translate } = useI18n();
+  const { translate, setLanguage } = useI18n();
   const {user, setUser} = useAuth();
+  // apiService available for language preference API calls
 
   // Derive directly from the live user object — never stale, no param-timing issues
   const needsUsernameSelection: boolean = !!(
@@ -141,6 +160,29 @@ const OnboardingScreen: React.FC<{navigation: any; route?: any}> = ({navigation}
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [notificationStatus, setNotificationStatus] = useState<'pending' | 'granted' | 'denied' | 'blocked'>('pending');
+  const [selectedLanguage, setSelectedLanguage] = useState<string>('en');
+
+  const handleLanguageSelect = async (langCode: string) => {
+    setSelectedLanguage(langCode);
+    
+    // Update locally (instant)
+    await setLanguage(langCode as any);
+    
+    // Save to database (async, non-blocking)
+    if (user?.id) {
+      try {
+        const [language, script] = langCode === 'hy-latin' 
+          ? ['hy', 'latin'] 
+          : [langCode, undefined];
+        
+        await apiService.updateLanguage(language, script);
+        console.log('✓ Language preference saved to database');
+      } catch (error) {
+        // Fail gracefully - local AsyncStorage copy persists
+        console.warn('Failed to save language to database (local copy persists):', error);
+      }
+    }
+  };
 
   // Username slide state
   const [username, setUsername] = useState('');
@@ -331,6 +373,71 @@ const OnboardingScreen: React.FC<{navigation: any; route?: any}> = ({navigation}
   };
 
   const renderSlide = ({item}: {item: Slide}) => {
+    // Language selection slide
+    if (item.isLanguageSlide) {
+      return (
+        <ImageBackground
+          source={WelcomeBackground}
+          resizeMode="cover"
+          style={slideStyles.welcomeBg}>
+          <View style={slideStyles.welcomeOverlay} />
+          <SafeAreaView style={slideStyles.usernameSafe} edges={['top', 'bottom', 'left', 'right']}>
+            <View style={slideStyles.usernameMiddle}>
+              <Text style={slideStyles.slideEmoji}>{item.emoji}</Text>
+              <Text style={slideStyles.slideTitle}>{item.title}</Text>
+              <Text style={slideStyles.slideDescription}>{item.description}</Text>
+
+              {/* Language Selection Grid */}
+              <View style={slideStyles.languageGrid}>
+                {LANGUAGE_OPTIONS.map((lang) => (
+                  <TouchableOpacity
+                    key={lang.code}
+                    style={[
+                      slideStyles.languageButton,
+                      selectedLanguage === lang.code && slideStyles.languageButtonActive,
+                    ]}
+                    onPress={() => handleLanguageSelect(lang.code)}
+                  >
+                    <Text style={slideStyles.languageLabel}>{lang.label}</Text>
+                    {selectedLanguage === lang.code && (
+                      <View style={slideStyles.checkmark}>
+                        <Text style={slideStyles.checkmarkText}>{'\u2713'}</Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <Text style={slideStyles.languageHint}>
+                You can change this anytime in Settings.
+              </Text>
+            </View>
+
+            <View style={slideStyles.usernameBottomRow}>
+              <View style={slideStyles.usernameDotsRow}>
+                {slides.map((_, index) => (
+                  <View
+                    key={index}
+                    style={[
+                      slideStyles.usernameDot,
+                      index === currentIndex && slideStyles.usernameDotActive,
+                    ]}
+                  />
+                ))}
+              </View>
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={handleNext}
+                style={slideStyles.usernameContinue}>
+                <Text style={slideStyles.usernameContinueText}>CONTINUE</Text>
+                <Text style={slideStyles.usernameContinueArrow}>{'›'}</Text>
+              </TouchableOpacity>
+            </View>
+          </SafeAreaView>
+        </ImageBackground>
+      );
+    }
+
     // First slide is a full-bleed welcome splash (Bisetka background, logo,
     // tagline, single purple "Get Started" CTA that advances to slide 2).
     if (item.isWelcomeSlide) {
@@ -1043,6 +1150,56 @@ const slideStyles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 24,
     paddingHorizontal: 16,
+  },
+  slideEmoji: {
+    fontSize: 56,
+    marginBottom: 20,
+  },
+  languageGrid: {
+    flexDirection: 'column',
+    gap: 12,
+    marginVertical: 24,
+    paddingHorizontal: 16,
+    width: '100%',
+  },
+  languageButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  languageButtonActive: {
+    borderColor: '#6366f1',
+    backgroundColor: 'rgba(99, 102, 241, 0.15)',
+  },
+  languageLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  checkmark: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#6366f1',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkmarkText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  languageHint: {
+    textAlign: 'center',
+    color: 'rgba(255, 255, 255, 0.6)',
+    fontSize: 12,
+    marginTop: 16,
   },
   notifButton: {
     marginTop: 28,

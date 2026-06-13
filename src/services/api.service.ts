@@ -404,6 +404,21 @@ class ApiService {
   }
 
   /**
+   * Update user's language preference (authenticated)
+   * POST /api/auth/update-language
+   */
+  async updateLanguage(language: string, script?: string): Promise<{ message: string; user: User }> {
+    return this.request<{ message: string; user: User }>(
+      '/auth/update-language',
+      {
+        method: 'POST',
+        body: JSON.stringify({ language, script }),
+      },
+      true
+    );
+  }
+
+  /**
    * Mark onboarding as completed for the authenticated user
    * POST /api/auth/onboarding-complete
    */

@@ -3,8 +3,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import en from './translations/en.json';
 import ru from './translations/ru.json';
 import hy from './translations/hy.json';
+import hyLatin from './translations/hy-latin.json';
 
-export type Language = 'en' | 'ru' | 'hy';
+export type Language = 'en' | 'ru' | 'hy' | 'hy-latin';
 
 interface Translations {
   [key: string]: any;
@@ -14,10 +15,12 @@ const translations: { [key in Language]: Translations } = {
   en,
   ru,
   hy,
+  'hy-latin': hyLatin,
 };
 
 const LANGUAGE_KEY = '@bisetka_language';
-const SUPPORTED_LANGUAGES: Language[] = ['en', 'ru', 'hy'];
+const SCRIPT_KEY = '@bisetka_script'; // Track if user wants Armenian script (hy) or Latin (hy-latin)
+const SUPPORTED_LANGUAGES: Language[] = ['en', 'ru', 'hy', 'hy-latin'];
 
 class I18n {
   private currentLanguage: Language = 'en';
@@ -38,6 +41,14 @@ class I18n {
         this.currentLanguage = deviceLanguage as Language;
       } else {
         this.currentLanguage = 'en'; // fallback
+      }
+
+      // If device language is Armenian, check user's preferred script (native vs latin)
+      if (this.currentLanguage === 'hy') {
+        const scriptPreference = await AsyncStorage.getItem(SCRIPT_KEY);
+        if (scriptPreference === 'latin') {
+          this.currentLanguage = 'hy-latin';
+        }
       }
 
       return this.currentLanguage;
@@ -75,8 +86,37 @@ class I18n {
     }
 
     this.currentLanguage = language;
-    await AsyncStorage.setItem(LANGUAGE_KEY, language);
+    
+    // Store the base language (en/ru/hy) in LANGUAGE_KEY
+    const baseLanguage = language.split('-')[0]; // 'hy-latin' → 'hy'
+    await AsyncStorage.setItem(LANGUAGE_KEY, baseLanguage);
+    
+    // If switching to Armenian variant, track script preference
+    if (language === 'hy-latin') {
+      await AsyncStorage.setItem(SCRIPT_KEY, 'latin');
+    } else if (language === 'hy') {
+      await AsyncStorage.setItem(SCRIPT_KEY, 'native');
+    }
+    
     this.notifyListeners();
+  };
+
+  // Get base language (for comparison/filtering)
+  getBaseLanguage = (): string => {
+    return this.currentLanguage.split('-')[0];
+  };
+
+  // Check if current language uses Latin script
+  isLatinScript = (): boolean => {
+    return this.currentLanguage === 'hy-latin';
+  };
+
+  // Get all language variants (useful for Settings display)
+  getLanguageVariants = (baseLanguage: string): Language[] => {
+    if (baseLanguage === 'hy') {
+      return ['hy', 'hy-latin'];
+    }
+    return [baseLanguage as Language];
   };
 
   getLanguage = (): Language => {

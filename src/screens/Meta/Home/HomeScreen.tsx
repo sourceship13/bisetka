@@ -293,16 +293,16 @@ const HomeScreen = ({ navigation, route }: any) => {
   const renderNearestBisetkaCard = () => {
     const hasNearestBisetka = Boolean(resolvedBisetka && resolvedNeighborhood);
 
-    let title = 'Closest Bisetka';
+    let title = translate('home.nearestBisetka');
     let subtitle = 'Using your device location first, with account and IP fallback if needed.';
     let metaText = 'Open the map to browse Bisetkas worldwide';
-    let pillText = 'Browse';
-    let actionText = 'View Map';
+    let pillText = translate('home.browse');
+    let actionText = translate('home.viewMap');
 
     // Show loading skeleton with fixed height to prevent jumping
     if (ipLookupLoading && !hasNearestBisetka) {
       subtitle = 'Loading your nearest Bisetka...';
-      title = '⏳ Loading...';
+      title = '⏳ ' + translate('common.loading');
     } else if (ipLookupError) {
       subtitle = ipLookupError;
       metaText = 'Tap to retry device-location lookup';
@@ -325,7 +325,7 @@ const HomeScreen = ({ navigation, route }: any) => {
       pillText = hasRemoteBisetka
         ? `${resolvedBisetka!.active_users} active`
         : 'Closest match';
-      actionText = hasRemoteBisetka ? '🎮 Play Games' : '🌍 View Map';
+      actionText = hasRemoteBisetka ? '🎮 ' + translate('home.playGames') : '🌍 ' + translate('home.viewMap');
     }
 
     return (
@@ -356,7 +356,7 @@ const HomeScreen = ({ navigation, route }: any) => {
             </View>
 
             <View style={styles.closestBisetkaContent}>
-              <Text style={styles.closestBisetkaEyebrow}>Nearest To You</Text>
+              <Text style={styles.closestBisetkaEyebrow}>{translate('home.nearestToYou')}</Text>
               <Text style={styles.closestBisetkaTitle}>{title}</Text>
               <Text style={styles.closestBisetkaSubtitle}>{subtitle}</Text>
               <Text style={styles.closestBisetkaMeta}>{metaText}</Text>
@@ -527,7 +527,7 @@ const HomeScreen = ({ navigation, route }: any) => {
                     onPress={() => navigation.navigate('Travel')}
                     activeOpacity={0.7}
                   >
-                    <Text style={styles.changeLocation}>{translate('home.title')}</Text>
+                    <Text style={styles.changeLocation}>{translate('home.changeLocation')}</Text>
                   </TouchableOpacity>
                 </View>
               </View>

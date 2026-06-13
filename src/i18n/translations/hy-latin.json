@@ -1,0 +1,151 @@
+{
+  "common": {
+    "loading": "Berchoum e...",
+    "error": "Skhal",
+    "success": "Hajokvaç",
+    "cancel": "Cheġarkel",
+    "ok": "OK",
+    "save": "Pahpanel",
+    "delete": "Jnjel",
+    "edit": "Khmbagrel",
+    "back": "Het",
+    "close": "Pakel",
+    "confirm": "Hastatel",
+    "logout": "Elq",
+    "points": "Miavornер",
+    "getPoints": "Stegh Miavornер",
+    "level": "Makardak",
+    "rank": "Varkanish",
+    "profile": "Profil",
+    "settings": "Kargavorumnер",
+    "about": "Masin",
+    "version": "Tarberak"
+  },
+  "home": {
+    "title": "Toun",
+    "welcome": "Bari galoust",
+    "availableGames": "Hasaneli khaġer",
+    "onlineNow": "Varakum e aydhin",
+    "playNow": "Khaġal aydhin",
+    "viewLeaderboard": "Teseq lidernerr",
+    "dailyRewards": "Orakan Pargevnер",
+    "claimReward": "Pahanjel Pargevy",
+    "nearestBisetka": "Motaka Bisetka",
+    "nearestToYou": "Drank Motaka",
+    "browse": "Ditel",
+    "viewMap": "Teseq Qartez",
+    "playGames": "Khaġal",
+    "changeLocation": "Sonchl Teghunis",
+    "travel": "Ghanaparehartel"
+  },
+  "navigation": {
+    "community": "Hamaynq",
+    "store": "Khanuñ",
+    "gameHub": "Khaġeri Kentron",
+    "messages": "Harchutyunner",
+    "profile": "Profil",
+    "home": "Toun",
+    "settings": "Kargavorumnner"
+  },
+  "games": {
+    "blot": {
+      "name": "Blot",
+      "description": "Dasakan qartayin khaġ"
+    },
+    "baazarBlot": {
+      "name": "Bazar Blot",
+      "description": "Arag tarberk"
+    },
+    "checkers": {
+      "name": "Shash",
+      "description": "Arag khaġer"
+    },
+    "chess": {
+      "name": "Shach",
+      "description": "Stratepya"
+    },
+    "nardi": {
+      "name": "Nardi",
+      "description": "Ardi khaġ"
+    },
+    "blackjack": {
+      "name": "Blackjack",
+      "description": "Kartayin khaġ"
+    },
+    "slots": {
+      "name": "Slots",
+      "description": "Khortserr Azatner"
+    },
+    "poker": {
+      "name": "Poker",
+      "description": "Stanzvaç Khaġ"
+    },
+    "billiards": {
+      "name": "Billiards",
+      "description": "Bil'iard Khaġ"
+    },
+    "mrotsi": {
+      "name": "Mrotsi",
+      "description": "Armenakanп Khaġ"
+    }
+  },
+  "chat": {
+    "messages": "Harchutyunner",
+    "noConversations": "Harchutyun chkah",
+    "replyTo": "Luceç",
+    "typing": "Gril e..."
+  },
+  "profile": {
+    "title": "Profil",
+    "wins": "Yarayaçutynner",
+    "losses": "Kayaçutynner",
+    "winRate": "Yarayaçutyn Temeq",
+    "achievements": "Atchaçnerner"
+  },
+  "achievements": {
+    "title": "Atchaçnerner",
+    "locked": "Khunj",
+    "unlocked": "Aveli",
+    "viewAll": "Teseq Yerkum"
+  },
+  "store": {
+    "title": "Aparank",
+    "buyPoints": "Knel Miavornер",
+    "items": "Jagner",
+    "price": "Anunj"
+  },
+  "leaderboard": {
+    "title": "Lidernerr",
+    "rank": "Varkanish",
+    "score": "Oçakʻ",
+    "player": "Khaġaç"
+  },
+  "settings": {
+    "title": "Kargavorumnер",
+    "language": "Lezu",
+    "notifications": "Lernakʻutynner",
+    "sound": "Sharlur",
+    "music": "Musiḳa",
+    "logout": "Elq",
+    "logoutConfirm": "Melkak te logout?"
+  },
+  "auth": {
+    "signIn": "Nkal",
+    "signUp": "Qani",
+    "email": "Levem",
+    "password": "Havelu",
+    "signInButton": "Nkal",
+    "forgotPassword": "Havelu Anvaç?"
+  },
+  "errors": {
+    "invalidEmail": "Skhal levem",
+    "invalidPassword": "Skhal havelu",
+    "userNotFound": "Khaġaç chkah",
+    "generic": "Skhals haṙ"
+  },
+  "onboarding": {
+    "welcome": "Bari galoust Bisetka'in",
+    "selectAvatar": "Anvanj Avatar",
+    "selectUsername": "Anvanj Anun"
+  }
+}
