@@ -100,7 +100,7 @@ const BUILD_OVERRIDES: Record<string, BuildOverrides> = {
   },
 
   'male-slim': {
-    top: { left: 0.22, width: 0.56, top: 0.145 },
+    top: { left: 0.23, width: 0.56, top: 0.222, height: 0.35 },
     jacket: { left: 0.18, width: 0.64, top: 0.21 },
     bottom: { left: 0.2866, width: 0.42, top: 0.5066 },
     shorts: { left: 0.28, width: 0.44, top: 0.52 },
