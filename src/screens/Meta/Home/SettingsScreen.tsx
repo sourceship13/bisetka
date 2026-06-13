@@ -9,6 +9,7 @@ import {
   Switch,
   Linking,
   Platform,
+  Modal,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useAuth} from '../../../libs/hooks/useAuth';
@@ -24,13 +25,21 @@ const SOUND_KEY = '@bisetka_sound_enabled';
 const HAPTIC_KEY = '@bisetka_haptic_enabled';
 // Note: Language preference stored in i18n system (LANGUAGE_KEY, SCRIPT_KEY)
 
+const LANGUAGE_DISPLAY_NAMES: {[key: string]: string} = {
+  'en': '🇺🇸 English',
+  'ru': '🇷🇺 Русский',
+  'hy': '🇦🇲 Հայերեն (Native)',
+  'hy-latin': '🇦🇲 Hayeren (Latin)',
+};
+
 const SettingsScreen = ({navigation}: any) => {
   const {user, signOut} = useAuth();
-  const {translate, language, setLanguage, supportedLanguages} = useI18n();
+  const {translate, translateWithParams, language, setLanguage, supportedLanguages} = useI18n();
 
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [hapticEnabled, setHapticEnabled] = useState(true);
   const [showLanguageMenu, setShowLanguageMenu] = useState(false);
+  const [languageChangedTo, setLanguageChangedTo] = useState<Language | null>(null);
 
   useEffect(() => {
     AsyncStorage.getItem(SOUND_KEY).then(v => {
@@ -131,23 +140,19 @@ const SettingsScreen = ({navigation}: any) => {
           {showLanguageMenu && (
             <View>
               {supportedLanguages.map((lang) => {
-                const langNames: {[key: string]: string} = {
-                  'en': '🇺🇸 English',
-                  'ru': '🇷🇺 Русский',
-                  'hy': '🇦🇲 Հայերեն (Native)',
-                  'hy-latin': '🇦🇲 Hayeren (Latin)'
-                };
                 return (
                   <TouchableOpacity
                     key={lang}
                     onPress={async () => {
+                      const changed = lang !== language;
                       await setLanguage(lang);
                       setShowLanguageMenu(false);
+                      if (changed) setLanguageChangedTo(lang);
                     }}
                   >
                     <View style={styles.langOption}>
                       <Text style={[styles.langLabel, language === lang && styles.langLabelActive]}>
-                        {langNames[lang] || lang}
+                        {LANGUAGE_DISPLAY_NAMES[lang] || lang}
                       </Text>
                       {language === lang && <Text style={styles.checkmark}>✓</Text>}
                     </View>
@@ -191,6 +196,34 @@ const SettingsScreen = ({navigation}: any) => {
         {/* Footer */}
         <AppVersionFooter containerStyle={styles.footer} />
       </ScrollView>
+
+      <Modal
+        visible={languageChangedTo !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setLanguageChangedTo(null)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalIcon}>🌐</Text>
+            <Text style={styles.modalTitle}>{translate('settings.languageChanged')}</Text>
+            <Text style={styles.modalMessage}>
+              {translateWithParams('settings.languageChangedTo', {
+                language: languageChangedTo
+                  ? LANGUAGE_DISPLAY_NAMES[languageChangedTo] || languageChangedTo
+                  : '',
+              })}
+            </Text>
+            <TouchableOpacity
+              style={styles.modalButton}
+              onPress={() => setLanguageChangedTo(null)}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.modalButtonText}>{translate('common.ok')}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -331,6 +364,53 @@ const styles = StyleSheet.create({
   footer: {
     marginTop: 32,
     alignItems: 'center',
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.lg,
+  },
+  modalCard: {
+    width: '100%',
+    maxWidth: 340,
+    backgroundColor: colors.background.card,
+    borderRadius: 18,
+    paddingVertical: 24,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+  },
+  modalIcon: {
+    fontSize: 44,
+    marginBottom: 12,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.text.primary,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  modalMessage: {
+    fontSize: 14,
+    color: colors.text.secondary,
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 20,
+  },
+  modalButton: {
+    alignSelf: 'stretch',
+    backgroundColor: '#6366f1',
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  modalButtonText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '700',
+    letterSpacing: 0.3,
   },
 });
 

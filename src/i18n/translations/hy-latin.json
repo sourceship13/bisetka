@@ -127,7 +127,9 @@
     "sound": "Sharlur",
     "music": "Musiḳa",
     "logout": "Elq",
-    "logoutConfirm": "Melkak te logout?"
+    "logoutConfirm": "Melkak te logout?",
+    "languageChanged": "Lezun popʻokhvets",
+    "languageChangedTo": "Havelvatsi lezun popʻokhvel e {language}."
   },
   "auth": {
     "signIn": "Nkal",

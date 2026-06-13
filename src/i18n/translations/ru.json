@@ -172,7 +172,9 @@
     "deleteAccount": "Удалить аккаунт",
     "aboutApp": "О приложении",
     "terms": "Условия использования",
-    "privacy_policy": "Политика приватности"
+    "privacy_policy": "Политика приватности",
+    "languageChanged": "Язык изменён",
+    "languageChangedTo": "Язык приложения изменён на {language}."
   },
   "onboarding": {
     "welcome": "Вход в приложение для начала пути",

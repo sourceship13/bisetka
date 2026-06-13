@@ -172,7 +172,9 @@
     "deleteAccount": "Delete Account",
     "aboutApp": "About App",
     "terms": "Terms of Service",
-    "privacy_policy": "Privacy Policy"
+    "privacy_policy": "Privacy Policy",
+    "languageChanged": "Language Changed",
+    "languageChangedTo": "The app language has been changed to {language}."
   },
   "onboarding": {
     "welcome": "Sign in to start your journey",
