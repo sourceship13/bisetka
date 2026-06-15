@@ -277,7 +277,7 @@ const ProfileScreen = ({ navigation }: any) => {
           ) : (
             <>
               <View style={styles.statsRow}>
-                {renderStatTile('profile.wins', totalGames)}
+                {renderStatTile('profile.gamesPlayed', totalGames)}
                 {renderStatTile('profile.wins', totalWins)}
                 {renderStatTile('profile.losses', totalLosses)}
                 {renderStatTile('games.draw', totalDraws)}
@@ -287,8 +287,8 @@ const ProfileScreen = ({ navigation }: any) => {
                   'profile.winRate',
                   `${Math.round(Number(winRate) || 0)}%`,
                 )}
-                {renderStatTile('home.playNow', currentStreak)}
-                {renderStatTile('achievements.title', bestStreak)}
+                {renderStatTile('profile.currentStreak', currentStreak)}
+                {renderStatTile('profile.bestStreak', bestStreak)}
                 {renderStatTile('profile.achievements', achievementsUnlocked)}
               </View>
             </>

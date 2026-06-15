@@ -75,7 +75,7 @@ interface PointPack {
 
 const POINT_PACKS: PointPack[] = [
   {
-    id: 'points_starter',
+    id: '299',
     points: 500,
     price: 2.99,
     icon: 'diamond',
@@ -83,7 +83,7 @@ const POINT_PACKS: PointPack[] = [
     glowColor: '#667eea',
   },
   {
-    id: 'points_value',
+    id: '399',
     points: 1500,
     price: 3.99,
     bonus: 300,
@@ -93,7 +93,7 @@ const POINT_PACKS: PointPack[] = [
     glowColor: '#f093fb',
   },
   {
-    id: 'points_premium',
+    id: '599',
     points: 3500,
     price: 5.99,
     bonus: 1000,
@@ -102,7 +102,7 @@ const POINT_PACKS: PointPack[] = [
     glowColor: '#fa709a',
   },
   {
-    id: 'points_mega',
+    id: '1099',
     points: 10000,
     price: 10.99,
     bonus: 5000,
