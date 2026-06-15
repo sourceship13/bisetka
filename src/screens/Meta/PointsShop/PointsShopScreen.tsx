@@ -122,6 +122,76 @@ const getGradientViewStyle = (
   borderRadius: 16,
 });
 
+// Approximate card height (itemContent.minHeight + borders) + row marginBottom.
+// Used by FlatList.getItemLayout to skip per-row measurement and make scrolling
+// + initial render snappier on the clothing tab.
+const CLOTHING_ROW_HEIGHT = 232 + 14;
+const getClothingItemLayout = (_data: any, index: number) => ({
+  length: CLOTHING_ROW_HEIGHT,
+  offset: CLOTHING_ROW_HEIGHT * Math.floor(index / 2),
+  index,
+});
+
+interface ClothingCardProps {
+  item: ClothingItem;
+  owned: boolean;
+  isPurchasing: boolean;
+  onPress: (item: ClothingItem) => void;
+}
+
+// React.memo'd card so a state change in one card (e.g. purchasing toggling
+// or one new item being marked owned) doesn't force every other card in the
+// grid to re-render. The previous implementation re-rendered all visible
+// cards on any ownedItems / purchasing change which made the grid feel
+// sluggish, especially while images were still decoding.
+const ClothingCard: React.FC<ClothingCardProps> = React.memo(
+  ({item, owned, isPurchasing, onPress}) => {
+    const rarityColor = RARITY_COLORS[item.rarity] ?? '#9ca3af';
+    return (
+      <TouchableOpacity
+        style={[styles.itemCard, {borderColor: rarityColor + '55'}]}
+        onPress={() => !owned && !isPurchasing && onPress(item)}
+        disabled={owned || isPurchasing}>
+        <View style={styles.itemContent}>
+          <View style={styles.itemImageWrapper}>
+            <AssetImage
+              source={item.thumbnailUrl || item.imageUrl}
+              width="100%"
+              height="100%"
+            />
+          </View>
+
+          {owned && (
+            <View style={styles.ownedBadge}>
+              <Text style={styles.ownedText}>✓ Owned</Text>
+            </View>
+          )}
+
+          <View style={styles.itemInfo}>
+            <Text style={styles.itemName} numberOfLines={1}>
+              {item.name}
+            </Text>
+            <Text style={[styles.itemRarity, {color: rarityColor}]}>
+              {item.rarity.toUpperCase()}
+            </Text>
+            {isPurchasing ? (
+              <ActivityIndicator size="small" color="#a78bfa" />
+            ) : (
+              <View style={styles.itemPriceContainer}>
+                <Text style={styles.itemPriceText}>
+                  {item.price === 0
+                    ? 'FREE'
+                    : `$${(item.price / 100).toFixed(2)}`}
+                </Text>
+              </View>
+            )}
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
+  },
+);
+
 const PointsShopScreen = ({navigation, route}: any) => {
   const { translate } = useI18n();
   // ── Shared state ─────────────────────────────────────────────────────────
@@ -199,8 +269,15 @@ const PointsShopScreen = ({navigation, route}: any) => {
     }
   };
 
-  const handleClothingPurchase = async (item: ClothingItem) => {
-    if (ownedItems.has(item.id)) {
+  const handleClothingPurchase = useCallback(async (item: ClothingItem) => {
+    // Read latest owned set via functional setState below; capture once for
+    // the early-return branch so we don't need ownedItems in the deps.
+    let alreadyOwned = false;
+    setOwnedItems(curr => {
+      alreadyOwned = curr.has(item.id);
+      return curr;
+    });
+    if (alreadyOwned) {
       BisetkaAlert.warning('Already Owned', 'You already own this item!');
       return;
     }
@@ -209,14 +286,19 @@ const PointsShopScreen = ({navigation, route}: any) => {
         setPurchasing(item.id);
         const AsyncStorage =
           require('@react-native-async-storage/async-storage').default;
-        const newOwned = new Set([...ownedItems, item.id]);
-        await AsyncStorage.setItem('ownedClothing', JSON.stringify([...newOwned]));
+        let nextOwned: Set<string> | null = null;
+        setOwnedItems(curr => {
+          nextOwned = new Set([...curr, item.id]);
+          return nextOwned;
+        });
+        if (nextOwned) {
+          await AsyncStorage.setItem('ownedClothing', JSON.stringify([...nextOwned]));
+        }
         // Auto-equip free items too.
         const eqStr = await AsyncStorage.getItem('@bisetka_equipped_clothing');
         const eq = eqStr ? JSON.parse(eqStr) : {};
         eq[item.type] = item.id;
         await AsyncStorage.setItem('@bisetka_equipped_clothing', JSON.stringify(eq));
-        setOwnedItems(newOwned);
         BisetkaAlert.success('Claimed!', `${item.name} added & equipped`);
       } catch {
         BisetkaAlert.error('Error', 'Failed to claim item');
@@ -238,13 +320,18 @@ const PointsShopScreen = ({navigation, route}: any) => {
         }
         const AsyncStorage =
           require('@react-native-async-storage/async-storage').default;
-        const newOwned = new Set([...ownedItems, item.id]);
-        await AsyncStorage.setItem('ownedClothing', JSON.stringify([...newOwned]));
+        let nextOwned: Set<string> | null = null;
+        setOwnedItems(curr => {
+          nextOwned = new Set([...curr, item.id]);
+          return nextOwned;
+        });
+        if (nextOwned) {
+          await AsyncStorage.setItem('ownedClothing', JSON.stringify([...nextOwned]));
+        }
         const eqStr = await AsyncStorage.getItem('@bisetka_equipped_clothing');
         const eq = eqStr ? JSON.parse(eqStr) : {};
         eq[item.type] = item.id;
         await AsyncStorage.setItem('@bisetka_equipped_clothing', JSON.stringify(eq));
-        setOwnedItems(newOwned);
         BisetkaAlert.success(
           result.alreadyApplied ? 'Restored' : 'Success!',
           `${item.name} is now equipped on your avatar!`,
@@ -266,7 +353,7 @@ const PointsShopScreen = ({navigation, route}: any) => {
         { text: 'Purchase', onPress: () => { void runPurchase(); } },
       ],
     );
-  };
+  }, []);
 
   const filteredClothingItems = useMemo(
     () =>
@@ -292,46 +379,13 @@ const PointsShopScreen = ({navigation, route}: any) => {
 
   const renderClothingItem: ListRenderItem<ClothingItem> = useCallback(
     ({item}) => {
-      const owned = ownedItems.has(item.id);
-      const isPurchasing = purchasing === item.id;
-      const rarityColor = RARITY_COLORS[item.rarity] ?? '#9ca3af';
       return (
-        <TouchableOpacity
-          style={[styles.itemCard, {borderColor: rarityColor + '55'}]}
-          onPress={() => !owned && !isPurchasing && handleClothingPurchase(item)}
-          disabled={owned || isPurchasing}>
-          <View style={styles.itemContent}>
-            <View style={styles.itemImageWrapper}>
-              <AssetImage
-                source={item.thumbnailUrl || item.imageUrl}
-                width="100%"
-                height="100%"
-              />
-            </View>
-
-            {owned && (
-              <View style={styles.ownedBadge}>
-                <Text style={styles.ownedText}>✓ Owned</Text>
-              </View>
-            )}
-
-            <View style={styles.itemInfo}>
-              <Text style={styles.itemName} numberOfLines={1}>{item.name}</Text>
-              <Text style={[styles.itemRarity, {color: rarityColor}]}>
-                {item.rarity.toUpperCase()}
-              </Text>
-              {isPurchasing ? (
-                <ActivityIndicator size="small" color="#a78bfa" />
-              ) : (
-                <View style={styles.itemPriceContainer}>
-                  <Text style={styles.itemPriceText}>
-                    {item.price === 0 ? 'FREE' : `$${(item.price / 100).toFixed(2)}`}
-                  </Text>
-                </View>
-              )}
-            </View>
-          </View>
-        </TouchableOpacity>
+        <ClothingCard
+          item={item}
+          owned={ownedItems.has(item.id)}
+          isPurchasing={purchasing === item.id}
+          onPress={handleClothingPurchase}
+        />
       );
     },
     [ownedItems, purchasing, handleClothingPurchase],
@@ -679,10 +733,12 @@ const PointsShopScreen = ({navigation, route}: any) => {
                   columnWrapperStyle={styles.itemsGridRow}
                   contentContainerStyle={styles.itemsGridContent}
                   showsVerticalScrollIndicator={false}
-                  initialNumToRender={CLOTHING_PAGE_SIZE}
-                  maxToRenderPerBatch={CLOTHING_PAGE_SIZE}
+                  initialNumToRender={6}
+                  maxToRenderPerBatch={6}
+                  updateCellsBatchingPeriod={32}
                   windowSize={5}
                   removeClippedSubviews
+                  getItemLayout={getClothingItemLayout}
                   onEndReached={handleLoadMoreClothing}
                   onEndReachedThreshold={0.5}
                   ListFooterComponent={

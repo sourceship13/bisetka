@@ -261,7 +261,9 @@ const ProfileScreen = ({ navigation }: any) => {
           </TouchableOpacity>
           <View style={styles.linkRowDivider} />
           <TouchableOpacity
-            onPress={() => navigation.navigate('ClothingStore')}
+            onPress={() =>
+              navigation.navigate('PointsShop', { initialTab: 'clothing' })
+            }
             activeOpacity={0.7}
             style={styles.linkRow}>
             <Text style={styles.linkRowText}>Store</Text>
