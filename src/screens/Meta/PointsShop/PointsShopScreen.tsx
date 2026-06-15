@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useMemo, useState} from 'react';
+import React, {useCallback, useEffect, useMemo, useState, useTransition} from 'react';
 import {
   View,
   Text,
@@ -213,10 +213,26 @@ const PointsShopScreen = ({navigation, route}: any) => {
     [avatarGender, avatarBuild],
   );
   const [ownedItems, setOwnedItems] = useState<Set<string>>(new Set());
+  // `pendingCategory`/`pendingRarity` track the pill the user just tapped
+  // and update synchronously so the UI feels instant. The actual filter
+  // state used by the grid is updated inside a transition so React can
+  // keep the tap responsive while it remounts the (heavy) SVG cards.
+  const [pendingCategory, setPendingCategory] = useState<ClothingType | 'all'>('all');
+  const [pendingRarity, setPendingRarity] = useState<Rarity | 'all'>('all');
   const [selectedCategory, setSelectedCategory] = useState<ClothingType | 'all'>('all');
   const [selectedRarity, setSelectedRarity] = useState<Rarity | 'all'>('all');
+  const [isFilterPending, startFilterTransition] = useTransition();
   const [clothingLoading, setClothingLoading] = useState(false);
   const [purchasing, setPurchasing] = useState<string | null>(null);
+
+  const pickCategory = useCallback((t: ClothingType | 'all') => {
+    setPendingCategory(t);
+    startFilterTransition(() => setSelectedCategory(t));
+  }, []);
+  const pickRarity = useCallback((t: Rarity | 'all') => {
+    setPendingRarity(t);
+    startFilterTransition(() => setSelectedRarity(t));
+  }, []);
 
   // Pagination: render a small batch first, grow as user scrolls.
   const CLOTHING_PAGE_SIZE = 12;
@@ -677,10 +693,10 @@ const PointsShopScreen = ({navigation, route}: any) => {
                 {CATEGORY_TABS.map(tab => (
                   <TouchableOpacity
                     key={tab.type}
-                    style={[styles.categoryTab, selectedCategory === tab.type && styles.categoryTabActive]}
-                    onPress={() => setSelectedCategory(tab.type)}>
+                    style={[styles.categoryTab, pendingCategory === tab.type && styles.categoryTabActive]}
+                    onPress={() => pickCategory(tab.type)}>
                     <Text style={styles.categoryIcon}>{tab.icon}</Text>
-                    <Text style={[styles.categoryLabel, selectedCategory === tab.type && styles.categoryLabelActive]}>
+                    <Text style={[styles.categoryLabel, pendingCategory === tab.type && styles.categoryLabelActive]}>
                       {tab.label}
                     </Text>
                   </TouchableOpacity>
@@ -694,7 +710,7 @@ const PointsShopScreen = ({navigation, route}: any) => {
                 style={styles.categoryScroll}
                 contentContainerStyle={styles.categoryContainer}>
                 {RARITY_TABS.map(tab => {
-                  const active = selectedRarity === tab.value;
+                  const active = pendingRarity === tab.value;
                   return (
                     <TouchableOpacity
                       key={tab.value}
@@ -705,7 +721,7 @@ const PointsShopScreen = ({navigation, route}: any) => {
                           borderColor: tab.color,
                         },
                       ]}
-                      onPress={() => setSelectedRarity(tab.value)}>
+                      onPress={() => pickRarity(tab.value)}>
                       <Text style={styles.categoryIcon}>{tab.icon}</Text>
                       <Text
                         style={[
@@ -724,31 +740,39 @@ const PointsShopScreen = ({navigation, route}: any) => {
                   <ActivityIndicator size="large" color="#a78bfa" />
                 </View>
               ) : (
-                <FlatList
-                  style={styles.scrollView}
-                  data={visibleClothingItems}
-                  renderItem={renderClothingItem}
-                  keyExtractor={item => item.id}
-                  numColumns={2}
-                  columnWrapperStyle={styles.itemsGridRow}
-                  contentContainerStyle={styles.itemsGridContent}
-                  showsVerticalScrollIndicator={false}
-                  initialNumToRender={6}
-                  maxToRenderPerBatch={6}
-                  updateCellsBatchingPeriod={32}
-                  windowSize={5}
-                  removeClippedSubviews
-                  getItemLayout={getClothingItemLayout}
-                  onEndReached={handleLoadMoreClothing}
-                  onEndReachedThreshold={0.5}
-                  ListFooterComponent={
-                    visibleClothingCount < filteredClothingItems.length ? (
-                      <View style={styles.loadMoreFooter}>
-                        <ActivityIndicator size="small" color="#a78bfa" />
-                      </View>
-                    ) : null
-                  }
-                />
+                <View style={[styles.scrollView, isFilterPending && {opacity: 0.55}]}>
+                  <FlatList
+                    data={visibleClothingItems}
+                    renderItem={renderClothingItem}
+                    keyExtractor={item => item.id}
+                    numColumns={2}
+                    columnWrapperStyle={styles.itemsGridRow}
+                    contentContainerStyle={styles.itemsGridContent}
+                    showsVerticalScrollIndicator={false}
+                    initialNumToRender={2}
+                    maxToRenderPerBatch={2}
+                    updateCellsBatchingPeriod={50}
+                    windowSize={3}
+                    removeClippedSubviews
+                    getItemLayout={getClothingItemLayout}
+                    onEndReached={handleLoadMoreClothing}
+                    onEndReachedThreshold={0.5}
+                    ListHeaderComponent={
+                      isFilterPending ? (
+                        <View style={styles.loadMoreFooter}>
+                          <ActivityIndicator size="small" color="#a78bfa" />
+                        </View>
+                      ) : null
+                    }
+                    ListFooterComponent={
+                      visibleClothingCount < filteredClothingItems.length ? (
+                        <View style={styles.loadMoreFooter}>
+                          <ActivityIndicator size="small" color="#a78bfa" />
+                        </View>
+                      ) : null
+                    }
+                  />
+                </View>
               )}
             </>
           )}
