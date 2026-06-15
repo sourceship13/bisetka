@@ -171,9 +171,12 @@ function getEnvironment(): Environment {
     return 'local';
   }
 
-  // Priority 2: Development builds without FORCE_LOCAL use staging
+  // Priority 2: Development builds without FORCE_LOCAL hit production by
+  // default so the app talks to the main backend, matching what App Store
+  // / TestFlight users see. Set FORCE_LOCAL=true (or change this) to point
+  // dev builds at a different env.
   if (__DEV__) {
-    return 'staging';
+    return 'production';
   }
 
   // Priority 3: Release builds - check bundle identifier
