@@ -208,6 +208,7 @@ class ApiService {
     endpoint: string,
     body?: unknown,
     requireAuth: boolean = false,
+    behavior: RequestBehavior = {},
   ): Promise<T> {
     return this.request<T>(
       endpoint,
@@ -216,6 +217,8 @@ class ApiService {
         body: body === undefined ? undefined : JSON.stringify(body),
       },
       requireAuth,
+      true,
+      behavior,
     );
   }
 

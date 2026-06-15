@@ -338,13 +338,16 @@ class BisetkaService {
     try {
       const response = await apiService.post<{ bisetka: Bisetka }>(
         '/bisetka/find-or-create',
-        { neighborhood_id: neighborhoodId }
+        { neighborhood_id: neighborhoodId },
+        false,
+        { suppressErrorLogging: true },
       );
       return response.bisetka || null;
     } catch (error) {
       // Non-fatal: bundled neighborhood IDs may not exist in the backend's
-      // neighborhoods table. The parallel autoConnect() call covers the
-      // canonical path, so we just fall back silently here.
+      // neighborhoods table, and the device may be offline at app launch.
+      // The parallel autoConnect() call covers the canonical path, so we
+      // just fall back silently here.
       console.warn('[bisetka] find-or-create fallback skipped:', (error as any)?.message || error);
       return null;
     }
