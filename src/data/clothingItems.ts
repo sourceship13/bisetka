@@ -320,6 +320,9 @@ export function remapEquippedForAvatar(
   gender: string | undefined | null,
   build: string | undefined | null,
 ): Record<string, AvatarClothing> {
+  const targetGender = gender === 'female' ? 'female' : 'male';
+  const targetBuild =
+    build === 'muscle' ? 'muscle' : build === 'fat' ? 'fat' : 'standard';
   const next: Record<string, AvatarClothing> = {};
   for (const slot of Object.keys(equipped)) {
     const item = equipped[slot];
@@ -328,9 +331,30 @@ export function remapEquippedForAvatar(
       next[slot] = item;
       continue;
     }
-    const swapped = getEquivalentItemForBuild(item.id, gender, build);
-    if (swapped) next[slot] = swapped;
-    else next[slot] = item;
+    const swapped = getEquivalentItemForBuild(item.id, gender, build) ?? item;
+    // If no build variant of the user's current item exists for the target
+    // body, the swap returns the original cut — which would render at the
+    // wrong shape. Detect that mismatch and fall back to the slot's starter
+    // for this gender+build so the avatar is never left in clothes that
+    // don't fit it.
+    const sg = (swapped as any).gender as string | undefined;
+    const sb = ((swapped as any).build as string | undefined) ?? 'standard';
+    const fits = sg === targetGender && sb === targetBuild;
+    if (fits) {
+      next[slot] = swapped;
+      continue;
+    }
+    let starterId: string | null = null;
+    if (slot === 'top') starterId = getStarterShirtIdForAvatar(targetGender, targetBuild);
+    else if (slot === 'bottom') starterId = getStarterPantsIdForAvatar(targetGender, targetBuild);
+    if (starterId) {
+      const starter = ALL_CLOTHING_ITEMS.find(i => i.id === starterId);
+      if (starter) {
+        next[slot] = starter;
+        continue;
+      }
+    }
+    next[slot] = swapped;
   }
   return next;
 }
