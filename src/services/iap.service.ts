@@ -17,32 +17,28 @@ import apiService from './api.service';
 
 // ─── SKUs (must match App Store Connect / Play Console) ─────────────────────
 export const POINTS_SKUS = [
-  'points_starter',
-  'points_value',
-  'points_premium',
-  'points_mega',
+  '299',
+  '399',
+  '599',
+  '1099',
 ] as const;
 export type PointsSKU = typeof POINTS_SKUS[number];
 
 export const CLOTHING_TIER_SKUS = [
-  'clothing_tier_099',
-  'clothing_tier_199',
-  'clothing_tier_299',
-  'clothing_tier_499',
-  'clothing_tier_999',
-  'clothing_tier_1999',
+  '199',
+  'c399',
+  'c599',
+  'c1099',
 ] as const;
 export type ClothingTierSKU = typeof CLOTHING_TIER_SKUS[number];
 
 const ALL_SKUS = [...POINTS_SKUS, ...CLOTHING_TIER_SKUS];
 
 const TIER_USD: { sku: ClothingTierSKU; price: number }[] = [
-  { sku: 'clothing_tier_099', price: 0.99 },
-  { sku: 'clothing_tier_199', price: 1.99 },
-  { sku: 'clothing_tier_299', price: 2.99 },
-  { sku: 'clothing_tier_499', price: 4.99 },
-  { sku: 'clothing_tier_999', price: 9.99 },
-  { sku: 'clothing_tier_1999', price: 19.99 },
+  { sku: '199', price: 1.99 },
+  { sku: 'c399', price: 3.99 },
+  { sku: 'c599', price: 5.99 },
+  { sku: 'c1099', price: 10.99 },
 ];
 
 /**
@@ -54,7 +50,7 @@ export function tierForClothingPriceCents(priceCents: number): ClothingTierSKU {
   for (const t of TIER_USD) {
     if (t.price >= usd - 0.001) return t.sku;
   }
-  return 'clothing_tier_1999';
+  return 'c1099';
 }
 
 // ─── Connection lifecycle ────────────────────────────────────────────────────

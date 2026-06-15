@@ -75,6 +75,7 @@ const BUILD_OVERRIDES: Record<string, BuildOverrides> = {
     shorts: { left: 0.265, width: 0.47 },
     shoes: { left: 0.11, width: 0.7, top: 0.878 },
     hair: { left: -0.031, width: 1, top: 0.0, height: 0.14 },
+    hat: { left: 0.28, width: 0.44, top: -0.02, height: 0.2 },
     jewelry: { left: 0.3, width: 0.4, top: 0.175, height: 0.13 },
   },
   // ───── MALE FAT ────────────────────────────────────────────────────────
@@ -85,6 +86,7 @@ const BUILD_OVERRIDES: Record<string, BuildOverrides> = {
     shorts: { left: 0.24, width: 0.52, top: 0.525 },
     shoes: { left: 0.009, width: 0.9, top: 0.885, height: 0.15 },
     hair: { left: 0.14, width: 0.72, top: 0.0, height: 0.155 },
+    hat: { left: 0.26, width: 0.44, top: -0.02, height: 0.12 },
     jewelry: { left: 0.28, width: 0.44, top: 0.185, height: 0.13 },
   },
 
@@ -95,7 +97,7 @@ const BUILD_OVERRIDES: Record<string, BuildOverrides> = {
     shorts: { left: 0.28, width: 0.44, top: 0.52 },
     shoes: { left: 0.22, width: 0.52, top: 0.88 },
     hair: { left: 0.16, width: 0.67, top: 0.0, height: 0.145 },
-    hat: { left: 0.28, width: 0.44, top: -0.02, height: 0.2 },
+    hat: { left: 0.26, width: 0.44, top: -0.02, height: 0.12 },
     jewelry: { left: 0.32, width: 0.36, top: 0.18 },
   },
 
@@ -117,6 +119,7 @@ const BUILD_OVERRIDES: Record<string, BuildOverrides> = {
     shorts: { left: 0.295, width: 0.41, top: 0.495, height: 0.22 },
     shoes: { left: 0.22, width: 0.52, top: 0.88 },
     hair: { left: 0.195, width: 0.61, top: 0.0, height: 0.13 },
+    hat: { left: 0.26, width: 0.44, top: -0.02, height: 0.12 },
     jewelry: { left: 0.335, width: 0.33, top: 0.205, height: 0.1 },
   },
   // ───── FEMALE MUSCLE ───────────────────────────────────────────────────
@@ -127,6 +130,7 @@ const BUILD_OVERRIDES: Record<string, BuildOverrides> = {
     shorts: { left: 0.27, width: 0.46 },
     shoes: { left: 0.21, width: 0.54, top: 0.93, height: 0.1 },
     hair: { left: 0.145, width: 0.7, top: -0.031, height: 0.24 },
+    hat: { left: 0.26, width: 0.44, top: -0.02, height: 0.12 },
     jewelry: { left: 0.31, width: 0.38, top: 0.18, height: 0.12 },
   },
   // ───── FEMALE FAT ──────────────────────────────────────────────────────
@@ -137,6 +141,7 @@ const BUILD_OVERRIDES: Record<string, BuildOverrides> = {
     shorts: { left: 0.245, width: 0.51, top: 0.525 },
     shoes: { left: 0.28, width: 0.4, top: 0.92 },
     hair: { left: 0.06, width: 0.9, top: -0.03, height: 0.23 },
+    hat: { left: 0.26, width: 0.44, top: -0.02, height: 0.12 },
     jewelry: { left: 0.295, width: 0.41, top: 0.185, height: 0.13 },
   },
   // ───── FEMALE ATHLETIC / SLIM / OLD ────────────────────────────────────
@@ -153,6 +158,7 @@ const BUILD_OVERRIDES: Record<string, BuildOverrides> = {
     shorts: { left: 0.3, width: 0.45, top: 0.495, height: 0.22 },
     shoes: { left: 0.36, width: 0.25, top: 0.919, height: 0.1 },
     hair: { left: 0.09, width: 0.8, top: -0.03, height: 0.23 },
+    hat: { left: 0.26, width: 0.44, top: -0.02, height: 0.12 },
     jewelry: { left: 0.34, width: 0.32, top: 0.2, height: 0.1 },
   },
   'female-slim': {
@@ -162,6 +168,7 @@ const BUILD_OVERRIDES: Record<string, BuildOverrides> = {
     shorts: { left: 0.315, width: 0.37, top: 0.49, height: 0.22 },
     shoes: { left: 0.295, width: 0.41, top: 0.88, height: 0.1 },
     hair: { left: 0.215, width: 0.57, top: 0.0, height: 0.13 },
+    hat: { left: 0.26, width: 0.44, top: -0.02, height: 0.12 },
     jewelry: { left: 0.35, width: 0.3, top: 0.2, height: 0.1 },
   },
   'female-old': {
@@ -171,6 +178,7 @@ const BUILD_OVERRIDES: Record<string, BuildOverrides> = {
     shorts: { left: 0.295, width: 0.41, top: 0.495, height: 0.22 },
     shoes: { left: 0.275, width: 0.45, top: 0.88, height: 0.1 },
     hair: { left: 0.195, width: 0.61, top: 0.0, height: 0.13 },
+    hat: { left: 0.26, width: 0.44, top: -0.02, height: 0.12 },
     jewelry: { left: 0.335, width: 0.33, top: 0.205, height: 0.1 },
   },
 };
