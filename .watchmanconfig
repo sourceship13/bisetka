@@ -1,1 +1,23 @@
-{}
+{
+  "ignore_dirs": [
+    "ios/Pods",
+    "ios/build",
+    "android/.gradle",
+    "android/app/build",
+    "build",
+    "coverage",
+    "bisetka_stash_backup",
+    "bisetka-backend",
+    "capture_360",
+    "docs",
+    "keys"
+  ]
+}{
+	"ignore_dirs": [
+		"ios/Pods",
+		"ios/build",
+		"android/build",
+		"android/app/build",
+		"node_modules/.cache"
+	]
+}
