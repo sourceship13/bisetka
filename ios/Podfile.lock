@@ -2200,7 +2200,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - SocketRocket
     - Yoga
-  - react-native-safe-area-context (5.6.2):
+  - react-native-safe-area-context (5.8.0):
     - boost
     - DoubleConversion
     - fast_float
@@ -2218,8 +2218,8 @@ PODS:
     - React-graphics
     - React-ImageManager
     - React-jsi
-    - react-native-safe-area-context/common (= 5.6.2)
-    - react-native-safe-area-context/fabric (= 5.6.2)
+    - react-native-safe-area-context/common (= 5.8.0)
+    - react-native-safe-area-context/fabric (= 5.8.0)
     - React-NativeModulesApple
     - React-RCTFabric
     - React-renderercss
@@ -2230,7 +2230,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - SocketRocket
     - Yoga
-  - react-native-safe-area-context/common (5.6.2):
+  - react-native-safe-area-context/common (5.8.0):
     - boost
     - DoubleConversion
     - fast_float
@@ -2258,7 +2258,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - SocketRocket
     - Yoga
-  - react-native-safe-area-context/fabric (5.6.2):
+  - react-native-safe-area-context/fabric (5.8.0):
     - boost
     - DoubleConversion
     - fast_float
@@ -2879,7 +2879,7 @@ PODS:
     - React-Core
   - RNAppleAuthentication (2.5.1):
     - React-Core
-  - RNBootSplash (7.1.0):
+  - RNBootSplash (7.3.1):
     - boost
     - DoubleConversion
     - fast_float
@@ -2935,7 +2935,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - SocketRocket
     - Yoga
-  - RNDeviceInfo (15.0.1):
+  - RNDeviceInfo (15.0.2):
     - React-Core
   - RNFBAnalytics (23.8.6):
     - boost
@@ -3030,7 +3030,7 @@ PODS:
     - Yoga
   - RNFS (2.20.0):
     - React-Core
-  - RNGestureHandler (2.30.0):
+  - RNGestureHandler (2.31.2):
     - boost
     - DoubleConversion
     - fast_float
@@ -3153,7 +3153,7 @@ PODS:
     - SocketRocket
     - Turf
     - Yoga
-  - RNPermissions (5.4.4):
+  - RNPermissions (5.5.1):
     - boost
     - DoubleConversion
     - fast_float
@@ -3390,7 +3390,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - SocketRocket
     - Yoga
-  - RNSVG (15.15.3):
+  - RNSVG (15.15.5):
     - boost
     - DoubleConversion
     - fast_float
@@ -3416,10 +3416,10 @@ PODS:
     - ReactCodegen
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
-    - RNSVG/common (= 15.15.3)
+    - RNSVG/common (= 15.15.5)
     - SocketRocket
     - Yoga
-  - RNSVG/common (15.15.3):
+  - RNSVG/common (15.15.5):
     - boost
     - DoubleConversion
     - fast_float
@@ -4007,7 +4007,7 @@ SPEC CHECKSUMS:
   react-native-get-random-values: e2acf4070fe4b7325705a05af047449637a27a21
   react-native-image-picker: 0314366753615115fa55c3cc937ac44cb7e75702
   react-native-netinfo: 57447b5a45c98808f8eae292cf641f3d91d13830
-  react-native-safe-area-context: c00143b4823773bba23f2f19f85663ae89ceb460
+  react-native-safe-area-context: ebd2c2ece5e6e650a6963184039ec8cfd8960d86
   react-native-webrtc: e8f0ce746353adc2744a2b933645e1aeb41eaa74
   react-native-webview: 8407aaaf6b539b1e38b72fabb55d6885de03beaf
   React-NativeModulesApple: a2c3d2cbec893956a5b3e4060322db2984fff75b
@@ -4045,24 +4045,24 @@ SPEC CHECKSUMS:
   ReactCommon: ac934cb340aee91282ecd6f273a26d24d4c55cae
   ReactNativeIncallManager: dccd3e7499caa3bb73d3acfedf4fb0360f1a87d5
   RNAppleAuthentication: a89c9804592b38ed4ab11f0aee68d05ba12ad432
-  RNBootSplash: 51262ea318e6f45b7b75941c9aa2ce0df3782908
+  RNBootSplash: 0be0994fa7c528ed5f03b6f2803d7e86aa18170f
   RNCAsyncStorage: 29f0230e1a25f36c20b05f65e2eb8958d6526e82
-  RNDeviceInfo: 36d7f232bfe7c9b5c494cb7793230424ed32c388
+  RNDeviceInfo: 4c852998208b60dc192ae3529e5867817719ad1e
   RNFBAnalytics: 22a87621c46007a00c4e4241bfa293ad93ac1bb7
   RNFBApp: b574c08010a6d3e995e654d03e34e789ebe55a35
   RNFBMessaging: da2d7f511df0368011a126b156f1a7f4be0c1b72
   RNFS: 89de7d7f4c0f6bafa05343c578f61118c8282ed8
-  RNGestureHandler: cd4be101cfa17ea6bbd438710caa02e286a84381
+  RNGestureHandler: d7ebd5abfdf03ddebef995d2f828a9f07fca7990
   RNGoogleSignin: 15341729e1f79f1b82740393924cae5e429ad176
   RNIap: f14cb76671570a0144bbf0cb23541f0f3364f393
   RNKeychain: a2c134ab796272c3d605e035ab727591000b30f3
   rnmapbox-maps: eea6c28dd0cfd4e0422613d9ff58e6617092572d
-  RNPermissions: 1d34df6a0190a946e7448cbd404a6fe58b805453
+  RNPermissions: 1fb440bbd97ced458beb8cc121853bf0e50b279d
   RNReanimated: 4e6187f2ba1e30e6ddc7c8fc9f19b2dd2b6b2532
   RNScreens: 7f643ee0fd1407dc5085c7795460bd93da113b8f
   RNSentry: 3698f118417e6780b3aff6709fb81b05e3eba94c
   RNSound: d5dd3ca86d9978e1c2736dfa943ba619fc9fc504
-  RNSVG: 595abfa0f9ac26d56afcaaedf4e37a00f54cab71
+  RNSVG: 6470d6f2636d71bd4bbc44a4f27fb7444e437b2f
   RNVectorIcons: 791f13226ec4a3fd13062eda9e892159f0981fae
   RNWorklets: 809b16c37950dbcc71adaeee55c9476217a9e449
   Sentry: 7475eb7bf6a41d7505f46341706015ad2d1766b9
@@ -4070,6 +4070,6 @@ SPEC CHECKSUMS:
   Turf: aa2ede4298009639d10db36aba1a7ebaad072a5e
   Yoga: 5456bb010373068fc92221140921b09d126b116e
 
-PODFILE CHECKSUM: 7d9cfb206a89f10a0d45757fdc14bdbbb9fd52f7
+PODFILE CHECKSUM: e8ccbe905053db78ea51c2ea6d599197ff0657b5
 
 COCOAPODS: 1.16.2

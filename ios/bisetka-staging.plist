@@ -24,17 +24,36 @@
 	<string>????</string>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>MetroHost</key>
+	<string>192.168.26.25</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsArbitraryLoads</key>
-		<false/>
+		<true/>
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
+		<key>NSExceptionDomains</key>
+		<dict>
+			<key>192.168.26.25</key>
+			<dict>
+				<key>NSExceptionAllowsInsecureHTTPLoads</key>
+				<true/>
+				<key>NSIncludesSubdomains</key>
+				<true/>
+			</dict>
+			<key>localhost</key>
+			<dict>
+				<key>NSExceptionAllowsInsecureHTTPLoads</key>
+				<true/>
+			</dict>
+		</dict>
 	</dict>
 	<key>NSCameraUsageDescription</key>
 	<string>Bisetka may need access to your camera for profile photos and in-game features.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Bisetka connects to the Metro server running on your Mac during development.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Bisetka needs microphone access for voice chat during games.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>

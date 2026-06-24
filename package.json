@@ -8,7 +8,9 @@
     "ios": "react-native run-ios --simulator='iPhone 17 Pro'",
     "ios:physical": "react-native run-ios --device 'Alpha iPhone'",
     "lint": "eslint .",
-    "start": "react-native start",
+    "start:metro": "react-native start",
+    "start": "USE_WATCHMAN=0 SENTRY_METRO_DISABLED=1 react-native start --host 0.0.0.0 --port 8081",
+    "start:bg": "sh -lc 'LOG=/tmp/bisetka-metro.log; mkdir -p /tmp; nohup env PATH=/Users/alpha/.nvm/versions/node/v20.20.2/bin:/usr/bin:/bin:/usr/sbin:/sbin USE_WATCHMAN=0 SENTRY_METRO_DISABLED=1 /Users/alpha/.nvm/versions/node/v20.20.2/bin/npm run start:metro -- --host 0.0.0.0 --port 8081 >\"$LOG\" 2>&1 & echo Metro started: $!; echo Log: $LOG'",
     "test": "jest",
     "bootsplash:generate": "npx react-native-bootsplash generate --background=#0f0c29 --logo-width=88 assets/bootsplash/logo.png && node scripts/restore-bootsplash-fullscreen.js"
   },
