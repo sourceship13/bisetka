@@ -420,6 +420,36 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
     setPlayerPosition(pos);
   };
 
+  const normalizeOpponent = (raw: any) => {
+    if (!raw) return null;
+    const id = raw.id ?? raw.userId ?? raw.opponentId ?? null;
+    const username = raw.username ?? raw.displayName ?? raw.name ?? null;
+    return {
+      ...raw,
+      id,
+      userId: raw.userId ?? id,
+      username,
+      displayName: raw.displayName ?? username,
+    };
+  };
+
+  const updateOpponent = (raw: any) => {
+    setOpponent(normalizeOpponent(raw));
+  };
+
+  const applyIncomingGameState = (incomingGameState: any, incomingMyHand?: any) => {
+    setGameState((prev: any) => {
+      const next = incomingGameState ?? prev;
+      if (!next) return prev;
+      const resolvedMyHand =
+        Array.isArray(incomingMyHand) ? incomingMyHand :
+        Array.isArray(next.myHand) ? next.myHand :
+        Array.isArray(prev?.myHand) ? prev.myHand :
+        undefined;
+      return resolvedMyHand ? { ...next, myHand: resolvedMyHand } : next;
+    });
+  };
+
   // SUIT constants for table UI
   const SUIT_ICON: Record<string, string> = {
     hearts: '♥',
@@ -514,7 +544,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
               setIsMyTurn((preMatch.position ?? 0) === 0);
             } else {
               updatePlayerColor(preMatch.color);
-              setOpponent(preMatch.opponent);
+              updateOpponent(preMatch.opponent);
               setIsMyTurn(preMatch.color === 'white');
             }
             setCurrentRoom({ roomId: preMatch.roomId });
@@ -535,7 +565,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
               socket.off('spectate_started');
               setCurrentRoom({ roomId: data.roomId });
               updatePlayerColor(data.color ?? 'black');
-              setOpponent(data.opponent);
+              updateOpponent(data.opponent);
               setGameStatus('Joined! Waiting for game to start...');
               socketService.playerReady(data.roomId, userId);
             });
@@ -662,7 +692,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
     // Opponent joined
     socketService.onOpponentJoined((data: any) => {
       console.log('Opponent joined:', data);
-      setOpponent(data.opponent);
+      updateOpponent(data.opponent);
       setGameMode('private');
       setGameStatus('Opponent joined! Waiting for game to start...');
       const liveRoomId = roomIdRef.current;
@@ -676,21 +706,31 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
       console.log('=== GAME STARTED ===');
       console.log('Game started data:', data);
 
-      if (isGameStartedRef.current) {
-        console.log('⚠️ Duplicate game_started event ignored');
+      const isDuplicateStart = isGameStartedRef.current;
+      if (isDuplicateStart && !data?.gameState && !Array.isArray(data?.myHand)) {
+        console.log('⚠️ Duplicate game_started event ignored (no new state payload)');
         return;
       }
+      if (isDuplicateStart) {
+        console.log('⚠️ Duplicate game_started received, merging latest payload');
+      }
       isGameStartedRef.current = true;
+
+      if (data.opponent) {
+        updateOpponent(data.opponent);
+      }
 
       // ── 4-player team blot ──────────────────────────────────────────────
       if (data.gameType === 'blot-teams' && data.myPosition !== undefined) {
         updatePlayerPosition(data.myPosition);
         updatePlayerColor(data.myTeam ?? 'white');
-        setGameState(data.gameState);
+        applyIncomingGameState(data.gameState, data.myHand);
         setGameMode('game');
         setIsGameStarted(true);
-        isRoundTransitioningRef.current = true;
-        setTimeout(() => setShowRiffleDealAnimation(true), 300);
+        if (!isDuplicateStart) {
+          isRoundTransitioningRef.current = true;
+          setTimeout(() => setShowRiffleDealAnimation(true), 300);
+        }
         setIsMyTurn(data.gameState?.currentTurn === data.myPosition);
         // Build relative seat names: rel 0=me(bottom), 1=right, 2=top, 3=left
         const names4P = [myName, '', '', ''];
@@ -728,20 +768,17 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
       // If this player replaced a CPU, store the cpuRole for turn detection
       if (data.cpuRole) {
         updateMyCpuRole(data.cpuRole);
-        // Merge myHand into gameState for rendering
-        if (data.myHand) {
-          setGameState({ ...data.gameState, myHand: data.myHand });
-        } else {
-          setGameState(data.gameState);
-        }
+        applyIncomingGameState(data.gameState, data.myHand);
         setCurrentRoom({ roomId: data.roomId });
       } else {
-        setGameState(data.gameState);
+        applyIncomingGameState(data.gameState, data.myHand);
       }
       setGameMode('game');
       setIsGameStarted(true);
-      isRoundTransitioningRef.current = true;
-      setTimeout(() => setShowRiffleDealAnimation(true), 300);
+      if (!isDuplicateStart) {
+        isRoundTransitioningRef.current = true;
+        setTimeout(() => setShowRiffleDealAnimation(true), 300);
+      }
       setIsMyTurn(
         data.cpuRole
           ? data.gameState?.currentTurn === data.cpuRole
@@ -755,21 +792,32 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
       // Server has acknowledged the move — allow the next card to be played
       moveInFlightRef.current = false;
 
+      // If a client missed game_started, first move should still bootstrap gameplay UI.
+      if (!isGameStartedRef.current) {
+        isGameStartedRef.current = true;
+        setIsGameStarted(true);
+        setGameMode('game');
+      }
+
+      if (data.roomId) {
+        setCurrentRoom((prev: any) => ({
+          ...(prev || {}),
+          roomId: data.roomId,
+        }));
+      }
+
       // 4-player team blot: currentTurn is a position number
       const pos = playerPositionRef.current;
       const cpuRole = myCpuRoleRef.current;
+      const currentTurn = data.gameState?.currentTurn ?? data.currentTurn;
       const myTurn = pos !== null
-        ? data.gameState?.currentTurn === pos
+        ? currentTurn === pos
         : cpuRole
-          ? data.currentTurn === cpuRole
-          : data.currentTurn === playerColorRef.current;
+          ? currentTurn === cpuRole
+          : currentTurn === playerColorRef.current;
 
       setIsMyTurn(myTurn);
-      setGameState(data.gameState);
-      // In 4p mode or replacement mode: merge myHand into gameState for rendering
-      if ((pos !== null || cpuRole) && data.myHand) {
-        setGameState((prev: any) => prev ? { ...prev, myHand: data.myHand } : prev);
-      }
+      applyIncomingGameState(data.gameState, data.myHand);
       setSelectedCard(null);
     });
 
@@ -865,7 +913,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
         setIsMyTurn((matchData.position ?? 0) === 0);
       } else {
         updatePlayerColor(matchData.color);
-        setOpponent(matchData.opponent);
+        updateOpponent(matchData.opponent);
         setIsMyTurn(matchData.color === 'white');
       }
       setGameStatus('Match found! Waiting for game to start...');
@@ -922,7 +970,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
       const roomData = await socketService.joinPrivateRoom(initialJoinCode!, userId);
       setCurrentRoom({ roomId: roomData.roomId });
       updatePlayerColor(roomData.color || 'black');
-      setOpponent(roomData.opponent);
+      updateOpponent(roomData.opponent);
       setIsMyTurn((roomData.color || 'black') === 'white');
       setGameMode('private');
       socketService.playerReady(roomData.roomId, userId);
@@ -955,7 +1003,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
       } else {
         setCurrentRoom({ roomId: matchData.roomId });
         updatePlayerColor(matchData.color);
-        setOpponent(matchData.opponent);
+        updateOpponent(matchData.opponent);
         setIsMyTurn(matchData.color === 'white');
       }
       setCurrentRoom({ roomId: matchData.roomId });
@@ -1012,7 +1060,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
       const roomData = await socketService.joinPrivateRoom(joinRoomCode.toUpperCase(), userId);
       setCurrentRoom({ roomId: roomData.roomId });
       updatePlayerColor(roomData.color);
-      setOpponent(roomData.opponent);
+      updateOpponent(roomData.opponent);
       setIsMyTurn(roomData.color === 'white');
       setGameMode('private');
       setShowJoinModal(false);
@@ -1563,7 +1611,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
       ? (gameState?.myHand || gameState?.hands?.[playerPosition] || [])
       : myCpuRole
         ? (gameState?.myHand || (myCpuRole === 'cpuWhite' ? gameState?.cpuWhiteHand : gameState?.cpuBlackHand) || [])
-        : (playerColor === 'white' ? gameState?.player1Hand || [] : gameState?.player2Hand || []);
+        : (gameState?.myHand || (playerColor === 'white' ? gameState?.player1Hand || [] : gameState?.player2Hand || []));
 
     // Score helpers
     const myScore = is4P
@@ -1812,11 +1860,12 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
           topOffset={260}
           size={100}
           opponent={
-            opponent && opponent.id
+            opponent && (opponent.id || opponent.userId)
               ? {
-                  userId: opponent.id,
+                  userId: opponent.userId ?? opponent.id,
                   username:
-                    opponent.displayName ?? opponent.username ?? null,
+                    opponent.displayName ?? opponent.username ?? opponent.name ?? null,
+                  fakeAppearance: opponent.fakeAppearance ?? opponent.appearance ?? null,
                 }
               : null
           }

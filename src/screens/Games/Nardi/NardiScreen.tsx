@@ -1632,16 +1632,6 @@ const NardiScreen = ({ navigation, route }: any) => {
                   // ...(isMultiplayer && mpStatus === 'playing' ? [{ icon: '✏️', onPress: () => setShowRoomNameModal(true) }] : []),
                 ]}
               />
-              {arEnabled && spOpeningPhase !== 'rolling' && (
-                <TouchableOpacity
-                  style={styles.recenterBtn}
-                  onPress={() => arOverlayRef.current?.recenter()}
-                  hitSlop={{top:8,bottom:8,left:8,right:8}}
-                  activeOpacity={0.7}>
-                  <Text style={styles.recenterIcon}>⊕</Text>
-                  <Text style={styles.recenterLabel}>Re-center</Text>
-                </TouchableOpacity>
-              )}
             </View>
           </View>
 
@@ -2574,8 +2564,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#000',
   },
-  recenterBtn: { alignSelf: 'center', marginTop: 6, flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(0,0,0,0.35)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)', borderRadius: 24, paddingHorizontal: 18, paddingVertical: 8 },
-  recenterIcon: { fontSize:20, color:'#fff' },
   bearOffTrayTop: {
     position: 'absolute',
     top: 110,
@@ -2644,7 +2632,6 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: 'rgba(255,255,255,0.35)',
   },
-  recenterLabel: { fontSize:13, color:'#fff', fontWeight:'600', letterSpacing:0.3 },
 });
 
 export default NardiScreen;
