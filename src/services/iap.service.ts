@@ -44,51 +44,67 @@ const TIER_USD: { sku: ClothingTierSKU; price: number }[] = [
 function normalizePurchaseError(error: any, sku: string): Error {
   const rawMessage = String(error?.message || 'Purchase failed');
   const code = String(error?.code || '').trim();
+  const attach = (next: Error, debugHint?: string) => {
+    (next as any).code = error?.code;
+    (next as any).status = error?.status;
+    (next as any).nativeErrorCode = error?.nativeErrorCode;
+    (next as any).domain = error?.domain;
+    (next as any).debugHint = debugHint;
+    return next;
+  };
 
   if (code === 'E_SKU_NOT_FOUND') {
-    return new Error(
+    return attach(new Error(
       `Store product not available for SKU ${sku}. Check App Store/Play product setup and tester account.`
+    ), `SKU=${sku}`
     );
   }
 
   if (rawMessage.includes('status=21002')) {
-    return new Error(
+    return attach(new Error(
       'Receipt verification failed (Apple status 21002). If running from Xcode with a local StoreKit file, disable StoreKit Configuration or use sandbox/TestFlight receipts.'
+    ), `SKU=${sku}`
     );
   }
 
   if (rawMessage.toLowerCase().includes('network request failed')) {
-    return new Error('Could not reach purchase verification server. Please check network/API host and try again.');
+    return attach(new Error('Could not reach purchase verification server. Please check network/API host and try again.'), `SKU=${sku}`);
   }
 
   if (rawMessage.includes('Unknown product tier')) {
-    return new Error(`Server does not recognize product tier ${sku}. Verify backend SKU tier configuration.`);
+    return attach(new Error(`Server does not recognize product tier ${sku}. Verify backend SKU tier configuration.`), `SKU=${sku}`);
   }
 
   if (rawMessage.includes('Tier') && rawMessage.includes('below item price')) {
-    return new Error('Selected purchase tier is below the clothing item price. Refresh the app and try again.');
+    return attach(new Error('Selected purchase tier is below the clothing item price. Refresh the app and try again.'), `SKU=${sku}`);
   }
 
   if (code) {
-    return new Error(`${rawMessage} [${code}]`);
+    return attach(new Error(`${rawMessage} [${code}]`), `SKU=${sku}`);
   }
 
-  return new Error(rawMessage);
+  return attach(new Error(rawMessage), `SKU=${sku}`);
 }
 
 export function getPurchaseErrorMessage(error: any, fallback: string = 'Purchase failed'): string {
   const message = String(error?.message || error?.error || fallback).trim();
   const code = error?.code ? String(error.code) : '';
+  const nativeCode = error?.nativeErrorCode ? String(error.nativeErrorCode) : '';
+  const domain = error?.domain ? String(error.domain) : '';
   const status =
     typeof error?.status === 'number'
       ? String(error.status)
       : typeof error?.response?.status === 'number'
       ? String(error.response.status)
       : '';
+  const debugHint = error?.debugHint ? String(error.debugHint) : '';
 
   const details: string[] = [];
   if (code) details.push(`Code: ${code}`);
+  if (nativeCode) details.push(`Native: ${nativeCode}`);
+  if (domain) details.push(`Domain: ${domain}`);
   if (status) details.push(`Status: ${status}`);
+  if (debugHint) details.push(debugHint);
 
   if (details.length === 0 && (message === fallback || message === 'Purchase failed')) {
     return `${fallback}. Please check store configuration/test account and backend verification settings.`;
