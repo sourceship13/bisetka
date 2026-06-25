@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Dimensions,
   Animated,
+  ScrollView,
 } from 'react-native';
 import { colors } from '../../theme/colors';
 
@@ -178,7 +179,13 @@ const BisetkaModal: React.FC<BisetkaModalProps> = ({
 
           {/* Content */}
           <View style={styles.content}>
-            <Text style={styles.message}>{message}</Text>
+            <ScrollView
+              style={styles.messageScroll}
+              contentContainerStyle={styles.messageScrollContent}
+              showsVerticalScrollIndicator={true}
+            >
+              <Text style={styles.message}>{message}</Text>
+            </ScrollView>
           </View>
 
           {/* Buttons */}
@@ -220,6 +227,7 @@ const styles = StyleSheet.create({
   modalContainer: {
     width: SCREEN_WIDTH * 0.85,
     maxWidth: 400,
+    maxHeight: SCREEN_HEIGHT * 0.72,
     backgroundColor: colors.background.secondary,
     borderRadius: 20,
     overflow: 'hidden',
@@ -231,7 +239,10 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    minHeight:60
+    minHeight: 60,
+    paddingHorizontal: 20,
+    paddingTop: 18,
+    paddingBottom: 14,
   },
   iconCircle: {
     width: 60,
@@ -254,18 +265,30 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   content: {
-    flex:1,
+    paddingHorizontal: 20,
+    paddingTop: 18,
+    paddingBottom: 10,
+    maxHeight: SCREEN_HEIGHT * 0.34,
+  },
+  messageScroll: {
+    flexGrow: 0,
+  },
+  messageScrollContent: {
+    paddingBottom: 4,
   },
   message: {
     fontSize: 16,
     color: colors.text.secondary,
-    textAlign: 'center',
+    textAlign: 'left',
     lineHeight: 22,
   },
   buttonContainer: {
     flexDirection: 'row',
     gap: 12,
-    minHeight:100
+    minHeight: 100,
+    paddingHorizontal: 20,
+    paddingTop: 6,
+    paddingBottom: 20,
   },
   buttonWrapper: {
     flex: 1,
@@ -277,7 +300,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight:60
+    minHeight: 60,
   },
   buttonText: {
     fontSize: 16,
