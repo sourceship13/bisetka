@@ -199,8 +199,11 @@ function getBaseURL(env: Environment): string {
     case 'production':
       return getProductionURL();
     case 'staging':
+      // Product requirement: staging and production app builds must both
+      // authenticate against the production backend.
+      return getProductionURL();
     default:
-      return getStagingURL();
+      return getProductionURL();
   }
 }
 
