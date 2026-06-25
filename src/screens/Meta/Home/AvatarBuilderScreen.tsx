@@ -348,8 +348,30 @@ const AvatarBuilderScreen = ({ navigation }: any) => {
     const current = equipped[slot];
     const next = { ...equipped };
     if (current && current.id === item.id) {
-      // Tap an already-equipped item to remove it.
-      delete next[slot];
+      // Core body slots should never go empty. Revert them to the matching
+      // starter item instead of deleting and letting the boot-time seeder
+      // silently put clothes back on.
+      const starterId =
+        slot === 'top'
+          ? getStarterShirtIdForAvatar(previewAvatar?.gender ?? genderTab, (previewAvatar as any)?.build)
+          : slot === 'bottom'
+          ? getStarterPantsIdForAvatar(previewAvatar?.gender ?? genderTab, (previewAvatar as any)?.build)
+          : slot === 'hair'
+          ? getStarterHairIdForAvatar(previewAvatar?.gender ?? genderTab)
+          : slot === 'shoes'
+          ? getStarterShoeIdForAvatar(previewAvatar?.gender ?? genderTab)
+          : null;
+
+      if (starterId) {
+        const starterItem = ALL_CLOTHING_ITEMS.find(i => i.id === starterId);
+        if (starterItem) {
+          next[slot] = starterItem;
+        } else {
+          delete next[slot];
+        }
+      } else {
+        delete next[slot];
+      }
     } else {
       next[slot] = item;
     }
