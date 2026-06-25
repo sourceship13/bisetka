@@ -115,6 +115,44 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
   const roomNameRef = React.useRef(roomName);
   useEffect(() => { roomNameRef.current = roomName; }, [roomName]);
 
+  const normalizeColor = (value: any): 'white' | 'black' | null => {
+    if (value === 'white' || value === 'black') return value;
+    if (typeof value === 'string') {
+      const v = value.toLowerCase();
+      if (v === 'red') return 'white';
+      if (v === 'white') return 'white';
+      if (v === 'black') return 'black';
+    }
+    return null;
+  };
+
+  const resolveColorFromPayload = (payload: any): 'white' | 'black' | null => {
+    const direct =
+      normalizeColor(payload?.myColor) ??
+      normalizeColor(payload?.color) ??
+      normalizeColor(payload?.playerColor) ??
+      normalizeColor(payload?.team) ??
+      normalizeColor(payload?.side);
+    if (direct) return direct;
+
+    if (payload?.player1Id === userId || payload?.player1?.id === userId) return 'white';
+    if (payload?.player2Id === userId || payload?.player2?.id === userId) return 'black';
+    return null;
+  };
+
+  const resolveTurnFromPayload = (payload: any): 'white' | 'black' => {
+    return (
+      normalizeColor(payload?.currentTurn) ??
+      normalizeColor(payload?.gameState?.currentTurn) ??
+      'white'
+    );
+  };
+
+  const applyMyColor = (color: 'white' | 'black') => {
+    myColorRef.current = color;
+    setMyColor(color);
+  };
+
   const arPieces = React.useMemo<ARPiece[]>(() => {
     if (!gameState) return [];
     const result: ARPiece[] = [];
@@ -176,15 +214,12 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
         console.log('🎮 game_started received:', data);
         setGameStatus('Game started!');
         setMode('game');
-        // Apply server-assigned color so both players have the correct side
-        const assignedColor: 'white' | 'black' | null =
-          data.myColor ||
-          (data.player1Id === userId ? 'white' : data.player2Id === userId ? 'black' : null);
-        if (assignedColor) {
-          myColorRef.current = assignedColor;
-          setMyColor(assignedColor);
-          setIsMyTurn(assignedColor === 'white'); // white always moves first
-        }
+        // Resolve both color and starting turn from whichever payload shape arrived.
+        const assignedColor = resolveColorFromPayload(data) ?? myColorRef.current;
+        const serverTurn = resolveTurnFromPayload(data);
+        applyMyColor(assignedColor);
+        setCurrentTurn(serverTurn);
+        setIsMyTurn(serverTurn === assignedColor);
         // Apply server-sent roomId if provided (ensures stale closures resolve correctly)
         if (data.roomId) {
           roomIdRef.current = data.roomId;
@@ -276,16 +311,18 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
           // pre-fetched data directly so we don't double-queue and so the user
           // doesn't sit on a second "Finding opponent..." screen.
           roomIdRef.current = preMatch.roomId;
-          myColorRef.current = preMatch.color;
           setRoomId(preMatch.roomId);
-          setMyColor(preMatch.color);
+          const resolvedColor = resolveColorFromPayload(preMatch) ?? myColorRef.current;
+          applyMyColor(resolvedColor);
           setOpponentId(preMatch.opponent?.id ?? '');
           setOpponentUsername(
             (preMatch.opponent as any)?.username ??
               (preMatch.opponent as any)?.displayName ??
               '',
           );
-          setIsMyTurn(preMatch.color === 'white');
+          const preMatchTurn = resolveTurnFromPayload(preMatch);
+          setCurrentTurn(preMatchTurn);
+          setIsMyTurn(preMatchTurn === resolvedColor);
           setGameStatus('Opponent found! Get ready...');
           socketService.playerReady(preMatch.roomId, userId);
         } else {
@@ -304,9 +341,9 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
           _sock.once('room_joined', (data: any) => {
             _sock.off('spectate_started');
             roomIdRef.current = data.roomId;
-            myColorRef.current = data.color ?? 'black';
             setRoomId(data.roomId);
-            setMyColor(data.color ?? 'black');
+            const resolvedColor = resolveColorFromPayload(data) ?? 'black';
+            applyMyColor(resolvedColor);
             setOpponentId(data.opponent?.id ?? '');
             setOpponentUsername(((data.opponent as any)?.username ?? (data.opponent as any)?.displayName) ?? '');
             setGameStatus('Joined! Waiting for game to start...');
@@ -400,12 +437,14 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
     try {
       const matchData = await socketService.findMatch('chess', userId);
       roomIdRef.current = matchData.roomId;
-      myColorRef.current = matchData.color;
       setRoomId(matchData.roomId);
-      setMyColor(matchData.color);
+      const resolvedColor = resolveColorFromPayload(matchData) ?? myColorRef.current;
+      applyMyColor(resolvedColor);
       setOpponentId(matchData.opponent.id);
       setOpponentUsername((matchData.opponent as any).username ?? (matchData.opponent as any).displayName ?? '');
-      setIsMyTurn(matchData.color === 'white');
+      const matchTurn = resolveTurnFromPayload(matchData);
+      setCurrentTurn(matchTurn);
+      setIsMyTurn(matchTurn === resolvedColor);
       
       // Send ready signal
       socketService.playerReady(matchData.roomId, userId);
@@ -419,10 +458,11 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
     try {
       const roomData = await socketService.createPrivateRoom('chess', userId, joinCode);
       roomIdRef.current = roomData.roomId;
-      myColorRef.current = 'white';
+      applyMyColor('white');
       setRoomId(roomData.roomId);
       setRoomCode(roomData.roomCode);
-      setMyColor('white');
+      setCurrentTurn('white');
+      setIsMyTurn(true);
       setMode('private');
       setGameStatus(`Share code: ${roomData.roomCode}`);
     } catch (error: any) {
@@ -440,13 +480,16 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
     try {
       const roomData = await socketService.joinPrivateRoom(joinRoomCode, userId);
       roomIdRef.current = roomData.roomId;
-      myColorRef.current = roomData.color;
       setRoomId(roomData.roomId);
-      setMyColor(roomData.color);
+      const resolvedColor = resolveColorFromPayload(roomData) ?? 'black';
+      applyMyColor(resolvedColor);
       setOpponentId(roomData.opponent.id);
       setOpponentUsername((roomData.opponent as any).username ?? (roomData.opponent as any).displayName ?? '');
       setMode('private');
       setShowJoinModal(false);
+      const joinTurn = resolveTurnFromPayload(roomData);
+      setCurrentTurn(joinTurn);
+      setIsMyTurn(joinTurn === resolvedColor);
       
       // Send ready signal
       socketService.playerReady(roomData.roomId, userId);
@@ -704,7 +747,7 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
                   </Text>
                 )}
                 <Text style={styles.colorText}>
-                  {myColor === 'white' ? '⚪ White' : '⚫ Black'}
+                  {myColor === 'white' ? '🔴 Red' : '⚫ Black'}
                 </Text>
                 {gameState.isCheck && <Text style={styles.checkText}>CHECK!</Text>}
               </View>
