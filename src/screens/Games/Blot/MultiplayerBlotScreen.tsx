@@ -232,7 +232,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
   const [showBackground, setShowBackground] = useState(true);
   const [arCards, setArCards] = useState<ARCard[]>([]);
   const [showBlur, setShowBlur] = useState(false);
-  const [arEnabled, setArEnabled] = useState(false);
+  const [arEnabled, setArEnabled] = useState(true);
   const [showMusicPlayer, setShowMusicPlayer] = useState(false);
   const arOverlayRef = useRef<AR3DOverlayHandle>(null);
   const [showRiffleDealAnimation, setShowRiffleDealAnimation] = useState(false);
@@ -247,18 +247,12 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
 
   // Load saved theme from storage on mount
   useEffect(() => {
-    if (initialMode !== 'ai') {
-      // Multiplayer should start from the canonical board/card look unless
-      // a room theme is explicitly applied/broadcast.
-      setCustomTheme(undefined);
-      return;
-    }
     AsyncStorage.getItem('blot_card_theme').then((stored) => {
       if (stored) {
         try { setCustomTheme(JSON.parse(stored)); } catch {}
       }
     });
-  }, [initialMode]);
+  }, []);
 
   // Entry fee & prize logic
   // Deduct entry when game starts (AI or multiplayer)
@@ -1377,7 +1371,13 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
     );
   };
 
-  const renderCard = (card: Card, index: number, isTrickCard = false, playerIndex?: number) => {
+  const renderCard = (
+    card: Card,
+    index: number,
+    isTrickCard = false,
+    onPress?: () => void,
+    playable = true,
+  ) => {
     const canPlay = isLocalGame
       ? (localGameState?.currentTurn === 'player')
       : isMyTurn && !moveInFlightRef.current;
@@ -1386,33 +1386,33 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
       console.log(`renderCard - isMyTurn: ${isMyTurn}, canPlay: ${canPlay}, isLocalGame: ${isLocalGame}`);
     }
 
-    let animatedOpacity: any = undefined;
-
     const cardImage = getCardImage({ rank: (card as any).rank, suit: (card as any).suit });
-    const cardContent = cardImage ? (
-      <Image
-        source={cardImage}
-        style={isTrickCard ? styles.cardImageTrick : styles.cardImage}
-        resizeMode="cover"
-      />
-    ) : (
-      <Image
-        source={getCardBackImage('red')}
-        style={isTrickCard ? styles.cardImageTrick : styles.cardImage}
-        resizeMode="cover"
-      />
+    const sizeStyle = isTrickCard ? styles.nativeCardTrick : styles.nativeCard;
+    const cardW = isTrickCard ? 62 : 77;
+    const cardH = isTrickCard ? 86 : 107;
+    const cardContent = (
+      <View style={[sizeStyle, { width: cardW, height: cardH }]}> 
+        <Image
+          source={cardImage || getCardBackImage('red')}
+          style={{ width: cardW, height: cardH }}
+          resizeMode="contain"
+        />
+      </View>
     );
+
+    if (!onPress) {
+      return <View key={`${(card as any).suit}_${(card as any).rank}_${index}`}>{cardContent}</View>;
+    }
 
     return (
       <TouchableOpacity
-        key={index}
+        key={`${(card as any).suit}_${(card as any).rank}_${index}`}
         style={[
-          isTrickCard ? styles.trickCard : styles.card,
+          playable ? styles.recommendedCard : styles.disabledCard,
           selectedCard === card && styles.selectedCard,
-          !canPlay && styles.disabledCard,
         ]}
-        onPress={() => handlePlayCard(card)}
-        disabled={!canPlay}
+        onPress={playable && canPlay ? onPress : undefined}
+        disabled={!playable || !canPlay}
       >
         {cardContent}
       </TouchableOpacity>
@@ -1611,7 +1611,16 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
           <CardHandFan
             cards={sortHandForDisplay(localGameState.playerHand as any) as any}
             maxWidth={width - 32}
-            renderCard={(card, index) => renderCard(card as any, index)}
+            renderCard={(card, index) => {
+              const canLocalPlay = localGameState.currentTurn === 'player';
+              return renderCard(
+                card as any,
+                index,
+                false,
+                canLocalPlay ? () => handlePlayCard(card as any) : undefined,
+                canLocalPlay,
+              );
+            }}
           />
         </View>
 
@@ -1644,6 +1653,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
   const renderGame = () => {
     const is4P = playerPosition !== null;
     const trickCards = getTrickCardsFor2D(gameState);
+    const ledSuit = trickCards.length > 0 ? trickCards[0]?.suit : undefined;
     // 4-player: use the per-player hand from gameState.myHand or hands[position]
     // 2-player: use player1Hand / player2Hand
     // CPU replacement: use myHand (from server) or cpuWhiteHand / cpuBlackHand
@@ -1746,7 +1756,6 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
                   { width: TABLE_SIZE, height: TABLE_SIZE },
                 ]}
               >
-                {showBackground ? (
                 <ImageBackground
                   source={customTheme?.boardImage ? { uri: customTheme.boardImage } : require('../../../../assets/blot/card-table.png')}
                   style={styles.cardTable}
@@ -1762,6 +1771,16 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
                   
                   {trickCards.length > 0 && (
                     <View style={styles.trickArea}>
+                      {ledSuit && (
+                        <View style={styles.ledSuitBadge}>
+                          <Text style={[styles.ledSuitIcon, { color: SUIT_COLOR[ledSuit] ?? '#fff' }]}>
+                            {SUIT_ICON[ledSuit] ?? '?'}
+                          </Text>
+                          <Text style={styles.ledSuitLabel}>
+                            Led: {SUIT_NAME[ledSuit] ?? ledSuit}
+                          </Text>
+                        </View>
+                      )}
                       {trickCards.map((card: any, index: number) => {
                         let slotStyle;
                         if (is4P) {
@@ -1798,53 +1817,6 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
                   )}
                   {renderSeatLabels(is4P)}
                 </ImageBackground>
-                ) : (
-                <View style={styles.cardTable}>
-                  <View style={styles.trickArea}>
-                    <View style={[styles.cardPlaceholder, styles.trickSlotTop]} />
-                    <View style={[styles.cardPlaceholder, styles.trickSlotBottom]} />
-                    <View style={[styles.cardPlaceholder, styles.trickSlotLeft]} />
-                    <View style={[styles.cardPlaceholder, styles.trickSlotRight]} />
-                  </View>
-                  {trickCards.length > 0 && (
-                    <View style={styles.trickArea}>
-                      {trickCards.map((card: any, index: number) => {
-                        let slotStyle;
-                        if (is4P) {
-                          const rel = ((card.position as number) - playerPosition! + 4) % 4;
-                          if (rel === 0) slotStyle = styles.trickSlotBottom;
-                          else if (rel === 2) slotStyle = styles.trickSlotTop;
-                          else if (rel === 1) slotStyle = styles.trickSlotRight;
-                          else slotStyle = styles.trickSlotLeft;
-                        } else if (card.seat) {
-                          const SEAT_IDX: Record<string, number> = { player1: 0, cpuWhite: 1, player2: 2, cpuBlack: 3 };
-                          const mySeat = myCpuRole
-                            ? myCpuRole
-                            : (playerColor === 'white' ? 'player1' : 'player2');
-                          const rel = (SEAT_IDX[card.seat] - SEAT_IDX[mySeat] + 4) % 4;
-                          if (rel === 0) slotStyle = styles.trickSlotBottom;
-                          else if (rel === 1) slotStyle = styles.trickSlotLeft;
-                          else if (rel === 2) slotStyle = styles.trickSlotTop;
-                          else slotStyle = styles.trickSlotRight;
-                        } else {
-                          const isMyCard   = card.color === playerColor;
-                          const isHumanCard = card.isHuman !== false;
-                          if (isMyCard && isHumanCard)        slotStyle = styles.trickSlotBottom;
-                          else if (!isMyCard && isHumanCard)  slotStyle = styles.trickSlotTop;
-                          else if (isMyCard && !isHumanCard)  slotStyle = styles.trickSlotLeft;
-                          else                                slotStyle = styles.trickSlotRight;
-                        }
-                        return (
-                          <View key={index} style={[styles.trickSlot, slotStyle]}>
-                            {renderCard(card, index, true)}
-                          </View>
-                        );
-                      })}
-                    </View>
-                  )}
-                  {renderSeatLabels(is4P)}
-                </View>
-                )}
               </View>
             </View>
 
@@ -1860,7 +1832,16 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
                   <CardHandFan
                     cards={sortHandForDisplay(playerHand as any) as any}
                     maxWidth={width - 32}
-                    renderCard={(card, index) => renderCard(card as any, index)}
+                    renderCard={(card, index) => {
+                      const canMultiplayerPlay = isMyTurn && !moveInFlightRef.current;
+                      return renderCard(
+                        card as any,
+                        index,
+                        false,
+                        canMultiplayerPlay ? () => handlePlayCard(card as any) : undefined,
+                        canMultiplayerPlay,
+                      );
+                    }}
                   />
                 </>
               )}
@@ -1891,7 +1872,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
   return (
     <View style={styles.container}>
       <AraratBackground overlayOpacity={showBlur ? 0.65 : 0.3}>
-        <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/game_boards/rounded_table_panel_v4.glb" boardSurfaceImagePath="blot/card-table.png" hideCheckerboard boardScale={1.9} tableDist={0.9} boardY={-1.5} boardTiltX={0} cards={arCards} />
+        <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/game_boards/rounded_table_panel_v4.glb" boardSurfaceImagePath="blot/card-table.png" hideCheckerboard boardFixed boardFixedZoom={1.0} boardScale={1.7} tableDist={0.9} boardY={-1.5} boardTiltX={0} cards={arCards} />
       </AraratBackground>
       <View style={styles.overlay} pointerEvents="box-none">
         <GamePlayerOverlay
@@ -1922,7 +1903,6 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
                 { icon: '🎨', onPress: () => setShowCustomization(true) },
                 { icon: showBackground ? '🖼️' : '🔲', onPress: () => setShowBackground(!showBackground) },
                 { icon: '👥', onPress: () => roomInfoRef.current?.open() },
-                { icon: arEnabled ? '🥽' : '🎮', onPress: () => setArEnabled(!arEnabled) },
                 { icon: showMusicPlayer ? '🎵' : '🎶', onPress: () => setShowMusicPlayer(s => !s) },
                 { icon: '✏️', onPress: () => setShowRoomNameModal(true) },
               ]}
@@ -2263,11 +2243,12 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1.5,
     borderColor: '#cccccc',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 6,
-    paddingHorizontal: 6,
+    overflow: 'hidden',
     marginHorizontal: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3,
     elevation: 4,
   },
   nativeCardTrick: {
@@ -2277,10 +2258,11 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     borderWidth: 1.5,
     borderColor: '#cccccc',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 4,
-    paddingHorizontal: 4,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3,
     elevation: 4,
   },
   nativeCardCorner: {
@@ -2310,7 +2292,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#E3F2FD',
   },
   disabledCard: {
-    opacity: 0.5,
+    opacity: 0.45,
+  },
+  recommendedCard: {
+    shadowColor: '#2ecc71',
+    shadowOpacity: 0.95,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 8,
   },
   cardRank: {
     fontSize: 24,
@@ -2477,6 +2466,28 @@ const styles = StyleSheet.create({
     bottom: 0,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  ledSuitBadge: {
+    position: 'absolute',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.25)',
+  },
+  ledSuitIcon: {
+    fontSize: 22,
+    lineHeight: 26,
+  },
+  ledSuitLabel: {
+    fontSize: 11,
+    color: '#ccc',
+    fontWeight: '600',
+    marginTop: 1,
+    letterSpacing: 0.5,
   },
   cardPlaceholder: {
     position: 'absolute',
