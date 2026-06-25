@@ -4,9 +4,17 @@ import {useFocusEffect} from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import AvatarPreview from './AvatarPreview';
-import {ALL_BASE_AVATARS, ALL_CLOTHING_ITEMS} from '../data/clothingItems';
+import {
+  ALL_BASE_AVATARS,
+  ALL_CLOTHING_ITEMS,
+  getStarterHairIdForAvatar,
+  getStarterPantsIdForAvatar,
+  getStarterShirtIdForAvatar,
+  getStarterShoeIdForAvatar,
+} from '../data/clothingItems';
 import type {AvatarClothing, BaseAvatar} from '../types/avatar2d';
 import {resolveAvatar} from '../utils/avatars';
+import {seedDefaultOutfitIfMissing} from '../utils/seedDefaultOutfit';
 
 const SELECTED_AVATAR_KEY = 'selectedAvatarId';
 const EQUIPPED_KEY = '@bisetka_equipped_clothing';
@@ -48,6 +56,7 @@ const UserAvatar: React.FC<UserAvatarProps> = ({
 
   const load = useCallback(async () => {
     try {
+      await seedDefaultOutfitIfMissing();
       const id = await AsyncStorage.getItem(SELECTED_AVATAR_KEY);
       const found = id ? ALL_BASE_AVATARS.find(a => a.id === id) ?? null : null;
       setBaseAvatar(found);
@@ -120,9 +129,23 @@ const UserAvatar: React.FC<UserAvatarProps> = ({
   const fallbackBase =
     ALL_BASE_AVATARS.find(a => a.gender === inferred) ?? ALL_BASE_AVATARS[0];
 
+  const fallbackGender = (fallbackBase?.gender as 'male' | 'female' | undefined) ?? inferred;
+  const fallbackBuild = (fallbackBase as any)?.build as string | undefined;
+  const fallbackStarterIds = [
+    getStarterShirtIdForAvatar(fallbackGender, fallbackBuild),
+    getStarterPantsIdForAvatar(fallbackGender, fallbackBuild),
+    getStarterHairIdForAvatar(fallbackGender),
+    getStarterShoeIdForAvatar(fallbackGender),
+  ];
+  const fallbackEquipped: Record<string, AvatarClothing> = {};
+  for (const starterId of fallbackStarterIds) {
+    const item = ALL_CLOTHING_ITEMS.find(i => i.id === starterId);
+    if (item) fallbackEquipped[item.type] = item;
+  }
+
   return (
     <View style={[{width: size, height: size}, style]}>
-      <AvatarPreview baseAvatar={fallbackBase} equipped={{}} size={size} />
+      <AvatarPreview baseAvatar={fallbackBase} equipped={fallbackEquipped} size={size} />
     </View>
   );
 };

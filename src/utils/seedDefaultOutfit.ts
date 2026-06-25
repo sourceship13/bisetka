@@ -30,6 +30,7 @@ import {
 } from '../data/clothingItems';
 
 const SELECTED_AVATAR_KEY = 'selectedAvatarId';
+const SELECTED_AVATAR_OBJ_KEY = '@bisetka_selected_avatar';
 const GENDER_KEY = '@bisetka_gender';
 const EQUIPPED_KEY = '@bisetka_equipped_clothing';
 const OWNED_KEY = 'ownedClothing';
@@ -43,9 +44,25 @@ export async function seedDefaultOutfitIfMissing(): Promise<void> {
       AsyncStorage.getItem(GENDER_KEY),
     ]);
 
-    if (!avatarId) return; // user hasn't picked an avatar yet (pre-onboarding)
+    const preferredGender = genderStr === 'female' ? 'female' : 'male';
+    let baseAvatar = avatarId
+      ? ALL_BASE_AVATARS.find(a => a.id === avatarId)
+      : undefined;
 
-    const baseAvatar = ALL_BASE_AVATARS.find(a => a.id === avatarId);
+    // Legacy / returning users may have no selected avatar id persisted yet.
+    // Pick a deterministic default base avatar so we can always seed clothing.
+    if (!baseAvatar) {
+      baseAvatar =
+        ALL_BASE_AVATARS.find(a => a.gender === preferredGender) ??
+        ALL_BASE_AVATARS[0];
+      if (baseAvatar) {
+        await AsyncStorage.multiSet([
+          [SELECTED_AVATAR_KEY, baseAvatar.id],
+          [SELECTED_AVATAR_OBJ_KEY, JSON.stringify(baseAvatar)],
+        ]);
+      }
+    }
+
     if (!baseAvatar) return;
 
     const gender =
@@ -57,7 +74,17 @@ export async function seedDefaultOutfitIfMissing(): Promise<void> {
       await AsyncStorage.setItem(GENDER_KEY, gender);
     }
 
-    const equipped: Record<string, any> = eqStr ? JSON.parse(eqStr) : {};
+    const rawEquipped: Record<string, any> = eqStr ? JSON.parse(eqStr) : {};
+    const equipped: Record<string, any> = {};
+    // Rehydrate equipped entries by id so stale serialized objects never break
+    // remapping/slot logic (SVG component refs do not survive JSON round-trip).
+    for (const slot of Object.keys(rawEquipped)) {
+      const persisted = rawEquipped[slot];
+      const id = typeof persisted === 'string' ? persisted : persisted?.id;
+      if (!id) continue;
+      const item = ALL_CLOTHING_ITEMS.find(i => i.id === id);
+      if (item) equipped[slot] = item;
+    }
     const owned: Set<string> = new Set(ownedStr ? JSON.parse(ownedStr) : []);
 
     let mutated = false;

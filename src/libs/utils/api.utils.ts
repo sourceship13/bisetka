@@ -143,7 +143,7 @@ const getProductionURL = () => {
   if (cachedProductionURL === null) {
     cachedProductionURL = getConfigValue(
       'PRODUCTION_API_URL',
-      'https://bisetka.io',
+      'https://prod.bisetka.io',
     );
   }
   return cachedProductionURL;
