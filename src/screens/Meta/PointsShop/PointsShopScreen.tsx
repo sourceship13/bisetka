@@ -19,7 +19,7 @@ import {colors, spacing} from '../../../theme';
 import {BisetkaAlert} from '../../../utils/BisetkaAlert';
 import {useAuth} from '../../../libs/hooks/useAuth';
 import apiService from '../../../services/api.service';
-import {buyPointsPack, buyClothingItem, PointsSKU} from '../../../services/iap.service';
+import {buyPointsPack, buyClothingItem, PointsSKU, getPurchaseErrorMessage} from '../../../services/iap.service';
 import {ClothingItem, ClothingType, Rarity} from '../../../types/avatar2d';
 import {
   ALL_CLOTHING_ITEMS,
@@ -354,7 +354,10 @@ const PointsShopScreen = ({navigation, route}: any) => {
         );
       } catch (err: any) {
         if (!err?.cancelled) {
-          BisetkaAlert.error('Purchase Failed', err?.message || 'Failed to purchase');
+          BisetkaAlert.error(
+            'Purchase Failed',
+            getPurchaseErrorMessage(err, 'Failed to purchase'),
+          );
         }
       } finally {
         setPurchasing(null);

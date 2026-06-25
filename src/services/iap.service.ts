@@ -41,6 +41,62 @@ const TIER_USD: { sku: ClothingTierSKU; price: number }[] = [
   { sku: 'c1099', price: 10.99 },
 ];
 
+function normalizePurchaseError(error: any, sku: string): Error {
+  const rawMessage = String(error?.message || 'Purchase failed');
+  const code = String(error?.code || '').trim();
+
+  if (code === 'E_SKU_NOT_FOUND') {
+    return new Error(
+      `Store product not available for SKU ${sku}. Check App Store/Play product setup and tester account.`
+    );
+  }
+
+  if (rawMessage.includes('status=21002')) {
+    return new Error(
+      'Receipt verification failed (Apple status 21002). If running from Xcode with a local StoreKit file, disable StoreKit Configuration or use sandbox/TestFlight receipts.'
+    );
+  }
+
+  if (rawMessage.toLowerCase().includes('network request failed')) {
+    return new Error('Could not reach purchase verification server. Please check network/API host and try again.');
+  }
+
+  if (rawMessage.includes('Unknown product tier')) {
+    return new Error(`Server does not recognize product tier ${sku}. Verify backend SKU tier configuration.`);
+  }
+
+  if (rawMessage.includes('Tier') && rawMessage.includes('below item price')) {
+    return new Error('Selected purchase tier is below the clothing item price. Refresh the app and try again.');
+  }
+
+  if (code) {
+    return new Error(`${rawMessage} [${code}]`);
+  }
+
+  return new Error(rawMessage);
+}
+
+export function getPurchaseErrorMessage(error: any, fallback: string = 'Purchase failed'): string {
+  const message = String(error?.message || error?.error || fallback).trim();
+  const code = error?.code ? String(error.code) : '';
+  const status =
+    typeof error?.status === 'number'
+      ? String(error.status)
+      : typeof error?.response?.status === 'number'
+      ? String(error.response.status)
+      : '';
+
+  const details: string[] = [];
+  if (code) details.push(`Code: ${code}`);
+  if (status) details.push(`Status: ${status}`);
+
+  if (details.length === 0 && (message === fallback || message === 'Purchase failed')) {
+    return `${fallback}. Please check store configuration/test account and backend verification settings.`;
+  }
+
+  return details.length > 0 ? `${message}\n${details.join(' · ')}` : message;
+}
+
 /**
  * Map an item's per-item display price (in cents) to the smallest tier SKU
  * that fully covers it.
@@ -229,7 +285,7 @@ async function finishPurchase(purchase: RNIap.ProductPurchase) {
 
 export interface PointsVerifyResponse {
   success: boolean;
-  productId: string;
+  productId?: string;
   pointsAdded: number;
   basePoints?: number;
   bonusPoints?: number;
@@ -244,13 +300,29 @@ export interface PointsVerifyResponse {
  *   StoreKit/Play purchase -> backend receipt verify -> finish transaction.
  */
 export async function buyPointsPack(sku: PointsSKU): Promise<PointsVerifyResponse> {
-  const result = await purchaseOnce(sku);
-  const verify = await apiService.verifyPointsPurchase({
-    productId: result.productId,
-    platform: Platform.OS === 'ios' ? 'ios' : 'android',
-    appleReceipt: result.appleReceipt,
-    googlePurchaseToken: result.googlePurchaseToken,
-  });
+  let result: IapResult;
+  try {
+    result = await purchaseOnce(sku);
+  } catch (error: any) {
+    throw normalizePurchaseError(error, sku);
+  }
+
+  let verify: PointsVerifyResponse;
+  try {
+    verify = await apiService.verifyPointsPurchase({
+      productId: result.productId,
+      platform: Platform.OS === 'ios' ? 'ios' : 'android',
+      appleReceipt: result.appleReceipt,
+      googlePurchaseToken: result.googlePurchaseToken,
+    });
+  } catch (error: any) {
+    throw normalizePurchaseError(error, sku);
+  }
+
+  if (!verify.success) {
+    throw normalizePurchaseError(new Error(verify.error || 'Points purchase verification failed'), sku);
+  }
+
   // Only finish if server accepted; otherwise leave it pending so it will
   // be retried next launch.
   if (verify.success) {
@@ -279,16 +351,32 @@ export async function buyClothingItem(args: {
   priceCents: number;
 }): Promise<ClothingVerifyResponse> {
   const sku = tierForClothingPriceCents(args.priceCents);
-  const result = await purchaseOnce(sku);
-  const verify = await apiService.verifyClothingPurchase({
-    productId: result.productId,
-    clothingId: args.clothingId,
-    clothingType: args.clothingType,
-    clothingPriceCents: args.priceCents,
-    platform: Platform.OS === 'ios' ? 'ios' : 'android',
-    appleReceipt: result.appleReceipt,
-    googlePurchaseToken: result.googlePurchaseToken,
-  });
+  let result: IapResult;
+  try {
+    result = await purchaseOnce(sku);
+  } catch (error: any) {
+    throw normalizePurchaseError(error, sku);
+  }
+
+  let verify: ClothingVerifyResponse;
+  try {
+    verify = await apiService.verifyClothingPurchase({
+      productId: result.productId,
+      clothingId: args.clothingId,
+      clothingType: args.clothingType,
+      clothingPriceCents: args.priceCents,
+      platform: Platform.OS === 'ios' ? 'ios' : 'android',
+      appleReceipt: result.appleReceipt,
+      googlePurchaseToken: result.googlePurchaseToken,
+    });
+  } catch (error: any) {
+    throw normalizePurchaseError(error, sku);
+  }
+
+  if (!verify.success) {
+    throw normalizePurchaseError(new Error(verify.error || 'Clothing purchase verification failed'), sku);
+  }
+
   if (verify.success) {
     await finishPurchase(result.purchase);
   }
