@@ -53,6 +53,7 @@ import { v4 as uuidv4 } from 'uuid';
 import SyncedYouTubePlayer from '../../../components/SyncedYouTubePlayer';
 import { playPieceMoveSound, playDiceRollSound } from '../../../utils/nardiSound';
 import { chooseBestAiSequence } from '../../../game/nardiAI';
+import tokenService from '../../../services/token.service';
 
 const { width, height } = Dimensions.get('window');
 // Must match getGameBoardSize(false, false, 600, 32) so piece coordinates
@@ -137,6 +138,8 @@ const NardiScreen = ({ navigation, route }: any) => {
   const arOverlayRef = useRef<AR3DOverlayHandle>(null);
   // selectedPoint declared here (before arPieces) so the useMemo can reference it
   const [selectedPoint, setSelectedPoint] = useState<number | null>(null);
+  // Must be declared before arPieces useMemo; it reads myMpColorRef.current during render.
+  const myMpColorRef = useRef<'white'|'black'>('white');
   // Red flash overlay — triggered when player taps an invalid destination
   const invalidFlashOpacity = useSharedValue(0);
   const invalidFlashStyle = useAnimatedStyle(() => ({ opacity: invalidFlashOpacity.value }));
@@ -327,7 +330,6 @@ const NardiScreen = ({ navigation, route }: any) => {
   const roomNameRef = useRef(roomName);
   useEffect(() => { roomNameRef.current = roomName; }, [roomName]);
 
-  const myMpColorRef = useRef<'white'|'black'>('white');
   const myNardiColor: 'white'|'black' = isMultiplayer ? myMpColor : 'white';
   // Opening roll ceremony (multiplayer only)
   const [mpOpeningPhase, setMpOpeningPhase] = useState<'idle'|'rolling'|'done'>('idle');
@@ -572,7 +574,18 @@ const NardiScreen = ({ navigation, route }: any) => {
     setMpStatus('connecting');
     (async () => {
       try {
-        await socketService.connect(userId, (session as any)?.access_token || 'temp-token');
+        const accessToken = await tokenService.getAccessToken();
+        const fallbackToken = (session as any)?.access_token;
+        const token = accessToken || fallbackToken;
+        if (!token) {
+          if (!cancelled) {
+            setMpStatus('idle');
+            BisetkaAlert.error('Authentication Error', 'Please log in to play multiplayer games.');
+            navigation.goBack();
+          }
+          return;
+        }
+        await socketService.connect(userId, token);
         if (cancelled) return;
         const socket = socketService.getSocket();
         if (!socket) return;
@@ -590,13 +603,24 @@ const NardiScreen = ({ navigation, route }: any) => {
         });
         const onRoomAssigned = (data: any) => {
           if (cancelled) return;
+          if (resolvedRoomId) return;
           resolvedRoomId = data.roomId;
           roomIdRef.current = data.roomId;
           setRoomId(data.roomId);
           const color: 'white'|'black' = data.color === 'white' ? 'white' : 'black';
           myMpColorRef.current = color;
           setMyMpColor(color);
-          setMpStatus('waiting');
+          if (routeMode === 'random') {
+            // Random matchmaking already paired both players; do not block on a
+            // possibly-missed game_started event.
+            setMpStatus('playing');
+            setMpOpeningPhase(prev => (prev === 'idle' ? 'rolling' : prev));
+            setMyOpeningRoll(null);
+            setOpponentOpeningRoll(null);
+            setOpeningTieMsg(null);
+          } else {
+            setMpStatus('waiting');
+          }
         };
         socket.on('match_found', (data: any) => {
           onRoomAssigned(data);
@@ -606,6 +630,10 @@ const NardiScreen = ({ navigation, route }: any) => {
         socket.on('opponent_joined', () => {
           if (cancelled || !resolvedRoomId) return;
           socket.emit('player_ready', {roomId: resolvedRoomId, userId});
+          // Fallback for deployments where game_started is not consistently
+          // emitted for Nardi. Once opponent joins, allow opening roll.
+          setMpStatus('playing');
+          setMpOpeningPhase(prev => (prev === 'idle' ? 'rolling' : prev));
         });
         socket.on('game_started', () => {
           if (cancelled) return;
@@ -697,7 +725,11 @@ const NardiScreen = ({ navigation, route }: any) => {
           setGameState(prev => prev ? {...prev, winner: myMpColorRef.current} : prev);
         });
         if (routeMode === 'random') {
-          socket.emit('find_match', {gameType: 'nardi', userId});
+          const matchData = await socketService.findMatch('nardi', userId);
+          if (!cancelled) {
+            onRoomAssigned(matchData);
+            socket.emit('player_ready', { roomId: matchData.roomId, userId });
+          }
         } else if (routeMode === 'private-create') {
           const roomData = await socketService.createPrivateRoom('nardi', userId, (session as any)?.code);
           if (!cancelled) { onRoomAssigned(roomData); socket.emit('player_ready', {roomId: roomData.roomId, userId}); }
