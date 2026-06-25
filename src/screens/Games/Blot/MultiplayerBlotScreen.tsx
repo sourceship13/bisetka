@@ -232,7 +232,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
   const [showBackground, setShowBackground] = useState(true);
   const [arCards, setArCards] = useState<ARCard[]>([]);
   const [showBlur, setShowBlur] = useState(false);
-  const [arEnabled, setArEnabled] = useState(true);
+  const [arEnabled, setArEnabled] = useState(false);
   const [showMusicPlayer, setShowMusicPlayer] = useState(false);
   const arOverlayRef = useRef<AR3DOverlayHandle>(null);
   const [showRiffleDealAnimation, setShowRiffleDealAnimation] = useState(false);
@@ -247,12 +247,18 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
 
   // Load saved theme from storage on mount
   useEffect(() => {
+    if (initialMode !== 'ai') {
+      // Multiplayer should start from the canonical board/card look unless
+      // a room theme is explicitly applied/broadcast.
+      setCustomTheme(undefined);
+      return;
+    }
     AsyncStorage.getItem('blot_card_theme').then((stored) => {
       if (stored) {
         try { setCustomTheme(JSON.parse(stored)); } catch {}
       }
     });
-  }, []);
+  }, [initialMode]);
 
   // Entry fee & prize logic
   // Deduct entry when game starts (AI or multiplayer)
@@ -266,6 +272,23 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
   // Sync trick cards to AR 3D overlay
   useEffect(() => {
     if (!arEnabled) { setArCards([]); return; }
+
+    const multiplayerTrickCards = (() => {
+      const trick = (gameState as any)?.currentTrick;
+      if (Array.isArray(trick?.cards)) return trick.cards;
+      if (Array.isArray(trick)) {
+        return trick
+          .map((card: any) => ({
+            card,
+            position: card?.position,
+            seat: card?.seat,
+            color: card?.color,
+            isHuman: card?.isHuman,
+          }))
+          .filter((cp: any) => !!(cp?.card?.suit && cp?.card?.rank));
+      }
+      return [] as any[];
+    })();
 
     const TILT = 0; // flat on table surface
     const arPositions: Record<number, { x: number; y: number; z: number }> = {
@@ -311,8 +334,8 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
     }
 
     // Case 2: Multiplayer 4P — cards have a .position property
-    if (playerPosition !== null && gameState?.currentTrick?.cards) {
-      const mapped: ARCard[] = gameState.currentTrick.cards
+    if (playerPosition !== null && multiplayerTrickCards.length > 0) {
+      const mapped: ARCard[] = multiplayerTrickCards
         .filter((cp: any) => cp?.card?.suit && cp?.card?.rank)
         .map((cp: any) => {
           const rel = ((cp.position - playerPosition + 4) % 4) as 0 | 1 | 2 | 3;
@@ -339,8 +362,8 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
     }
 
     // Case 3: Multiplayer 2P — use isHuman/color to determine bottom vs top
-    if (gameState?.currentTrick?.cards) {
-      const mapped: ARCard[] = gameState.currentTrick.cards
+    if (multiplayerTrickCards.length > 0) {
+      const mapped: ARCard[] = multiplayerTrickCards
         .filter((cp: any) => cp?.card?.suit && cp?.card?.rank)
         .map((cp: any) => {
           const slot = (cp.isHuman || cp.color === playerColor) ? 0 : 2;
@@ -448,6 +471,23 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
         undefined;
       return resolvedMyHand ? { ...next, myHand: resolvedMyHand } : next;
     });
+  };
+
+  const getTrickCardsFor2D = (state: any): any[] => {
+    const trick = state?.currentTrick;
+    if (Array.isArray(trick)) return trick;
+    if (Array.isArray(trick?.cards)) {
+      return trick.cards
+        .map((cp: any) => ({
+          ...(cp?.card || {}),
+          position: cp?.position,
+          seat: cp?.seat,
+          color: cp?.color,
+          isHuman: cp?.isHuman,
+        }))
+        .filter((c: any) => !!(c?.suit && c?.rank));
+    }
+    return [];
   };
 
   // SUIT constants for table UI
@@ -1348,20 +1388,19 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
 
     let animatedOpacity: any = undefined;
 
-    const suitColor = SUIT_COLOR[(card as any).suit] ?? '#000';
-    const suitIcon  = SUIT_ICON[(card as any).suit]  ?? (card as any).suit;
-    const cardContent = (
-      <View style={isTrickCard ? styles.nativeCardTrick : styles.nativeCard}>
-        <View style={styles.nativeCardCorner}>
-          <Text style={[styles.nativeCardRank, { color: suitColor }]}>{(card as any).rank}</Text>
-          <Text style={[styles.nativeCardSuit, { color: suitColor }]}>{suitIcon}</Text>
-        </View>
-        <Text style={[styles.nativeCardCenter, { color: suitColor }]}>{suitIcon}</Text>
-        <View style={[styles.nativeCardCorner, { alignSelf: 'flex-end', transform: [{ rotate: '180deg' }] }]}>
-          <Text style={[styles.nativeCardRank, { color: suitColor }]}>{(card as any).rank}</Text>
-          <Text style={[styles.nativeCardSuit, { color: suitColor }]}>{suitIcon}</Text>
-        </View>
-      </View>
+    const cardImage = getCardImage({ rank: (card as any).rank, suit: (card as any).suit });
+    const cardContent = cardImage ? (
+      <Image
+        source={cardImage}
+        style={isTrickCard ? styles.cardImageTrick : styles.cardImage}
+        resizeMode="cover"
+      />
+    ) : (
+      <Image
+        source={getCardBackImage('red')}
+        style={isTrickCard ? styles.cardImageTrick : styles.cardImage}
+        resizeMode="cover"
+      />
     );
 
     return (
@@ -1604,6 +1643,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
 
   const renderGame = () => {
     const is4P = playerPosition !== null;
+    const trickCards = getTrickCardsFor2D(gameState);
     // 4-player: use the per-player hand from gameState.myHand or hands[position]
     // 2-player: use player1Hand / player2Hand
     // CPU replacement: use myHand (from server) or cpuWhiteHand / cpuBlackHand
@@ -1700,7 +1740,6 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
                 {is4P ? '👥 2v2 • 🤖 CPU-free' : '🤖 CPU Partner (same team)'}
               </Text>
 
-              {!arEnabled && (
               <View
                 style={[
                   styles.tableContainer,
@@ -1721,9 +1760,9 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
                     <View style={[styles.cardPlaceholder, styles.trickSlotRight]} />
                   </View>
                   
-                  {gameState?.currentTrick && gameState.currentTrick.length > 0 && (
+                  {trickCards.length > 0 && (
                     <View style={styles.trickArea}>
-                      {gameState.currentTrick.map((card: any, index: number) => {
+                      {trickCards.map((card: any, index: number) => {
                         let slotStyle;
                         if (is4P) {
                           const rel = ((card.position as number) - playerPosition! + 4) % 4;
@@ -1767,9 +1806,9 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
                     <View style={[styles.cardPlaceholder, styles.trickSlotLeft]} />
                     <View style={[styles.cardPlaceholder, styles.trickSlotRight]} />
                   </View>
-                  {gameState?.currentTrick && gameState.currentTrick.length > 0 && (
+                  {trickCards.length > 0 && (
                     <View style={styles.trickArea}>
-                      {gameState.currentTrick.map((card: any, index: number) => {
+                      {trickCards.map((card: any, index: number) => {
                         let slotStyle;
                         if (is4P) {
                           const rel = ((card.position as number) - playerPosition! + 4) % 4;
@@ -1807,7 +1846,6 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
                 </View>
                 )}
               </View>
-              )}
             </View>
 
             <View style={[styles.handContainer, showRiffleDealAnimation && { opacity: 0 }]}>
@@ -2207,6 +2245,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 16,
     paddingBottom: 16,
+  },
+  cardImage: {
+    width: 77,
+    height: 107,
+    borderRadius: 8,
+  },
+  cardImageTrick: {
+    width: 52,
+    height: 72,
+    borderRadius: 6,
   },
   nativeCard: {
     width: 77,
