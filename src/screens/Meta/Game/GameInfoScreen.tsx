@@ -105,8 +105,7 @@ const GameInfoScreen: React.FC<Props> = ({ route, navigation }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showRulesDetailed, setShowRulesDetailed] = useState(false);
-  const disableRandomMatch =
-    gameType === 'blot' || gameType === 'baazar-blot' || gameType === 'nardi';
+  const disableRandomMatch: boolean = true;
   const [selectedMode, setSelectedMode] = useState<GameMode>(
     disableRandomMatch && preferredMode === 'random' ? 'ai' : preferredMode ?? 'ai'
   );
@@ -259,13 +258,12 @@ const GameInfoScreen: React.FC<Props> = ({ route, navigation }) => {
     }
     if (
       gameType === 'billiards' ||
-      gameType === '8-ball' ||
       gameType === '9-ball'
     ) {
       // Re-create the AI session and route to BilliardsGame.
       (async () => {
         try {
-          const session = await gameSessionsService.createAiMatch(
+          const session: any = await gameSessionsService.createAiMatch(
             gameType as any,
             'medium',
             false,
@@ -426,13 +424,13 @@ const GameInfoScreen: React.FC<Props> = ({ route, navigation }) => {
       return;
     }
 
-    // Billiards / 8-ball / 9-ball — bypass GameModeScreen for the same reason
+    // Billiards / 9-ball — bypass GameModeScreen for the same reason
     // as blot. Going through GameMode does a navigation.reset which causes
     // Fabric's RCTComponentViewRegistry to throw "Attempt to recycle a mounted
     // view" on iOS. We create the session directly here and navigate straight
     // to BilliardsGame.
     const isBilliards =
-      gameType === 'billiards' || gameType === '8-ball' || gameType === '9-ball';
+      gameType === 'billiards' || gameType === '9-ball';
     if (isBilliards) {
       try {
         let session: any;
@@ -806,7 +804,7 @@ const GameInfoScreen: React.FC<Props> = ({ route, navigation }) => {
           <View style={{ paddingHorizontal: 16, gap: 12 }}>
             {GAME_MODE_OPTIONS.filter(opt => {
               if (gameType === 'blackjack') return opt.id === 'ai';
-              if (disableRandomMatch && opt.id === 'random') return false;
+              if (opt.id === 'random') return false;
               return true;
             }).map(opt => {
               const active = selectedMode === opt.id;

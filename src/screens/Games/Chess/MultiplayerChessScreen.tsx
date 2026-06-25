@@ -126,6 +126,11 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
     return null;
   };
 
+  const sameUser = (a: any, b: any): boolean => {
+    if (a == null || b == null) return false;
+    return String(a) === String(b);
+  };
+
   const resolveColorFromPayload = (payload: any): 'white' | 'black' | null => {
     const direct =
       normalizeColor(payload?.myColor) ??
@@ -135,8 +140,8 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
       normalizeColor(payload?.side);
     if (direct) return direct;
 
-    if (payload?.player1Id === userId || payload?.player1?.id === userId) return 'white';
-    if (payload?.player2Id === userId || payload?.player2?.id === userId) return 'black';
+    if (sameUser(payload?.player1Id, userId) || sameUser(payload?.player1?.id, userId)) return 'white';
+    if (sameUser(payload?.player2Id, userId) || sameUser(payload?.player2?.id, userId)) return 'black';
     return null;
   };
 
@@ -152,6 +157,10 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
     myColorRef.current = color;
     setMyColor(color);
   };
+
+  useEffect(() => {
+    setIsMyTurn(currentTurn === myColor);
+  }, [currentTurn, myColor]);
 
   const arPieces = React.useMemo<ARPiece[]>(() => {
     if (!gameState) return [];
@@ -221,12 +230,22 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
         setCurrentTurn(serverTurn);
         setIsMyTurn(serverTurn === assignedColor);
         // Apply server-sent roomId if provided (ensures stale closures resolve correctly)
-        if (data.roomId) {
-          roomIdRef.current = data.roomId;
-          setRoomId(data.roomId);
+        const liveRoomId = data.roomId || roomIdRef.current;
+        if (liveRoomId) {
+          roomIdRef.current = liveRoomId;
+          setRoomId(liveRoomId);
         }
         const initialGame = initializeChessGame('medium');
-        setGameState(initialGame);
+        if (data.gameState?.board) {
+          const clientBoard = serverBoardToClient(data.gameState.board);
+          setGameState({
+            ...initialGame,
+            board: clientBoard,
+            currentPlayer: serverTurn,
+          });
+        } else {
+          setGameState({ ...initialGame, currentPlayer: serverTurn });
+        }
       });
 
       socketService.onMoveMade((data) => {
@@ -587,6 +606,10 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
     // Send move to server — use ref to avoid stale roomId
     const move: GameMove = {from, to};
     const liveRoomId = roomIdRef.current || roomId;
+    if (!liveRoomId) {
+      BisetkaAlert.error('Move Error', 'Missing room id. Please rejoin the match.');
+      return;
+    }
     console.log('📤 Sending move to server:', {roomId: liveRoomId, userId, move});
     socketService.makeMove(liveRoomId, userId, move);
     
