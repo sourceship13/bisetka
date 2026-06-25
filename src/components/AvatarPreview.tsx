@@ -92,7 +92,7 @@ const BUILD_OVERRIDES: Record<string, BuildOverrides> = {
 
   'male-athletic': {
     top: { left: 0.329, width: 0.36, top: 0.22, height: 0.34 },
-    jacket: { left: 0.18, width: 0.64, top: 0.21 },
+    jacket: { left: 0.13, width: 0.75, top: 0.19 },
     bottom: { left: 0.2866, width: 0.42, top: 0.5066 },
     shorts: { left: 0.28, width: 0.44, top: 0.52 },
     shoes: { left: 0.22, width: 0.52, top: 0.88 },
