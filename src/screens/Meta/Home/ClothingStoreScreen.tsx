@@ -20,7 +20,7 @@ import { ClothingItem, ClothingType, Rarity } from '../../../types/avatar2d';
 import { ALL_CLOTHING_ITEMS, filterClothingForAvatar, getAvatarBuildById, getAvatarGenderById, STARTER_ITEM_IDS } from '../../../data/clothingItems';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { useAuth } from '../../../libs/hooks/useAuth';
-import { buyClothingItem } from '../../../services/iap.service';
+import { buyClothingItem, getPurchaseErrorMessage } from '../../../services/iap.service';
 
 const STORE_OWNED_KEY = 'ownedClothing';
 const STORE_EQUIPPED_KEY = '@bisetka_equipped_clothing';
@@ -214,7 +214,7 @@ const ClothingStoreScreen: React.FC<any> = ({ navigation }) => {
               if (!err?.cancelled) {
                 BisetkaAlert.error(
                   'Purchase Failed',
-                  err?.message || 'Could not complete the purchase.',
+                  getPurchaseErrorMessage(err, 'Could not complete the purchase.'),
                 );
               }
             } finally {
