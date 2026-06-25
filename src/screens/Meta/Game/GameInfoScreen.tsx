@@ -105,7 +105,11 @@ const GameInfoScreen: React.FC<Props> = ({ route, navigation }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showRulesDetailed, setShowRulesDetailed] = useState(false);
-  const [selectedMode, setSelectedMode] = useState<GameMode>(preferredMode ?? 'ai');
+  const disableRandomMatch =
+    gameType === 'blot' || gameType === 'baazar-blot' || gameType === 'nardi';
+  const [selectedMode, setSelectedMode] = useState<GameMode>(
+    disableRandomMatch && preferredMode === 'random' ? 'ai' : preferredMode ?? 'ai'
+  );
   const isTeamGame = gameType === 'blot' || gameType === 'baazar-blot';
   const [selectedTeamMode, setSelectedTeamMode] = useState<TeamMode>('hybrid');
   const [showPointsModal, setShowPointsModal] = useState(false);
@@ -124,6 +128,12 @@ const GameInfoScreen: React.FC<Props> = ({ route, navigation }) => {
   useEffect(() => {
     fetchGameInfo();
   }, [gameType]);
+
+  useEffect(() => {
+    if (disableRandomMatch && selectedMode === 'random') {
+      setSelectedMode('ai');
+    }
+  }, [disableRandomMatch, selectedMode]);
 
   // When the user navigates back to this screen (from a multiplayer game or
   // GameMode), make sure the searching modal isn't still up.
@@ -320,6 +330,8 @@ const GameInfoScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const handlePlayNow = async () => {
     if (!gameInfo) return;
+    const modeToPlay: GameMode =
+      disableRandomMatch && selectedMode === 'random' ? 'ai' : selectedMode;
     const skipCheck = gameType === 'slots' || gameType === 'blackjack';
 
     if (!skipCheck) {
@@ -358,13 +370,13 @@ const GameInfoScreen: React.FC<Props> = ({ route, navigation }) => {
     // native view recycling on some devices.
     if (isTeamGame) {
       const userId = user?.id || 'guest';
-      if (selectedMode === 'ai') {
+      if (modeToPlay === 'ai') {
         // Single-player blot vs AI — no server session needed.
         const target = gameType === 'baazar-blot' ? 'BaazarBlot' : 'Blot';
         navigation.navigate(target as any);
         return;
       }
-      if (selectedMode === 'private') {
+      if (modeToPlay === 'private') {
         // Private rooms have no "finding opponent" — navigate immediately so
         // the multiplayer screen can show the room code / join UI.
         const target =
@@ -424,7 +436,7 @@ const GameInfoScreen: React.FC<Props> = ({ route, navigation }) => {
     if (isBilliards) {
       try {
         let session: any;
-        if (selectedMode === 'ai') {
+        if (modeToPlay === 'ai') {
           session = await gameSessionsService.createAiMatch(
             gameType as any,
             'medium',
@@ -440,7 +452,7 @@ const GameInfoScreen: React.FC<Props> = ({ route, navigation }) => {
           });
           return;
         }
-        if (selectedMode === 'private') {
+        if (modeToPlay === 'private') {
           session = await gameSessionsService.createPrivateMatch(
             gameType as any,
           );
@@ -505,12 +517,12 @@ const GameInfoScreen: React.FC<Props> = ({ route, navigation }) => {
       'poker': 'PokerRoom',
     };
     const isMultiplayerMode =
-      selectedMode === 'random' || selectedMode === 'private';
+      modeToPlay === 'random' || modeToPlay === 'private';
     const directTarget = SOCKET_MULTIPLAYER_TARGET[gameType];
     if (isMultiplayerMode && directTarget) {
       const userId = user?.id || 'guest';
       const navMode =
-        selectedMode === 'private' ? 'private-create' : 'random';
+        modeToPlay === 'private' ? 'private-create' : 'random';
 
       // Poker / Nardi / private rooms / unsupported — keep direct nav so the
       // destination screen runs its own connect + wait flow.
@@ -574,7 +586,7 @@ const GameInfoScreen: React.FC<Props> = ({ route, navigation }) => {
       gameType: gameType as any,
       bisetkaId,
       bisetkaName,
-      preferredMode: selectedMode,
+      preferredMode: modeToPlay,
       teamMode: isTeamGame ? selectedTeamMode : undefined,
     } as any);
   };
@@ -792,7 +804,11 @@ const GameInfoScreen: React.FC<Props> = ({ route, navigation }) => {
             Select Game Mode:
           </Text>
           <View style={{ paddingHorizontal: 16, gap: 12 }}>
-            {GAME_MODE_OPTIONS.filter(opt => gameType === 'blackjack' ? opt.id === 'ai' : true).map(opt => {
+            {GAME_MODE_OPTIONS.filter(opt => {
+              if (gameType === 'blackjack') return opt.id === 'ai';
+              if (disableRandomMatch && opt.id === 'random') return false;
+              return true;
+            }).map(opt => {
               const active = selectedMode === opt.id;
               return (
                 <TouchableOpacity
