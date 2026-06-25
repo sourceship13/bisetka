@@ -215,8 +215,8 @@ export const AvatarPreview: React.FC<AvatarPreviewProps> = ({
         const item = equipped[slot];
         if (!item) return null;
         const region = getSlotRegion(slot, baseAvatar);
-        const w = Math.round(size * region.width);
-        const h = Math.round(size * region.height);
+        const width = Math.round(size * region.width);
+        const height = Math.round(size * region.height);
         const top = Math.round(size * region.top);
         const left = Math.round(size * region.left);
         return (
@@ -226,12 +226,12 @@ export const AvatarPreview: React.FC<AvatarPreviewProps> = ({
               position: 'absolute',
               top,
               left,
-              width: w,
-              height: h,
+              width: width,
+              height: height,
             }}
             pointerEvents="none"
           >
-            <AssetImage source={item.imageUrl} width={w} height={h} />
+            <AssetImage source={item.imageUrl} width={width} height={height} />
           </View>
         );
       })}
