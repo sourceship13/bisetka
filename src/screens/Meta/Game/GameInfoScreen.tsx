@@ -82,7 +82,7 @@ const GAME_MODE_OPTIONS: Array<{
 }> = [
   {
     id: 'random',
-    title: 'Random Match',
+    title: 'Online Match',
     subtitle: 'Find an opponent online',
   },
   {
@@ -118,6 +118,7 @@ const GameInfoScreen: React.FC<Props> = ({ route, navigation }) => {
   // until the server reports a match (or the user cancels) — only then do we
   // navigate to the actual gameplay screen.
   const [showSearchingModal, setShowSearchingModal] = useState(false);
+  const [showComingSoonModal, setShowComingSoonModal] = useState(false);
   // Set to true when the user taps Cancel so the in-flight matchmaking
   // promise resolution does not navigate after the fact.
   const matchmakingCancelledRef = useRef(false);
@@ -328,6 +329,10 @@ const GameInfoScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const handlePlayNow = async () => {
     if (!gameInfo) return;
+    if (selectedMode === 'random') {
+      setShowComingSoonModal(true);
+      return;
+    }
     const modeToPlay: GameMode =
       disableRandomMatch && selectedMode === 'random' ? 'ai' : selectedMode;
     const skipCheck = gameType === 'slots' || gameType === 'blackjack';
@@ -804,18 +809,25 @@ const GameInfoScreen: React.FC<Props> = ({ route, navigation }) => {
           <View style={{ paddingHorizontal: 16, gap: 12 }}>
             {GAME_MODE_OPTIONS.filter(opt => {
               if (gameType === 'blackjack') return opt.id === 'ai';
-              if (opt.id === 'random') return false;
               return true;
             }).map(opt => {
+              const isComingSoon = opt.id === 'random';
               const active = selectedMode === opt.id;
               return (
                 <TouchableOpacity
                   key={opt.id}
-                  onPress={() => setSelectedMode(opt.id)}
+                  onPress={() => {
+                    if (isComingSoon) {
+                      setShowComingSoonModal(true);
+                    } else {
+                      setSelectedMode(opt.id);
+                    }
+                  }}
                   activeOpacity={0.85}
                   style={[
                     styles.modeRow,
                     active && styles.modeRowActive,
+                    isComingSoon && { opacity: 0.7 },
                   ]}>
                   <View
                     style={[
@@ -825,7 +837,14 @@ const GameInfoScreen: React.FC<Props> = ({ route, navigation }) => {
                     {active && <View style={styles.radioInner} />}
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.modeTitle}>{opt.title}</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                      <Text style={styles.modeTitle}>{opt.title}</Text>
+                      {isComingSoon && (
+                        <View style={styles.comingSoonBadge}>
+                          <Text style={styles.comingSoonBadgeText}>Coming Soon</Text>
+                        </View>
+                      )}
+                    </View>
                     <Text style={styles.modeSubtitle}>{opt.subtitle}</Text>
                   </View>
                 </TouchableOpacity>
@@ -877,6 +896,28 @@ const GameInfoScreen: React.FC<Props> = ({ route, navigation }) => {
             </Text>
             <TouchableOpacity
               onPress={() => setShowPointsModal(false)}
+              style={styles.modalDismiss}>
+              <Text style={styles.modalDismissText}>Got It</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Coming Soon modal */}
+      <Modal
+        visible={showComingSoonModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowComingSoonModal(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalIcon}>🚀</Text>
+            <Text style={styles.modalTitle}>Coming in Next Update!</Text>
+            <Text style={styles.modalBody}>
+              Online Matches will be available in the next update. Can't wait to be the King of the Bisetka,  Stay tuned!
+            </Text>
+            <TouchableOpacity
+              onPress={() => setShowComingSoonModal(false)}
               style={styles.modalDismiss}>
               <Text style={styles.modalDismissText}>Got It</Text>
             </TouchableOpacity>
@@ -1184,6 +1225,18 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.7)',
     fontSize: 13,
     marginTop: 4,
+  },
+  comingSoonBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    backgroundColor: '#f59e0b',
+  },
+  comingSoonBadgeText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.3,
   },
 
   /* Footer */
