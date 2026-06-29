@@ -90,7 +90,7 @@ const DMListScreen: React.FC<Props> = ({ navigation }) => {
 
   const renderChat = ({ item, index }: { item: Chat; index: number }) => {
     const isGroup = item.type === 'room';
-    const avatar = resolveAvatar(item.avatar_url) || AVATARS[0].source;
+    const avatar = resolveAvatar(item.avatar_url);
     const time = formatTime(item.last_message_at);
     const unread = item.unread_count ?? 0;
 
@@ -101,16 +101,16 @@ const DMListScreen: React.FC<Props> = ({ navigation }) => {
         onPress={() => handleChatPress(item)}>
         <View style={styles.avatarWrap}>
           <View style={styles.avatarCircle}>
-            <Image source={avatar} style={styles.avatarImg} resizeMode="contain" />
+            {avatar ? (
+              <Image source={avatar} style={styles.avatarImg} resizeMode="contain" />
+            ) : (
+              <Icon name={isGroup ? 'account-group' : 'account'} size={28} color="#a78bfa" />
+            )}
           </View>
           {isGroup && (
             <View style={styles.groupOverlay}>
               <View style={[styles.avatarCircle, styles.avatarCircleSmall]}>
-                <Image
-                  source={AVATARS[1]?.source || AVATARS[0].source}
-                  style={styles.avatarImg}
-                  resizeMode="contain"
-                />
+                <Icon name="account" size={18} color="#a78bfa" />
               </View>
               <View style={styles.groupCount}>
                 <Text style={styles.groupCountText}>+3</Text>
