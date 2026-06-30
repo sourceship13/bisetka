@@ -21,6 +21,9 @@ import apiService from '../services/api.service';
 import BlotCard from '../components/BlotCard';
 import { CardType } from '../components/Card';
 import InGameChat from '../components/InGameChat';
+import AraratBackground from '../components/AraratBackground';
+import AR3DOverlay, { type AR3DOverlayHandle, type ARCard } from '../components/AR3DOverlay';
+import { getCardImage, getCardBackImage } from '../data/cardsNew';
 import GameToolbar from '../components/global/GameToolbar';
 import RoomNameModal from '../components/RoomNameModal';
 import CardCustomizationModal from '../components/global/GameCustomizationModal';
@@ -118,11 +121,55 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
   const [isShowingCompletedTrick, setIsShowingCompletedTrick] = useState(false);
   const [showRoomNameModal, setShowRoomNameModal] = useState(false);
   const [showDealAnimation, setShowDealAnimation] = useState(false);
+  const [arEnabled, setArEnabled] = useState(true);
+  const [arCards, setArCards] = useState<ARCard[]>([]);
+  const arOverlayRef = useRef<AR3DOverlayHandle>(null);
   const showDealAnimationRef = useRef(false);
   const pendingGameStateRef = useRef<(BaazarGameState & { currentPlayer: number }) | null>(null);
   const prevPhaseRef = useRef<string | null>(null);
   const roomIdRef = useRef<string | null>(null);
   useEffect(() => { roomIdRef.current = roomId; }, [roomId]);
+
+  // Sync displayTrick to AR 3D overlay
+  useEffect(() => {
+    if (!arEnabled || !displayTrick.length) { setArCards([]); return; }
+    const TILT = 0;
+    const positions: Record<number, { x: number; y: number; z: number }> = {
+      0: { x:  0.00, y: -0.30, z: 0.02 },
+      1: { x:  0.30, y:  0.00, z: 0.02 },
+      2: { x:  0.00, y:  0.30, z: 0.02 },
+      3: { x: -0.30, y:  0.00, z: 0.02 },
+    };
+    const rotations: Record<number, { x: number; y: number; z: number }> = {
+      0: { x: TILT, y: 0, z: 0 },
+      1: { x: TILT, y: 0, z: -Math.PI / 2 },
+      2: { x: TILT, y: 0, z: Math.PI },
+      3: { x: TILT, y: 0, z:  Math.PI / 2 },
+    };
+    const mapped: ARCard[] = displayTrick
+      .filter(tc => tc?.card?.suit && tc?.card?.rank)
+      .map(tc => {
+        const rel = ((tc.playerPosition - myPosition + 4) % 4) as 0 | 1 | 2 | 3;
+        return {
+          key: `trick-${tc.playerPosition}-${tc.card.suit}-${tc.card.rank}`,
+          position: positions[rel] ?? { x: 0, y: 0, z: 0.025 },
+          rotation: rotations[rel] ?? { x: 0, y: 0, z: 0 },
+          scale: 1,
+          cardData: {
+            suit: tc.card.suit as ARCard['cardData']['suit'],
+            rank: tc.card.rank as ARCard['cardData']['rank'],
+            value: 0,
+            faceDown: false,
+            backgroundImageUri: customTheme?.backgroundImage ?? undefined,
+            cardBackImageUri:   customTheme?.cardBackImage   ?? undefined,
+            cardFaceImageUri:     Image.resolveAssetSource(getCardImage({ rank: tc.card.rank, suit: tc.card.suit }))?.uri,
+            cardBackFaceImageUri: Image.resolveAssetSource(getCardBackImage('red'))?.uri,
+            font:               customTheme?.font             ?? undefined,
+          },
+        };
+      });
+    setArCards(mapped);
+  }, [arEnabled, displayTrick, myPosition, customTheme]);
 
   // Trigger deal animation when bidding phase ends and playing begins
   useEffect(() => {
@@ -925,7 +972,7 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
           </Text>
 
           {/* Card table */}
-          <View style={[styles.tableContainer, { width: TABLE_SIZE, height: TABLE_SIZE }]}>
+          {!arEnabled && <View style={[styles.tableContainer, { width: TABLE_SIZE, height: TABLE_SIZE }]}>
             {showBackground ? (
               <ImageBackground
                 source={customTheme?.boardImage ? { uri: customTheme.boardImage } : require('../../assets/blot/card-table.png')}
@@ -994,7 +1041,7 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
                 })()}
               </View>
             )}
-          </View>
+          </View>}
         </View>
 
         {/* Player's hand */}
@@ -1104,13 +1151,11 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
     }
 
     return (
-      <ImageBackground
-        source={require('../../assets/blot/park-background.png')}
-        style={styles.bg}
-        resizeMode="cover">
-        <View
-          style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(15,15,35,0.7)' }]}
-        />
+      <View style={styles.bg}>
+        <AraratBackground overlayOpacity={showBlur ? 0.65 : 0.3}>
+          <AR3DOverlay ref={arOverlayRef} visible={arEnabled} boardGlbPath="glb/game_boards/rounded_table_panel_v4.glb" boardSurfaceImagePath="blot/card-table.png" hideCheckerboard boardFixed boardFixedZoom={1.0} boardScale={1.9} tableDist={0.9} boardY={-1.5} boardTiltX={0} cardGlbPath="glb/cards/card-template.glb" cards={arCards} />
+        </AraratBackground>
+        <View style={styles.overlay}>
         <SafeAreaView style={styles.safe}>
           <View>
             <GameToolbar
@@ -1145,6 +1190,13 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
                   style={styles.editRoomButton}
                 >
                   <Text style={styles.editRoomIcon}>{showBackground ? '🖼️' : '🔲'}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => setArEnabled(v => !v)}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  style={styles.editRoomButton}
+                >
+                  <Text style={styles.editRoomIcon}>{arEnabled ? '🎲' : '🃏'}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={() => setShowRoomNameModal(true)}
@@ -1229,6 +1281,7 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
             visible={!!(roomId)}
           />
         </SafeAreaView>
+        </View>
 
       <RiffleDealAnimation
         visible={showDealAnimation}
@@ -1260,7 +1313,7 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
           onSave={handleSaveRoomName}
           gameType="Baazar Blot"
         />
-      </ImageBackground>
+      </View>
     );
   };
 
@@ -1296,6 +1349,7 @@ const styles = StyleSheet.create({
   // ── Root layout ────────────────────────────────────────────────────────
   bg: { flex: 1 },
   safe: { flex: 1 },
+  overlay: { flex: 1 },
   body: { flex: 1 },
 
   // ── Menu / matchmaking ─────────────────────────────────────────────────
