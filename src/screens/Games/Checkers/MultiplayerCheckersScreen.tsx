@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useRef, useCallback} from 'react';
+import React, {useState, useEffect, useRef, useCallback, useMemo} from 'react';
 import {
   View,
   Text,
@@ -12,7 +12,7 @@ import {
 import {BisetkaAlert} from '../../../utils/BisetkaAlert';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import AraratBackground from '../../../components/AraratBackground';
-import AR3DOverlay, {type AR3DOverlayHandle} from '../../../components/AR3DOverlay';
+import AR3DOverlay, {type AR3DOverlayHandle, type ARPiece} from '../../../components/AR3DOverlay';
 import ReAnimated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import ExpandableView from '../../../components/global/ExpandableView';
 import GameToolbar from '../../../components/global/GameToolbar';
@@ -529,6 +529,48 @@ const MultiplayerCheckersScreen = ({navigation, route}: any) => {
     [gameState, isMyTurn, myPieceColor, roomId, userId, isSpectating],
   );
 
+  const handleArSquareTap = useCallback((logRow: number, logCol: number) => {
+    const dRow = myPieceColor === 'black' ? 7 - logRow : logRow;
+    const dCol = myPieceColor === 'black' ? 7 - logCol : logCol;
+    handleSquarePress(dRow, dCol);
+  }, [myPieceColor, handleSquarePress]);
+
+  const arPieces = useMemo<ARPiece[]>(() => {
+    const FIELD_HALF = 0.305;
+    const SQ = (FIELD_HALF * 2) / 8;
+    const CHECKER_SZ = SQ * 0.70;
+    const SURFACE_Z = 0.002;
+    const EDGE_INSET = SQ * 0.45;
+    const result: ARPiece[] = [];
+    gameState.board.forEach((row, r) => {
+      row.forEach((piece, c) => {
+        if (!piece) return;
+        if ((r + c) % 2 === 0) return;
+        const baseX = -FIELD_HALF + (c + 0.5) * SQ;
+        const baseY = FIELD_HALF - (r + 0.5) * SQ;
+        let posX = baseX;
+        let posY = baseY;
+        if (c === 0) posX = baseX + EDGE_INSET;
+        else if (c === 7) posX = baseX - EDGE_INSET;
+        result.push({
+          key: `${r}-${c}`,
+          row: r,
+          col: c,
+          color: piece.color,
+          side: piece.color === 'red' ? 'white' : 'black',
+          pieceType: 'checker',
+          pieceScale: CHECKER_SZ,
+          posX,
+          posY,
+          posZ: SURFACE_Z,
+          isKing: piece.type === 'king',
+          isSelected: gameState.selectedSquare?.row === r && gameState.selectedSquare?.col === c,
+        });
+      });
+    });
+    return result;
+  }, [gameState.board, gameState.selectedSquare]);
+
   // ── sub-renders ────────────────────────────────────────────────────────────
   const renderMenu = () => (
     <View style={styles.menuContainer}>
@@ -597,9 +639,14 @@ const MultiplayerCheckersScreen = ({navigation, route}: any) => {
         <AR3DOverlay
           ref={arOverlayRef}
           visible={arEnabled}
+          pieces={arPieces}
+          moves={gameState.possibleMoves}
+          onSquareTap={handleArSquareTap}
           boardGlbPath="glb/checkers/Bisetka_Checkers.glb"
           boardGlbHasEmbeddedCheckersPieces
           hideCheckerboard
+          boardFixed
+          boardFixedZoom={0.6}
           boardTiltX={0}
           boardY={-0.35}
           tableDist={0.50}
@@ -659,46 +706,8 @@ const MultiplayerCheckersScreen = ({navigation, route}: any) => {
               {/* Board */}
               <View style={styles.boardContainer}>
                 {arEnabled ? (
-                  /* AR mode: transparent touch grid over the 3D board */
-                  <View style={[styles.board, {backgroundColor: 'transparent'}]}>
-                    <View style={styles.gridContainer}>
-                      {Array(8)
-                        .fill(null)
-                        .map((_, dRow) => {
-                          const logRow = myPieceColor === 'black' ? 7 - dRow : dRow;
-                          return (
-                            <View key={dRow} style={styles.row}>
-                              {Array(8)
-                                .fill(null)
-                                .map((_, dCol) => {
-                                  const logCol = myPieceColor === 'black' ? 7 - dCol : dCol;
-                                  const isSel =
-                                    gameState.selectedSquare?.row === logRow &&
-                                    gameState.selectedSquare?.col === logCol;
-                                  const isPoss = gameState.possibleMoves.some(
-                                    m => m.row === logRow && m.col === logCol,
-                                  );
-                                  return (
-                                    <TouchableOpacity
-                                      key={`${dRow}-${dCol}`}
-                                      style={[
-                                        styles.square,
-                                        isSel && styles.selectedSquare,
-                                        isPoss && styles.possibleMoveSquare,
-                                      ]}
-                                      onPress={() => handleSquarePress(dRow, dCol)}
-                                      hitSlop={{top: 2, bottom: 2, left: 2, right: 2}}>
-                                      {isPoss && !gameState.board[logRow]?.[logCol] && (
-                                        <View style={styles.moveIndicator} />
-                                      )}
-                                    </TouchableOpacity>
-                                  );
-                                })}
-                            </View>
-                          );
-                        })}
-                    </View>
-                  </View>
+                  /* AR mode: transparent passthrough — board+pieces rendered by AR3DOverlay */
+                  <View style={[styles.board, {backgroundColor: 'transparent'}]} pointerEvents="none" />
                 ) : (
                   <ImageBackground
                     source={require('../../../../assets/chess/board.png')}
@@ -990,8 +999,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'transparent',
   },
-  selectedSquare: {backgroundColor: 'rgba(127, 166, 80, 0.65)'},
-  possibleMoveSquare: {backgroundColor: 'rgba(127, 166, 80, 0.4)'},
+  selectedSquare: {backgroundColor: 'rgba(130, 151, 105, 0.6)'},
+  possibleMoveSquare: {backgroundColor: 'rgba(100, 111, 64, 0.5)'},
 
   // ── pieces ────────────────────────────────────────────────────────────────
   piece: {
@@ -1001,15 +1010,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: 'rgba(0,0,0,0.5)',
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.4,
-    shadowRadius: 3,
-    elevation: 4,
+    borderColor: '#000',
   },
-  redPiece: {backgroundColor: '#DC2626'},
-  blackPiece: {backgroundColor: '#1C1917'},
+  redPiece: {backgroundColor: '#e74c3c'},
+  blackPiece: {backgroundColor: '#2c3e50'},
   kingPiece: {
     backgroundColor: '#FFD700',
     width: '90%',
@@ -1022,12 +1026,12 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 10,
   },
-  kingText: {fontSize: 24, color: '#8B4513', fontWeight: '900', textShadowColor: '#fff8d6', textShadowOffset: {width: 0, height: 1}, textShadowRadius: 2},
+  kingText: {fontSize: 28, color: '#8B4513', fontWeight: '900', textShadowColor: '#fff8d6', textShadowOffset: {width: 0, height: 1}, textShadowRadius: 2},
   moveIndicator: {
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: 'rgba(255,255,255,0.5)',
+    backgroundColor: 'rgba(255,255,255,0.6)',
   },
 
   // ── controls ──────────────────────────────────────────────────────────────
