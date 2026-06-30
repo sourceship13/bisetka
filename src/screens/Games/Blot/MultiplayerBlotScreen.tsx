@@ -286,10 +286,10 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
 
     const TILT = 0; // flat on table surface
     const arPositions: Record<number, { x: number; y: number; z: number }> = {
-      0: { x:  0.00, y:  0.35, z: 0.13 },  // near player (bottom)
-      1: { x:  0.22, y:  0.50, z: 0.13 },  // right player
-      2: { x:  0.00, y:  0.62, z: 0.13 },  // far player (top)
-      3: { x: -0.22, y:  0.50, z: 0.13 },  // left player
+      0: { x:  0.00, y: -0.30, z: 0.02 },  // near player (bottom)
+      1: { x:  0.30, y:  0.00, z: 0.02 },  // right player
+      2: { x:  0.00, y:  0.30, z: 0.02 },  // far player (top)
+      3: { x: -0.30, y:  0.00, z: 0.02 },  // left player
     };
     const arRotations: Record<number, { x: number; y: number; z: number }> = {
       0: { x: TILT, y: 0, z: 0 },
@@ -309,7 +309,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
             key: `trick-local-${idx}-${card.suit}-${card.rank}`,
             position: arPositions[slot],
             rotation: arRotations[slot],
-            scale: 2,
+            scale: 1,
             cardData: {
               suit: card.suit as ARCard['cardData']['suit'],
               rank: card.rank as ARCard['cardData']['rank'],
@@ -337,7 +337,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
             key: `trick-${cp.position}-${cp.card.suit}-${cp.card.rank}`,
             position: arPositions[rel] ?? { x: 0, y: 0, z: 0.025 },
             rotation: arRotations[rel] ?? { x: 0, y: 0, z: 0 },
-            scale: 2,
+            scale: 1,
             cardData: {
               suit: cp.card.suit as ARCard['cardData']['suit'],
               rank: cp.card.rank as ARCard['cardData']['rank'],
@@ -365,7 +365,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
             key: `trick-2p-${slot}-${cp.card.suit}-${cp.card.rank}`,
             position: arPositions[slot],
             rotation: arRotations[slot],
-            scale: 2,
+            scale: 1,
             cardData: {
               suit: cp.card.suit as ARCard['cardData']['suit'],
               rank: cp.card.rank as ARCard['cardData']['rank'],
@@ -1502,7 +1502,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
     if (!localGameState) return null;
 
     const { width, height } = Dimensions.get('window');
-    const TABLE_SIZE = Math.min(width - 32, height * 0.4);
+    const TABLE_SIZE = Math.min(width - 32, height * 0.5);
 
     return (
       <View style={styles.gameContainer}>
@@ -1682,7 +1682,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
     })();
 
     const { width, height } = Dimensions.get('window');
-    const TABLE_SIZE = Math.min(width - 32, height * 0.4);
+    const TABLE_SIZE = Math.min(width - 32, height * 0.5);
 
     return (
       <View style={styles.gameContainer}>
@@ -1750,6 +1750,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
                 {is4P ? '👥 2v2 • 🤖 CPU-free' : '🤖 CPU Partner (same team)'}
               </Text>
 
+              {!arEnabled && (
               <View
                 style={[
                   styles.tableContainer,
@@ -1818,6 +1819,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
                   {renderSeatLabels(is4P)}
                 </ImageBackground>
               </View>
+              )}
             </View>
 
             <View style={[styles.handContainer, showRiffleDealAnimation && { opacity: 0 }]}>
