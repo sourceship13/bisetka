@@ -355,16 +355,19 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
       return;
     }
 
-    // Case 3: Multiplayer 2P — use isHuman/color to determine bottom vs top
+    // Case 3: Multiplayer 2P — use seat index (mirrors 2D rendering logic exactly)
     if (multiplayerTrickCards.length > 0) {
+      const SEAT_IDX_AR: Record<string, number> = { player1: 0, cpuWhite: 1, player2: 2, cpuBlack: 3 };
+      const mySeatAR = myCpuRoleRef.current ?? (playerColor === 'white' ? 'player1' : 'player2');
+      const mySeatIdxAR = SEAT_IDX_AR[mySeatAR] ?? 0;
       const mapped: ARCard[] = multiplayerTrickCards
         .filter((cp: any) => cp?.card?.suit && cp?.card?.rank)
         .map((cp: any) => {
-          const slot = (cp.isHuman || cp.color === playerColor) ? 0 : 2;
+          const rel = ((( SEAT_IDX_AR[cp.seat] ?? 0) - mySeatIdxAR + 4) % 4) as 0 | 1 | 2 | 3;
           return {
-            key: `trick-2p-${slot}-${cp.card.suit}-${cp.card.rank}`,
-            position: arPositions[slot],
-            rotation: arRotations[slot],
+            key: `trick-2p-${rel}-${cp.card.suit}-${cp.card.rank}`,
+            position: arPositions[rel] ?? { x: 0, y: 0, z: 0.025 },
+            rotation: arRotations[rel] ?? { x: 0, y: 0, z: 0 },
             scale: 1,
             cardData: {
               suit: cp.card.suit as ARCard['cardData']['suit'],
