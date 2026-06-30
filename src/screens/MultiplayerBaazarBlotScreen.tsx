@@ -911,7 +911,7 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
     const trump = gameState?.trump;
 
     const { width, height } = Dimensions.get('window');
-    const TABLE_SIZE = Math.min(width - 32, height * 0.4);
+    const TABLE_SIZE = Math.min(width - 32, height * 0.5);
 
     return (
       <>
