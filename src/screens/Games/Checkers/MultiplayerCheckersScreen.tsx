@@ -706,8 +706,46 @@ const MultiplayerCheckersScreen = ({navigation, route}: any) => {
               {/* Board */}
               <View style={styles.boardContainer}>
                 {arEnabled ? (
-                  /* AR mode: transparent passthrough — board+pieces rendered by AR3DOverlay */
-                  <View style={[styles.board, {backgroundColor: 'transparent'}]} pointerEvents="none" />
+                  /* AR mode: transparent interactive grid — AR3DOverlay shows 3D board+pieces behind */
+                  <View style={[styles.board, {backgroundColor: 'transparent'}]}>
+                    <View style={styles.gridContainer}>
+                      {Array(8)
+                        .fill(null)
+                        .map((_, dRow) => {
+                          const logRow = myPieceColor === 'black' ? 7 - dRow : dRow;
+                          return (
+                            <View key={dRow} style={styles.row}>
+                              {Array(8)
+                                .fill(null)
+                                .map((_, dCol) => {
+                                  const logCol = myPieceColor === 'black' ? 7 - dCol : dCol;
+                                  const isSel =
+                                    gameState.selectedSquare?.row === logRow &&
+                                    gameState.selectedSquare?.col === logCol;
+                                  const isPoss = gameState.possibleMoves.some(
+                                    m => m.row === logRow && m.col === logCol,
+                                  );
+                                  return (
+                                    <TouchableOpacity
+                                      key={`${dRow}-${dCol}`}
+                                      style={[
+                                        styles.square,
+                                        isSel && styles.selectedSquare,
+                                        isPoss && styles.possibleMoveSquare,
+                                      ]}
+                                      onPress={() => handleSquarePress(dRow, dCol)}
+                                      hitSlop={{top: 2, bottom: 2, left: 2, right: 2}}>
+                                      {isPoss && !gameState.board[logRow]?.[logCol] && (
+                                        <View style={styles.moveIndicator} />
+                                      )}
+                                    </TouchableOpacity>
+                                  );
+                                })}
+                            </View>
+                          );
+                        })}
+                    </View>
+                  </View>
                 ) : (
                   <ImageBackground
                     source={require('../../../../assets/chess/board.png')}
