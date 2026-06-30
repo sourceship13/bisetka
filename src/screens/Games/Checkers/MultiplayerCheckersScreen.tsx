@@ -658,63 +658,106 @@ const MultiplayerCheckersScreen = ({navigation, route}: any) => {
 
               {/* Board */}
               <View style={styles.boardContainer}>
-                <ImageBackground
-                  source={require('../../../../assets/chess/board.png')}
-                  style={styles.board}
-                  resizeMode="stretch">
-                  <View style={styles.gridContainer}>
-                    {Array(8)
-                      .fill(null)
-                      .map((_, dRow) => {
-                        const logRow = myPieceColor === 'black' ? 7 - dRow : dRow;
-                        return (
-                          <View key={dRow} style={styles.row}>
-                            {Array(8)
-                              .fill(null)
-                              .map((_, dCol) => {
-                                const logCol = myPieceColor === 'black' ? 7 - dCol : dCol;
-                                const piece = gameState.board[logRow]?.[logCol] ?? null;
-                                const isSel =
-                                  gameState.selectedSquare?.row === logRow &&
-                                  gameState.selectedSquare?.col === logCol;
-                                const isPoss = gameState.possibleMoves.some(
-                                  m => m.row === logRow && m.col === logCol,
-                                );
-                                return (
-                                  <TouchableOpacity
-                                    key={`${dRow}-${dCol}`}
-                                    style={[
-                                      styles.square,
-                                      isSel && styles.selectedSquare,
-                                      isPoss && styles.possibleMoveSquare,
-                                    ]}
-                                    onPress={() => handleSquarePress(dRow, dCol)}
-                                    hitSlop={{top: 2, bottom: 2, left: 2, right: 2}}>
-                                    {piece && (
-                                      <View
-                                        style={[
-                                          styles.piece,
-                                          piece.color === 'red'
-                                            ? styles.redPiece
-                                            : styles.blackPiece,
-                                          piece.type === 'king' && styles.kingPiece,
-                                        ]}>
-                                        {piece.type === 'king' && (
-                                          <Text style={styles.kingText}>♔</Text>
-                                        )}
-                                      </View>
-                                    )}
-                                    {isPoss && !piece && (
-                                      <View style={styles.moveIndicator} />
-                                    )}
-                                  </TouchableOpacity>
-                                );
-                              })}
-                          </View>
-                        );
-                      })}
+                {arEnabled ? (
+                  /* AR mode: transparent touch grid over the 3D board */
+                  <View style={[styles.board, {backgroundColor: 'transparent'}]}>
+                    <View style={styles.gridContainer}>
+                      {Array(8)
+                        .fill(null)
+                        .map((_, dRow) => {
+                          const logRow = myPieceColor === 'black' ? 7 - dRow : dRow;
+                          return (
+                            <View key={dRow} style={styles.row}>
+                              {Array(8)
+                                .fill(null)
+                                .map((_, dCol) => {
+                                  const logCol = myPieceColor === 'black' ? 7 - dCol : dCol;
+                                  const isSel =
+                                    gameState.selectedSquare?.row === logRow &&
+                                    gameState.selectedSquare?.col === logCol;
+                                  const isPoss = gameState.possibleMoves.some(
+                                    m => m.row === logRow && m.col === logCol,
+                                  );
+                                  return (
+                                    <TouchableOpacity
+                                      key={`${dRow}-${dCol}`}
+                                      style={[
+                                        styles.square,
+                                        isSel && styles.selectedSquare,
+                                        isPoss && styles.possibleMoveSquare,
+                                      ]}
+                                      onPress={() => handleSquarePress(dRow, dCol)}
+                                      hitSlop={{top: 2, bottom: 2, left: 2, right: 2}}>
+                                      {isPoss && !gameState.board[logRow]?.[logCol] && (
+                                        <View style={styles.moveIndicator} />
+                                      )}
+                                    </TouchableOpacity>
+                                  );
+                                })}
+                            </View>
+                          );
+                        })}
+                    </View>
                   </View>
-                </ImageBackground>
+                ) : (
+                  <ImageBackground
+                    source={require('../../../../assets/chess/board.png')}
+                    style={styles.board}
+                    resizeMode="stretch">
+                    <View style={styles.gridContainer}>
+                      {Array(8)
+                        .fill(null)
+                        .map((_, dRow) => {
+                          const logRow = myPieceColor === 'black' ? 7 - dRow : dRow;
+                          return (
+                            <View key={dRow} style={styles.row}>
+                              {Array(8)
+                                .fill(null)
+                                .map((_, dCol) => {
+                                  const logCol = myPieceColor === 'black' ? 7 - dCol : dCol;
+                                  const piece = gameState.board[logRow]?.[logCol] ?? null;
+                                  const isSel =
+                                    gameState.selectedSquare?.row === logRow &&
+                                    gameState.selectedSquare?.col === logCol;
+                                  const isPoss = gameState.possibleMoves.some(
+                                    m => m.row === logRow && m.col === logCol,
+                                  );
+                                  return (
+                                    <TouchableOpacity
+                                      key={`${dRow}-${dCol}`}
+                                      style={[
+                                        styles.square,
+                                        isSel && styles.selectedSquare,
+                                        isPoss && styles.possibleMoveSquare,
+                                      ]}
+                                      onPress={() => handleSquarePress(dRow, dCol)}
+                                      hitSlop={{top: 2, bottom: 2, left: 2, right: 2}}>
+                                      {piece && (
+                                        <View
+                                          style={[
+                                            styles.piece,
+                                            piece.color === 'red'
+                                              ? styles.redPiece
+                                              : styles.blackPiece,
+                                            piece.type === 'king' && styles.kingPiece,
+                                          ]}>
+                                          {piece.type === 'king' && (
+                                            <Text style={styles.kingText}>♔</Text>
+                                          )}
+                                        </View>
+                                      )}
+                                      {isPoss && !piece && (
+                                        <View style={styles.moveIndicator} />
+                                      )}
+                                    </TouchableOpacity>
+                                  );
+                                })}
+                            </View>
+                          );
+                        })}
+                    </View>
+                  </ImageBackground>
+                )}
               </View>
 
               {/* Resign */}
