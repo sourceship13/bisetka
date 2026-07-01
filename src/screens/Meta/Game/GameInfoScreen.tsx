@@ -524,7 +524,9 @@ const GameInfoScreen: React.FC<Props> = ({ route, navigation }) => {
           directTarget === 'MultiplayerMrotsi');
 
       if (!inlineSupported) {
-        setShowSearchingModal(true);
+        // Do NOT show the searching modal here — Nardi / Poker / Nardi-like
+        // screens drive their own searching UI. The RN Modal renders natively
+        // on top of the pushed screen and would block it permanently.
         if (directTarget === 'PokerRoom') {
           const fn: any = (user as any)?.fullName;
           const resolvedName: string =
