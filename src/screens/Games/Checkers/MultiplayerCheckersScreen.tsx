@@ -635,24 +635,23 @@ const MultiplayerCheckersScreen = ({navigation, route}: any) => {
   // ── main render ────────────────────────────────────────────────────────────
   return (
     <View style={styles.container}>
-      <AraratBackground overlayOpacity={showBlur ? 0.5 : 0.3}>
-        <AR3DOverlay
-          ref={arOverlayRef}
-          visible={arEnabled}
-          pieces={arPieces}
-          moves={gameState.possibleMoves}
-          onSquareTap={handleArSquareTap}
-          boardGlbPath="glb/checkers/Bisetka_Checkers.glb"
-          boardGlbHasEmbeddedCheckersPieces
-          hideCheckerboard
-          boardFixed
-          boardFixedZoom={0.6}
-          boardTiltX={0}
-          boardY={-0.35}
-          tableDist={0.50}
-          boardScale={0.8}
-        />
-      </AraratBackground>
+      <AraratBackground overlayOpacity={showBlur ? 0.5 : 0.3} />
+      <AR3DOverlay
+        ref={arOverlayRef}
+        visible={arEnabled}
+        pieces={arPieces}
+        moves={gameState.possibleMoves}
+        onSquareTap={handleArSquareTap}
+        boardGlbPath="glb/checkers/Bisetka_Checkers.glb"
+        boardGlbHasEmbeddedCheckersPieces
+        hideCheckerboard
+        boardFixed
+        boardFixedZoom={0.6}
+        boardTiltX={0}
+        boardY={-0.35}
+        tableDist={0.50}
+        boardScale={0.8}
+      />
       <View style={styles.overlay} pointerEvents="box-none">
         <GamePlayerOverlay
           opponent={
@@ -661,7 +660,7 @@ const MultiplayerCheckersScreen = ({navigation, route}: any) => {
               : null
           }
         />
-        <SafeAreaView style={styles.safeArea}>
+        <SafeAreaView style={styles.safeArea} pointerEvents="box-none">
           <View>
             <GameToolbar
               title={roomName}
@@ -704,48 +703,12 @@ const MultiplayerCheckersScreen = ({navigation, route}: any) => {
               </View>
 
               {/* Board */}
-              <View style={styles.boardContainer}>
+              <View
+                style={styles.boardContainer}
+                pointerEvents={arEnabled ? 'box-none' : 'auto'}>
                 {arEnabled ? (
-                  /* AR mode: transparent interactive grid — AR3DOverlay shows 3D board+pieces behind */
-                  <View style={[styles.board, {backgroundColor: 'transparent'}]}>
-                    <View style={styles.gridContainer}>
-                      {Array(8)
-                        .fill(null)
-                        .map((_, dRow) => {
-                          const logRow = myPieceColor === 'black' ? 7 - dRow : dRow;
-                          return (
-                            <View key={dRow} style={styles.row}>
-                              {Array(8)
-                                .fill(null)
-                                .map((_, dCol) => {
-                                  const logCol = myPieceColor === 'black' ? 7 - dCol : dCol;
-                                  const isSel =
-                                    gameState.selectedSquare?.row === logRow &&
-                                    gameState.selectedSquare?.col === logCol;
-                                  const isPoss = gameState.possibleMoves.some(
-                                    m => m.row === logRow && m.col === logCol,
-                                  );
-                                  return (
-                                    <TouchableOpacity
-                                      key={`${dRow}-${dCol}`}
-                                      style={[
-                                        styles.square,
-                                        isSel && styles.selectedSquare,
-                                        isPoss && styles.possibleMoveSquare,
-                                      ]}
-                                      onPress={() => handleSquarePress(dRow, dCol)}
-                                      hitSlop={{top: 2, bottom: 2, left: 2, right: 2}}>
-                                      {isPoss && !gameState.board[logRow]?.[logCol] && (
-                                        <View style={styles.moveIndicator} />
-                                      )}
-                                    </TouchableOpacity>
-                                  );
-                                })}
-                            </View>
-                          );
-                        })}
-                    </View>
-                  </View>
+                  /* AR mode: passthrough — AR3DOverlay handles all visuals + raycasted taps */
+                  <View style={styles.board} pointerEvents="none" />
                 ) : (
                   <ImageBackground
                     source={require('../../../../assets/chess/board.png')}
@@ -789,7 +752,7 @@ const MultiplayerCheckersScreen = ({navigation, route}: any) => {
                                             piece.type === 'king' && styles.kingPiece,
                                           ]}>
                                           {piece.type === 'king' && (
-                                            <Text style={styles.kingText}>♔</Text>
+                                            <Text style={styles.kingText}>♛</Text>
                                           )}
                                         </View>
                                       )}
