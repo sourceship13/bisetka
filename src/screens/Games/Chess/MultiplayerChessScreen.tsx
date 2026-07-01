@@ -708,25 +708,24 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
 
   return (
     <View style={styles.container}>
-      <AraratBackground overlayOpacity={showBlur ? 0.5 : 0.3}>
-        <AR3DOverlay
-          ref={arOverlayRef}
-          visible={arEnabled}
-          pieces={arPieces}
-          moves={gameState?.possibleMoves || []}
-          boardGlbPath="glb/chess/ChessSet.glb"
-          boardGlbHasEmbeddedChessPieces
-          pieceColorBlack="#dc2626"
-          hideCheckerboard={true}
-          boardFixed
-          boardFixedZoom={0.6}
-          boardTiltX={0.1745}
-          boardY={-0.35}
-          tableDist={0.50}
-          boardScale={0.8}
-          onSquareTap={handleSquarePress}
-        />
-      </AraratBackground>
+      <AraratBackground overlayOpacity={showBlur ? 0.5 : 0.3} />
+      <AR3DOverlay
+        ref={arOverlayRef}
+        visible={arEnabled}
+        pieces={arPieces}
+        moves={gameState?.possibleMoves || []}
+        boardGlbPath="glb/chess/ChessSet.glb"
+        boardGlbHasEmbeddedChessPieces
+        pieceColorBlack="#dc2626"
+        hideCheckerboard={true}
+        boardFixed
+        boardFixedZoom={0.6}
+        boardTiltX={0.1745}
+        boardY={-0.35}
+        tableDist={0.50}
+        boardScale={0.8}
+        onSquareTap={handleSquarePress}
+      />
       <View style={styles.overlay} pointerEvents="box-none">
         <GamePlayerOverlay
           opponent={
@@ -735,7 +734,7 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
               : null
           }
         />
-        <SafeAreaView style={styles.safeArea}>
+        <SafeAreaView style={styles.safeArea} pointerEvents="box-none">
           <View>
             <GameToolbar
               title={roomName}
