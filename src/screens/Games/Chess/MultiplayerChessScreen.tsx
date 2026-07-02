@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useCallback} from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   View,
   Text,
@@ -168,10 +168,10 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
     gameState.board.forEach((row, r) => {
       row.forEach((piece, c) => {
         if (!piece) return;
-        // Rotate 180° for white player so their pieces appear at the bottom;
-        // row/col drive embedded ckSq lookups (posX/posY ignored for embedded).
-        const displayR = myColor === 'white' ? 7 - r : r;
-        const displayC = myColor === 'white' ? 7 - c : c;
+        // Rotate 180° for black player so their pieces appear at the bottom;
+        // row/col drive embedded square lookups (posX/posY ignored for embedded).
+        const displayR = myColor === 'black' ? 7 - r : r;
+        const displayC = myColor === 'black' ? 7 - c : c;
         result.push({
           key: `${r}-${c}`,
           row: displayR,
@@ -188,14 +188,6 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
     });
     return result;
   }, [gameState?.board, gameState?.selectedSquare, myColor]);
-
-  // Convert physical tap coords from the (possibly flipped) AR board back to
-  // logical board coordinates, then forward to handleSquarePress.
-  const handleArSquareTap = useCallback((physRow: number, physCol: number) => {
-    const logRow = myColor === 'white' ? 7 - physRow : physRow;
-    const logCol = myColor === 'white' ? 7 - physCol : physCol;
-    handleSquarePress(logRow, logCol);
-  }, [myColor, handleSquarePress]);
 
   useEffect(() => {
     // Connect first, then register listeners on the live socket, then start matchmaking.
@@ -547,7 +539,11 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
     }
   };
 
-  const handleSquarePress = (row: number, col: number) => {
+  const handleSquarePress = (physRow: number, physCol: number) => {
+    // For black player, the board is visually rotated 180°.
+    // Physical tap at (physRow, physCol) maps to logical (7-physRow, 7-physCol).
+    const row = myColor === 'black' ? 7 - physRow : physRow;
+    const col = myColor === 'black' ? 7 - physCol : physCol;
     if (isSpectating) return;
     if (!gameState || !isMyTurn || gameState.isCheckmate || gameState.isStalemate) return;
 
@@ -726,7 +722,7 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
         visible={arEnabled}
         pieces={arPieces}
         moves={
-          myColor === 'white'
+          myColor === 'black'
             ? (gameState?.possibleMoves || []).map(m => ({ row: 7 - m.row, col: 7 - m.col }))
             : (gameState?.possibleMoves || [])
         }
@@ -740,7 +736,7 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
         boardY={-0.35}
         tableDist={0.50}
         boardScale={0.8}
-        onSquareTap={handleArSquareTap}
+        onSquareTap={handleSquarePress}
       />
       <View style={styles.overlay} pointerEvents="box-none">
         <GamePlayerOverlay
