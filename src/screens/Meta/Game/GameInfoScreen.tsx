@@ -799,6 +799,12 @@ const GameInfoScreen: React.FC<Props> = ({ route, navigation }) => {
           <View style={{ paddingHorizontal: 16, gap: 12 }}>
             {GAME_MODE_OPTIONS.filter(opt => {
               if (gameType === 'blackjack') return opt.id === 'ai';
+              if (
+                gameType === 'billiards' ||
+                gameType === '9-ball' ||
+                gameType === 'slots' ||
+                gameType === 'mrotsi'
+              ) return opt.id !== 'random';
               return true;
             }).map(opt => {
               const active = selectedMode === opt.id;
