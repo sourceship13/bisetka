@@ -215,9 +215,13 @@ const MultiplayerCheckersScreen = ({navigation, route}: any) => {
       });
 
       socketService.onGameStarted(data => {
+        // Prefer the color explicitly sent by the server. If absent, keep the
+        // color already assigned during matchmaking (findMatch / preMatch /
+        // joinPrivateRoom). DO NOT fall back to a player1Id comparison — it
+        // risks resetting both players to 'white', making both boards identical.
         const assignedColor: 'white' | 'black' =
-          data.myColor ||
-          (data.player1Id === userId ? 'white' : 'black');
+          (data.myColor as 'white' | 'black' | undefined) ??
+          mySocketColorRef.current;
         mySocketColorRef.current = assignedColor;
         setMySocketColor(assignedColor);
         setServerTurn(data.gameState?.currentTurn ?? 'white');
@@ -483,8 +487,8 @@ const MultiplayerCheckersScreen = ({navigation, route}: any) => {
   const handleSquarePress = useCallback(
     (dRow: number, dCol: number) => {
       // Flip board so your pieces are always at the bottom
-      const row = myPieceColor === 'black' ? 7 - dRow : dRow;
-      const col = myPieceColor === 'black' ? 7 - dCol : dCol;
+      const row = myPieceColor === 'red' ? 7 - dRow : dRow;
+      const col = myPieceColor === 'red' ? 7 - dCol : dCol;
 
       if (isSpectating) return;
       if (gameState.isGameOver) return;
@@ -529,11 +533,11 @@ const MultiplayerCheckersScreen = ({navigation, route}: any) => {
     [gameState, isMyTurn, myPieceColor, roomId, userId, isSpectating],
   );
 
-  const handleArSquareTap = useCallback((logRow: number, logCol: number) => {
-    const dRow = myPieceColor === 'black' ? 7 - logRow : logRow;
-    const dCol = myPieceColor === 'black' ? 7 - logCol : logCol;
-    handleSquarePress(dRow, dCol);
-  }, [myPieceColor, handleSquarePress]);
+  const handleArSquareTap = useCallback((physRow: number, physCol: number) => {
+    // Pass physical coordinates directly; handleSquarePress handles the
+    // black-player board-flip so the board is visually rotated 180° for black.
+    handleSquarePress(physRow, physCol);
+  }, [handleSquarePress]);
 
   const arPieces = useMemo<ARPiece[]>(() => {
     const FIELD_HALF = 0.305;
@@ -546,16 +550,21 @@ const MultiplayerCheckersScreen = ({navigation, route}: any) => {
       row.forEach((piece, c) => {
         if (!piece) return;
         if ((r + c) % 2 === 0) return;
-        const baseX = -FIELD_HALF + (c + 0.5) * SQ;
-        const baseY = FIELD_HALF - (r + 0.5) * SQ;
+        // Rotate 180° for red player: flip the row/col indices the WebView
+        // uses to position embedded-checker pieces (posX/posY are ignored for
+        // embedded pieces — only row & col drive ckSq.rowRs/colFs lookups).
+        const displayR = myPieceColor === 'red' ? 7 - r : r;
+        const displayC = myPieceColor === 'red' ? 7 - c : c;
+        const baseX = -FIELD_HALF + (displayC + 0.5) * SQ;
+        const baseY = FIELD_HALF - (displayR + 0.5) * SQ;
         let posX = baseX;
         let posY = baseY;
-        if (c === 0) posX = baseX + EDGE_INSET;
-        else if (c === 7) posX = baseX - EDGE_INSET;
+        if (displayC === 0) posX = baseX + EDGE_INSET;
+        else if (displayC === 7) posX = baseX - EDGE_INSET;
         result.push({
           key: `${r}-${c}`,
-          row: r,
-          col: c,
+          row: displayR,   // ← flipped: drives embedded ckSq.rowRs[row] lookup
+          col: displayC,   // ← flipped: drives embedded ckSq.colFs[col] lookup
           color: piece.color,
           side: piece.color === 'red' ? 'white' : 'black',
           pieceType: 'checker',
@@ -569,7 +578,7 @@ const MultiplayerCheckersScreen = ({navigation, route}: any) => {
       });
     });
     return result;
-  }, [gameState.board, gameState.selectedSquare]);
+  }, [gameState.board, gameState.selectedSquare, myPieceColor]);
 
   // ── sub-renders ────────────────────────────────────────────────────────────
   const renderMenu = () => (
@@ -640,7 +649,11 @@ const MultiplayerCheckersScreen = ({navigation, route}: any) => {
         ref={arOverlayRef}
         visible={arEnabled}
         pieces={arPieces}
-        moves={gameState.possibleMoves}
+        moves={
+          myPieceColor === 'red'
+            ? gameState.possibleMoves.map(m => ({ row: 7 - m.row, col: 7 - m.col }))
+            : gameState.possibleMoves
+        }
         onSquareTap={handleArSquareTap}
         boardGlbPath="glb/checkers/Bisetka_Checkers.glb"
         boardGlbHasEmbeddedCheckersPieces
@@ -670,10 +683,10 @@ const MultiplayerCheckersScreen = ({navigation, route}: any) => {
             <View>
               <GameToolbarControls
                 buttons={[
-                  { icon: '🎨', onPress: () => setShowCustomization(true) },
-                  { icon: showBackground ? '🖼️' : '🔲', onPress: () => setShowBackground(!showBackground) },
-                  { icon: '✏️', onPress: () => setShowRoomNameModal(true) },
-                  { icon: arEnabled ? '🥽' : '🎮', onPress: () => setArEnabled(!arEnabled) },
+                  // { icon: '🎨', onPress: () => setShowCustomization(true) },
+                  // { icon: showBackground ? '🖼️' : '🔲', onPress: () => setShowBackground(!showBackground) },
+                  // { icon: '✏️', onPress: () => setShowRoomNameModal(true) },
+                  // { icon: arEnabled ? '🥽' : '🎮', onPress: () => setArEnabled(!arEnabled) },
                   { icon: showMusicPlayer ? '🎵' : '🎶', onPress: () => setShowMusicPlayer(s => !s) },
                 ]}
               />
@@ -718,13 +731,13 @@ const MultiplayerCheckersScreen = ({navigation, route}: any) => {
                       {Array(8)
                         .fill(null)
                         .map((_, dRow) => {
-                          const logRow = myPieceColor === 'black' ? 7 - dRow : dRow;
+                          const logRow = myPieceColor === 'red' ? 7 - dRow : dRow;
                           return (
                             <View key={dRow} style={styles.row}>
                               {Array(8)
                                 .fill(null)
                                 .map((_, dCol) => {
-                                  const logCol = myPieceColor === 'black' ? 7 - dCol : dCol;
+                                  const logCol = myPieceColor === 'red' ? 7 - dCol : dCol;
                                   const piece = gameState.board[logRow]?.[logCol] ?? null;
                                   const isSel =
                                     gameState.selectedSquare?.row === logRow &&
