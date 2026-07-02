@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useCallback} from 'react';
 import {
   View,
   Text,
@@ -168,10 +168,14 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
     gameState.board.forEach((row, r) => {
       row.forEach((piece, c) => {
         if (!piece) return;
+        // Rotate 180° for white player so their pieces appear at the bottom;
+        // row/col drive embedded ckSq lookups (posX/posY ignored for embedded).
+        const displayR = myColor === 'white' ? 7 - r : r;
+        const displayC = myColor === 'white' ? 7 - c : c;
         result.push({
           key: `${r}-${c}`,
-          row: r,
-          col: c,
+          row: displayR,
+          col: displayC,
           color: piece.color === 'white' ? 'red' : 'black',
           isKing: piece.type !== 'pawn',
           pieceType: piece.type,
@@ -183,7 +187,15 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
       });
     });
     return result;
-  }, [gameState?.board, gameState?.selectedSquare]);
+  }, [gameState?.board, gameState?.selectedSquare, myColor]);
+
+  // Convert physical tap coords from the (possibly flipped) AR board back to
+  // logical board coordinates, then forward to handleSquarePress.
+  const handleArSquareTap = useCallback((physRow: number, physCol: number) => {
+    const logRow = myColor === 'white' ? 7 - physRow : physRow;
+    const logCol = myColor === 'white' ? 7 - physCol : physCol;
+    handleSquarePress(logRow, logCol);
+  }, [myColor, handleSquarePress]);
 
   useEffect(() => {
     // Connect first, then register listeners on the live socket, then start matchmaking.
@@ -713,7 +725,11 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
         ref={arOverlayRef}
         visible={arEnabled}
         pieces={arPieces}
-        moves={gameState?.possibleMoves || []}
+        moves={
+          myColor === 'white'
+            ? (gameState?.possibleMoves || []).map(m => ({ row: 7 - m.row, col: 7 - m.col }))
+            : (gameState?.possibleMoves || [])
+        }
         boardGlbPath="glb/chess/ChessSet.glb"
         boardGlbHasEmbeddedChessPieces
         pieceColorBlack="#dc2626"
@@ -724,7 +740,7 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
         boardY={-0.35}
         tableDist={0.50}
         boardScale={0.8}
-        onSquareTap={handleSquarePress}
+        onSquareTap={handleArSquareTap}
       />
       <View style={styles.overlay} pointerEvents="box-none">
         <GamePlayerOverlay
