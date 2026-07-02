@@ -1,18 +1,14 @@
-import { Platform } from 'react-native';
 import Sound from 'react-native-sound';
 
-// Allow playback in iOS silent mode and mix with other audio.
-Sound.setCategory('Ambient', true);
+// Allow playback regardless of silent switch; on Android maps to STREAM_MUSIC
+// (media volume) instead of STREAM_NOTIFICATION (notification volume).
+Sound.setCategory('Playback', true);
 
 // react-native-sound resolves filenames differently per platform:
 //   iOS  → look up the file in main bundle (Resources build phase).
-//   Android → with MAIN_BUNDLE the lib loads from res/raw if no slash, or
-//             from the assets folder when the filename contains a slash.
-//   piece_move.wav → react-native-asset placed it under
-//                    android/app/src/main/assets/custom/ (slash form).
-//   dice_roll.mp3 → was copied to android/app/src/main/res/raw/ (no slash).
-const PIECE_MOVE_FILE =
-  Platform.OS === 'android' ? 'custom/piece_move.wav' : 'piece_move.wav';
+//   Android → MAIN_BUNDLE strips extension and looks in res/raw/ by resource
+//             name. All sound files must be in res/raw/ on Android.
+const PIECE_MOVE_FILE = 'piece_move.wav';
 const DICE_ROLL_FILE = 'dice_roll.mp3';
 const CARD_FLIP_FILE = 'card_flip.mp3';
 const CARD_RIFFLE_SHUFFLE_FILE = 'card_riffle_shuffle.mp3';
