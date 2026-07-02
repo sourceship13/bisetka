@@ -1,18 +1,18 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Animated, StyleSheet, Text, Dimensions } from 'react-native';
+import { View, Animated, StyleSheet, Text, Dimensions, Image } from 'react-native';
 import type { CardTheme } from './global/GameCustomizationModal';
 import { playCardRiffleShuffleSound } from '../utils/nardiSound';
 
-// Lightweight native card-back — no WebView, avoids Android layer limit.
+const CARD_BG = require('../../assets/cards_new/cardBackground.jpg');
+
+// Lightweight native card back using cardBackground.jpg — no WebView, avoids Android layer limit.
 const CardBack: React.FC<{ size: number }> = ({ size }) => (
-  <View style={[cardBackStyles.card, { width: size, height: Math.floor(size * 1.4) }]}>
-    <View style={cardBackStyles.inner} />
-  </View>
+  <Image
+    source={CARD_BG}
+    style={{ width: size, height: Math.floor(size * 1.4), borderRadius: 6 }}
+    resizeMode="cover"
+  />
 );
-const cardBackStyles = StyleSheet.create({
-  card:  { backgroundColor: '#1a237e', borderRadius: 6, borderWidth: 1, borderColor: '#7986cb', overflow: 'hidden' },
-  inner: { flex: 1, margin: 4, borderRadius: 4, backgroundColor: '#283593', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
-});
 
 interface RiffleDealAnimationProps {
   visible: boolean;

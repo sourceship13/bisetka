@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { View, Animated, StyleSheet, Text } from 'react-native';
-import Card3D from './Card3D';
+import { View, Animated, StyleSheet, Text, Image } from 'react-native';
 import type { CardTheme } from './global/GameCustomizationModal';
+
+const CARD_BG = require('../../assets/cards_new/cardBackground.jpg');
 
 interface CardShuffleAnimationProps {
   visible: boolean;
@@ -140,13 +141,6 @@ export const CardShuffleAnimation: React.FC<CardShuffleAnimationProps> = ({
 
   if (!visible) return null;
 
-  // Dummy card for display
-  const dummyCard = {
-    suit: 'hearts' as const,
-    rank: 'A',
-    value: 11,
-  };
-
   return (
     <View style={styles.container}>
       <Text style={styles.shuffleText}>Shuffling Deck...</Text>
@@ -171,7 +165,7 @@ export const CardShuffleAnimation: React.FC<CardShuffleAnimationProps> = ({
                 ],
               },
             ]}>
-            <Card3D suit="spades" rank="A" faceDown={false} size={44} />
+            <Image source={CARD_BG} style={styles.cardImage} resizeMode="cover" />
           </Animated.View>
         ))}
       </View>
@@ -207,6 +201,12 @@ const styles = StyleSheet.create({
   },
   cardWrapper: {
     position: 'absolute',
+    width: 60,
+    height: 80,
+    borderRadius: 5,
+    overflow: 'hidden',
+  },
+  cardImage: {
     width: 60,
     height: 80,
   },
