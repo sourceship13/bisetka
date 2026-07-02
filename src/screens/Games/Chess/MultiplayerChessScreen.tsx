@@ -37,6 +37,7 @@ import { useGameEndRefresh } from '../../../libs/hooks/useGameEndRefresh';
 import { useI18n } from '../../../hooks/useI18n';
 import InGameChat from '../../../components/InGameChat';
 import {apiConfig} from '../../../libs/utils/api.utils';
+import {playPieceMoveSound} from '../../../utils/nardiSound';
 
 /** Convert the server's compact string board to the client's ChessPiece object board */
 const serverBoardToClient = (board: any[][]): (import('../../../game/chessLogic').ChessPiece | null)[][] => {
@@ -289,6 +290,7 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
 
         setCurrentTurn(nextPlayer);
         setIsMyTurn(nextPlayer === liveColor);
+        playPieceMoveSound();
       });
 
       socketService.onGameEnded((data) => {
@@ -620,6 +622,7 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
     }
     console.log('📤 Sending move to server:', {roomId: liveRoomId, userId, move});
     socketService.makeMove(liveRoomId, userId, move);
+    playPieceMoveSound();
     
     setCurrentTurn(nextPlayer);
     setIsMyTurn(false);

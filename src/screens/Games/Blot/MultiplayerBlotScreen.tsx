@@ -21,6 +21,7 @@ import AR3DOverlay, {type AR3DOverlayHandle, type ARCard} from '../../../compone
 import SyncedYouTubePlayer from '../../../components/SyncedYouTubePlayer';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { socketService } from '../../../services/SocketService';
+import { playCardFlipSound } from '../../../utils/nardiSound';
 import { blotAIService, LocalGameState, Card } from '../../../services/blotAI.service';
 import { sortHandForDisplay } from '../../../game/blotLogic';
 import { gameResultService } from '../../../services/gameResult.service';
@@ -826,8 +827,12 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
     // Move made
     socketService.onMoveMade((data: any) => {
       console.log('=== MOVE MADE ===');
-      // Server has acknowledged the move — allow the next card to be played
+      // Server has acknowledged the move — allow the next card to be played.
+      // If this confirms OUR move, we already played sound in handlePlayCard.
+      // Only play sound here for the OPPONENT's card.
+      const wasMyMove = moveInFlightRef.current;
       moveInFlightRef.current = false;
+      if (!wasMyMove) playCardFlipSound();
 
       // If a client missed game_started, first move should still bootstrap gameplay UI.
       if (!isGameStartedRef.current) {
@@ -1174,6 +1179,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
 
   const handlePlayCard = (card: Card) => {
     if (isSpectating) return;
+    playCardFlipSound();
     if (isLocalGame) {
       handleLocalPlayCard(card);
     } else {
@@ -1236,6 +1242,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
         }
         
         setLocalGameState(stateAfterComputer);
+        playCardFlipSound(); // Computer played their card
         
         // Check if game ended after computer move
         if (stateAfterComputer.status !== 'active') {
