@@ -361,6 +361,11 @@ const NardiScreen = ({ navigation, route }: any) => {
   const [diceAnimating, setDiceAnimating] = useState(false);
   const [settledDice, setSettledDice] = useState<{ die1: number; die2: number } | null>(null);
   const diceCompleteCount = useRef(0);
+  // Tracks whether the current dice animation was triggered by the opponent's roll
+  const opponentDiceRef = useRef(false);
+  const [opponentDiceAnimating, setOpponentDiceAnimating] = useState(false);
+  // Set to true before emitting our own roll_dice so the socket echo can be skipped
+  const pendingMyDiceEchoRef = useRef(false);
   // AR-mode physics dice: track rolling state and swipe handler
   const arDiceRollingRef = useRef(false);
   const arDiceSwipeRef = useRef<(vx: number, vy: number) => void>(() => {});
@@ -664,22 +669,19 @@ const NardiScreen = ({ navigation, route }: any) => {
           }
 
           if (mv?.type === 'roll_dice') {
-            setGameState(prev => {
-              if (!prev || prev.phase !== 'rolling') return prev;
-              // Skip if this is our own roll (already applied locally by handleRollDice)
-              if (prev.currentPlayer === myMpColorRef.current) return prev;
-              const {die1, die2} = mv.dice;
-              const movesRemaining = die1 === die2 ? 4 : 2;
-              const ns: NardiGameState = {
-                ...prev,
-                dice: {die1, die2, rolled: true},
-                phase: 'moving',
-                movesRemaining,
-                possibleMoves: [],
-              };
-              ns.possibleMoves = calculatePossibleMoves(ns);
-              return ns.possibleMoves.length === 0 ? switchPlayer(ns) : ns;
-            });
+            // Skip our own echo (we already applied the roll locally)
+            if (pendingMyDiceEchoRef.current) {
+              pendingMyDiceEchoRef.current = false;
+              return;
+            }
+            // Opponent's roll — show dice animation then apply state
+            const { die1, die2 } = mv.dice;
+            opponentDiceRef.current = true;
+            setOpponentDiceAnimating(true);
+            diceCompleteCount.current = 0;
+            setPendingDice({ die1, die2 });
+            setDiceAnimating(true);
+            playDiceRollSound();
           } else if (mv?.type === 'move_piece') {
             // Skip echo of our own move (counter survives turn switches)
             if (pendingMyMoveEchoesRef.current > 0) {
@@ -945,7 +947,7 @@ const NardiScreen = ({ navigation, route }: any) => {
     return true;
   };
 
-  const applyDiceRoll = (dice: Dice) => {
+  const applyDiceRoll = (dice: Dice, isOpponentRoll = false) => {
     setGameState(prev => {
       if (!prev) return prev;
       const movesRemaining = dice.die1 === dice.die2 ? 4 : 2;
@@ -959,7 +961,7 @@ const NardiScreen = ({ navigation, route }: any) => {
       newState.possibleMoves = calculatePossibleMoves(newState);
       console.log('🎲 Applied:', dice.die1, dice.die2, 'possible moves:', newState.possibleMoves.length);
       if (newState.possibleMoves.length === 0) {
-        if (isMultiplayer && roomIdRef.current) {
+        if (!isOpponentRoll && isMultiplayer && roomIdRef.current) {
           justEndedTurnRef.current = true;
           socketService.makeMove(roomIdRef.current, userId, {type: 'end_turn'});
         }
@@ -978,6 +980,7 @@ const NardiScreen = ({ navigation, route }: any) => {
     console.log('🎲 Rolled (animating):', dice.die1, dice.die2);
 
     if (isMultiplayer && roomIdRef.current) {
+      pendingMyDiceEchoRef.current = true;
       socketService.makeMove(roomIdRef.current, userId, {type: 'roll_dice', dice: {die1: dice.die1, die2: dice.die2}});
     }
 
@@ -1004,6 +1007,7 @@ const NardiScreen = ({ navigation, route }: any) => {
     const die1 = Math.floor(Math.random() * 6) + 1;
     const die2 = Math.floor(Math.random() * 6) + 1;
     if (isMultiplayer && roomIdRef.current) {
+      pendingMyDiceEchoRef.current = true;
       socketService.makeMove(roomIdRef.current, userId, { type: 'roll_dice', dice: { die1, die2 } });
     }
     playDiceRollSound();
@@ -2061,6 +2065,7 @@ const NardiScreen = ({ navigation, route }: any) => {
                   // Use the values NardiDice already animated so the UI stays in sync
                   const dice: Dice = { die1, die2, rolled: true };
                   if (isMultiplayer && roomIdRef.current) {
+                    pendingMyDiceEchoRef.current = true;
                     socketService.makeMove(roomIdRef.current, userId, { type: 'roll_dice', dice: { die1, die2 } });
                   }
                   applyDiceRoll(dice);
@@ -2177,8 +2182,9 @@ const NardiScreen = ({ navigation, route }: any) => {
         visible={isMultiplayer && mpStatus === 'playing' && !!roomId}
       />
       <SyncedYouTubePlayer roomId={null} visible={true} />
-      {/* 3D dice overlay — spinning while animating, then shows settled face during moving phase */}
-      {!arEnabled && (diceAnimating ? pendingDice : settledDice) && (
+      {/* 3D dice overlay — spinning while animating, then shows settled face during moving phase.
+           In AR mode we also show this for opponent rolls since the AR board only reacts to local swipes. */}
+      {((!arEnabled || opponentDiceAnimating) && (diceAnimating ? pendingDice : settledDice)) && (
         <View
           pointerEvents="none"
           style={{
@@ -2210,9 +2216,12 @@ const NardiScreen = ({ navigation, route }: any) => {
                 diceCompleteCount.current += 1;
                 if (diceCompleteCount.current >= 2) {
                   const settled = pendingDice!;
+                  const wasOpponentRoll = opponentDiceRef.current;
+                  opponentDiceRef.current = false;
+                  setOpponentDiceAnimating(false);
                   setSettledDice(settled);
                   setDiceAnimating(false);
-                  applyDiceRoll({ ...settled, rolled: true });
+                  applyDiceRoll({ ...settled, rolled: true }, wasOpponentRoll);
                   setPendingDice(null);
                 }
               }}
@@ -2226,9 +2235,12 @@ const NardiScreen = ({ navigation, route }: any) => {
                 diceCompleteCount.current += 1;
                 if (diceCompleteCount.current >= 2) {
                   const settled = pendingDice!;
+                  const wasOpponentRoll = opponentDiceRef.current;
+                  opponentDiceRef.current = false;
+                  setOpponentDiceAnimating(false);
                   setSettledDice(settled);
                   setDiceAnimating(false);
-                  applyDiceRoll({ ...settled, rolled: true });
+                  applyDiceRoll({ ...settled, rolled: true }, wasOpponentRoll);
                   setPendingDice(null);
                 }
               }}
