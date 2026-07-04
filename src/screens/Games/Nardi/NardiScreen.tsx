@@ -513,6 +513,7 @@ const NardiScreen = ({ navigation, route }: any) => {
   useEffect(() => {
     if (gameState?.phase === 'rolling') {
       setSettledDice(null);
+      setOpponentDiceAnimating(false);
     }
   }, [gameState?.phase]);
 
@@ -2218,7 +2219,9 @@ const NardiScreen = ({ navigation, route }: any) => {
                   const settled = pendingDice!;
                   const wasOpponentRoll = opponentDiceRef.current;
                   opponentDiceRef.current = false;
-                  setOpponentDiceAnimating(false);
+                  // Keep opponentDiceAnimating=true if opponent rolled — cleared by the
+                  // useEffect when phase returns to 'rolling' (our turn begins)
+                  if (!wasOpponentRoll) setOpponentDiceAnimating(false);
                   setSettledDice(settled);
                   setDiceAnimating(false);
                   applyDiceRoll({ ...settled, rolled: true }, wasOpponentRoll);
@@ -2237,7 +2240,7 @@ const NardiScreen = ({ navigation, route }: any) => {
                   const settled = pendingDice!;
                   const wasOpponentRoll = opponentDiceRef.current;
                   opponentDiceRef.current = false;
-                  setOpponentDiceAnimating(false);
+                  if (!wasOpponentRoll) setOpponentDiceAnimating(false);
                   setSettledDice(settled);
                   setDiceAnimating(false);
                   applyDiceRoll({ ...settled, rolled: true }, wasOpponentRoll);
