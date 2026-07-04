@@ -5,7 +5,7 @@
  *   - mode='ai'      → renders a generic robot glyph, label "AI"
  */
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, Text, View } from 'react-native';
 import UserAvatar from './UserAvatar';
 import RemoteUserAvatar from './RemoteUserAvatar';
 
@@ -47,14 +47,11 @@ const PlayerChip: React.FC<Props> = ({
   } else if (mode === 'ai') {
     label = 'AI';
     avatar = (
-      <View
-        style={[
-          styles.robot,
-          { width: size, height: size, borderRadius: 12 },
-        ]}
-      >
-        <Text style={[styles.robotGlyph, { fontSize: size * 0.55 }]}>🤖</Text>
-      </View>
+      <Image
+        source={require('../../assets/avatars_new/botImage.png')}
+        style={{ width: size, height: size, borderRadius: 12 }}
+        resizeMode="cover"
+      />
     );
   } else {
     label = (username && username.trim()) || 'Opponent';
