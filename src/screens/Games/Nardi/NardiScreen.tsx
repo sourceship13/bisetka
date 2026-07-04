@@ -12,6 +12,7 @@ import {
   PanResponder,
   Animated,
   Easing,
+  unstable_batchedUpdates,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useI18n } from '../../../hooks/useI18n';
@@ -675,13 +676,17 @@ const NardiScreen = ({ navigation, route }: any) => {
               pendingMyDiceEchoRef.current = false;
               return;
             }
-            // Opponent's roll — show dice animation then apply state
+            // Opponent's roll — batch all state updates into a single render so
+            // Dice3DSimple always receives the correct pendingDice value prop
+            // (prevents intermediate renders using stale settledDice values).
             const { die1, die2 } = mv.dice;
             opponentDiceRef.current = true;
-            setOpponentDiceAnimating(true);
             diceCompleteCount.current = 0;
-            setPendingDice({ die1, die2 });
-            setDiceAnimating(true);
+            unstable_batchedUpdates(() => {
+              setOpponentDiceAnimating(true);
+              setPendingDice({ die1, die2 });
+              setDiceAnimating(true);
+            });
             playDiceRollSound();
           } else if (mv?.type === 'move_piece') {
             // Skip echo of our own move (counter survives turn switches)
