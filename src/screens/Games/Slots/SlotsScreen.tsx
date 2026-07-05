@@ -26,6 +26,7 @@ import { apiService } from '../../../services/api.service';
 import { v4 as uuidv4 } from 'uuid';
 import SyncedYouTubePlayer from '../../../components/SyncedYouTubePlayer';
 import InGameChat from '../../../components/InGameChat';
+import { playDiceRollSound, playCoinDropSound } from '../../../utils/nardiSound';
 
 const { width } = Dimensions.get('window');
 const CONTAINER_PADDING = 8;
@@ -123,21 +124,29 @@ const SlotsScreen = ({ navigation }: any) => {
     }
   }, [user?.balance]);
 
-  // Mirror local balance into the auth user so global UI (e.g. GameToolbar
-  // points pill) updates immediately after each spin, without waiting for the
-  // backend refresh round-trip.
-  const syncUserBalance = (newBalance: number) => {
+  // Mirror local balance into the auth user so the global points pill updates
+  // immediately after each spin. This must live in a useEffect (not inside a
+  // setState updater) to avoid the "setState during render" React error.
+  const syncedBalanceRef = useRef<number | null>(null);
+  useEffect(() => {
+    // Skip the very first sync — user?.balance already initialised balance above.
+    if (syncedBalanceRef.current === null) {
+      syncedBalanceRef.current = balance;
+      return;
+    }
+    if (balance === syncedBalanceRef.current) return;
+    syncedBalanceRef.current = balance;
     setUser(curr => {
       if (!curr) return curr;
       return {
         ...curr,
-        balance: newBalance,
+        balance,
         playerStats: curr.playerStats
-          ? { ...curr.playerStats, available_points: newBalance }
+          ? { ...curr.playerStats, available_points: balance }
           : curr.playerStats,
       };
     });
-  };
+  }, [balance]);
 
   // Neon flickering effect
   useEffect(() => {
@@ -178,11 +187,8 @@ const SlotsScreen = ({ navigation }: any) => {
 
     setSpinning(true);
     setWinnings(null);
-    setBalance((prev: number) => {
-      const next = prev - betAmount;
-      syncUserBalance(next);
-      return next;
-    });
+    setBalance((prev: number) => prev - betAmount);
+    playDiceRollSound();
 
     // Reset each reel to the top of its strip
     REEL_ANIMS.forEach(anim => anim.setValue(0));
@@ -223,11 +229,8 @@ const SlotsScreen = ({ navigation }: any) => {
       
       // Update local balance
       if (data.totalPayout > 0) {
-        setBalance((prev: number) => {
-          const next = prev + data.totalPayout;
-          syncUserBalance(next);
-          return next;
-        });
+        setBalance((prev: number) => prev + data.totalPayout);
+        playCoinDropSound();
       }
       
       // Sync user balance from backend
@@ -235,11 +238,7 @@ const SlotsScreen = ({ navigation }: any) => {
       refreshOnGameEnd().catch(console.error);
     } catch (error) {
       console.error('Spin failed:', error);
-      setBalance((prev: number) => {
-        const next = prev + betAmount;
-        syncUserBalance(next);
-        return next;
-      });
+      setBalance((prev: number) => prev + betAmount);
     } finally {
       setSpinning(false);
     }
