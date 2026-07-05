@@ -364,12 +364,12 @@ const NardiScreen = ({ navigation, route }: any) => {
   const [diceAnimating, setDiceAnimating] = useState(false);
   const [settledDice, setSettledDice] = useState<{ die1: number; die2: number } | null>(null);
   const diceCompleteCount = useRef(0);
-  // Tracks whether the current dice animation was triggered by the opponent's roll
-  const opponentDiceRef = useRef(false);
-  const [opponentDiceAnimating, setOpponentDiceAnimating] = useState(false);
-  // Incremented on each opponent roll — used as a React key to force Dice3DSimple
-  // to remount fresh so onLoadEnd always fires with the correct socket values.
-  const [opponentRollKey, setOpponentRollKey] = useState(0);
+  // Opponent dice — completely separate from local dice animation
+  // to avoid all WebView timing races.
+  const [opponentRolling, setOpponentRolling] = useState(false);
+  const [opponentRolledValues, setOpponentRolledValues] = useState<{ die1: number; die2: number } | null>(null);
+  // Ref holds the socket values so setTimeout closure is always current
+  const opponentRolledDiceRef = useRef<{ die1: number; die2: number } | null>(null);
   // Set to true before emitting our own roll_dice so the socket echo can be skipped
   const pendingMyDiceEchoRef = useRef(false);
   // AR-mode physics dice: track rolling state and swipe handler
@@ -519,7 +519,8 @@ const NardiScreen = ({ navigation, route }: any) => {
   useEffect(() => {
     if (gameState?.phase === 'rolling') {
       setSettledDice(null);
-      setOpponentDiceAnimating(false);
+      setOpponentRolling(false);
+      setOpponentRolledValues(null);
     }
   }, [gameState?.phase]);
 
@@ -681,19 +682,36 @@ const NardiScreen = ({ navigation, route }: any) => {
               pendingMyDiceEchoRef.current = false;
               return;
             }
-            // Opponent's roll — batch all state updates into a single render so
-            // Dice3DSimple always receives the correct pendingDice value prop
-            // (prevents intermediate renders using stale settledDice values).
+            // Opponent's roll — apply game state IMMEDIATELY (no dependency on
+            // WebView animation timing), then reveal correct dice values after the
+            // animation duration so the observer always sees the right numbers.
             const { die1, die2 } = mv.dice;
-            opponentDiceRef.current = true;
-            diceCompleteCount.current = 0;
-            unstable_batchedUpdates(() => {
-              setOpponentDiceAnimating(true);
-              setPendingDice({ die1, die2 });
-              setDiceAnimating(true);
-              setOpponentRollKey(k => k + 1);
+            setGameState(prev => {
+              if (!prev || prev.phase !== 'rolling') return prev;
+              if (prev.currentPlayer === myMpColorRef.current) return prev;
+              const movesRemaining = die1 === die2 ? 4 : 2;
+              const ns: NardiGameState = {
+                ...prev,
+                dice: { die1, die2, rolled: true },
+                phase: 'moving',
+                movesRemaining,
+                possibleMoves: [],
+              };
+              ns.possibleMoves = calculatePossibleMoves(ns);
+              return ns.possibleMoves.length === 0 ? switchPlayer(ns) : ns;
             });
             playDiceRollSound();
+            opponentRolledDiceRef.current = { die1, die2 };
+            setOpponentRolling(true);
+            setOpponentRolledValues(null);
+            // Reveal correct values after animation duration (~1.4 s)
+            setTimeout(() => {
+              const vals = opponentRolledDiceRef.current;
+              if (vals) {
+                setOpponentRolling(false);
+                setOpponentRolledValues(vals);
+              }
+            }, 1400);
           } else if (mv?.type === 'move_piece') {
             // Skip echo of our own move (counter survives turn switches)
             if (pendingMyMoveEchoesRef.current > 0) {
@@ -959,7 +977,7 @@ const NardiScreen = ({ navigation, route }: any) => {
     return true;
   };
 
-  const applyDiceRoll = (dice: Dice, isOpponentRoll = false) => {
+  const applyDiceRoll = (dice: Dice) => {
     setGameState(prev => {
       if (!prev) return prev;
       const movesRemaining = dice.die1 === dice.die2 ? 4 : 2;
@@ -973,7 +991,7 @@ const NardiScreen = ({ navigation, route }: any) => {
       newState.possibleMoves = calculatePossibleMoves(newState);
       console.log('🎲 Applied:', dice.die1, dice.die2, 'possible moves:', newState.possibleMoves.length);
       if (newState.possibleMoves.length === 0) {
-        if (!isOpponentRoll && isMultiplayer && roomIdRef.current) {
+        if (isMultiplayer && roomIdRef.current) {
           justEndedTurnRef.current = true;
           socketService.makeMove(roomIdRef.current, userId, {type: 'end_turn'});
         }
@@ -2194,9 +2212,8 @@ const NardiScreen = ({ navigation, route }: any) => {
         visible={isMultiplayer && mpStatus === 'playing' && !!roomId}
       />
       <SyncedYouTubePlayer roomId={null} visible={true} />
-      {/* 3D dice overlay — spinning while animating, then shows settled face during moving phase.
-           In AR mode we also show this for opponent rolls since the AR board only reacts to local swipes. */}
-      {((!arEnabled || opponentDiceAnimating) && (diceAnimating ? pendingDice : settledDice)) && (
+      {/* 3D dice overlay — local player's AR dice only (spinning then settled). */}
+      {(!arEnabled && (diceAnimating ? pendingDice : settledDice)) && (
         <View
           pointerEvents="none"
           style={{
@@ -2220,7 +2237,6 @@ const NardiScreen = ({ navigation, route }: any) => {
             borderColor: 'rgba(255,255,255,0.15)',
           }}>
             <Dice3DSimple
-              key={`opp-die1-${opponentRollKey}`}
               value={diceAnimating ? pendingDice!.die1 : settledDice!.die1}
               isRolling={diceAnimating}
               index={0}
@@ -2229,20 +2245,14 @@ const NardiScreen = ({ navigation, route }: any) => {
                 diceCompleteCount.current += 1;
                 if (diceCompleteCount.current >= 2) {
                   const settled = pendingDice!;
-                  const wasOpponentRoll = opponentDiceRef.current;
-                  opponentDiceRef.current = false;
-                  // Keep opponentDiceAnimating=true if opponent rolled — cleared by the
-                  // useEffect when phase returns to 'rolling' (our turn begins)
-                  if (!wasOpponentRoll) setOpponentDiceAnimating(false);
                   setSettledDice(settled);
                   setDiceAnimating(false);
-                  applyDiceRoll({ ...settled, rolled: true }, wasOpponentRoll);
+                  applyDiceRoll({ ...settled, rolled: true });
                   setPendingDice(null);
                 }
               }}
             />
             <Dice3DSimple
-              key={`opp-die2-${opponentRollKey}`}
               value={diceAnimating ? pendingDice!.die2 : settledDice!.die2}
               isRolling={diceAnimating}
               index={1}
@@ -2251,17 +2261,70 @@ const NardiScreen = ({ navigation, route }: any) => {
                 diceCompleteCount.current += 1;
                 if (diceCompleteCount.current >= 2) {
                   const settled = pendingDice!;
-                  const wasOpponentRoll = opponentDiceRef.current;
-                  opponentDiceRef.current = false;
-                  if (!wasOpponentRoll) setOpponentDiceAnimating(false);
                   setSettledDice(settled);
                   setDiceAnimating(false);
-                  applyDiceRoll({ ...settled, rolled: true }, wasOpponentRoll);
+                  applyDiceRoll({ ...settled, rolled: true });
                   setPendingDice(null);
                 }
               }}
             />
           </View>
+        </View>
+      )}
+      {/* Opponent dice overlay — shows a "rolling" indicator then the correct
+           settled values. Uses isRolling=false so the WebView simply calls
+           setValue(correctValue) on load — no animation race conditions. */}
+      {isMultiplayer && (opponentRolling || opponentRolledValues) && (
+        <View
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            bottom: 220,
+            left: 0,
+            right: 0,
+            alignItems: 'center',
+          }}
+        >
+          {opponentRolling ? (
+            <View style={{
+              backgroundColor: 'rgba(0,0,0,0.55)',
+              borderRadius: 24,
+              paddingHorizontal: 28,
+              paddingVertical: 20,
+              borderWidth: 1,
+              borderColor: 'rgba(255,255,255,0.15)',
+            }}>
+              <Text style={{ color: '#fbbf24', fontSize: 16, fontWeight: '700' }}>🎲 Opponent rolling...</Text>
+            </View>
+          ) : opponentRolledValues ? (
+            <View style={{
+              backgroundColor: 'rgba(0,0,0,0.55)',
+              borderRadius: 24,
+              paddingHorizontal: 28,
+              paddingVertical: 16,
+              alignItems: 'center',
+              flexDirection: 'row',
+              justifyContent: 'center',
+              gap: 12,
+              borderWidth: 1,
+              borderColor: 'rgba(255,255,255,0.15)',
+            }}>
+              <Dice3DSimple
+                key={`opp-die1-${opponentRolledValues.die1}-${opponentRolledValues.die2}`}
+                value={opponentRolledValues.die1}
+                isRolling={false}
+                index={0}
+                size={110}
+              />
+              <Dice3DSimple
+                key={`opp-die2-${opponentRolledValues.die1}-${opponentRolledValues.die2}`}
+                value={opponentRolledValues.die2}
+                isRolling={false}
+                index={1}
+                size={110}
+              />
+            </View>
+          ) : null}
         </View>
       )}
       {/* AR dice tray — visible dice sitting at the bottom; swipe anywhere to throw onto board */}
