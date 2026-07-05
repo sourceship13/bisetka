@@ -107,7 +107,8 @@ const GameInfoScreen: React.FC<Props> = ({ route, navigation }) => {
   const [showRulesDetailed, setShowRulesDetailed] = useState(false);
   const disableRandomMatch: boolean = false;
   const [selectedMode, setSelectedMode] = useState<GameMode>(
-    preferredMode ?? 'random'
+    preferredMode ??
+    (gameType === 'blackjack' || gameType === 'billiards' || gameType === '9-ball' ? 'ai' : 'random')
   );
   const isTeamGame = gameType === 'blot' || gameType === 'baazar-blot';
   const [selectedTeamMode, setSelectedTeamMode] = useState<TeamMode>('hybrid');
@@ -799,9 +800,8 @@ const GameInfoScreen: React.FC<Props> = ({ route, navigation }) => {
           <View style={{ paddingHorizontal: 16, gap: 12 }}>
             {GAME_MODE_OPTIONS.filter(opt => {
               if (gameType === 'blackjack') return opt.id === 'ai';
+              if (gameType === 'billiards' || gameType === '9-ball') return opt.id === 'ai';
               if (
-                gameType === 'billiards' ||
-                gameType === '9-ball' ||
                 gameType === 'slots' ||
                 gameType === 'mrotsi'
               ) return opt.id !== 'random';
