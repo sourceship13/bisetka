@@ -1914,10 +1914,10 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
           <View>
             <GameToolbarControls
               buttons={[
-                { icon: '🎨', onPress: () => setShowCustomization(true) },
-                { icon: showBackground ? '🖼️' : '🔲', onPress: () => setShowBackground(!showBackground) },
+                // { icon: '🎨', onPress: () => setShowCustomization(true) },
+                // { icon: showBackground ? '🖼️' : '🔲', onPress: () => setShowBackground(!showBackground) },
                 { icon: '👥', onPress: () => roomInfoRef.current?.open() },
-                { icon: showMusicPlayer ? '🎵' : '🎶', onPress: () => setShowMusicPlayer(s => !s) },
+                // { icon: showMusicPlayer ? '🎵' : '🎶', onPress: () => setShowMusicPlayer(s => !s) },
                 { icon: '✏️', onPress: () => setShowRoomNameModal(true) },
               ]}
             />

@@ -82,6 +82,7 @@ interface SpinResult {
   totalPayout: number;
   netResult: number;
   activePaylines: number;
+  newBalance?: number;
 }
 
 const SlotsScreen = ({ navigation }: any) => {
@@ -226,15 +227,44 @@ const SlotsScreen = ({ navigation }: any) => {
         setReelSymbols(data.result);
       }
       setWinnings(data);
-      
-      // Update local balance
-      if (data.totalPayout > 0) {
-        setBalance((prev: number) => prev + data.totalPayout);
-        playCoinDropSound();
+
+      // Use the authoritative balance returned by the server and immediately
+      // push it into the auth context so the toolbar balance updates too.
+      // We do NOT call refreshUser() here because it fetches the profile
+      // asynchronously and its useEffect([user?.balance]) callback would
+      // overwrite this correct value with a potentially stale server response.
+      const authoritative = data.newBalance !== undefined
+        ? Math.floor(data.newBalance)
+        : data.totalPayout > 0
+          ? null  // will be handled below
+          : null;
+
+      if (authoritative !== null) {
+        setBalance(authoritative);
+        setUser((curr: any) => curr ? {
+          ...curr,
+          balance: authoritative,
+          playerStats: curr.playerStats
+            ? { ...curr.playerStats, available_points: authoritative }
+            : curr.playerStats,
+        } : curr);
+      } else if (data.totalPayout > 0) {
+        setBalance((prev: number) => {
+          const next = prev + data.totalPayout;
+          setUser((curr: any) => curr ? {
+            ...curr,
+            balance: next,
+            playerStats: curr.playerStats
+              ? { ...curr.playerStats, available_points: next }
+              : curr.playerStats,
+          } : curr);
+          return next;
+        });
       }
-      
-      // Sync user balance from backend
-      refreshUser().catch(console.error);
+      if (data.totalPayout > 0) playCoinDropSound();
+
+      // Refresh game-end stats (wins/losses/points) but skip refreshUser()
+      // to avoid overwriting the balance we just set from the server response.
       refreshOnGameEnd().catch(console.error);
     } catch (error) {
       console.error('Spin failed:', error);
