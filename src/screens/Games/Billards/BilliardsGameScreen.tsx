@@ -28,6 +28,7 @@ import {aiMoveLogService} from '../../../services/aiMoveLog.service';
 import {v4 as uuidv4} from 'uuid';
 import { useGameEndRefresh } from '../../../libs/hooks/useGameEndRefresh';
 import { useI18n } from '../../../hooks/useI18n';
+import useYourTurnSound from '../../../hooks/useYourTurnSound';
 import {socketService} from '../../../services/SocketService';
 import {useAuth} from '../../../libs/hooks/useAuth';
 import {useAchievements} from '../../../contexts/AchievementContext';
@@ -708,6 +709,7 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
   myColorRef.current = myColor;
   const isMyTurnRef = useRef(isMyTurn);
   isMyTurnRef.current = isMyTurn;
+  useYourTurnSound(isMyTurn);
   // Set to true when I fire the cue ball — cleared after move is sent
   const iAmShooterRef = useRef(false);
   // Holds the authoritative move_made data received while simulation is running

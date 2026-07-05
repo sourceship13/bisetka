@@ -35,6 +35,7 @@ import {socketService, GameMove} from '../../../services/SocketService';
 import tokenService from '../../../services/token.service';
 import { useGameEndRefresh } from '../../../libs/hooks/useGameEndRefresh';
 import { useI18n } from '../../../hooks/useI18n';
+import useYourTurnSound from '../../../hooks/useYourTurnSound';
 import InGameChat from '../../../components/InGameChat';
 import {apiConfig} from '../../../libs/utils/api.utils';
 import {playPieceMoveSound} from '../../../utils/nardiSound';
@@ -107,6 +108,7 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
   const [opponentUsername, setOpponentUsername] = useState<string>('');
   const [currentTurn, setCurrentTurn] = useState<'white' | 'black'>('white');
   const [isMyTurn, setIsMyTurn] = useState<boolean>(false);
+  useYourTurnSound(isMyTurn);
   const [gameStatus, setGameStatus] = useState<string>(
     routeMode === 'random' ? 'Finding opponent...' : 'Waiting for opponent...',
   );

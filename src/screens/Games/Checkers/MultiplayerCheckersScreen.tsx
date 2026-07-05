@@ -26,6 +26,7 @@ import tokenService from '../../../services/token.service';
 import {useGameEndRefresh} from '../../../libs/hooks/useGameEndRefresh';
 import {playPieceMoveSound} from '../../../utils/nardiSound';
 import { useI18n } from '../../../hooks/useI18n';
+import useYourTurnSound from '../../../hooks/useYourTurnSound';
 import InGameChat from '../../../components/InGameChat';
 import SyncedYouTubePlayer from '../../../components/SyncedYouTubePlayer';
 import {apiConfig} from '../../../libs/utils/api.utils';
@@ -175,6 +176,7 @@ const MultiplayerCheckersScreen = ({navigation, route}: any) => {
 
   const [serverTurn, setServerTurn] = useState<'white' | 'black'>('white');
   const isMyTurn = mode === 'game' ? serverTurn === mySocketColor : false;
+  useYourTurnSound(isMyTurn);
 
   // ── UI helpers ─────────────────────────────────────────────────────────────
   const [gameStatus, setGameStatus] = useState<string>(

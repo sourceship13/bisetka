@@ -53,6 +53,7 @@ import { useAchievements } from '../../../contexts/AchievementContext';
 import { v4 as uuidv4 } from 'uuid';
 import SyncedYouTubePlayer from '../../../components/SyncedYouTubePlayer';
 import { playPieceMoveSound, playDiceRollSound } from '../../../utils/nardiSound';
+import useYourTurnSound from '../../../hooks/useYourTurnSound';
 import { chooseBestAiSequence } from '../../../game/nardiAI';
 import tokenService from '../../../services/token.service';
 
@@ -332,6 +333,7 @@ const NardiScreen = ({ navigation, route }: any) => {
   useEffect(() => { roomNameRef.current = roomName; }, [roomName]);
 
   const myNardiColor: 'white'|'black' = isMultiplayer ? myMpColor : 'white';
+  useYourTurnSound(!!gameState && gameState.currentPlayer === myNardiColor && gameState.phase === 'rolling');
   // Opening roll ceremony (multiplayer only)
   const [mpOpeningPhase, setMpOpeningPhase] = useState<'idle'|'rolling'|'done'>('idle');
   const [myOpeningRoll, setMyOpeningRoll] = useState<number|null>(null);

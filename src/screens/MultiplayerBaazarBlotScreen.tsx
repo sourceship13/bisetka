@@ -32,6 +32,7 @@ import CardHandFan from '../components/CardHandFan';
 import { RiffleDealAnimation } from '../components/RiffleDealAnimation';
 import type { CardTheme } from '../components/global/GameCustomizationModal';
 import { playCardFlipSound } from '../utils/nardiSound';
+import useYourTurnSound from '../hooks/useYourTurnSound';
 
 const { width: SW } = Dimensions.get('window');
 
@@ -99,6 +100,7 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
   const [roomCode, setRoomCode] = useState<string>('');
   const [players, setPlayers] = useState<GamePlayer[]>([]);
   const [myPosition, setMyPosition] = useState<number>(-1);
+  useYourTurnSound(!!gameState && gameState.currentPlayer === myPosition);
   const [myTeam, setMyTeam] = useState<1 | 2>(1);
   const [gameState, setGameState] = useState<BaazarGameState | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);

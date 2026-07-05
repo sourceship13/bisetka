@@ -20,6 +20,7 @@ import SyncedYouTubePlayer from '../../../components/SyncedYouTubePlayer';
 import { apiService } from '../../../services/api.service';
 import { useAuth } from '../../../libs/hooks/useAuth';
 import { playPieceMoveSound } from '../../../utils/nardiSound';
+import useYourTurnSound from '../../../hooks/useYourTurnSound';
 import { useAchievements } from '../../../contexts/AchievementContext';
 import { resolveAvatar } from '../../../utils/avatars';
 import useDeviceType from '../../../hooks/useDeviceType';
@@ -460,6 +461,7 @@ const CheckersScreen = ({ navigation, route }: any) => {
     ? (mySocketColor === 'black' ? 'black' : 'red')
     : 'black';
   const isMyTurn = isMultiplayer ? serverTurn === mySocketColor : gameState.currentPlayer === 'black';
+  useYourTurnSound(isMyTurn);
 
   // ── Entry fee & prize logic ──────────────────────────────────────────────
   // Deduct entry fee when game starts (AI mode starts immediately, multiplayer waits for game_started)

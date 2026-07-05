@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useGameEndRefresh } from '../../../libs/hooks/useGameEndRefresh';
 import { gameResultService } from '../../../services/gameResult.service';
 import { useI18n } from '../../../hooks/useI18n';
+import useYourTurnSound from '../../../hooks/useYourTurnSound';
 import {
   View,
   Text,
@@ -76,6 +77,7 @@ const BlotScreen = ({ navigation, route }: any) => {
   const fakeOpponent = route?.params?.fakeOpponent ?? null;
   const [targetScore, setTargetScore] = useState<number | null>(null); // 101, 201, or 301
   const [gameState, setGameState] = useState<GameState | null>(null);
+  useYourTurnSound(gameState?.phase === 'playing' && gameState?.currentPlayer === 0);
   const [showCustomization, setShowCustomization] = useState(false);
   const [showRiffleDealAnimation, setShowRiffleDealAnimation] = useState(false);
   const [showBiddingModal, setShowBiddingModal] = useState(false);

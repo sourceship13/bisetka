@@ -3,6 +3,7 @@ import {View, Text, StyleSheet, TouchableOpacity, ScrollView, ImageBackground, A
 import { Snackbar } from 'react-native-paper';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { useI18n } from '../../../hooks/useI18n';
+import useYourTurnSound from '../../../hooks/useYourTurnSound';
 import { apiService } from '../../../services/api.service';
 import { useAuth } from '../../../libs/hooks/useAuth';
 import { resolveAvatar } from '../../../utils/avatars';
@@ -293,6 +294,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
 
   // Effective seat index for the human player
   const myPlayerIndex = isMultiplayer ? mySeatRef.current : playerIndex;
+  useYourTurnSound(activePlayerIndex === myPlayerIndex && gamePhase !== 'waiting' && gamePhase !== 'showdown');
   const myPlayer = players[myPlayerIndex];
   const myCurrentBet = myPlayer?.currentBet ?? 0;
   const minRaiseTo = myPlayer ? Math.min(myCurrentBet + myPlayer.chips, currentBet + 20) : currentBet + 20;

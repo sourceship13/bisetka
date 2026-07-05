@@ -16,6 +16,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { useI18n } from '../../../hooks/useI18n';
+import useYourTurnSound from '../../../hooks/useYourTurnSound';
 import AraratBackground from '../../../components/AraratBackground';
 import AR3DOverlay, {type AR3DOverlayHandle, type ARCard} from '../../../components/AR3DOverlay';
 import SyncedYouTubePlayer from '../../../components/SyncedYouTubePlayer';
@@ -119,6 +120,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
   // Blocks a second card tap until the server acknowledges the current move
   const moveInFlightRef = useRef(false);
   const [isMyTurn, setIsMyTurn] = useState(false);
+  useYourTurnSound(isMyTurn);
   const [selectedCard, setSelectedCard] = useState<Card | null>(null);
   const [opponent, setOpponent] = useState<any>(null);
   // Seat names relative to this player: [0=bottom/me, 1=right, 2=top, 3=left]

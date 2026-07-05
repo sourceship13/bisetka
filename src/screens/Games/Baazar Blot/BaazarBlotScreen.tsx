@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useGameEndRefresh } from '../../../libs/hooks/useGameEndRefresh';
 import { gameResultService } from '../../../services/gameResult.service';
 import { useI18n } from '../../../hooks/useI18n';
+import useYourTurnSound from '../../../hooks/useYourTurnSound';
 import {
   View,
   Text,
@@ -74,6 +75,7 @@ const BaazarBlotScreen = ({ navigation, route }: any) => {
   const { translate } = useI18n();
   const fakeOpponent = route?.params?.fakeOpponent ?? null;
   const [gameState, setGameState] = useState<BaazarGameState | null>(null);
+  useYourTurnSound(gameState?.currentPlayer === 0);
   const [showCustomization, setShowCustomization] = useState(false);
   const [customTheme, setCustomTheme] = useState<CardTheme | undefined>(undefined);
   const [pendingBidLevel, setPendingBidLevel] = useState<BidLevel>(9);

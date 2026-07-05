@@ -2,6 +2,7 @@ import React, {useState, useEffect, useRef, useMemo} from 'react';
 import {View, Text, StyleSheet, TouchableOpacity, Alert, Animated, ScrollView, Image, useWindowDimensions} from 'react-native';
 import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { useI18n } from '../../../hooks/useI18n';
+import useYourTurnSound from '../../../hooks/useYourTurnSound';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AraratBackground from '../../../components/AraratBackground';
 import AR3DOverlay, {type AR3DOverlayHandle, type ARPiece} from '../../../components/AR3DOverlay';
@@ -65,6 +66,7 @@ const ChessScreen = ({navigation, route}: any) => {
   const [difficulty, setDifficulty] = useState<Difficulty | null>(null);
   // Initialize game difficulty selector if not already selected
   const [gameState, setGameState] = useState<ChessGameState | null>(null);
+  useYourTurnSound(gameState?.currentPlayer === 'white');
   const gameIdRef = useRef<string | null>(null);
   const moveCountRef = useRef(0);
   // Counts consecutive checks delivered without a checkmate. After CHECK_DRAW_THRESHOLD
