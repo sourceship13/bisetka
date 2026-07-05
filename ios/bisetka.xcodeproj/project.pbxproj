@@ -30,11 +30,13 @@
 		A1B2C3D4E5F6A7B8C9D00013 /* piece_move.wav in Resources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6A7B8C9D00003 /* piece_move.wav */; };
 		A1B2C3D4E5F6A7B8C9D00014 /* dice_roll.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6A7B8C9D00004 /* dice_roll.mp3 */; };
 		A1B2C3D4E5F6A7B8C9D00015 /* coin_drop.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6A7B8C9D00005 /* coin_drop.mp3 */; };
+		A1B2C3D4E5F6A7B8C9D00016 /* your_turn.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6A7B8C9D00006 /* your_turn.mp3 */; };
 		A1B2C3D4E5F6A7B8C9D00021 /* card_flip.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6A7B8C9D00001 /* card_flip.mp3 */; };
 		A1B2C3D4E5F6A7B8C9D00022 /* card_riffle_shuffle.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6A7B8C9D00002 /* card_riffle_shuffle.mp3 */; };
 		A1B2C3D4E5F6A7B8C9D00023 /* piece_move.wav in Resources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6A7B8C9D00003 /* piece_move.wav */; };
 		A1B2C3D4E5F6A7B8C9D00024 /* dice_roll.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6A7B8C9D00004 /* dice_roll.mp3 */; };
 		A1B2C3D4E5F6A7B8C9D00025 /* coin_drop.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6A7B8C9D00005 /* coin_drop.mp3 */; };
+		A1B2C3D4E5F6A7B8C9D00026 /* your_turn.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6A7B8C9D00006 /* your_turn.mp3 */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -63,6 +65,7 @@
 		A1B2C3D4E5F6A7B8C9D00003 /* piece_move.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; name = piece_move.wav; path = bisetka/piece_move.wav; sourceTree = "<group>"; };
 		A1B2C3D4E5F6A7B8C9D00004 /* dice_roll.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; name = dice_roll.mp3; path = bisetka/dice_roll.mp3; sourceTree = "<group>"; };
 		A1B2C3D4E5F6A7B8C9D00005 /* coin_drop.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; name = coin_drop.mp3; path = bisetka/coin_drop.mp3; sourceTree = "<group>"; };
+		A1B2C3D4E5F6A7B8C9D00006 /* your_turn.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; name = your_turn.mp3; path = bisetka/your_turn.mp3; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -259,6 +262,7 @@
 				A1B2C3D4E5F6A7B8C9D00013 /* piece_move.wav in Resources */,
 				A1B2C3D4E5F6A7B8C9D00014 /* dice_roll.mp3 in Resources */,
 				A1B2C3D4E5F6A7B8C9D00015 /* coin_drop.mp3 in Resources */,
+				A1B2C3D4E5F6A7B8C9D00016 /* your_turn.mp3 in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -278,6 +282,7 @@
 				A1B2C3D4E5F6A7B8C9D00023 /* piece_move.wav in Resources */,
 				A1B2C3D4E5F6A7B8C9D00024 /* dice_roll.mp3 in Resources */,
 				A1B2C3D4E5F6A7B8C9D00025 /* coin_drop.mp3 in Resources */,
+				A1B2C3D4E5F6A7B8C9D00026 /* your_turn.mp3 in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
