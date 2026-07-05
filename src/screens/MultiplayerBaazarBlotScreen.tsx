@@ -31,6 +31,7 @@ import RoomInfoDrawer from '../components/RoomInfoDrawer';
 import CardHandFan from '../components/CardHandFan';
 import { RiffleDealAnimation } from '../components/RiffleDealAnimation';
 import type { CardTheme } from '../components/global/GameCustomizationModal';
+import { playCardFlipSound } from '../utils/nardiSound';
 
 const { width: SW } = Dimensions.get('window');
 
@@ -326,6 +327,7 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
         currentPlayer: number;
       }) => {
         console.log('🃏 Card played by pos:', data.playerPosition, 'currentPlayer now:', data.currentPlayer, 'myPosition:', myPosition, 'myHand length:', data.gameState?.playerHands?.[myPosition]?.length);
+        playCardFlipSound();
         const nextState = { ...data.gameState, currentPlayer: data.currentPlayer };
         if (showDealAnimationRef.current) {
           // Buffer during deal animation — applied in onComplete
@@ -620,6 +622,7 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
     if (isSpectating) return;
     if (!roomId || !gameState || gameState.currentPlayer !== myPosition) return;
 
+    playCardFlipSound();
     const socket = socketService.getSocket();
     if (socket) {
       socket.emit('baazar_play_card', {
