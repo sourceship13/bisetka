@@ -327,6 +327,8 @@ const NardiScreen = ({ navigation, route }: any) => {
   const [roomId, setRoomId] = useState<string|null>(null);
   const roomIdRef = useRef<string|null>(null);
   const [myMpColor, setMyMpColor] = useState<'white'|'black'>('white');
+  const [opponentId, setOpponentId] = useState<string>('');
+  const [opponentUsername, setOpponentUsername] = useState<string>('');
   const [roomName, setRoomName] = useState('Multiplayer Nardi');
   const [showRoomNameModal, setShowRoomNameModal] = useState(false);
   const roomNameRef = useRef(roomName);
@@ -638,8 +640,14 @@ const NardiScreen = ({ navigation, route }: any) => {
         socket.on('match_found', (data: any) => {
           onRoomAssigned(data);
           socket.emit('player_ready', {roomId: data.roomId, userId});
+          setOpponentId(data.opponent?.id ?? '');
+          setOpponentUsername(data.opponent?.username ?? data.opponent?.displayName ?? '');
         });
-        socket.on('room_joined', (data: any) => { onRoomAssigned(data); });
+        socket.on('room_joined', (data: any) => {
+          onRoomAssigned(data);
+          setOpponentId(data.opponent?.id ?? '');
+          setOpponentUsername(data.opponent?.username ?? data.opponent?.displayName ?? '');
+        });
         socket.on('opponent_joined', () => {
           if (cancelled || !resolvedRoomId) return;
           socket.emit('player_ready', {roomId: resolvedRoomId, userId});
@@ -1676,7 +1684,12 @@ const NardiScreen = ({ navigation, route }: any) => {
         ]}
       />
       <View style={styles.overlay} pointerEvents="box-none">
-        <GamePlayerOverlay opponent={isMultiplayer ? null : 'ai'} />
+        <GamePlayerOverlay
+          opponent={isMultiplayer
+            ? { userId: opponentId || null, username: opponentUsername || null }
+            : 'ai'
+          }
+        />
         <SafeAreaView style={styles.safeArea} pointerEvents="box-none">
           <View>
             <GameToolbar
