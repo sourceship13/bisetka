@@ -875,13 +875,13 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
         BisetkaAlert.success(
           'Game Over!',
           'You won! 🎉',
-          [{ text: 'OK', onPress: () => navigation.replace('GameMode', {gameType: 'blot'}) }]
+          [{ text: 'OK', onPress: () => navigation.replace('GameInfo', {gameType: 'blot'}) }]
         );
       } else {
         BisetkaAlert.error(
           'Game Over!',
           'You lost. Better luck next time!',
-          [{ text: 'OK', onPress: () => navigation.replace('GameMode', {gameType: 'blot'}) }]
+          [{ text: 'OK', onPress: () => navigation.replace('GameInfo', {gameType: 'blot'}) }]
         );
       }
     });
