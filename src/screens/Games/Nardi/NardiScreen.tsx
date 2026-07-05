@@ -365,6 +365,9 @@ const NardiScreen = ({ navigation, route }: any) => {
   // Tracks whether the current dice animation was triggered by the opponent's roll
   const opponentDiceRef = useRef(false);
   const [opponentDiceAnimating, setOpponentDiceAnimating] = useState(false);
+  // Incremented on each opponent roll — used as a React key to force Dice3DSimple
+  // to remount fresh so onLoadEnd always fires with the correct socket values.
+  const [opponentRollKey, setOpponentRollKey] = useState(0);
   // Set to true before emitting our own roll_dice so the socket echo can be skipped
   const pendingMyDiceEchoRef = useRef(false);
   // AR-mode physics dice: track rolling state and swipe handler
@@ -686,6 +689,7 @@ const NardiScreen = ({ navigation, route }: any) => {
               setOpponentDiceAnimating(true);
               setPendingDice({ die1, die2 });
               setDiceAnimating(true);
+              setOpponentRollKey(k => k + 1);
             });
             playDiceRollSound();
           } else if (mv?.type === 'move_piece') {
@@ -2214,6 +2218,7 @@ const NardiScreen = ({ navigation, route }: any) => {
             borderColor: 'rgba(255,255,255,0.15)',
           }}>
             <Dice3DSimple
+              key={`opp-die1-${opponentRollKey}`}
               value={diceAnimating ? pendingDice!.die1 : settledDice!.die1}
               isRolling={diceAnimating}
               index={0}
@@ -2235,6 +2240,7 @@ const NardiScreen = ({ navigation, route }: any) => {
               }}
             />
             <Dice3DSimple
+              key={`opp-die2-${opponentRollKey}`}
               value={diceAnimating ? pendingDice!.die2 : settledDice!.die2}
               isRolling={diceAnimating}
               index={1}
