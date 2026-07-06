@@ -45,10 +45,21 @@ jobs:
           bundler-cache: true
       - name: Install Bundler dependencies
         run: bundle install
+      - name: Cache CocoaPods specs and Pods
+        uses: actions/cache@v4
+        id: pods-cache
+        with:
+          path: |
+            ~/.cocoapods
+            ios/Pods
+          key: ${{ runner.os }}-pods-${{ hashFiles('ios/Podfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pods-
       - name: Install CocoaPods
+        if: steps.pods-cache.outputs.cache-hit != 'true'
         run: |
           cd ios
-          pod install --repo-update
+          pod install
       - name: Create App Store Connect API Key
         env:
           APP_STORE_API_KEY_ID: ${{ secrets.APP_STORE_API_KEY_ID }}
