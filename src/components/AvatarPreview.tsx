@@ -71,7 +71,7 @@ const BUILD_OVERRIDES: Record<string, BuildOverrides> = {
   'male-muscle': {
     top: { left: 0.3, width: 0.4, top: 0.15 },
     jacket: { left: 0.14, width: 0.72, top: 0.205 },
-    bottom: { left: 0.231, width: 0.5, top: 0.5066 },
+    bottom: { left: 0.18, width: 0.6, top: 0.49 },
     shorts: { left: 0.265, width: 0.47 },
     shoes: { left: 0.11, width: 0.7, top: 0.878 },
     hair: { left: -0.031, width: 1, top: 0.0, height: 0.14 },
@@ -82,7 +82,7 @@ const BUILD_OVERRIDES: Record<string, BuildOverrides> = {
   'male-fat': {
     top: { left: 0.31, width: 0.4, top: 0.15, height: 0.52 },
     jacket: { left: 0.12, width: 0.76, top: 0.215 },
-    bottom: { left: 0.25, width: 0.45, top: 0.518, height: 0.42 },
+    bottom: { left: 0.22, width: 0.5, top: 0.518, height: 0.42 },
     shorts: { left: 0.24, width: 0.52, top: 0.525 },
     shoes: { left: 0.009, width: 0.9, top: 0.885, height: 0.15 },
     hair: { left: 0.14, width: 0.72, top: 0.0, height: 0.155 },
@@ -126,7 +126,7 @@ const BUILD_OVERRIDES: Record<string, BuildOverrides> = {
   'female-muscle': {
     top: { left: 0.389, width: 0.2, top: 0.08 },
     jacket: { left: 0.16, width: 0.68, top: 0.21 },
-    bottom: { left: 0.28, width: 0.44, top: 0.46, height: 0.5 },
+    bottom: { left: 0.28, width: 0.44, top: 0.44, height: 0.5 },
     shorts: { left: 0.27, width: 0.46 },
     shoes: { left: 0.21, width: 0.54, top: 0.93, height: 0.1 },
     hair: { left: 0.145, width: 0.7, top: -0.031, height: 0.24 },
@@ -137,7 +137,7 @@ const BUILD_OVERRIDES: Record<string, BuildOverrides> = {
   'female-fat': {
     top: { left: 0.326, width: 0.32, top: -0.06, height: 0.8 },
     jacket: { left: 0.13, width: 0.74, top: 0.215 },
-    bottom: { left: 0.13, width: 0.7, top: 0.51, height: 0.42 },
+    bottom: { left: 0.135, width: 0.7, top: 0.51, height: 0.42 },
     shorts: { left: 0.245, width: 0.51, top: 0.525 },
     shoes: { left: 0.28, width: 0.4, top: 0.92 },
     hair: { left: 0.06, width: 0.9, top: -0.03, height: 0.23 },
