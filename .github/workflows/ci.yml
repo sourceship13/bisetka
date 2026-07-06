@@ -88,6 +88,12 @@ jobs:
           MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
           APP_STORE_API_KEY_ID: ${{ secrets.APP_STORE_API_KEY_ID }}
         run: |
+          # Write .xcode.env.local so Xcode's "Bundle React Native code and images"
+          # script can find node (actions/setup-node puts it in a non-standard path
+          # that command -v node misses inside Xcode's restricted build environment).
+          NODE_PATH=$(which node)
+          echo "export NODE_BINARY=$NODE_PATH" > ios/.xcode.env.local
+          echo "NODE_BINARY set to: $NODE_PATH"
           cd ios
           bundle exec fastlane production
       - name: Upload build logs on failure
