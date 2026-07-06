@@ -93,21 +93,25 @@ jobs:
       - name: Upload build logs on failure
         if: failure()
         run: |
+          echo "=== GYM LOG LOCATION ==="
+          find ~/Library/Logs/gym -name "*.log" 2>/dev/null | head -10
           GYM_LOG=$(find ~/Library/Logs/gym -name "bisetka-bisetka.log" 2>/dev/null | head -1)
-          echo "=== ERRORS FROM GYM LOG ==="
+          if [ -z "$GYM_LOG" ]; then
+            GYM_LOG=$(find ~/Library/Logs/gym -name "*.log" 2>/dev/null | head -1)
+          fi
+          echo "Using log: $GYM_LOG"
+          echo ""
+          echo "=== COMPILE ERRORS (error:) ==="
           if [ -n "$GYM_LOG" ]; then
-            grep -n "error:" "$GYM_LOG" 2>/dev/null | grep -v "^Binary\|\.h:\|warning:" | tail -80
-          else
-            echo "gym log not found at expected path"
-            find ~/Library/Logs/gym -name "*.log" 2>/dev/null
+            grep -n " error:" "$GYM_LOG" 2>/dev/null | grep -v "^[0-9]*:.*warning:" | tail -100
           fi
           echo ""
-          echo "=== LAST 100 LINES OF GYM LOG ==="
+          echo "=== ARCHIVE FAILURE CONTEXT ==="
           if [ -n "$GYM_LOG" ]; then
-            tail -100 "$GYM_LOG"
+            grep -B5 -A10 "ARCHIVE FAILED\|BUILD FAILED\|CompileSwift\|CompileC\|Ld " "$GYM_LOG" 2>/dev/null | grep -A10 "error:" | tail -120
           fi
           echo ""
-          echo "=== SCRIPT PHASE FAILURES ==="
+          echo "=== LAST 150 LINES OF LOG ==="
           if [ -n "$GYM_LOG" ]; then
-            grep -A 20 "PhaseScriptExecution\|Script Phase\|** ARCHIVE FAILED" "$GYM_LOG" 2>/dev/null | tail -60
+            tail -150 "$GYM_LOG"
           fi
