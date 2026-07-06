@@ -130,4 +130,13 @@ platform :ios do
     )
     UI.success("✅ Provisioning profiles regenerated with Push Notifications!")
   end
-end
+
+  desc "Generate all required iOS app icon sizes from the 1024x1024 source image"
+  lane :icons do
+    appicon(
+      appicon_image_file: "../assets/appIcons/app-icon.png",
+      appicon_devices: [:iphone, :ios_marketing],
+      appicon_path: "bisetka/Images.xcassets"
+    )
+  end
+end  # end of platform :ios

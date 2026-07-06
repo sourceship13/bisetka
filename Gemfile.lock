@@ -180,6 +180,9 @@ GEM
       xcodeproj (>= 1.13.0, < 2.0.0)
       xcpretty (~> 0.4.1)
       xcpretty-travis-formatter (>= 0.0.3, < 2.0.0)
+    fastlane-plugin-appicon (0.16.0)
+      json
+      mini_magick (>= 4.9.4, < 5.0.0)
     fastlane-sirp (1.0.0)
       sysrandom (~> 1.0)
     ffi (1.17.3)
@@ -314,6 +317,7 @@ DEPENDENCIES
   cocoapods (>= 1.13, != 1.15.1, != 1.15.0)
   concurrent-ruby (< 1.3.4)
   fastlane
+  fastlane-plugin-appicon
   logger
   mutex_m
   xcodeproj (< 1.26.0)
