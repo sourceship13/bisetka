@@ -255,7 +255,7 @@ const GameInfoScreen: React.FC<Props> = ({ route, navigation }) => {
       gameType === 'billiards' ||
       gameType === '9-ball'
     ) {
-      // Re-create the AI session and route to BilliardsGame.
+      // Re create the AI session and route to BilliardsGame.
       (async () => {
         try {
           const session: any = await gameSessionsService.createAiMatch(
