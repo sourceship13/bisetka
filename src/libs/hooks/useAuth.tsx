@@ -6,10 +6,12 @@ import { appleAuth } from '@invertase/react-native-apple-authentication';
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 
 // Configure Google Sign-In (called once at module load)
-// TODO: Replace with your actual Web Client ID from Google Cloud Console
-// Get it from: https://console.cloud.google.com/ → APIs & Services → Credentials → OAuth 2.0 Client IDs → Web client
+// webClientId:  GCP → APIs & Services → Credentials → Web client (auto created by Google Service)
+// iosClientId:  GCP → APIs & Services → Credentials → iOS OAuth client for this app
+//               Also set REVERSED_CLIENT_ID as a URL scheme in ios/bisetka/Info.plist
 GoogleSignin.configure({
   webClientId: '378583720606-h0fk22ojpusud1i2p1a6jnf9f8hrkntb.apps.googleusercontent.com',
+  iosClientId: 'REPLACE_WITH_IOS_CLIENT_ID.apps.googleusercontent.com',
   offlineAccess: true,
 });
 import AsyncStorage from '@react-native-async-storage/async-storage';
