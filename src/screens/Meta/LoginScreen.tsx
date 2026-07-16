@@ -136,7 +136,7 @@ const LoginScreen: React.FC = () => {
           </Text>
         </View>
 
-        {__DEV__ && (
+        {/* {__DEV__ && (
           <View style={styles.devSection}>
             <TouchableOpacity onPress={() => setShowDevUsers(s => !s)}>
               <Text style={styles.devToggle}>
@@ -157,7 +157,7 @@ const LoginScreen: React.FC = () => {
               </ScrollView>
             )}
           </View>
-        )}
+        )} */}
       </SafeAreaView>
     </ImageBackground>
   );

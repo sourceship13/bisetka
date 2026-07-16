@@ -37,8 +37,7 @@
 			<string>Google Sign-In</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<!-- Replace with REVERSED_CLIENT_ID from GoogleService-Info.plist -->
-				<string>REPLACE_WITH_REVERSED_CLIENT_ID</string>
+					<string>com.googleusercontent.apps.230284145137-56mvnb2b6r7isv8qckfu40ed0a3t2h9u</string>
 			</array>
 		</dict>
 	</array>
