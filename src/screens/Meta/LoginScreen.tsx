@@ -132,8 +132,8 @@ const LoginScreen: React.FC = () => {
 
           <Text style={styles.tos}>
             By continuing, you agree to our{' '}
-            <Text style={styles.tosLink} onPress={() => Linking.openURL('https://bisetka.com/privacy_policy')}>{translate('settings.terms')}</Text> and{' '}
-            <Text style={styles.tosLink} onPress={() => Linking.openURL('https://bisetka.com/privacy_policy')}>{translate('settings.privacy_policy')}</Text>.
+            <Text style={styles.tosLink} onPress={() => Linking.openURL('https://bisetka.co/privacy_policy')}>{translate('settings.terms')}</Text> and{' '}
+            <Text style={styles.tosLink} onPress={() => Linking.openURL('https://bisetka.co/privacy_policy')}>{translate('settings.privacy_policy')}</Text>.
           </Text>
         </View>
 
