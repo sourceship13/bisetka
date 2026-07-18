@@ -155,7 +155,7 @@ const LoginScreen: React.FC = () => {
                     <Text style={styles.devEmail}>{u.email}</Text>
                   </TouchableOpacity>
                 ))}
-              </ScrollView>
+              </ScrollView>y co
             )}
           </View>
         )} */}

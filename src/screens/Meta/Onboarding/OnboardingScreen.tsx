@@ -14,6 +14,7 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   DeviceEventEmitter,
+  Linking,
 } from 'react-native';
 import { useI18n } from '../../../hooks/useI18n';
 import {SafeAreaView} from 'react-native-safe-area-context';
@@ -53,6 +54,7 @@ interface Slide {
   isGenderSlide?: boolean;
   isAvatarSlide?: boolean;
   isCharacterSlide?: boolean;
+  isConsentSlide?: boolean;
 }
 
 const WELCOME_SLIDE: Slide = {
@@ -73,6 +75,16 @@ const LANGUAGE_SLIDE: Slide = {
   isLanguageSlide: true,
 };
 
+const CONSENT_SLIDE: Slide = {
+  id: '1c',
+  title: 'Privacy & Leaderboards',
+  description:
+    'Bisetka uploads your game scores to public leaderboards so other players can see them. Please review our Privacy Policy and confirm you agree before continuing.',
+  emoji: '🛡️',
+  gradient: ['#7c3aed', '#a78bfa'],
+  isConsentSlide: true,
+};
+
 const LANGUAGE_OPTIONS = [
   { code: 'en', label: '🇺🇸 English', native: 'English' },
   { code: 'ru', label: '🇷🇺 Русский', native: 'Russian' },
@@ -83,6 +95,7 @@ const LANGUAGE_OPTIONS = [
 const BASE_SLIDES: Slide[] = [
   WELCOME_SLIDE,
   LANGUAGE_SLIDE,
+  CONSENT_SLIDE,
   {
     id: '4',
     title: 'Never Miss a Game',
@@ -140,6 +153,8 @@ const ONBOARDING_COMPLETE_KEY = '@bisetka_onboarding_complete';
 const GENDER_KEY = '@bisetka_gender';
 const SELECTED_AVATAR_KEY = 'selectedAvatarId';
 const SELECTED_AVATAR_OBJ_KEY = '@bisetka_selected_avatar';
+const LEADERBOARD_CONSENT_KEY = '@bisetka_leaderboard_consent';
+const PRIVACY_POLICY_URL = 'https://bisetka.co/privacy_policy';
 
 const OnboardingScreen: React.FC<{navigation: any; route?: any}> = ({navigation}) => {
   const { translate, setLanguage } = useI18n();
@@ -161,6 +176,7 @@ const OnboardingScreen: React.FC<{navigation: any; route?: any}> = ({navigation}
   const [currentIndex, setCurrentIndex] = useState(0);
   const [notificationStatus, setNotificationStatus] = useState<'pending' | 'granted' | 'denied' | 'blocked'>('pending');
   const [selectedLanguage, setSelectedLanguage] = useState<string>('en');
+  const [leaderboardConsent, setLeaderboardConsent] = useState<boolean>(false);
 
   const handleLanguageSelect = async (langCode: string) => {
     setSelectedLanguage(langCode);
@@ -236,6 +252,9 @@ const OnboardingScreen: React.FC<{navigation: any; route?: any}> = ({navigation}
     if (currentSlide?.isCharacterSlide && (!selectedGender || !selectedAvatarId)) {
       return;
     }
+    if (currentSlide?.isConsentSlide && !leaderboardConsent) {
+      return;
+    }
     
     if (currentIndex < slides.length - 1) {
       flatListRef.current?.scrollToIndex({
@@ -246,6 +265,14 @@ const OnboardingScreen: React.FC<{navigation: any; route?: any}> = ({navigation}
   };
 
   const handleSkip = async () => {
+    if (!leaderboardConsent) {
+      // Cannot skip past consent; scroll to the consent slide instead.
+      const consentIndex = slides.findIndex(s => s.isConsentSlide);
+      if (consentIndex >= 0 && consentIndex !== currentIndex) {
+        flatListRef.current?.scrollToIndex({index: consentIndex, animated: true});
+      }
+      return;
+    }
     await completeOnboarding();
   };
 
@@ -270,6 +297,13 @@ const OnboardingScreen: React.FC<{navigation: any; route?: any}> = ({navigation}
   };
 
   const handleGetStarted = async () => {
+    if (!leaderboardConsent) {
+      const consentIndex = slides.findIndex(s => s.isConsentSlide);
+      if (consentIndex >= 0) {
+        flatListRef.current?.scrollToIndex({index: consentIndex, animated: true});
+      }
+      return;
+    }
     if (needsUsernameSelection) {
       if (!available) return;
       if (!selectedGender) return; // Must pick gender
@@ -349,6 +383,10 @@ const OnboardingScreen: React.FC<{navigation: any; route?: any}> = ({navigation}
   const completeOnboarding = async () => {
     try {
       await AsyncStorage.setItem(ONBOARDING_COMPLETE_KEY, 'true');
+      await AsyncStorage.setItem(LEADERBOARD_CONSENT_KEY, JSON.stringify({
+        accepted: true,
+        acceptedAt: new Date().toISOString(),
+      }));
     } catch (error) {
       console.error('Failed to save onboarding state:', error);
     }
@@ -693,12 +731,95 @@ const OnboardingScreen: React.FC<{navigation: any; route?: any}> = ({navigation}
       );
     }
 
+    // Privacy & Leaderboard consent slide — required by App Store review.
+    // Users must tap the checkbox before they can continue. Includes an
+    // in-app link to the hosted Privacy Policy.
+    if (item.isConsentSlide) {
+      return (
+        <ImageBackground
+          source={WelcomeBackground}
+          resizeMode="cover"
+          style={slideStyles.welcomeBg}>
+          <View style={slideStyles.welcomeOverlay} />
+          <SafeAreaView style={slideStyles.usernameSafe} edges={['top', 'bottom', 'left', 'right']}>
+            <View style={slideStyles.usernameTop}>
+              <LogoWhite width={140} height={64} />
+            </View>
+
+            <View style={slideStyles.usernameMiddle}>
+              <Text style={slideStyles.slideEmoji}>{item.emoji}</Text>
+              <Text style={slideStyles.usernameTitle}>{item.title}</Text>
+              <Text style={slideStyles.usernameSubtitle}>{item.description}</Text>
+
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => Linking.openURL(PRIVACY_POLICY_URL)}
+                style={slideStyles.consentPolicyLinkWrap}>
+                <Text style={slideStyles.consentPolicyLinkText}>
+                  Read our Privacy Policy ↗
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => setLeaderboardConsent(c => !c)}
+                style={slideStyles.consentCheckboxRow}>
+                <View
+                  style={[
+                    slideStyles.consentCheckbox,
+                    leaderboardConsent && slideStyles.consentCheckboxChecked,
+                  ]}>
+                  {leaderboardConsent && (
+                    <Text style={slideStyles.consentCheckboxMark}>✓</Text>
+                  )}
+                </View>
+                <Text style={slideStyles.consentCheckboxLabel}>
+                  I agree that my game scores may be uploaded to the public
+                  Bisetka leaderboards, and I have read the Privacy Policy.
+                </Text>
+              </TouchableOpacity>
+
+              <Text style={slideStyles.consentRequiredNote}>
+                You must accept to use Bisetka.
+              </Text>
+            </View>
+
+            <View style={slideStyles.usernameBottomRow}>
+              <View style={slideStyles.usernameDotsRow}>
+                {slides.map((_, index) => (
+                  <View
+                    key={index}
+                    style={[
+                      slideStyles.usernameDot,
+                      index === currentIndex && slideStyles.usernameDotActive,
+                    ]}
+                  />
+                ))}
+              </View>
+              <TouchableOpacity
+                activeOpacity={0.85}
+                disabled={!leaderboardConsent}
+                onPress={handleNext}
+                style={[
+                  slideStyles.usernameContinue,
+                  !leaderboardConsent && {opacity: 0.5},
+                ]}>
+                <Text style={slideStyles.usernameContinueText}>CONTINUE</Text>
+                <Text style={slideStyles.usernameContinueArrow}>{'›'}</Text>
+              </TouchableOpacity>
+            </View>
+          </SafeAreaView>
+        </ImageBackground>
+      );
+    }
+
     // Notifications splash — fourth and final onboarding screen. Mock iOS
     // banner, gradient "Enable Notifications" CTA, and "Get Started!" pill
     // that completes onboarding.
     if (item.isNotificationSlide) {
       const submittingDisabled =
         submitting ||
+        !leaderboardConsent ||
         (needsUsernameSelection && (!available || !selectedGender || !selectedAvatarId));
       return (
         <ImageBackground
@@ -1559,6 +1680,68 @@ const slideStyles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '800',
   },
+  // Consent slide
+  consentPolicyLinkWrap: {
+    alignSelf: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 20,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderRadius: 20,
+  },
+  consentPolicyLinkText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '700',
+    textDecorationLine: 'underline',
+  },
+  consentCheckboxRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    padding: 14,
+    borderRadius: 12,
+    marginHorizontal: 8,
+    marginTop: 4,
+  },
+  consentCheckbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+    marginTop: 2,
+    backgroundColor: 'transparent',
+  },
+  consentCheckboxChecked: {
+    backgroundColor: '#7c3aed',
+    borderColor: '#7c3aed',
+  },
+  consentCheckboxMark: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '900',
+    lineHeight: 18,
+  },
+  consentCheckboxLabel: {
+    flex: 1,
+    color: '#fff',
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '600',
+  },
+  consentRequiredNote: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 12,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginTop: 14,
+    fontStyle: 'italic',
+  },
   // Character creator splash (third onboarding slide)
   charSafe: {
     flex: 1,
@@ -1773,5 +1956,5 @@ const slideStyles = StyleSheet.create({
   },
 });
 
-export {ONBOARDING_COMPLETE_KEY, GENDER_KEY};
+export {ONBOARDING_COMPLETE_KEY, GENDER_KEY, LEADERBOARD_CONSENT_KEY};
 export default OnboardingScreen;
