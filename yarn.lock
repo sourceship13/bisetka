@@ -2089,7 +2089,7 @@
   dependencies:
     joi "^17.2.1"
 
-"@react-native-community/cli@20.1.2":
+"@react-native-community/cli@^20.1.2":
   version "20.1.2"
   resolved "https://registry.npmjs.org/@react-native-community/cli/-/cli-20.1.2.tgz"
   integrity sha512-48GRnGfm1+4ueV8ESNJmKAKW01QdbB8H6qrVxCqpHYvuRkeFBaPpwRY2bEjSwqruw3Pn9ppzGfpAxYQDiUWQxQ==
