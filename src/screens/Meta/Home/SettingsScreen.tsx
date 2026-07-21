@@ -10,6 +10,7 @@ import {
   Linking,
   Platform,
   Modal,
+  ActivityIndicator,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useAuth} from '../../../libs/hooks/useAuth';
@@ -20,6 +21,8 @@ import packageJson from '../../../../package.json';
 import AppVersionFooter from '../../../components/global/AppVersionFooter';
 import {useI18n} from '../../../hooks/useI18n';
 import type { Language } from '../../../i18n/index';
+import apiService from '../../../services/api.service';
+import {BisetkaAlert} from '../../../utils/BisetkaAlert';
 
 const SOUND_KEY = '@bisetka_sound_enabled';
 const HAPTIC_KEY = '@bisetka_haptic_enabled';
@@ -40,6 +43,8 @@ const SettingsScreen = ({navigation}: any) => {
   const [hapticEnabled, setHapticEnabled] = useState(true);
   const [showLanguageMenu, setShowLanguageMenu] = useState(false);
   const [languageChangedTo, setLanguageChangedTo] = useState<Language | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     AsyncStorage.getItem(SOUND_KEY).then(v => {
@@ -74,6 +79,32 @@ const SettingsScreen = ({navigation}: any) => {
     setTimeout(() => {
       signOut();
     }, 0);
+  };
+
+  const handleConfirmDeleteAccount = async () => {
+    setDeleting(true);
+    try {
+      await apiService.deleteAccount();
+      // Success: dismiss modal, pop to root, then sign out to clear session.
+      // Same navigation-safety dance as handleSignOut: navigate FIRST, then
+      // clear the user so the navigator can cleanly swap stacks.
+      setShowDeleteConfirm(false);
+      try {
+        navigation.popToTop?.();
+      } catch {
+        // popToTop is a no-op on root — ignore.
+      }
+      setTimeout(() => {
+        signOut();
+      }, 0);
+    } catch (error: any) {
+      setDeleting(false);
+      setShowDeleteConfirm(false);
+      BisetkaAlert.error(
+        translate('common.error'),
+        error?.message ?? translate('settings.deleteAccountError'),
+      );
+    }
   };
 
   const handleOpenNotifSettings = () => {
@@ -181,6 +212,15 @@ const SettingsScreen = ({navigation}: any) => {
               danger
             />
           </TouchableOpacity>
+          <Divider />
+          <TouchableOpacity onPress={() => setShowDeleteConfirm(true)}>
+            <SettingRow
+              icon="🗑️"
+              label={translate('settings.deleteAccount')}
+              trailing={<Text style={styles.chevron}>›</Text>}
+              danger
+            />
+          </TouchableOpacity>
         </View>
 
         {/* About */}
@@ -221,6 +261,52 @@ const SettingsScreen = ({navigation}: any) => {
             >
               <Text style={styles.modalButtonText}>{translate('common.ok')}</Text>
             </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Delete Account confirmation */}
+      <Modal
+        visible={showDeleteConfirm}
+        transparent
+        animationType="fade"
+        onRequestClose={() => !deleting && setShowDeleteConfirm(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalIcon}>⚠️</Text>
+            <Text style={styles.modalTitle}>
+              {translate('settings.deleteAccountConfirmTitle')}
+            </Text>
+            <Text style={styles.modalMessage}>
+              {translate('settings.deleteAccountConfirmMessage')}
+            </Text>
+            <View style={styles.deleteButtonRow}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.deleteCancelButton]}
+                onPress={() => setShowDeleteConfirm(false)}
+                disabled={deleting}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.modalButtonText}>
+                  {translate('settings.deleteAccountCancel')}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.deleteConfirmButton]}
+                onPress={handleConfirmDeleteAccount}
+                disabled={deleting}
+                activeOpacity={0.85}
+              >
+                {deleting ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.modalButtonText}>
+                    {translate('settings.deleteAccountConfirm')}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
@@ -411,6 +497,19 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
     letterSpacing: 0.3,
+  },
+  deleteButtonRow: {
+    alignSelf: 'stretch',
+    flexDirection: 'row',
+    gap: 10,
+  },
+  deleteCancelButton: {
+    flex: 1,
+    backgroundColor: 'rgba(255,255,255,0.14)',
+  },
+  deleteConfirmButton: {
+    flex: 1,
+    backgroundColor: '#dc2626',
   },
 });
 

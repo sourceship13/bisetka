@@ -434,6 +434,18 @@ class ApiService {
   }
 
   /**
+   * Permanently delete the authenticated user's account and all associated data.
+   * DELETE /api/auth/account
+   */
+  async deleteAccount(): Promise<{ message: string }> {
+    return this.request<{ message: string }>(
+      '/auth/account',
+      { method: 'DELETE' },
+      true
+    );
+  }
+
+  /**
    * Upsert device data (authenticated)
    * Collects full device + network info and sends to backend
    * POST /api/devices/register
