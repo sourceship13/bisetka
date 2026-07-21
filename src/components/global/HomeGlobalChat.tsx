@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Image,
   Keyboard,
@@ -15,9 +15,11 @@ import { BlurView } from '@react-native-community/blur';
 import { Platform } from 'react-native';
 import { BisetkaAlert } from '../../utils/BisetkaAlert';
 import chatService from '../../services/chat.service';
+import apiService from '../../services/api.service';
 import useDeviceType from '../../hooks/useDeviceType';
 import { useAuth } from '../../libs/hooks/useAuth';
 import { resolveAvatar } from '../../utils/avatars';
+import MessageActionSheet from '../MessageActionSheet';
 
 type HomeGlobalChatProps = {
   onOpenFullChat: () => void;
@@ -25,6 +27,7 @@ type HomeGlobalChatProps = {
 };
 
 type RecentMessage = {
+  id?: string;
   sender_id?: string;
   username?: string;
   sender_username?: string;
@@ -32,6 +35,7 @@ type RecentMessage = {
   avatar_url?: string;
   content?: string;
   message?: string;
+  deleted_at?: string | null;
 };
 
 const HomeGlobalChat = ({
@@ -40,12 +44,34 @@ const HomeGlobalChat = ({
 }: HomeGlobalChatProps) => {
   const { isTablet } = useDeviceType();
   const { user } = useAuth();
+  const isModerator = !!user?.isModerator;
   const [recentMessages, setRecentMessages] = useState<RecentMessage[]>([]);
   const [chatExpanded, setChatExpanded] = useState(isTablet ? true : initialExpanded);
   const [chatId, setChatId] = useState<string | null>(null);
   const [newMessage, setNewMessage] = useState('');
   const [sendingMessage, setSendingMessage] = useState(false);
+  const [blockedIds, setBlockedIds] = useState<Set<string>>(new Set());
+  const [selectedMessage, setSelectedMessage] = useState<RecentMessage | null>(null);
   const chatScrollRef = useRef<ScrollView>(null);
+
+  // Load block list once so blocked users' messages are hidden from the feed.
+  useEffect(() => {
+    let cancelled = false;
+    apiService.getBlockedUsers()
+      .then(res => {
+        if (cancelled) return;
+        setBlockedIds(new Set(res.blocks.map(b => b.blocked_id)));
+      })
+      .catch(() => { /* fail open */ });
+    return () => { cancelled = true; };
+  }, []);
+
+  const visibleMessages = useMemo(
+    () => recentMessages.filter(m =>
+      !m.deleted_at && !(m.sender_id && blockedIds.has(m.sender_id))
+    ),
+    [recentMessages, blockedIds]
+  );
 
   const ensureChatId = useCallback(async (): Promise<string | null> => {
     if (chatId) return chatId;
@@ -195,16 +221,24 @@ const HomeGlobalChat = ({
           contentContainerStyle={styles.chatScrollContent}
           showsVerticalScrollIndicator={false}
           onContentSizeChange={scrollToBottom}>
-          {recentMessages.length > 0 ? (
-            recentMessages.map((msg, idx) => {
+          {visibleMessages.length > 0 ? (
+            visibleMessages.map((msg, idx) => {
               const isMe = !!user?.id && msg.sender_id === user.id;
               const username = msg.sender_username || msg.username || (isMe ? 'Me' : 'Anonymous');
               const text = msg.content || msg.message || '';
               const avatarUrl = isMe ? user?.avatar_url : (msg.sender_avatar || msg.avatar_url);
+              // Only rows for messages we have a real id for are long-pressable
+              // (moderation needs an id to report/delete).
+              const canLongPress = !!msg.id && !!msg.sender_id;
 
               if (isMe) {
                 return (
-                  <View key={`m-${idx}`} style={styles.rowMe}>
+                  <TouchableOpacity
+                    key={`m-${idx}`}
+                    activeOpacity={0.75}
+                    onLongPress={canLongPress ? () => setSelectedMessage(msg) : undefined}
+                    delayLongPress={350}
+                    style={styles.rowMe}>
                     <View style={styles.bubbleColMe}>
                       <View style={[styles.bubble, styles.bubbleMe]}>
                         <Text style={styles.bubbleTextMe}>{text}</Text>
@@ -212,12 +246,17 @@ const HomeGlobalChat = ({
                       <Text style={styles.usernameLabelMe}>Me</Text>
                     </View>
                     <View style={styles.avatarWrap}>{renderAvatar(avatarUrl)}</View>
-                  </View>
+                  </TouchableOpacity>
                 );
               }
 
               return (
-                <View key={`m-${idx}`} style={styles.rowOther}>
+                <TouchableOpacity
+                  key={`m-${idx}`}
+                  activeOpacity={0.75}
+                  onLongPress={canLongPress ? () => setSelectedMessage(msg) : undefined}
+                  delayLongPress={350}
+                  style={styles.rowOther}>
                   <View style={styles.avatarWrap}>{renderAvatar(avatarUrl)}</View>
                   <View style={styles.bubbleColOther}>
                     <View style={[styles.bubble, styles.bubbleOther]}>
@@ -225,7 +264,7 @@ const HomeGlobalChat = ({
                     </View>
                     <Text style={styles.usernameLabel}>{username}</Text>
                   </View>
-                </View>
+                </TouchableOpacity>
               );
             })
           ) : (
@@ -278,6 +317,33 @@ const HomeGlobalChat = ({
           </View>
         )}
       </View>
+
+      {selectedMessage && chatId && selectedMessage.id && selectedMessage.sender_id && (
+        <MessageActionSheet
+          visible={!!selectedMessage}
+          onClose={() => setSelectedMessage(null)}
+          chatSystem="dm"
+          chatId={chatId}
+          messageId={selectedMessage.id}
+          messageContent={selectedMessage.content || selectedMessage.message || ''}
+          senderId={selectedMessage.sender_id}
+          senderUsername={selectedMessage.sender_username || selectedMessage.username}
+          isOwnMessage={selectedMessage.sender_id === user?.id}
+          isModerator={isModerator}
+          onMessageDeleted={(msgId) => {
+            setRecentMessages(prev => prev.map(m =>
+              m.id === msgId ? { ...m, deleted_at: new Date().toISOString() } : m
+            ));
+          }}
+          onUserBlocked={(uid) => {
+            setBlockedIds(prev => {
+              const next = new Set(prev);
+              next.add(uid);
+              return next;
+            });
+          }}
+        />
+      )}
     </View>
   );
 };

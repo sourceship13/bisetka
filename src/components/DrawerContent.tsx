@@ -16,6 +16,14 @@ const MENU_ITEMS = [
   {key: 'Settings', icon: '⚙️', label: 'Settings', gradient: ['#64748b', '#94a3b8'] as const},
 ];
 
+// Moderator-only entry appended at runtime if the user has the flag.
+const MODERATOR_ITEM = {
+  key: 'ModeratorPanel',
+  icon: '🛡️',
+  label: 'Moderator Panel',
+  gradient: ['#dc2626', '#ef4444'] as const,
+};
+
 const DrawerContent = (props: any) => {
   const {user} = useAuth();
   const {navigation} = props;
@@ -47,7 +55,7 @@ const DrawerContent = (props: any) => {
 
       {/* Menu items */}
       <View style={styles.menuList}>
-        {MENU_ITEMS.map(item => (
+        {[...MENU_ITEMS, ...(user?.isModerator ? [MODERATOR_ITEM] : [])].map(item => (
           <TouchableOpacity
             key={item.key}
             style={styles.menuItem}

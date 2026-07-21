@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useRef} from 'react';
+import React, {useState, useEffect, useMemo, useRef} from 'react';
 import {
   View,
   Text,
@@ -15,21 +15,45 @@ import { BisetkaAlert } from '../../utils/BisetkaAlert';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {colors, spacing} from '../../theme';
 import chatRoomService, {ChatRoom, ChatRoomMessage, ChatRoomMember} from '../../services/chatRoom.service';
+import apiService from '../../services/api.service';
 import {useAuth} from '../../libs/hooks/useAuth';
 import {socketService} from '../../services/SocketService';
+import MessageActionSheet from '../../components/MessageActionSheet';
 
 const ChatRoomScreen = ({route, navigation}: any) => {
   const { translate } = useI18n();
   const {roomId} = route.params;
   const {user} = useAuth();
+  const isModerator = !!user?.isModerator;
   const [room, setRoom] = useState<ChatRoom | null>(null);
   const [messages, setMessages] = useState<ChatRoomMessage[]>([]);
   const [members, setMembers] = useState<ChatRoomMember[]>([]);
   const [inputText, setInputText] = useState('');
   const [typingUsers, setTypingUsers] = useState<string[]>([]);
   const [showMembers, setShowMembers] = useState(false);
+  const [blockedIds, setBlockedIds] = useState<Set<string>>(new Set());
+  const [selectedMessage, setSelectedMessage] = useState<ChatRoomMessage | null>(null);
   const flatListRef = useRef<FlatList>(null);
   const typingTimeoutRef = useRef<any>(null);
+
+  // Load block list once so blocked users' messages are hidden.
+  useEffect(() => {
+    let cancelled = false;
+    apiService.getBlockedUsers()
+      .then(res => {
+        if (cancelled) return;
+        setBlockedIds(new Set(res.blocks.map(b => b.blocked_id)));
+      })
+      .catch(() => { /* fail open */ });
+    return () => { cancelled = true; };
+  }, []);
+
+  const visibleMessages = useMemo(
+    () => messages.filter(m =>
+      !(m as any).deleted_at && !blockedIds.has(m.user_id)
+    ),
+    [messages, blockedIds]
+  );
 
   useEffect(() => {
     loadRoomData();
@@ -182,7 +206,11 @@ const ChatRoomScreen = ({route, navigation}: any) => {
   const renderMessage = ({item}: {item: ChatRoomMessage}) => {
     const isMe = item.user_id === user?.id;
     return (
-      <View style={[styles.messageBubble, isMe ? styles.myMessage : styles.theirMessage]}>
+      <TouchableOpacity
+        activeOpacity={0.75}
+        onLongPress={() => setSelectedMessage(item)}
+        delayLongPress={350}
+        style={[styles.messageBubble, isMe ? styles.myMessage : styles.theirMessage]}>
         {!isMe && (
           <Text style={styles.senderName}>{item.username}</Text>
         )}
@@ -192,7 +220,7 @@ const ChatRoomScreen = ({route, navigation}: any) => {
         <Text style={styles.timestamp}>
           {new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
         </Text>
-      </View>
+      </TouchableOpacity>
     );
   };
 
@@ -245,7 +273,7 @@ const ChatRoomScreen = ({route, navigation}: any) => {
         <View style={styles.messagesContainer}>
           <FlatList
             ref={flatListRef}
-            data={messages}
+            data={visibleMessages}
             keyExtractor={item => item.id}
             renderItem={renderMessage}
             contentContainerStyle={styles.messagesList}
@@ -302,6 +330,33 @@ const ChatRoomScreen = ({route, navigation}: any) => {
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
+
+      {selectedMessage && (
+        <MessageActionSheet
+          visible={!!selectedMessage}
+          onClose={() => setSelectedMessage(null)}
+          chatSystem="room"
+          chatId={roomId}
+          messageId={selectedMessage.id}
+          messageContent={selectedMessage.message}
+          senderId={selectedMessage.user_id}
+          senderUsername={selectedMessage.username}
+          isOwnMessage={selectedMessage.user_id === user?.id}
+          isModerator={isModerator}
+          onMessageDeleted={(msgId) => {
+            setMessages(prev => prev.map(m =>
+              m.id === msgId ? ({ ...m, deleted_at: new Date().toISOString() } as any) : m
+            ));
+          }}
+          onUserBlocked={(uid) => {
+            setBlockedIds(prev => {
+              const next = new Set(prev);
+              next.add(uid);
+              return next;
+            });
+          }}
+        />
+      )}
     </SafeAreaView>
   );
 };

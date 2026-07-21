@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,9 @@ import { BlurView } from '@react-native-community/blur';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import chatService, { Message } from '../../services/chat.service';
 import chatSocketService from '../../services/chatSocket.service';
+import apiService from '../../services/api.service';
+import { useAuth } from '../../libs/hooks/useAuth';
+import MessageActionSheet from '../MessageActionSheet';
 
 interface ChatPanelProps {
   chatId: string;
@@ -29,9 +32,26 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   onNewMessage,
   keyboardAvoidingViewStyle,
 }) => {
+  const { user } = useAuth();
+  const isModerator = !!user?.isModerator;
+
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
+  const [blockedIds, setBlockedIds] = useState<Set<string>>(new Set());
+  const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
   const flatListRef = useRef<FlatList>(null);
+
+  // ChatPanel always talks to System A (`messages` table via chatService).
+  // ChatRoomScreen has its own bespoke UI that uses System B.
+  const chatSystem: 'dm' | 'room' = 'dm';
+
+  // Hide messages from blocked users and any that a moderator has soft-deleted.
+  const visibleMessages = useMemo(
+    () => messages.filter(m =>
+      !(m as any).deleted_at && !blockedIds.has(m.sender_id)
+    ),
+    [messages, blockedIds]
+  );
 
   useEffect(() => {
     loadMessages();
@@ -54,6 +74,18 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chatId]);
+
+  // Load the current user's block list once so we can hide their messages.
+  useEffect(() => {
+    let cancelled = false;
+    apiService.getBlockedUsers()
+      .then(res => {
+        if (cancelled) return;
+        setBlockedIds(new Set(res.blocks.map(b => b.blocked_id)));
+      })
+      .catch(() => { /* ignore — fail open */ });
+    return () => { cancelled = true; };
+  }, []);
 
   const loadMessages = async () => {
     try {
@@ -98,7 +130,10 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       (item as any).username ||
       (isMe ? 'Me' : 'Anonymous');
     return (
-      <View
+      <TouchableOpacity
+        activeOpacity={0.75}
+        onLongPress={() => setSelectedMessage(item)}
+        delayLongPress={350}
         style={[
           styles.row,
           isMe ? styles.rowMe : styles.rowOther,
@@ -131,7 +166,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
             {formatTime(item.created_at)}
           </Text>
         </View>
-      </View>
+      </TouchableOpacity>
     );
   };
 
@@ -142,7 +177,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}>
       <FlatList
         ref={flatListRef}
-        data={messages}
+        data={visibleMessages}
         keyExtractor={item => item.id}
         renderItem={renderMessage}
         contentContainerStyle={styles.messageList}
@@ -185,6 +220,33 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
           </TouchableOpacity>
         </View>
       </View>
+
+      {selectedMessage && (
+        <MessageActionSheet
+          visible={!!selectedMessage}
+          onClose={() => setSelectedMessage(null)}
+          chatSystem={chatSystem}
+          chatId={chatId}
+          messageId={selectedMessage.id}
+          messageContent={selectedMessage.content}
+          senderId={selectedMessage.sender_id}
+          senderUsername={(selectedMessage as any).sender_username || (selectedMessage as any).username}
+          isOwnMessage={selectedMessage.sender_id === currentUserId}
+          isModerator={isModerator}
+          onMessageDeleted={(msgId) => {
+            setMessages(prev => prev.map(m =>
+              m.id === msgId ? ({ ...m, deleted_at: new Date().toISOString() } as any) : m
+            ));
+          }}
+          onUserBlocked={(uid) => {
+            setBlockedIds(prev => {
+              const next = new Set(prev);
+              next.add(uid);
+              return next;
+            });
+          }}
+        />
+      )}
     </KeyboardAvoidingView>
   );
 };

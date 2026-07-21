@@ -34,6 +34,7 @@ export interface User {
   provider?: string;
   needsUsernameSelection?: boolean;
   onboarding_shown?: boolean;
+  isModerator?: boolean;
   avatar?: {
     baseAvatar: BaseAvatar | null;
     equipped: Record<string, AvatarClothing>;

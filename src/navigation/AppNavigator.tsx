@@ -50,6 +50,7 @@ import BisetkaDetailScreen from '../screens/Meta/BisetkaDetail/BisetkaDetailScre
 import AchievementsScreen from '../screens/Meta/Achievements/AchievementsScreen';
 import AchievementTestScreen from '../screens/Meta/AchievementTestScreen';
 import PointsShopScreen from '../screens/Meta/PointsShop/PointsShopScreen';
+import ModeratorPanelScreen from '../screens/Meta/ModeratorPanelScreen';
 import DrawerContent from '../components/DrawerContent';
 import {useAuth} from '../libs/hooks/useAuth';
 import {ActivityIndicator, View, StyleSheet, Dimensions} from 'react-native';
@@ -100,6 +101,7 @@ export type RootStackParamList = {
   Achievements: undefined;
   AchievementTest: undefined;
   PointsShop: { initialTab?: 'points' | 'clothing' } | undefined;
+  ModeratorPanel: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -307,6 +309,7 @@ const AppNavigator = () => {
               <Stack.Screen name="AchievementTest" component={AchievementTestScreen} />
               <Stack.Screen name="PointsShop" component={PointsShopScreen} />
               <Stack.Screen name="BisetkaDetail" component={BisetkaDetailScreen} />
+              <Stack.Screen name="ModeratorPanel" component={ModeratorPanelScreen} />
             </>
           )}
         </Stack.Navigator>

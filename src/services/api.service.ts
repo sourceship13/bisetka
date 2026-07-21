@@ -445,6 +445,92 @@ class ApiService {
     );
   }
 
+  // ────────── Moderation ──────────
+
+  async reportMessage(input: {
+    chatSystem: 'dm' | 'room';
+    chatId: string;
+    messageId: string;
+    reason: string;
+    reportedUserId?: string;
+    details?: string;
+  }): Promise<{ message: string }> {
+    return this.request(
+      '/moderation/report',
+      { method: 'POST', body: JSON.stringify(input) },
+      true
+    );
+  }
+
+  async blockUser(userId: string): Promise<{ message: string }> {
+    return this.request(
+      '/moderation/block',
+      { method: 'POST', body: JSON.stringify({ userId }) },
+      true
+    );
+  }
+
+  async unblockUser(userId: string): Promise<{ message: string }> {
+    return this.request(
+      `/moderation/block/${encodeURIComponent(userId)}`,
+      { method: 'DELETE' },
+      true
+    );
+  }
+
+  async getBlockedUsers(): Promise<{
+    blocks: Array<{
+      blocked_id: string;
+      username: string | null;
+      avatar_url: string | null;
+      created_at: string;
+    }>;
+  }> {
+    return this.request('/moderation/blocks', { method: 'GET' }, true);
+  }
+
+  async getPendingReports(): Promise<{
+    reports: Array<{
+      id: string;
+      reporter_id: string;
+      reporter_username: string | null;
+      reported_user_id: string | null;
+      reported_username: string | null;
+      chat_system: 'dm' | 'room';
+      chat_id: string;
+      message_id: string;
+      message_content: string | null;
+      reason: string;
+      details: string | null;
+      status: 'pending' | 'resolved' | 'dismissed';
+      created_at: string;
+    }>;
+  }> {
+    return this.request('/moderation/reports', { method: 'GET' }, true);
+  }
+
+  async resolveReport(
+    reportId: string,
+    action: 'hide-message' | 'dismiss'
+  ): Promise<{ message: string }> {
+    return this.request(
+      `/moderation/reports/${encodeURIComponent(reportId)}/resolve`,
+      { method: 'POST', body: JSON.stringify({ action }) },
+      true
+    );
+  }
+
+  async moderatorDeleteMessage(
+    chatSystem: 'dm' | 'room',
+    messageId: string
+  ): Promise<{ message: string }> {
+    return this.request(
+      `/moderation/messages/${chatSystem}/${encodeURIComponent(messageId)}`,
+      { method: 'DELETE' },
+      true
+    );
+  }
+
   /**
    * Upsert device data (authenticated)
    * Collects full device + network info and sends to backend
