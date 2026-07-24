@@ -5,6 +5,10 @@
 # Xcode
 #
 build/
+# Also ignore the ios/build symlink used locally to escape iCloud offloading
+# (see memory: ios_pods_dataless_offload_hang). The symlink form doesn't
+# match the `build/` directory-only rule above.
+ios/build
 *.pbxuser
 !default.pbxuser
 *.mode1v3
