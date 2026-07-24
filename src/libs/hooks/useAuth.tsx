@@ -462,16 +462,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(mapBackendUser(freshUser));
       console.log('✅ [refreshUser] User context updated successfully');
     } catch (error: any) {
-      console.error('❌ [refreshUser] Error refreshing user:', error);
-
-      // If the server says the user doesn't exist (stale token), clear the session
-      if (error?.status === 404 || error?.message?.includes('404')) {
-        console.warn('⚠️  refreshUser: user not found on server, clearing session');
+      // 404 is expected right after account deletion or when a stale token
+      // outlives its user — handled below by clearing the session. Log as a
+      // warning (not error) so it doesn't trigger the RN red-box overlay.
+      const is404 = error?.status === 404 || error?.message?.includes('404');
+      if (is404) {
+        console.warn('⚠️  [refreshUser] user not found on server, clearing session');
         await AuthService.signOut();
         await tokenService.clearSession();
         setUser(null);
         return;
       }
+
+      console.error('❌ [refreshUser] Error refreshing user:', error);
 
       const accessToken = await tokenService.getAccessToken();
       if (!accessToken) {
