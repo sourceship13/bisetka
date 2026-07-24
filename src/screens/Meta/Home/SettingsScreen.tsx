@@ -229,8 +229,6 @@ const SettingsScreen = ({navigation}: any) => {
           <SettingRow icon="📱" label={translate('common.version')} trailing={<Text style={styles.trailText}>{appVersion}</Text>} />
           <Divider />
           <SettingRow icon="🔨" label="Build" trailing={<Text style={styles.trailText}>{buildNumber}</Text>} />
-          <Divider />
-          <SettingRow icon="⚛️" label="React Native" trailing={<Text style={styles.trailText}>{packageJson.dependencies?.['react-native'] || '—'}</Text>} />
         </View>
 
         {/* Footer */}
