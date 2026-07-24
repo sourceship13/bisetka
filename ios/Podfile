@@ -31,6 +31,13 @@ def shared_pods
   
   # Explicitly enable modular headers for GoogleUtilities to fix Firebase
   pod 'GoogleUtilities', :modular_headers => true
+  # Firebase App Check (AppCheckCore) is Swift and imports RecaptchaInterop,
+  # which is an ObjC pod without a module map. Force a modular header so
+  # Swift can import it when linking as static libraries. Without this,
+  # `pod install` fails with:
+  #   "The Swift pod `AppCheckCore` depends upon `RecaptchaInterop`, which
+  #    does not define modules."
+  pod 'RecaptchaInterop', :modular_headers => true
 
   # NOTE: Viro (@viro-community/react-viro) was removed on 2026-05-21.
   # The games use the WebView+Three.js based AR3DOverlay.tsx, not Viro.
