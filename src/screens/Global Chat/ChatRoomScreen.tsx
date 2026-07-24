@@ -32,6 +32,7 @@ const ChatRoomScreen = ({route, navigation}: any) => {
   const [typingUsers, setTypingUsers] = useState<string[]>([]);
   const [showMembers, setShowMembers] = useState(false);
   const [blockedIds, setBlockedIds] = useState<Set<string>>(new Set());
+  const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set());
   const [selectedMessage, setSelectedMessage] = useState<ChatRoomMessage | null>(null);
   const flatListRef = useRef<FlatList>(null);
   const typingTimeoutRef = useRef<any>(null);
@@ -45,14 +46,24 @@ const ChatRoomScreen = ({route, navigation}: any) => {
         setBlockedIds(new Set(res.blocks.map(b => b.blocked_id)));
       })
       .catch(() => { /* fail open */ });
+    apiService.getHiddenMessages()
+      .then(res => {
+        if (cancelled) return;
+        setHiddenIds(new Set(
+          res.hidden.filter(h => h.chat_system === 'room').map(h => h.message_id)
+        ));
+      })
+      .catch(() => { /* fail open */ });
     return () => { cancelled = true; };
   }, []);
 
   const visibleMessages = useMemo(
     () => messages.filter(m =>
-      !(m as any).deleted_at && !blockedIds.has(m.user_id)
+      !(m as any).deleted_at &&
+      !blockedIds.has(m.user_id) &&
+      !hiddenIds.has(m.id)
     ),
-    [messages, blockedIds]
+    [messages, blockedIds, hiddenIds]
   );
 
   useEffect(() => {

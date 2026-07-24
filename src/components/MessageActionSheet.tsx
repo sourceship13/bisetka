@@ -84,7 +84,15 @@ const MessageActionSheet: React.FC<MessageActionSheetProps> = ({
         reason,
         reportedUserId: senderId,
       });
-      BisetkaAlert.success('Reported', 'Thanks — our moderators will review this message.');
+      // Hide the reported message from this user's own feed immediately
+      // (moderator still decides what to do with it globally). Reuses the
+      // same "message deleted" callback the caller uses to hide moderator
+      // deletions locally.
+      onMessageDeleted?.(messageId);
+      BisetkaAlert.success(
+        'Reported',
+        'Thanks — our moderators will review this message. It has been hidden from your feed.'
+      );
       close();
     } catch (e: any) {
       BisetkaAlert.error('Report failed', e?.message ?? 'Could not submit report.');

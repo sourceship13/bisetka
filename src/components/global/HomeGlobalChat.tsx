@@ -51,6 +51,7 @@ const HomeGlobalChat = ({
   const [newMessage, setNewMessage] = useState('');
   const [sendingMessage, setSendingMessage] = useState(false);
   const [blockedIds, setBlockedIds] = useState<Set<string>>(new Set());
+  const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set());
   const [selectedMessage, setSelectedMessage] = useState<RecentMessage | null>(null);
   const chatScrollRef = useRef<ScrollView>(null);
 
@@ -63,14 +64,24 @@ const HomeGlobalChat = ({
         setBlockedIds(new Set(res.blocks.map(b => b.blocked_id)));
       })
       .catch(() => { /* fail open */ });
+    apiService.getHiddenMessages()
+      .then(res => {
+        if (cancelled) return;
+        setHiddenIds(new Set(
+          res.hidden.filter(h => h.chat_system === 'dm').map(h => h.message_id)
+        ));
+      })
+      .catch(() => { /* fail open */ });
     return () => { cancelled = true; };
   }, []);
 
   const visibleMessages = useMemo(
     () => recentMessages.filter(m =>
-      !m.deleted_at && !(m.sender_id && blockedIds.has(m.sender_id))
+      !m.deleted_at &&
+      !(m.sender_id && blockedIds.has(m.sender_id)) &&
+      !(m.id && hiddenIds.has(m.id))
     ),
-    [recentMessages, blockedIds]
+    [recentMessages, blockedIds, hiddenIds]
   );
 
   const ensureChatId = useCallback(async (): Promise<string | null> => {

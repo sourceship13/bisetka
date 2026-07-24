@@ -489,6 +489,12 @@ class ApiService {
     return this.request('/moderation/blocks', { method: 'GET' }, true);
   }
 
+  async getHiddenMessages(): Promise<{
+    hidden: Array<{ chat_system: 'dm' | 'room'; message_id: string }>;
+  }> {
+    return this.request('/moderation/hidden', { method: 'GET' }, true);
+  }
+
   async getPendingReports(): Promise<{
     reports: Array<{
       id: string;

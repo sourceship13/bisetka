@@ -38,6 +38,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
   const [blockedIds, setBlockedIds] = useState<Set<string>>(new Set());
+  const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set());
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
   const flatListRef = useRef<FlatList>(null);
 
@@ -45,12 +46,15 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   // ChatRoomScreen has its own bespoke UI that uses System B.
   const chatSystem: 'dm' | 'room' = 'dm';
 
-  // Hide messages from blocked users and any that a moderator has soft-deleted.
+  // Hide messages from blocked users, any that a moderator has soft-deleted,
+  // and any the user has personally hidden (e.g. by reporting them).
   const visibleMessages = useMemo(
     () => messages.filter(m =>
-      !(m as any).deleted_at && !blockedIds.has(m.sender_id)
+      !(m as any).deleted_at &&
+      !blockedIds.has(m.sender_id) &&
+      !hiddenIds.has(m.id)
     ),
-    [messages, blockedIds]
+    [messages, blockedIds, hiddenIds]
   );
 
   useEffect(() => {
@@ -84,7 +88,17 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
         setBlockedIds(new Set(res.blocks.map(b => b.blocked_id)));
       })
       .catch(() => { /* ignore — fail open */ });
+    // Also load personally-hidden messages (from reports/manual hides)
+    apiService.getHiddenMessages()
+      .then(res => {
+        if (cancelled) return;
+        setHiddenIds(new Set(
+          res.hidden.filter(h => h.chat_system === chatSystem).map(h => h.message_id)
+        ));
+      })
+      .catch(() => { /* ignore — fail open */ });
     return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadMessages = async () => {
