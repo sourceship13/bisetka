@@ -1,0 +1,84 @@
+2026-08-03 18:17:01.243 xcodebuild[48349:145089545]  DVTFilePathFSEvents: Failed to start fs event stream.
+2026-08-03 18:17:01.575 xcodebuild[48349:145089546] CoreSimulatorService connection became invalid.  Simulator services will no longer be available.
+2026-08-03 18:17:01.575 xcodebuild[48349:145089605] Logging connecton invalid: <OS_xpc_error: <dictionary: 0x1f66b3c10> { count = 1, transaction: 0, voucher = 0x0, contents =
+	"XPCErrorDescription" => <string: 0x1f66b3d58> { string cache = 0x0, length = 18, contents = "Connection invalid" }
+}>
+2026-08-03 18:17:01.575 xcodebuild[48349:145089605] Error opening log file (/Users/alpha/Library/Logs/CoreSimulator/CoreSimulator.com.apple.dt.xcodebuild.log): Operation not permitted
+[-[SimServiceContext sendRequest:]:1751] ERROR : Unable to deliver request ({
+    "developer_dir" = "/Applications/Xcode.app/Contents/Developer";
+    request = "set_developer_dir";
+}) because we are not connected to CoreSimulatorService.
+Command line invocation:
+    /Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild -workspace bisetka.xcworkspace -scheme bisetka -configuration Debug -sdk iphonesimulator clean build
+
+Build settings from command line:
+    SDKROOT = iphonesimulator26.5
+
+[-[SimProfilesPathMonitor _monitorProfilesParentDirectory:nextPathComponent:path:]_block_invoke:226] NOTICE: alpha subdirectory of /Users/alpha/Library/Developer/CoreSimulator/Profiles now exists, but it is not readable.
+[-[SimServiceContext initWithDeveloperDir:connectionType:error:]:432] WARN  : Unable to discover any Simulator runtimes. Developer Directory is /Applications/Xcode.app/Contents/Developer.
+[-[SimDiskImageManager init]:175] ERROR : Could not kickstart simdiskimaged; SimDiskImageManager services will not be available: Error Domain=NSPOSIXErrorDomain Code=53 "Software caused connection abort" UserInfo={NSLocalizedDescription=Error returned in reply from CoreSimulatorService: Connection invalid}
+[-[SimDiskImageManager _onQueue_checkConnection:]:239] ERROR : simdiskimaged returned error (invalid), marking disconnected.
+[-[SimDiskImageManager _onQueue_checkConnection:]:239] ERROR : simdiskimaged returned error (invalid), marking disconnected.
+[-[SimServiceContext initWithDeveloperDir:connectionType:error:]_block_invoke:468] ERROR : Could not get list of trusted mount directories: Error Domain=com.apple.CoreSimulator.SimError Code=410 "The service used to manage runtime disk images (simdiskimaged) crashed or is not responding" UserInfo={NSLocalizedDescription=The service used to manage runtime disk images (simdiskimaged) crashed or is not responding}
+2026-08-03 18:17:01.679 xcodebuild[48349:145089545] Error Domain=NSPOSIXErrorDomain Code=61 "Connection refused" UserInfo={NSLocalizedDescription=CoreSimulatorService connection became invalid.  Simulator services will no longer be available.}
+[-[SimServiceContext sendRequest:reply:error:]:1771] ERROR : Unable to deliver request ({
+    request = "notification_subscription";
+    "set_path" = "/Users/alpha/Library/Developer/CoreSimulator/Devices";
+}) because we are not connected to CoreSimulatorService.
+2026-08-03 18:17:01.681 xcodebuild[48349:145089545]  IDESimulatorAvailability: startObservingSimulatorUpdates() FAILED to register SimDeviceSet observer
+2026-08-03 18:17:01.681 xcodebuild[48349:145089605] Error Domain=NSPOSIXErrorDomain Code=61 "Connection refused" UserInfo={NSLocalizedDescription=CoreSimulatorService connection became invalid.  Simulator services will no longer be available.}
+[-[SimServiceContext sendRequest:reply:error:]:1771] ERROR : Unable to deliver request ({
+    request = "notification_subscription";
+    "set_path" = "/Users/alpha/Library/Developer/CoreSimulator/Devices";
+}) because we are not connected to CoreSimulatorService.
+2026-08-03 18:17:01.681 xcodebuild[48349:145089605]  iOSSimulator: [SimServiceContext defaultDeviceSetWithError:] returned nil (Error Domain=NSPOSIXErrorDomain Code=61 "Connection refused" UserInfo={NSLocalizedFailureReason=Failed to subscribe to notifications from CoreSimulatorService., NSLocalizedDescription=Failed to initialize simulator device set., NSUnderlyingError=0x794840de0 {Error Domain=NSPOSIXErrorDomain Code=61 "Connection refused" UserInfo={NSLocalizedDescription=CoreSimulatorService connection became invalid.  Simulator services will no longer be available.}}}). Simulator device support disabled.
+2026-08-03 18:17:02.365 xcodebuild[48349:145089545]  IDEDownloadableMetalToolchainCoordinator: Failed to remount the Metal Toolchain: No downloaded assets found: The file “MetalToolchain” couldn’t be opened because you don’t have permission to view it., Failed querying assets for assetType (com.apple.MobileAsset.MetalToolchain), queryDict ({
+}), installedOnly (1)
+2026-08-03 18:17:02.380 xcodebuild[48349:145089541] [MT] IDELogStore: Failed to open log store at /Users/alpha/Library/Developer/Xcode/DerivedData/bisetka-dyrhpzpojgfszldbqvemzzqxgcmu/Logs/Build
+2026-08-03 18:17:02.380 xcodebuild[48349:145089541] [MT] IDELogStore: Failed to open Build log store: Error Domain=IDEFoundationErrorDomain Code=1 "Unable to read log store dictionary file at '/Users/alpha/Library/Developer/Xcode/DerivedData/bisetka-dyrhpzpojgfszldbqvemzzqxgcmu/Logs/Build/LogStoreManifest.plist': (257) The file “LogStoreManifest.plist” couldn’t be opened because you don’t have permission to view it." UserInfo={NSLocalizedDescription=Unable to read log store dictionary file at '/Users/alpha/Library/Developer/Xcode/DerivedData/bisetka-dyrhpzpojgfszldbqvemzzqxgcmu/Logs/Build/LogStoreManifest.plist': (257) The file “LogStoreManifest.plist” couldn’t be opened because you don’t have permission to view it.}. User info: {
+    NSLocalizedDescription = "Unable to read log store dictionary file at '/Users/alpha/Library/Developer/Xcode/DerivedData/bisetka-dyrhpzpojgfszldbqvemzzqxgcmu/Logs/Build/LogStoreManifest.plist': (257) The file \U201cLogStoreManifest.plist\U201d couldn\U2019t be opened because you don\U2019t have permission to view it.";
+}.
+2026-08-03 18:17:02.576 xcodebuild[48349:145089541] [MT] IDESimulatorRuntimeVersionCoordinator: Error loading SDK-to-sim mappings: Error Domain=NSCocoaErrorDomain Code=257 "The file “SDKToSimulatorIndexMapping.plist” couldn’t be opened because you don’t have permission to view it." UserInfo={NSFilePath=/Users/alpha/Library/Developer/Xcode/SDKToSimulatorIndexMapping.plist, NSURL=file:///Users/alpha/Library/Developer/Xcode/SDKToSimulatorIndexMapping.plist, NSUnderlyingError=0x796085ad0 {Error Domain=NSPOSIXErrorDomain Code=1 "Operation not permitted"}}
+2026-08-03 18:17:02.576 xcodebuild[48349:145089541] [MT] IDESimulatorRuntimeVersionCoordinator: Unable to read RuntimeMap data at /Users/alpha/Library/Developer/CoreSimulator/RuntimeMap.plist: Error Domain=NSCocoaErrorDomain Code=257 "The file “RuntimeMap.plist” couldn’t be opened because you don’t have permission to view it." UserInfo={NSFilePath=/Users/alpha/Library/Developer/CoreSimulator/RuntimeMap.plist, NSURL=file:///Users/alpha/Library/Developer/CoreSimulator/RuntimeMap.plist, NSUnderlyingError=0x796085a70 {Error Domain=NSPOSIXErrorDomain Code=1 "Operation not permitted"}}
+2026-08-03 18:17:02.585 xcodebuild[48349:145089541] [MT] IDELogStore: Failed to open log store at /Users/alpha/Library/Developer/Xcode/DerivedData/bisetka-dyrhpzpojgfszldbqvemzzqxgcmu/Logs/Localization
+2026-08-03 18:17:02.585 xcodebuild[48349:145089541] [MT] IDELogStore: Failed to open Localization log store: Error Domain=IDEFoundationErrorDomain Code=1 "Unable to read log store dictionary file at '/Users/alpha/Library/Developer/Xcode/DerivedData/bisetka-dyrhpzpojgfszldbqvemzzqxgcmu/Logs/Localization/LogStoreManifest.plist': (257) The file “LogStoreManifest.plist” couldn’t be opened because you don’t have permission to view it." UserInfo={NSLocalizedDescription=Unable to read log store dictionary file at '/Users/alpha/Library/Developer/Xcode/DerivedData/bisetka-dyrhpzpojgfszldbqvemzzqxgcmu/Logs/Localization/LogStoreManifest.plist': (257) The file “LogStoreManifest.plist” couldn’t be opened because you don’t have permission to view it.}. User info: {
+    NSLocalizedDescription = "Unable to read log store dictionary file at '/Users/alpha/Library/Developer/Xcode/DerivedData/bisetka-dyrhpzpojgfszldbqvemzzqxgcmu/Logs/Localization/LogStoreManifest.plist': (257) The file \U201cLogStoreManifest.plist\U201d couldn\U2019t be opened because you don\U2019t have permission to view it.";
+}.
+2026-08-03 18:17:02.585 xcodebuild[48349:145089541] [MT] IDELogStore: Failed to open log store at /Users/alpha/Library/Developer/Xcode/DerivedData/bisetka-dyrhpzpojgfszldbqvemzzqxgcmu/Logs/Launch
+2026-08-03 18:17:02.585 xcodebuild[48349:145089541] [MT] IDELogStore: Failed to open Launch log store: Error Domain=IDEFoundationErrorDomain Code=1 "Unable to read log store dictionary file at '/Users/alpha/Library/Developer/Xcode/DerivedData/bisetka-dyrhpzpojgfszldbqvemzzqxgcmu/Logs/Launch/LogStoreManifest.plist': (257) The file “LogStoreManifest.plist” couldn’t be opened because you don’t have permission to view it." UserInfo={NSLocalizedDescription=Unable to read log store dictionary file at '/Users/alpha/Library/Developer/Xcode/DerivedData/bisetka-dyrhpzpojgfszldbqvemzzqxgcmu/Logs/Launch/LogStoreManifest.plist': (257) The file “LogStoreManifest.plist” couldn’t be opened because you don’t have permission to view it.}. User info: {
+    NSLocalizedDescription = "Unable to read log store dictionary file at '/Users/alpha/Library/Developer/Xcode/DerivedData/bisetka-dyrhpzpojgfszldbqvemzzqxgcmu/Logs/Launch/LogStoreManifest.plist': (257) The file \U201cLogStoreManifest.plist\U201d couldn\U2019t be opened because you don\U2019t have permission to view it.";
+}.
+2026-08-03 18:17:02.607 xcodebuild[48349:145089541] [MT] IDELogStore: Failed to open log store at /Users/alpha/Library/Developer/Xcode/DerivedData/bisetka-dyrhpzpojgfszldbqvemzzqxgcmu/Logs/Package
+2026-08-03 18:17:02.608 xcodebuild[48349:145089541] [MT] IDELogStore: Failed to open Package log store: Error Domain=IDEFoundationErrorDomain Code=1 "Unable to read log store dictionary file at '/Users/alpha/Library/Developer/Xcode/DerivedData/bisetka-dyrhpzpojgfszldbqvemzzqxgcmu/Logs/Package/LogStoreManifest.plist': (257) The file “LogStoreManifest.plist” couldn’t be opened because you don’t have permission to view it." UserInfo={NSLocalizedDescription=Unable to read log store dictionary file at '/Users/alpha/Library/Developer/Xcode/DerivedData/bisetka-dyrhpzpojgfszldbqvemzzqxgcmu/Logs/Package/LogStoreManifest.plist': (257) The file “LogStoreManifest.plist” couldn’t be opened because you don’t have permission to view it.}. User info: {
+    NSLocalizedDescription = "Unable to read log store dictionary file at '/Users/alpha/Library/Developer/Xcode/DerivedData/bisetka-dyrhpzpojgfszldbqvemzzqxgcmu/Logs/Package/LogStoreManifest.plist': (257) The file \U201cLogStoreManifest.plist\U201d couldn\U2019t be opened because you don\U2019t have permission to view it.";
+}.
+2026-08-03 18:17:02.630 xcodebuild[48349:145089541] [MT] IDELogStore: Failed to open log store at /Users/alpha/Library/Developer/Xcode/DerivedData/bisetka-dyrhpzpojgfszldbqvemzzqxgcmu/Logs/Test
+2026-08-03 18:17:02.630 xcodebuild[48349:145089541] [MT] IDELogStore: Failed to open Test log store: Error Domain=IDEFoundationErrorDomain Code=1 "Unable to read log store dictionary file at '/Users/alpha/Library/Developer/Xcode/DerivedData/bisetka-dyrhpzpojgfszldbqvemzzqxgcmu/Logs/Test/LogStoreManifest.plist': (257) The file “LogStoreManifest.plist” couldn’t be opened because you don’t have permission to view it." UserInfo={NSLocalizedDescription=Unable to read log store dictionary file at '/Users/alpha/Library/Developer/Xcode/DerivedData/bisetka-dyrhpzpojgfszldbqvemzzqxgcmu/Logs/Test/LogStoreManifest.plist': (257) The file “LogStoreManifest.plist” couldn’t be opened because you don’t have permission to view it.}. User info: {
+    NSLocalizedDescription = "Unable to read log store dictionary file at '/Users/alpha/Library/Developer/Xcode/DerivedData/bisetka-dyrhpzpojgfszldbqvemzzqxgcmu/Logs/Test/LogStoreManifest.plist': (257) The file \U201cLogStoreManifest.plist\U201d couldn\U2019t be opened because you don\U2019t have permission to view it.";
+}.
+--- xcodebuild: WARNING: Using the first of multiple matching destinations:
+{ platform:iOS Simulator, id:dvtdevice-DVTiOSDeviceSimulatorPlaceholder-iphonesimulator:placeholder, name:Any iOS Simulator Device }
+{ platform:macOS, arch:arm64, variant:Designed for [iPad,iPhone], id:00006031-001C20D101B8001C, name:My Mac }
+{ platform:iOS, id:dvtdevice-DVTiPhonePlaceholder-iphoneos:placeholder, name:Any iOS Device }
+Build Preparation
+Couldn't create workspace arena folder '/Users/alpha/Library/Developer/Xcode/DerivedData/bisetka-dyrhpzpojgfszldbqvemzzqxgcmu': Unable to write to info file '<DVTFilePath:0x796061f80:'/Users/alpha/Library/Developer/Xcode/DerivedData/bisetka-dyrhpzpojgfszldbqvemzzqxgcmu/info.plist'>'.
+
+** CLEAN FAILED **
+
+
+The following build commands failed:
+	Cleaning workspace bisetka with scheme bisetka and configuration Debug
+(1 failure)
+--- xcodebuild: WARNING: Using the first of multiple matching destinations:
+{ platform:iOS Simulator, id:dvtdevice-DVTiOSDeviceSimulatorPlaceholder-iphonesimulator:placeholder, name:Any iOS Simulator Device }
+{ platform:macOS, arch:arm64, variant:Designed for [iPad,iPhone], id:00006031-001C20D101B8001C, name:My Mac }
+{ platform:iOS, id:dvtdevice-DVTiPhonePlaceholder-iphoneos:placeholder, name:Any iOS Device }
+Build Preparation
+Couldn't create workspace arena folder '/Users/alpha/Library/Developer/Xcode/DerivedData/bisetka-dyrhpzpojgfszldbqvemzzqxgcmu': Unable to write to info file '<DVTFilePath:0x796061f80:'/Users/alpha/Library/Developer/Xcode/DerivedData/bisetka-dyrhpzpojgfszldbqvemzzqxgcmu/info.plist'>'.
+
+** BUILD FAILED **
+
+
+The following build commands failed:
+	Building workspace bisetka with scheme bisetka and configuration Debug
+(1 failure)

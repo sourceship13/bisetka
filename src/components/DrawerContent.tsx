@@ -1,5 +1,5 @@
 import React from 'react';
-import {View, Text, StyleSheet, TouchableOpacity} from 'react-native';
+import {View, Text, StyleSheet, TouchableOpacity, ScrollView} from 'react-native';
 
 import AppVersionFooter from './global/AppVersionFooter';
 import LinearGradient from 'react-native-linear-gradient';
@@ -54,7 +54,10 @@ const DrawerContent = (props: any) => {
       </LinearGradient>
 
       {/* Menu items */}
-      <View style={styles.menuList}>
+      <ScrollView
+        style={styles.menuList}
+        contentContainerStyle={styles.menuListContent}
+        showsVerticalScrollIndicator={false}>
         {[...MENU_ITEMS, ...(user?.isModerator ? [MODERATOR_ITEM] : [])].map(item => (
           <TouchableOpacity
             key={item.key}
@@ -77,7 +80,7 @@ const DrawerContent = (props: any) => {
             <Text style={styles.menuChevron}>›</Text>
           </TouchableOpacity>
         ))}
-      </View>
+      </ScrollView>
 
       {/* Footer */}
       <AppVersionFooter containerStyle={styles.footer} />
@@ -123,7 +126,9 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   menuList: {
-    flex:3,
+    flex: 3,
+  },
+  menuListContent: {
     paddingTop: spacing.md,
     paddingHorizontal: spacing.md,
   },
