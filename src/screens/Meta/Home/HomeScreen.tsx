@@ -456,7 +456,7 @@ const HomeScreen = ({ navigation, route }: any) => {
               >
                 <Icon name="menu" size={26} color="#fff" />
               </TouchableOpacity>
-              <Text style={styles.topHeaderTitle}>{translate('home.title')}</Text>
+              <Text style={styles.topHeaderTitle} numberOfLines={1} ellipsizeMode="tail">{translate('home.title')}</Text>
               <View style={styles.topHeaderRight}>
                 <TouchableOpacity
                   onPress={() => navigation.navigate('PointsShop')}
@@ -467,12 +467,20 @@ const HomeScreen = ({ navigation, route }: any) => {
                     <Text style={styles.pointsCoin}>🪙</Text>
                     <Animated.Text
                       style={[styles.pointsAmount, { color: pointsAnimatedColor }]}
+                      numberOfLines={1}
                     >
                       {Math.floor(user?.balance || 0).toLocaleString()}
                     </Animated.Text>
                     <View style={styles.pointsPlus}>
                       <Icon name="plus" size={12} color="#fff" />
-                      <Text style={styles.pointsPlusText}>{translate('common.getPoints')}</Text>
+                      <Text
+                        style={styles.pointsPlusText}
+                        numberOfLines={1}
+                        adjustsFontSizeToFit
+                        minimumFontScale={0.65}
+                      >
+                        {translate('common.getPoints')}
+                      </Text>
                     </View>
                   </View>
                 </TouchableOpacity>
@@ -504,12 +512,12 @@ const HomeScreen = ({ navigation, route }: any) => {
                 style={styles.greetingCard}
               >
                 <View style={styles.greetingTextWrap}>
-                  <Text style={styles.greetingHello}>
+                  <Text style={styles.greetingHello} numberOfLines={2} ellipsizeMode="tail">
                     {translate('home.welcome')}, {user?.username || 'Player'}!
                   </Text>
                   <View style={styles.greetingLocationRow}>
                     <Icon name="map-marker" size={16} color="#fff" />
-                    <Text style={styles.greetingLocation}>
+                    <Text style={styles.greetingLocation} numberOfLines={1} ellipsizeMode="tail">
                       {currentCity
                         ? `${currentCity}${
                             resolvedBisetka?.country ||
@@ -527,7 +535,7 @@ const HomeScreen = ({ navigation, route }: any) => {
                     onPress={() => navigation.navigate('Travel')}
                     activeOpacity={0.7}
                   >
-                    <Text style={styles.changeLocation}>{translate('home.changeLocation')}</Text>
+                    <Text style={styles.changeLocation} numberOfLines={1} ellipsizeMode="tail">{translate('home.changeLocation')}</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -603,14 +611,17 @@ const styles = StyleSheet.create({
   },
   topHeaderTitle: {
     flex: 1,
+    flexShrink: 1,
     color: '#fff',
     fontSize: 18,
     fontWeight: '800',
+    marginHorizontal: 6,
   },
   topHeaderRight: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
+    flexShrink: 0,
   },
   pointsPillWrap: {
     borderRadius: 999,
@@ -625,6 +636,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: '#7c4dff',
     gap: 6,
+    maxWidth: 220,
   },
   pointsCoin: {
     fontSize: 16,
@@ -633,23 +645,26 @@ const styles = StyleSheet.create({
     color: '#fbbf24',
     fontWeight: '800',
     fontSize: 14,
+    flexShrink: 1,
   },
   pointsPlus: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 8,
-    height: 22,
+    paddingVertical: 4,
     borderRadius: 11,
     backgroundColor: '#f59e0b',
     marginLeft: 4,
     gap: 2,
+    flexShrink: 1,
   },
   pointsPlusText: {
     color: '#fff',
     fontSize: 11,
     fontWeight: '800',
     letterSpacing: 0.3,
+    flexShrink: 1,
   },
   globeBtn: {
     width: 36,

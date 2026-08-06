@@ -93,7 +93,14 @@
     "messages": "Harchutyunner",
     "noConversations": "Harchutyun chkah",
     "replyTo": "Luceç",
-    "typing": "Gril e..."
+    "typing": "Gril e...",
+    "globalChat": "Endhanur zrutsaran",
+    "live": "Ughigh",
+    "playersChattingWorldwide": "Khaghatsoghnery zrutsum en amboghj ashkharhum...",
+    "noMessagesYet": "Haghordagrutyunner der chkan. Egheq arachiny!",
+    "tapToExpand": "Hpeq endardzaklu hamar",
+    "quickActionsHint": "Ugharkeq haghordagrutyun • Teseq ov e artsayin • Gtek engerner",
+    "startTyping": "Skseq mutqagrel..."
   },
   "profile": {
     "title": "Profil",
@@ -121,7 +128,11 @@
     "title": "Lidernerr",
     "rank": "Varkanish",
     "score": "Oçakʻ",
-    "player": "Khaġaç"
+    "player": "Khaġaç",
+    "noPlayersYet": "Khaghatsoghner der chkan — egheq arachiny!",
+    "gamesSuffix": "khagh",
+    "winsSuffix": "haghtanak",
+    "pts": "miavor"
   },
   "settings": {
     "title": "Kargavorumnер",

@@ -20,6 +20,7 @@ import useDeviceType from '../../hooks/useDeviceType';
 import { useAuth } from '../../libs/hooks/useAuth';
 import { resolveAvatar } from '../../utils/avatars';
 import MessageActionSheet from '../MessageActionSheet';
+import { useI18n } from '../../hooks/useI18n';
 
 type HomeGlobalChatProps = {
   onOpenFullChat: () => void;
@@ -44,6 +45,7 @@ const HomeGlobalChat = ({
 }: HomeGlobalChatProps) => {
   const { isTablet } = useDeviceType();
   const { user } = useAuth();
+  const { translate } = useI18n();
   const isModerator = !!user?.isModerator;
   const [recentMessages, setRecentMessages] = useState<RecentMessage[]>([]);
   const [chatExpanded, setChatExpanded] = useState(isTablet ? true : initialExpanded);
@@ -202,10 +204,12 @@ const HomeGlobalChat = ({
         {/* Header */}
         <View style={styles.globalChatHeader}>
           <View style={styles.globalChatTitleRow}>
-            <Text style={styles.globalChatTitle}>Global Chat</Text>
+            <Text style={styles.globalChatTitle} numberOfLines={1} ellipsizeMode="tail">
+              {translate('chat.globalChat')}
+            </Text>
             <View style={styles.liveBadge}>
               <Icon name="broadcast" size={12} color="#fff" />
-              <Text style={styles.liveText}>LIVE</Text>
+              <Text style={styles.liveText} numberOfLines={1}>{translate('chat.live')}</Text>
             </View>
           </View>
 
@@ -280,9 +284,11 @@ const HomeGlobalChat = ({
             })
           ) : (
             <View style={styles.emptyWrap}>
-              <Text style={styles.chatPreviewText}>💬 Players chatting worldwide...</Text>
-              <Text style={styles.chatHint}>
-                {chatExpanded ? 'No messages yet. Be the first!' : 'Tap to expand'}
+              <Text style={styles.chatPreviewText} numberOfLines={2} ellipsizeMode="tail">
+                💬 {translate('chat.playersChattingWorldwide')}
+              </Text>
+              <Text style={styles.chatHint} numberOfLines={2} ellipsizeMode="tail">
+                {chatExpanded ? translate('chat.noMessagesYet') : translate('chat.tapToExpand')}
               </Text>
             </View>
           )}
@@ -293,7 +299,7 @@ const HomeGlobalChat = ({
           <View style={styles.messageInputContainer}>
             <TextInput
               style={styles.messageInput}
-              placeholder="Start typing..."
+              placeholder={translate('chat.startTyping')}
               placeholderTextColor="rgba(203, 213, 225, 0.55)"
               value={newMessage}
               onChangeText={setNewMessage}
@@ -322,8 +328,8 @@ const HomeGlobalChat = ({
         {!chatExpanded && (
           <View style={styles.chatQuickActions}>
             <Icon name="message-text" size={16} color="#94a3b8" />
-            <Text style={styles.quickActionText}>
-              Send a message • See who's online • Make friends
+            <Text style={styles.quickActionText} numberOfLines={2} ellipsizeMode="tail">
+              {translate('chat.quickActionsHint')}
             </Text>
           </View>
         )}
@@ -397,12 +403,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    flex: 1,
+    minWidth: 0,
   },
   globalChatTitle: {
     fontSize: 18,
     fontWeight: '800',
     color: '#fff',
     letterSpacing: 0.2,
+    flexShrink: 1,
   },
   liveBadge: {
     flexDirection: 'row',
@@ -412,6 +421,7 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     borderRadius: 999,
     gap: 3,
+    flexShrink: 0,
   },
   liveText: {
     fontSize: 9,

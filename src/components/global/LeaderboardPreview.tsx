@@ -10,6 +10,7 @@ import {
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { BlurView } from '@react-native-community/blur';
 import apiConfig from '../../libs/utils/api.utils';
+import { useI18n } from '../../hooks/useI18n';
 
 interface LeaderboardEntry {
   user_id: string;
@@ -27,6 +28,7 @@ const RANK_GRADIENTS: Record<number, [string, string]> = {
 
 const LeaderboardPreview: React.FC<{ limit?: number }> = ({ limit = 4 }) => {
   const navigation = useNavigation<any>();
+  const { translate } = useI18n();
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -70,7 +72,9 @@ const LeaderboardPreview: React.FC<{ limit?: number }> = ({ limit = 4 }) => {
         />
         <View pointerEvents="none" style={styles.glassTint} />
         <View style={styles.headerRow}>
-          <Text style={styles.title}>Leaderboard 🏆</Text>
+          <Text style={styles.title} numberOfLines={1} ellipsizeMode="tail">
+            {translate('leaderboard.title')} 🏆
+          </Text>
         </View>
 
         {loading ? (
@@ -78,7 +82,9 @@ const LeaderboardPreview: React.FC<{ limit?: number }> = ({ limit = 4 }) => {
             <ActivityIndicator color="#fff" />
           </View>
         ) : entries.length === 0 ? (
-          <Text style={styles.emptyText}>No players yet — be the first!</Text>
+          <Text style={styles.emptyText} numberOfLines={2} ellipsizeMode="tail">
+            {translate('leaderboard.noPlayersYet')}
+          </Text>
         ) : (
           entries.map((item, idx) => {
             const rank = idx + 1;
@@ -93,15 +99,15 @@ const LeaderboardPreview: React.FC<{ limit?: number }> = ({ limit = 4 }) => {
                   <Text style={styles.name} numberOfLines={1}>
                     {item.username || 'Player'}
                   </Text>
-                  <Text style={styles.subInfo}>
-                    {item.total_games} games  •  {Math.round(item.win_rate || 0)}% wins
+                  <Text style={styles.subInfo} numberOfLines={1} ellipsizeMode="tail">
+                    {item.total_games} {translate('leaderboard.gamesSuffix')}  •  {Math.round(item.win_rate || 0)}% {translate('leaderboard.winsSuffix')}
                   </Text>
                 </View>
                 <View style={styles.scoreCol}>
-                  <Text style={styles.score}>
+                  <Text style={styles.score} numberOfLines={1}>
                     {Math.floor(item.total_points || 0).toLocaleString()}
                   </Text>
-                  <Text style={styles.scoreLabel}>pts</Text>
+                  <Text style={styles.scoreLabel} numberOfLines={1}>{translate('leaderboard.pts')}</Text>
                 </View>
               </View>
             );

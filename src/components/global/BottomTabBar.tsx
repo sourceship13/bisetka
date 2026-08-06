@@ -80,7 +80,7 @@ const BottomTabBar: React.FC<Props> = ({ active = 'Community' }) => {
                         <Icon name="play" size={32} color="#fff" />
                       </View>
                     </TouchableOpacity>
-                    <Text style={[styles.label, styles.centerLabel]}>
+                    <Text style={[styles.label, styles.centerLabel]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
                       {tab.label}
                     </Text>
                   </View>
@@ -102,7 +102,10 @@ const BottomTabBar: React.FC<Props> = ({ active = 'Community' }) => {
                     style={[
                       styles.label,
                       { color: active ? '#fff' : 'rgba(255,255,255,0.7)' },
-                    ]}>
+                    ]}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.7}>
                     {tab.label}
                   </Text>
                 </TouchableOpacity>
@@ -153,6 +156,8 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
     marginTop: 2,
+    maxWidth: '100%',
+    textAlign: 'center',
   },
   centerSlot: {
     flex: 1,

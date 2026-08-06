@@ -117,7 +117,13 @@
     "offline": "Offline",
     "leaveRoom": "Leave Room",
     "joinRoom": "Join Room",
-    "createRoom": "Create Room"
+    "createRoom": "Create Room",
+    "live": "LIVE",
+    "playersChattingWorldwide": "Players chatting worldwide...",
+    "noMessagesYet": "No messages yet. Be the first!",
+    "tapToExpand": "Tap to expand",
+    "quickActionsHint": "Send a message • See who's online • Make friends",
+    "startTyping": "Start typing..."
   },
   "profile": {
     "title": "Profile",
@@ -162,7 +168,11 @@
     "allTime": "All Time",
     "rank": "Rank",
     "player": "Player",
-    "score": "Score"
+    "score": "Score",
+    "noPlayersYet": "No players yet — be the first!",
+    "gamesSuffix": "games",
+    "winsSuffix": "wins",
+    "pts": "pts"
   },
   "settings": {
     "title": "Settings",
