@@ -209,9 +209,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
             reducedTransparencyFallbackColor="rgba(20, 14, 32, 0.55)"
           />
           <View style={styles.inputGlassTint} pointerEvents="none" />
-          <TouchableOpacity style={styles.inputIconBtn} activeOpacity={0.7}>
-            <Icon name="paperclip" size={20} color="rgba(255,255,255,0.75)" />
-          </TouchableOpacity>
           <TextInput
             style={styles.input}
             placeholder="Start typing..."

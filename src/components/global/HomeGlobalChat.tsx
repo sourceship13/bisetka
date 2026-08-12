@@ -308,9 +308,6 @@ const HomeGlobalChat = ({
               returnKeyType="send"
               onSubmitEditing={handleSendMessage}
             />
-            <TouchableOpacity style={styles.inputIconBtn} activeOpacity={0.7}>
-              <Icon name="paperclip" size={22} color="#e2e8f0" />
-            </TouchableOpacity>
             <TouchableOpacity
               onPress={handleSendMessage}
               disabled={!newMessage.trim() || sendingMessage}
