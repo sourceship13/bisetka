@@ -56,7 +56,7 @@ function App(): React.JSX.Element {
     BootSplash.hide({ fade: true });
   }, []);
 
-  // Initialise the StoreKit / Play Billing connection at app start so the
+  // Initialise the StoreKit / Play Billing at app start so the
   // store screens can fetch localised prices instantly. Tear it down on
   // unmount.
   useEffect(() => {
