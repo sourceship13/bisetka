@@ -25,6 +25,7 @@ import { useAchievements } from '../../../contexts/AchievementContext';
 import { resolveAvatar } from '../../../utils/avatars';
 import useDeviceType from '../../../hooks/useDeviceType';
 import { getGameBoardSize } from '../../../utils/gameBoardSize';
+import { useI18n } from '../../../hooks/useI18n';
 
 const PANO_SOURCE = require('../../../../assets/backgrounds/capture360/pano2.jpg');
 
