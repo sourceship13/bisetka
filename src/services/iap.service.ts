@@ -24,21 +24,15 @@ export const POINTS_SKUS = [
 ] as const;
 export type PointsSKU = typeof POINTS_SKUS[number];
 
-export const CLOTHING_TIER_SKUS = [
-  '199',
-  'c399',
-  'c599',
-  'c1099',
-] as const;
+// All clothing items share a single fixed-price SKU (every item is priced at
+// $0.99 in the catalogue, see RARITY_PRICE_CENTS in src/data/clothingItems.ts).
+export const CLOTHING_TIER_SKUS = ['clothing_tier_99'] as const;
 export type ClothingTierSKU = typeof CLOTHING_TIER_SKUS[number];
 
 const ALL_SKUS = [...POINTS_SKUS, ...CLOTHING_TIER_SKUS];
 
 const TIER_USD: { sku: ClothingTierSKU; price: number }[] = [
-  { sku: '199', price: 1.99 },
-  { sku: 'c399', price: 3.99 },
-  { sku: 'c599', price: 5.99 },
-  { sku: 'c1099', price: 10.99 },
+  { sku: 'clothing_tier_99', price: 0.99 },
 ];
 
 function normalizePurchaseError(error: any, sku: string): Error {
@@ -117,12 +111,8 @@ export function getPurchaseErrorMessage(error: any, fallback: string = 'Purchase
  * Map an item's per-item display price (in cents) to the smallest tier SKU
  * that fully covers it.
  */
-export function tierForClothingPriceCents(priceCents: number): ClothingTierSKU {
-  const usd = Math.max(0, priceCents) / 100;
-  for (const t of TIER_USD) {
-    if (t.price >= usd - 0.001) return t.sku;
-  }
-  return 'c1099';
+export function tierForClothingPriceCents(_priceCents: number): ClothingTierSKU {
+  return TIER_USD[0].sku;
 }
 
 // ─── Connection lifecycle ────────────────────────────────────────────────────

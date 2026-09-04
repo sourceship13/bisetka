@@ -60,11 +60,13 @@ const LEGENDARY_BRAND_ITEM_IDS = new Set<string>([
 ]);
 
 // Fixed retail price (in cents) per rarity tier. Free defaults stay free.
+// All non-free items must stay at 99 cents to match the single
+// 'clothing_tier_99' IAP SKU (see iap.service.ts / iap.controller.ts).
 const RARITY_PRICE_CENTS: Record<string, number> = {
-  common: 199,
-  rare: 399,
-  epic: 599,
-  legendary: 1099,
+  common: 99,
+  rare: 99,
+  epic: 99,
+  legendary: 99,
 };
 
 export const ALL_CLOTHING_ITEMS: AvatarClothing[] = NEW_CLOTHING_ITEMS.map(i => {
