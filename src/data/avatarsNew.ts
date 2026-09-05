@@ -2,298 +2,591 @@
 import { AvatarClothing, BaseAvatar } from '../types/avatar2d';
 
 import Avatars_AthleticFemaleAvatar from '../../assets/avatars_new/Avatars/Athletic female avatar.svg';
+import Avatars_AthleticFemaleAvatar_Thumb from '../../assets/avatars_new_thumbs/Avatars/Athletic female avatar.png';
 import Avatars_FatFemaleAvatar from '../../assets/avatars_new/Avatars/Fat female avatar.svg';
+import Avatars_FatFemaleAvatar_Thumb from '../../assets/avatars_new_thumbs/Avatars/Fat female avatar.png';
 import Avatars_MuscularFemaleAvatar from '../../assets/avatars_new/Avatars/Muscular female avatar.svg';
+import Avatars_MuscularFemaleAvatar_Thumb from '../../assets/avatars_new_thumbs/Avatars/Muscular female avatar.png';
 import Avatars_OldFemaleAvatar from '../../assets/avatars_new/Avatars/Old female avatar.svg';
+import Avatars_OldFemaleAvatar_Thumb from '../../assets/avatars_new_thumbs/Avatars/Old female avatar.png';
 import Avatars_SlimFemaleAvatar from '../../assets/avatars_new/Avatars/Slim female avatar.svg';
+import Avatars_SlimFemaleAvatar_Thumb from '../../assets/avatars_new_thumbs/Avatars/Slim female avatar.png';
 import Avatars_AthleticMaleAvatar from '../../assets/avatars_new/Avatars/athletic male avatar.svg';
+import Avatars_AthleticMaleAvatar_Thumb from '../../assets/avatars_new_thumbs/Avatars/athletic male avatar.png';
 import Avatars_FatMaleAvatar from '../../assets/avatars_new/Avatars/fat male avatar.svg';
+import Avatars_FatMaleAvatar_Thumb from '../../assets/avatars_new_thumbs/Avatars/fat male avatar.png';
 import Avatars_MuscularMaleAvatar from '../../assets/avatars_new/Avatars/muscular male avatar.svg';
+import Avatars_MuscularMaleAvatar_Thumb from '../../assets/avatars_new_thumbs/Avatars/muscular male avatar.png';
 import Avatars_OldMaleAvatar from '../../assets/avatars_new/Avatars/old male avatar.svg';
+import Avatars_OldMaleAvatar_Thumb from '../../assets/avatars_new_thumbs/Avatars/old male avatar.png';
 import Avatars_SlimMaleAvatar from '../../assets/avatars_new/Avatars/slim male avatar.svg';
+import Avatars_SlimMaleAvatar_Thumb from '../../assets/avatars_new_thumbs/Avatars/slim male avatar.png';
 import Hairstyle_FemaleHairStyle1 from '../../assets/avatars_new/Hairstyle/Female hair style 1.svg';
+import Hairstyle_FemaleHairStyle1_Thumb from '../../assets/avatars_new_thumbs/Hairstyle/Female hair style 1.png';
 import Hairstyle_FemaleHairStyle2 from '../../assets/avatars_new/Hairstyle/Female hair style 2.svg';
+import Hairstyle_FemaleHairStyle2_Thumb from '../../assets/avatars_new_thumbs/Hairstyle/Female hair style 2.png';
 import Hairstyle_FemaleHairStyle3 from '../../assets/avatars_new/Hairstyle/Female hair style 3.svg';
+import Hairstyle_FemaleHairStyle3_Thumb from '../../assets/avatars_new_thumbs/Hairstyle/Female hair style 3.png';
 import Hairstyle_FemaleHairStyle4 from '../../assets/avatars_new/Hairstyle/Female hair style 4.svg';
+import Hairstyle_FemaleHairStyle4_Thumb from '../../assets/avatars_new_thumbs/Hairstyle/Female hair style 4.png';
 import Hairstyle_FemaleHairStyle5 from '../../assets/avatars_new/Hairstyle/Female hair style 5.svg';
+import Hairstyle_FemaleHairStyle5_Thumb from '../../assets/avatars_new_thumbs/Hairstyle/Female hair style 5.png';
 import Hairstyle_MaleHairstyle1 from '../../assets/avatars_new/Hairstyle/male hairstyle 1.svg';
+import Hairstyle_MaleHairstyle1_Thumb from '../../assets/avatars_new_thumbs/Hairstyle/male hairstyle 1.png';
 import Hairstyle_MaleHairstyle2 from '../../assets/avatars_new/Hairstyle/male hairstyle 2.svg';
+import Hairstyle_MaleHairstyle2_Thumb from '../../assets/avatars_new_thumbs/Hairstyle/male hairstyle 2.png';
 import Hairstyle_MaleHairstyle3 from '../../assets/avatars_new/Hairstyle/male hairstyle 3.svg';
+import Hairstyle_MaleHairstyle3_Thumb from '../../assets/avatars_new_thumbs/Hairstyle/male hairstyle 3.png';
 import Hairstyle_MaleHairstyle4 from '../../assets/avatars_new/Hairstyle/male hairstyle 4.svg';
+import Hairstyle_MaleHairstyle4_Thumb from '../../assets/avatars_new_thumbs/Hairstyle/male hairstyle 4.png';
 import Hairstyle_MaleHairstyle5 from '../../assets/avatars_new/Hairstyle/male hairstyle 5.svg';
+import Hairstyle_MaleHairstyle5_Thumb from '../../assets/avatars_new_thumbs/Hairstyle/male hairstyle 5.png';
 import Hats_FemaleHatStyle1 from '../../assets/avatars_new/Hats/Female hat style 1.svg';
+import Hats_FemaleHatStyle1_Thumb from '../../assets/avatars_new_thumbs/Hats/Female hat style 1.png';
 import Hats_FemaleHatStyle2 from '../../assets/avatars_new/Hats/Female hat style 2.svg';
+import Hats_FemaleHatStyle2_Thumb from '../../assets/avatars_new_thumbs/Hats/Female hat style 2.png';
 import Hats_FemaleHatStyle3 from '../../assets/avatars_new/Hats/Female hat style 3.svg';
+import Hats_FemaleHatStyle3_Thumb from '../../assets/avatars_new_thumbs/Hats/Female hat style 3.png';
 import Hats_FemaleHatStyle4 from '../../assets/avatars_new/Hats/Female hat style 4.svg';
+import Hats_FemaleHatStyle4_Thumb from '../../assets/avatars_new_thumbs/Hats/Female hat style 4.png';
 import Hats_BaseballHat from '../../assets/avatars_new/Hats/baseball hat.svg';
+import Hats_BaseballHat_Thumb from '../../assets/avatars_new_thumbs/Hats/baseball hat.png';
 import Hats_BeanieHat from '../../assets/avatars_new/Hats/beanie hat.svg';
+import Hats_BeanieHat_Thumb from '../../assets/avatars_new_thumbs/Hats/beanie hat.png';
 import Hats_BucketHat from '../../assets/avatars_new/Hats/bucket hat.svg';
+import Hats_BucketHat_Thumb from '../../assets/avatars_new_thumbs/Hats/bucket hat.png';
 import Jackets_FemaleFatJacketStyle1 from '../../assets/avatars_new/Jackets/Female fat jacket style 1.svg';
+import Jackets_FemaleFatJacketStyle1_Thumb from '../../assets/avatars_new_thumbs/Jackets/Female fat jacket style 1.png';
 import Jackets_FemaleFatJacketStyle10 from '../../assets/avatars_new/Jackets/Female fat jacket style 10.svg';
+import Jackets_FemaleFatJacketStyle10_Thumb from '../../assets/avatars_new_thumbs/Jackets/Female fat jacket style 10.png';
 import Jackets_FemaleFatJacketStyle2 from '../../assets/avatars_new/Jackets/Female fat jacket style 2.svg';
+import Jackets_FemaleFatJacketStyle2_Thumb from '../../assets/avatars_new_thumbs/Jackets/Female fat jacket style 2.png';
 import Jackets_FemaleFatJacketStyle3 from '../../assets/avatars_new/Jackets/Female fat jacket style 3.svg';
+import Jackets_FemaleFatJacketStyle3_Thumb from '../../assets/avatars_new_thumbs/Jackets/Female fat jacket style 3.png';
 import Jackets_FemaleFatJacketStyle4 from '../../assets/avatars_new/Jackets/Female fat jacket style 4.svg';
+import Jackets_FemaleFatJacketStyle4_Thumb from '../../assets/avatars_new_thumbs/Jackets/Female fat jacket style 4.png';
 import Jackets_FemaleFatJacketStyle5 from '../../assets/avatars_new/Jackets/Female fat jacket style 5.svg';
+import Jackets_FemaleFatJacketStyle5_Thumb from '../../assets/avatars_new_thumbs/Jackets/Female fat jacket style 5.png';
 import Jackets_FemaleFatJacketStyle6 from '../../assets/avatars_new/Jackets/Female fat jacket style 6.svg';
+import Jackets_FemaleFatJacketStyle6_Thumb from '../../assets/avatars_new_thumbs/Jackets/Female fat jacket style 6.png';
 import Jackets_FemaleFatJacketStyle7 from '../../assets/avatars_new/Jackets/Female fat jacket style 7.svg';
+import Jackets_FemaleFatJacketStyle7_Thumb from '../../assets/avatars_new_thumbs/Jackets/Female fat jacket style 7.png';
 import Jackets_FemaleFatJacketStyle8 from '../../assets/avatars_new/Jackets/Female fat jacket style 8.svg';
+import Jackets_FemaleFatJacketStyle8_Thumb from '../../assets/avatars_new_thumbs/Jackets/Female fat jacket style 8.png';
 import Jackets_FemaleFatJacketStyle9 from '../../assets/avatars_new/Jackets/Female fat jacket style 9.svg';
+import Jackets_FemaleFatJacketStyle9_Thumb from '../../assets/avatars_new_thumbs/Jackets/Female fat jacket style 9.png';
 import Jackets_FemaleJacketStyle1 from '../../assets/avatars_new/Jackets/Female jacket style 1.svg';
+import Jackets_FemaleJacketStyle1_Thumb from '../../assets/avatars_new_thumbs/Jackets/Female jacket style 1.png';
 import Jackets_FemaleJacketStyle10 from '../../assets/avatars_new/Jackets/Female jacket style 10.svg';
+import Jackets_FemaleJacketStyle10_Thumb from '../../assets/avatars_new_thumbs/Jackets/Female jacket style 10.png';
 import Jackets_FemaleJacketStyle2 from '../../assets/avatars_new/Jackets/Female jacket style 2.svg';
+import Jackets_FemaleJacketStyle2_Thumb from '../../assets/avatars_new_thumbs/Jackets/Female jacket style 2.png';
 import Jackets_FemaleJacketStyle3 from '../../assets/avatars_new/Jackets/Female jacket style 3.svg';
+import Jackets_FemaleJacketStyle3_Thumb from '../../assets/avatars_new_thumbs/Jackets/Female jacket style 3.png';
 import Jackets_FemaleJacketStyle4 from '../../assets/avatars_new/Jackets/Female jacket style 4.svg';
+import Jackets_FemaleJacketStyle4_Thumb from '../../assets/avatars_new_thumbs/Jackets/Female jacket style 4.png';
 import Jackets_FemaleJacketStyle5 from '../../assets/avatars_new/Jackets/Female jacket style 5.svg';
+import Jackets_FemaleJacketStyle5_Thumb from '../../assets/avatars_new_thumbs/Jackets/Female jacket style 5.png';
 import Jackets_FemaleJacketStyle6 from '../../assets/avatars_new/Jackets/Female jacket style 6.svg';
+import Jackets_FemaleJacketStyle6_Thumb from '../../assets/avatars_new_thumbs/Jackets/Female jacket style 6.png';
 import Jackets_FemaleJacketStyle7 from '../../assets/avatars_new/Jackets/Female jacket style 7.svg';
+import Jackets_FemaleJacketStyle7_Thumb from '../../assets/avatars_new_thumbs/Jackets/Female jacket style 7.png';
 import Jackets_FemaleJacketStyle8 from '../../assets/avatars_new/Jackets/Female jacket style 8.svg';
+import Jackets_FemaleJacketStyle8_Thumb from '../../assets/avatars_new_thumbs/Jackets/Female jacket style 8.png';
 import Jackets_FemaleJacketStyle9 from '../../assets/avatars_new/Jackets/Female jacket style 9.svg';
+import Jackets_FemaleJacketStyle9_Thumb from '../../assets/avatars_new_thumbs/Jackets/Female jacket style 9.png';
 import Jackets_FemaleMuscleJacketStyle1 from '../../assets/avatars_new/Jackets/Female muscle jacket style 1.svg';
+import Jackets_FemaleMuscleJacketStyle1_Thumb from '../../assets/avatars_new_thumbs/Jackets/Female muscle jacket style 1.png';
 import Jackets_FemaleMuscleJacketStyle10 from '../../assets/avatars_new/Jackets/Female muscle jacket style 10.svg';
+import Jackets_FemaleMuscleJacketStyle10_Thumb from '../../assets/avatars_new_thumbs/Jackets/Female muscle jacket style 10.png';
 import Jackets_FemaleMuscleJacketStyle2 from '../../assets/avatars_new/Jackets/Female muscle jacket style 2.svg';
+import Jackets_FemaleMuscleJacketStyle2_Thumb from '../../assets/avatars_new_thumbs/Jackets/Female muscle jacket style 2.png';
 import Jackets_FemaleMuscleJacketStyle3 from '../../assets/avatars_new/Jackets/Female muscle jacket style 3.svg';
+import Jackets_FemaleMuscleJacketStyle3_Thumb from '../../assets/avatars_new_thumbs/Jackets/Female muscle jacket style 3.png';
 import Jackets_FemaleMuscleJacketStyle4 from '../../assets/avatars_new/Jackets/Female muscle jacket style 4.svg';
+import Jackets_FemaleMuscleJacketStyle4_Thumb from '../../assets/avatars_new_thumbs/Jackets/Female muscle jacket style 4.png';
 import Jackets_FemaleMuscleJacketStyle5 from '../../assets/avatars_new/Jackets/Female muscle jacket style 5.svg';
+import Jackets_FemaleMuscleJacketStyle5_Thumb from '../../assets/avatars_new_thumbs/Jackets/Female muscle jacket style 5.png';
 import Jackets_FemaleMuscleJacketStyle6 from '../../assets/avatars_new/Jackets/Female muscle jacket style 6.svg';
+import Jackets_FemaleMuscleJacketStyle6_Thumb from '../../assets/avatars_new_thumbs/Jackets/Female muscle jacket style 6.png';
 import Jackets_FemaleMuscleJacketStyle7 from '../../assets/avatars_new/Jackets/Female muscle jacket style 7.svg';
+import Jackets_FemaleMuscleJacketStyle7_Thumb from '../../assets/avatars_new_thumbs/Jackets/Female muscle jacket style 7.png';
 import Jackets_FemaleMuscleJacketStyle8 from '../../assets/avatars_new/Jackets/Female muscle jacket style 8.svg';
+import Jackets_FemaleMuscleJacketStyle8_Thumb from '../../assets/avatars_new_thumbs/Jackets/Female muscle jacket style 8.png';
 import Jackets_FemaleMuscleJacketStyle9 from '../../assets/avatars_new/Jackets/Female muscle jacket style 9.svg';
+import Jackets_FemaleMuscleJacketStyle9_Thumb from '../../assets/avatars_new_thumbs/Jackets/Female muscle jacket style 9.png';
 import Jackets_JacketStyle1 from '../../assets/avatars_new/Jackets/Jacket style 1.svg';
+import Jackets_JacketStyle1_Thumb from '../../assets/avatars_new_thumbs/Jackets/Jacket style 1.png';
 import Jackets_JacketStyle10 from '../../assets/avatars_new/Jackets/Jacket style 10.svg';
+import Jackets_JacketStyle10_Thumb from '../../assets/avatars_new_thumbs/Jackets/Jacket style 10.png';
 import Jackets_JacketStyle2 from '../../assets/avatars_new/Jackets/Jacket style 2.svg';
+import Jackets_JacketStyle2_Thumb from '../../assets/avatars_new_thumbs/Jackets/Jacket style 2.png';
 import Jackets_JacketStyle3 from '../../assets/avatars_new/Jackets/Jacket style 3.svg';
+import Jackets_JacketStyle3_Thumb from '../../assets/avatars_new_thumbs/Jackets/Jacket style 3.png';
 import Jackets_JacketStyle4 from '../../assets/avatars_new/Jackets/Jacket style 4.svg';
+import Jackets_JacketStyle4_Thumb from '../../assets/avatars_new_thumbs/Jackets/Jacket style 4.png';
 import Jackets_JacketStyle5 from '../../assets/avatars_new/Jackets/Jacket style 5.svg';
+import Jackets_JacketStyle5_Thumb from '../../assets/avatars_new_thumbs/Jackets/Jacket style 5.png';
 import Jackets_JacketStyle6 from '../../assets/avatars_new/Jackets/Jacket style 6.svg';
+import Jackets_JacketStyle6_Thumb from '../../assets/avatars_new_thumbs/Jackets/Jacket style 6.png';
 import Jackets_JacketStyle7 from '../../assets/avatars_new/Jackets/Jacket style 7.svg';
+import Jackets_JacketStyle7_Thumb from '../../assets/avatars_new_thumbs/Jackets/Jacket style 7.png';
 import Jackets_JacketStyle8 from '../../assets/avatars_new/Jackets/Jacket style 8.svg';
+import Jackets_JacketStyle8_Thumb from '../../assets/avatars_new_thumbs/Jackets/Jacket style 8.png';
 import Jackets_JacketStyle9 from '../../assets/avatars_new/Jackets/Jacket style 9.svg';
+import Jackets_JacketStyle9_Thumb from '../../assets/avatars_new_thumbs/Jackets/Jacket style 9.png';
 import Jackets_FatJacketStyle1 from '../../assets/avatars_new/Jackets/fat Jacket style 1.svg';
+import Jackets_FatJacketStyle1_Thumb from '../../assets/avatars_new_thumbs/Jackets/fat Jacket style 1.png';
 import Jackets_FatJacketStyle10 from '../../assets/avatars_new/Jackets/fat Jacket style 10.svg';
+import Jackets_FatJacketStyle10_Thumb from '../../assets/avatars_new_thumbs/Jackets/fat Jacket style 10.png';
 import Jackets_FatJacketStyle2 from '../../assets/avatars_new/Jackets/fat Jacket style 2.svg';
+import Jackets_FatJacketStyle2_Thumb from '../../assets/avatars_new_thumbs/Jackets/fat Jacket style 2.png';
 import Jackets_FatJacketStyle3 from '../../assets/avatars_new/Jackets/fat Jacket style 3.svg';
+import Jackets_FatJacketStyle3_Thumb from '../../assets/avatars_new_thumbs/Jackets/fat Jacket style 3.png';
 import Jackets_FatJacketStyle4 from '../../assets/avatars_new/Jackets/fat Jacket style 4.svg';
+import Jackets_FatJacketStyle4_Thumb from '../../assets/avatars_new_thumbs/Jackets/fat Jacket style 4.png';
 import Jackets_FatJacketStyle5 from '../../assets/avatars_new/Jackets/fat Jacket style 5.svg';
+import Jackets_FatJacketStyle5_Thumb from '../../assets/avatars_new_thumbs/Jackets/fat Jacket style 5.png';
 import Jackets_FatJacketStyle6 from '../../assets/avatars_new/Jackets/fat Jacket style 6.svg';
+import Jackets_FatJacketStyle6_Thumb from '../../assets/avatars_new_thumbs/Jackets/fat Jacket style 6.png';
 import Jackets_FatJacketStyle7 from '../../assets/avatars_new/Jackets/fat Jacket style 7.svg';
+import Jackets_FatJacketStyle7_Thumb from '../../assets/avatars_new_thumbs/Jackets/fat Jacket style 7.png';
 import Jackets_FatJacketStyle8 from '../../assets/avatars_new/Jackets/fat Jacket style 8.svg';
+import Jackets_FatJacketStyle8_Thumb from '../../assets/avatars_new_thumbs/Jackets/fat Jacket style 8.png';
 import Jackets_FatJacketStyle9 from '../../assets/avatars_new/Jackets/fat Jacket style 9.svg';
+import Jackets_FatJacketStyle9_Thumb from '../../assets/avatars_new_thumbs/Jackets/fat Jacket style 9.png';
 import Jackets_MuscleJacketStyle1 from '../../assets/avatars_new/Jackets/muscle Jacket style 1.svg';
+import Jackets_MuscleJacketStyle1_Thumb from '../../assets/avatars_new_thumbs/Jackets/muscle Jacket style 1.png';
 import Jackets_MuscleJacketStyle10 from '../../assets/avatars_new/Jackets/muscle Jacket style 10.svg';
+import Jackets_MuscleJacketStyle10_Thumb from '../../assets/avatars_new_thumbs/Jackets/muscle Jacket style 10.png';
 import Jackets_MuscleJacketStyle2 from '../../assets/avatars_new/Jackets/muscle Jacket style 2.svg';
+import Jackets_MuscleJacketStyle2_Thumb from '../../assets/avatars_new_thumbs/Jackets/muscle Jacket style 2.png';
 import Jackets_MuscleJacketStyle3 from '../../assets/avatars_new/Jackets/muscle Jacket style 3.svg';
+import Jackets_MuscleJacketStyle3_Thumb from '../../assets/avatars_new_thumbs/Jackets/muscle Jacket style 3.png';
 import Jackets_MuscleJacketStyle4 from '../../assets/avatars_new/Jackets/muscle Jacket style 4.svg';
+import Jackets_MuscleJacketStyle4_Thumb from '../../assets/avatars_new_thumbs/Jackets/muscle Jacket style 4.png';
 import Jackets_MuscleJacketStyle5 from '../../assets/avatars_new/Jackets/muscle Jacket style 5.svg';
+import Jackets_MuscleJacketStyle5_Thumb from '../../assets/avatars_new_thumbs/Jackets/muscle Jacket style 5.png';
 import Jackets_MuscleJacketStyle6 from '../../assets/avatars_new/Jackets/muscle Jacket style 6.svg';
+import Jackets_MuscleJacketStyle6_Thumb from '../../assets/avatars_new_thumbs/Jackets/muscle Jacket style 6.png';
 import Jackets_MuscleJacketStyle7 from '../../assets/avatars_new/Jackets/muscle Jacket style 7.svg';
+import Jackets_MuscleJacketStyle7_Thumb from '../../assets/avatars_new_thumbs/Jackets/muscle Jacket style 7.png';
 import Jackets_MuscleJacketStyle8 from '../../assets/avatars_new/Jackets/muscle Jacket style 8.svg';
+import Jackets_MuscleJacketStyle8_Thumb from '../../assets/avatars_new_thumbs/Jackets/muscle Jacket style 8.png';
 import Jackets_MuscleJacketStyle9 from '../../assets/avatars_new/Jackets/muscle Jacket style 9.svg';
+import Jackets_MuscleJacketStyle9_Thumb from '../../assets/avatars_new_thumbs/Jackets/muscle Jacket style 9.png';
 import Others_FemaleBagStyle1 from '../../assets/avatars_new/Others/Female bag style 1.svg';
+import Others_FemaleBagStyle1_Thumb from '../../assets/avatars_new_thumbs/Others/Female bag style 1.png';
 import Others_FemaleBagStyle2 from '../../assets/avatars_new/Others/Female bag style 2.svg';
+import Others_FemaleBagStyle2_Thumb from '../../assets/avatars_new_thumbs/Others/Female bag style 2.png';
 import Others_FemaleBagStyle3 from '../../assets/avatars_new/Others/Female bag style 3.svg';
+import Others_FemaleBagStyle3_Thumb from '../../assets/avatars_new_thumbs/Others/Female bag style 3.png';
 import Others_FemaleBagStyle4 from '../../assets/avatars_new/Others/Female bag style 4.svg';
+import Others_FemaleBagStyle4_Thumb from '../../assets/avatars_new_thumbs/Others/Female bag style 4.png';
 import Others_FemaleWatchStyle1 from '../../assets/avatars_new/Others/Female watch style 1.svg';
+import Others_FemaleWatchStyle1_Thumb from '../../assets/avatars_new_thumbs/Others/Female watch style 1.png';
 import Others_FemaleWatchStyle2 from '../../assets/avatars_new/Others/Female watch style 2.svg';
+import Others_FemaleWatchStyle2_Thumb from '../../assets/avatars_new_thumbs/Others/Female watch style 2.png';
 import Others_BracletStyle1 from '../../assets/avatars_new/Others/braclet style 1.svg';
+import Others_BracletStyle1_Thumb from '../../assets/avatars_new_thumbs/Others/braclet style 1.png';
 import Others_BracletStyle2 from '../../assets/avatars_new/Others/braclet style 2.svg';
+import Others_BracletStyle2_Thumb from '../../assets/avatars_new_thumbs/Others/braclet style 2.png';
 import Others_NecklaceStyle1 from '../../assets/avatars_new/Others/necklace style 1.svg';
+import Others_NecklaceStyle1_Thumb from '../../assets/avatars_new_thumbs/Others/necklace style 1.png';
 import Others_NecklaceStyle2 from '../../assets/avatars_new/Others/necklace style 2.svg';
+import Others_NecklaceStyle2_Thumb from '../../assets/avatars_new_thumbs/Others/necklace style 2.png';
 import Others_ShoulderStrapBagStyle1 from '../../assets/avatars_new/Others/shoulder strap bag style 1.svg';
+import Others_ShoulderStrapBagStyle1_Thumb from '../../assets/avatars_new_thumbs/Others/shoulder strap bag style 1.png';
 import Others_ShoulderStrapBagStyle2 from '../../assets/avatars_new/Others/shoulder strap bag style 2.svg';
+import Others_ShoulderStrapBagStyle2_Thumb from '../../assets/avatars_new_thumbs/Others/shoulder strap bag style 2.png';
 import Others_SunglassStyle1 from '../../assets/avatars_new/Others/sunglass style 1.svg';
+import Others_SunglassStyle1_Thumb from '../../assets/avatars_new_thumbs/Others/sunglass style 1.png';
 import Others_SunglassStyle2 from '../../assets/avatars_new/Others/sunglass style 2.svg';
+import Others_SunglassStyle2_Thumb from '../../assets/avatars_new_thumbs/Others/sunglass style 2.png';
 import Others_WristWatchStyle1 from '../../assets/avatars_new/Others/wrist watch style 1.svg';
+import Others_WristWatchStyle1_Thumb from '../../assets/avatars_new_thumbs/Others/wrist watch style 1.png';
 import Others_WristWatchStyle2 from '../../assets/avatars_new/Others/wrist watch style 2.svg';
+import Others_WristWatchStyle2_Thumb from '../../assets/avatars_new_thumbs/Others/wrist watch style 2.png';
 import Pants_FemaleFatPantsStyle1 from '../../assets/avatars_new/Pants/Female fat pants style 1.svg';
+import Pants_FemaleFatPantsStyle1_Thumb from '../../assets/avatars_new_thumbs/Pants/Female fat pants style 1.png';
 import Pants_FemaleFatPantsStyle10 from '../../assets/avatars_new/Pants/Female fat pants style 10.svg';
+import Pants_FemaleFatPantsStyle10_Thumb from '../../assets/avatars_new_thumbs/Pants/Female fat pants style 10.png';
 import Pants_FemaleFatPantsStyle2 from '../../assets/avatars_new/Pants/Female fat pants style 2.svg';
+import Pants_FemaleFatPantsStyle2_Thumb from '../../assets/avatars_new_thumbs/Pants/Female fat pants style 2.png';
 import Pants_FemaleFatPantsStyle3 from '../../assets/avatars_new/Pants/Female fat pants style 3.svg';
+import Pants_FemaleFatPantsStyle3_Thumb from '../../assets/avatars_new_thumbs/Pants/Female fat pants style 3.png';
 import Pants_FemaleFatPantsStyle4 from '../../assets/avatars_new/Pants/Female fat pants style 4.svg';
+import Pants_FemaleFatPantsStyle4_Thumb from '../../assets/avatars_new_thumbs/Pants/Female fat pants style 4.png';
 import Pants_FemaleFatPantsStyle5 from '../../assets/avatars_new/Pants/Female fat pants style 5.svg';
+import Pants_FemaleFatPantsStyle5_Thumb from '../../assets/avatars_new_thumbs/Pants/Female fat pants style 5.png';
 import Pants_FemaleFatPantsStyle6 from '../../assets/avatars_new/Pants/Female fat pants style 6.svg';
+import Pants_FemaleFatPantsStyle6_Thumb from '../../assets/avatars_new_thumbs/Pants/Female fat pants style 6.png';
 import Pants_FemaleFatPantsStyle7 from '../../assets/avatars_new/Pants/Female fat pants style 7.svg';
+import Pants_FemaleFatPantsStyle7_Thumb from '../../assets/avatars_new_thumbs/Pants/Female fat pants style 7.png';
 import Pants_FemaleFatPantsStyle8 from '../../assets/avatars_new/Pants/Female fat pants style 8.svg';
+import Pants_FemaleFatPantsStyle8_Thumb from '../../assets/avatars_new_thumbs/Pants/Female fat pants style 8.png';
 import Pants_FemaleFatPantsStyle9 from '../../assets/avatars_new/Pants/Female fat pants style 9.svg';
+import Pants_FemaleFatPantsStyle9_Thumb from '../../assets/avatars_new_thumbs/Pants/Female fat pants style 9.png';
 import Pants_FemaleMusclePantsStyle1 from '../../assets/avatars_new/Pants/Female muscle pants style 1.svg';
+import Pants_FemaleMusclePantsStyle1_Thumb from '../../assets/avatars_new_thumbs/Pants/Female muscle pants style 1.png';
 import Pants_FemaleMusclePantsStyle10 from '../../assets/avatars_new/Pants/Female muscle pants style 10.svg';
+import Pants_FemaleMusclePantsStyle10_Thumb from '../../assets/avatars_new_thumbs/Pants/Female muscle pants style 10.png';
 import Pants_FemaleMusclePantsStyle2 from '../../assets/avatars_new/Pants/Female muscle pants style 2.svg';
+import Pants_FemaleMusclePantsStyle2_Thumb from '../../assets/avatars_new_thumbs/Pants/Female muscle pants style 2.png';
 import Pants_FemaleMusclePantsStyle3 from '../../assets/avatars_new/Pants/Female muscle pants style 3.svg';
+import Pants_FemaleMusclePantsStyle3_Thumb from '../../assets/avatars_new_thumbs/Pants/Female muscle pants style 3.png';
 import Pants_FemaleMusclePantsStyle4 from '../../assets/avatars_new/Pants/Female muscle pants style 4.svg';
+import Pants_FemaleMusclePantsStyle4_Thumb from '../../assets/avatars_new_thumbs/Pants/Female muscle pants style 4.png';
 import Pants_FemaleMusclePantsStyle5 from '../../assets/avatars_new/Pants/Female muscle pants style 5.svg';
+import Pants_FemaleMusclePantsStyle5_Thumb from '../../assets/avatars_new_thumbs/Pants/Female muscle pants style 5.png';
 import Pants_FemaleMusclePantsStyle6 from '../../assets/avatars_new/Pants/Female muscle pants style 6.svg';
+import Pants_FemaleMusclePantsStyle6_Thumb from '../../assets/avatars_new_thumbs/Pants/Female muscle pants style 6.png';
 import Pants_FemaleMusclePantsStyle7 from '../../assets/avatars_new/Pants/Female muscle pants style 7.svg';
+import Pants_FemaleMusclePantsStyle7_Thumb from '../../assets/avatars_new_thumbs/Pants/Female muscle pants style 7.png';
 import Pants_FemaleMusclePantsStyle8 from '../../assets/avatars_new/Pants/Female muscle pants style 8.svg';
+import Pants_FemaleMusclePantsStyle8_Thumb from '../../assets/avatars_new_thumbs/Pants/Female muscle pants style 8.png';
 import Pants_FemaleMusclePantsStyle9 from '../../assets/avatars_new/Pants/Female muscle pants style 9.svg';
+import Pants_FemaleMusclePantsStyle9_Thumb from '../../assets/avatars_new_thumbs/Pants/Female muscle pants style 9.png';
 import Pants_FemalePantsStyle1 from '../../assets/avatars_new/Pants/Female pants style 1.svg';
+import Pants_FemalePantsStyle1_Thumb from '../../assets/avatars_new_thumbs/Pants/Female pants style 1.png';
 import Pants_FemalePantsStyle10 from '../../assets/avatars_new/Pants/Female pants style 10.svg';
+import Pants_FemalePantsStyle10_Thumb from '../../assets/avatars_new_thumbs/Pants/Female pants style 10.png';
 import Pants_FemalePantsStyle2 from '../../assets/avatars_new/Pants/Female pants style 2.svg';
+import Pants_FemalePantsStyle2_Thumb from '../../assets/avatars_new_thumbs/Pants/Female pants style 2.png';
 import Pants_FemalePantsStyle3 from '../../assets/avatars_new/Pants/Female pants style 3.svg';
+import Pants_FemalePantsStyle3_Thumb from '../../assets/avatars_new_thumbs/Pants/Female pants style 3.png';
 import Pants_FemalePantsStyle4 from '../../assets/avatars_new/Pants/Female pants style 4.svg';
+import Pants_FemalePantsStyle4_Thumb from '../../assets/avatars_new_thumbs/Pants/Female pants style 4.png';
 import Pants_FemalePantsStyle5 from '../../assets/avatars_new/Pants/Female pants style 5.svg';
+import Pants_FemalePantsStyle5_Thumb from '../../assets/avatars_new_thumbs/Pants/Female pants style 5.png';
 import Pants_FemalePantsStyle6 from '../../assets/avatars_new/Pants/Female pants style 6.svg';
+import Pants_FemalePantsStyle6_Thumb from '../../assets/avatars_new_thumbs/Pants/Female pants style 6.png';
 import Pants_FemalePantsStyle7 from '../../assets/avatars_new/Pants/Female pants style 7.svg';
+import Pants_FemalePantsStyle7_Thumb from '../../assets/avatars_new_thumbs/Pants/Female pants style 7.png';
 import Pants_FemalePantsStyle8 from '../../assets/avatars_new/Pants/Female pants style 8.svg';
+import Pants_FemalePantsStyle8_Thumb from '../../assets/avatars_new_thumbs/Pants/Female pants style 8.png';
 import Pants_FemalePantsStyle9 from '../../assets/avatars_new/Pants/Female pants style 9.svg';
+import Pants_FemalePantsStyle9_Thumb from '../../assets/avatars_new_thumbs/Pants/Female pants style 9.png';
 import Pants_FatPantsStyle1 from '../../assets/avatars_new/Pants/fat pants style 1.svg';
+import Pants_FatPantsStyle1_Thumb from '../../assets/avatars_new_thumbs/Pants/fat pants style 1.png';
 import Pants_FatPantsStyle10 from '../../assets/avatars_new/Pants/fat pants style 10.svg';
+import Pants_FatPantsStyle10_Thumb from '../../assets/avatars_new_thumbs/Pants/fat pants style 10.png';
 import Pants_FatPantsStyle2 from '../../assets/avatars_new/Pants/fat pants style 2.svg';
+import Pants_FatPantsStyle2_Thumb from '../../assets/avatars_new_thumbs/Pants/fat pants style 2.png';
 import Pants_FatPantsStyle3 from '../../assets/avatars_new/Pants/fat pants style 3.svg';
+import Pants_FatPantsStyle3_Thumb from '../../assets/avatars_new_thumbs/Pants/fat pants style 3.png';
 import Pants_FatPantsStyle4 from '../../assets/avatars_new/Pants/fat pants style 4.svg';
+import Pants_FatPantsStyle4_Thumb from '../../assets/avatars_new_thumbs/Pants/fat pants style 4.png';
 import Pants_FatPantsStyle5 from '../../assets/avatars_new/Pants/fat pants style 5.svg';
+import Pants_FatPantsStyle5_Thumb from '../../assets/avatars_new_thumbs/Pants/fat pants style 5.png';
 import Pants_FatPantsStyle6 from '../../assets/avatars_new/Pants/fat pants style 6.svg';
+import Pants_FatPantsStyle6_Thumb from '../../assets/avatars_new_thumbs/Pants/fat pants style 6.png';
 import Pants_FatPantsStyle7 from '../../assets/avatars_new/Pants/fat pants style 7.svg';
+import Pants_FatPantsStyle7_Thumb from '../../assets/avatars_new_thumbs/Pants/fat pants style 7.png';
 import Pants_FatPantsStyle8 from '../../assets/avatars_new/Pants/fat pants style 8.svg';
+import Pants_FatPantsStyle8_Thumb from '../../assets/avatars_new_thumbs/Pants/fat pants style 8.png';
 import Pants_FatPantsStyle9 from '../../assets/avatars_new/Pants/fat pants style 9.svg';
+import Pants_FatPantsStyle9_Thumb from '../../assets/avatars_new_thumbs/Pants/fat pants style 9.png';
 import Pants_MalePantsStyle1 from '../../assets/avatars_new/Pants/male pants style 1.svg';
+import Pants_MalePantsStyle1_Thumb from '../../assets/avatars_new_thumbs/Pants/male pants style 1.png';
 import Pants_MalePantsStyle10 from '../../assets/avatars_new/Pants/male pants style 10.svg';
+import Pants_MalePantsStyle10_Thumb from '../../assets/avatars_new_thumbs/Pants/male pants style 10.png';
 import Pants_MalePantsStyle2 from '../../assets/avatars_new/Pants/male pants style 2.svg';
+import Pants_MalePantsStyle2_Thumb from '../../assets/avatars_new_thumbs/Pants/male pants style 2.png';
 import Pants_MalePantsStyle3 from '../../assets/avatars_new/Pants/male pants style 3.svg';
+import Pants_MalePantsStyle3_Thumb from '../../assets/avatars_new_thumbs/Pants/male pants style 3.png';
 import Pants_MalePantsStyle4 from '../../assets/avatars_new/Pants/male pants style 4.svg';
+import Pants_MalePantsStyle4_Thumb from '../../assets/avatars_new_thumbs/Pants/male pants style 4.png';
 import Pants_MalePantsStyle5 from '../../assets/avatars_new/Pants/male pants style 5.svg';
+import Pants_MalePantsStyle5_Thumb from '../../assets/avatars_new_thumbs/Pants/male pants style 5.png';
 import Pants_MalePantsStyle6 from '../../assets/avatars_new/Pants/male pants style 6.svg';
+import Pants_MalePantsStyle6_Thumb from '../../assets/avatars_new_thumbs/Pants/male pants style 6.png';
 import Pants_MalePantsStyle7 from '../../assets/avatars_new/Pants/male pants style 7.svg';
+import Pants_MalePantsStyle7_Thumb from '../../assets/avatars_new_thumbs/Pants/male pants style 7.png';
 import Pants_MalePantsStyle8 from '../../assets/avatars_new/Pants/male pants style 8.svg';
+import Pants_MalePantsStyle8_Thumb from '../../assets/avatars_new_thumbs/Pants/male pants style 8.png';
 import Pants_MalePantsStyle9 from '../../assets/avatars_new/Pants/male pants style 9.svg';
+import Pants_MalePantsStyle9_Thumb from '../../assets/avatars_new_thumbs/Pants/male pants style 9.png';
 import Pants_MusclePantsStyle1 from '../../assets/avatars_new/Pants/muscle pants style 1.svg';
+import Pants_MusclePantsStyle1_Thumb from '../../assets/avatars_new_thumbs/Pants/muscle pants style 1.png';
 import Pants_MusclePantsStyle10 from '../../assets/avatars_new/Pants/muscle pants style 10.svg';
+import Pants_MusclePantsStyle10_Thumb from '../../assets/avatars_new_thumbs/Pants/muscle pants style 10.png';
 import Pants_MusclePantsStyle2 from '../../assets/avatars_new/Pants/muscle pants style 2.svg';
+import Pants_MusclePantsStyle2_Thumb from '../../assets/avatars_new_thumbs/Pants/muscle pants style 2.png';
 import Pants_MusclePantsStyle3 from '../../assets/avatars_new/Pants/muscle pants style 3.svg';
+import Pants_MusclePantsStyle3_Thumb from '../../assets/avatars_new_thumbs/Pants/muscle pants style 3.png';
 import Pants_MusclePantsStyle4 from '../../assets/avatars_new/Pants/muscle pants style 4.svg';
+import Pants_MusclePantsStyle4_Thumb from '../../assets/avatars_new_thumbs/Pants/muscle pants style 4.png';
 import Pants_MusclePantsStyle5 from '../../assets/avatars_new/Pants/muscle pants style 5.svg';
+import Pants_MusclePantsStyle5_Thumb from '../../assets/avatars_new_thumbs/Pants/muscle pants style 5.png';
 import Pants_MusclePantsStyle6 from '../../assets/avatars_new/Pants/muscle pants style 6.svg';
+import Pants_MusclePantsStyle6_Thumb from '../../assets/avatars_new_thumbs/Pants/muscle pants style 6.png';
 import Pants_MusclePantsStyle7 from '../../assets/avatars_new/Pants/muscle pants style 7.svg';
+import Pants_MusclePantsStyle7_Thumb from '../../assets/avatars_new_thumbs/Pants/muscle pants style 7.png';
 import Pants_MusclePantsStyle8 from '../../assets/avatars_new/Pants/muscle pants style 8.svg';
+import Pants_MusclePantsStyle8_Thumb from '../../assets/avatars_new_thumbs/Pants/muscle pants style 8.png';
 import Pants_MusclePantsStyle9 from '../../assets/avatars_new/Pants/muscle pants style 9.svg';
+import Pants_MusclePantsStyle9_Thumb from '../../assets/avatars_new_thumbs/Pants/muscle pants style 9.png';
 import Shirts_FemaleFatShirtStyle1 from '../../assets/avatars_new/Shirts/Female fat shirt style 1.svg';
+import Shirts_FemaleFatShirtStyle1_Thumb from '../../assets/avatars_new_thumbs/Shirts/Female fat shirt style 1.png';
 import Shirts_FemaleFatShirtStyle10 from '../../assets/avatars_new/Shirts/Female fat shirt style 10.svg';
+import Shirts_FemaleFatShirtStyle10_Thumb from '../../assets/avatars_new_thumbs/Shirts/Female fat shirt style 10.png';
 import Shirts_FemaleFatShirtStyle2 from '../../assets/avatars_new/Shirts/Female fat shirt style 2.svg';
+import Shirts_FemaleFatShirtStyle2_Thumb from '../../assets/avatars_new_thumbs/Shirts/Female fat shirt style 2.png';
 import Shirts_FemaleFatShirtStyle3 from '../../assets/avatars_new/Shirts/Female fat shirt style 3.svg';
+import Shirts_FemaleFatShirtStyle3_Thumb from '../../assets/avatars_new_thumbs/Shirts/Female fat shirt style 3.png';
 import Shirts_FemaleFatShirtStyle4 from '../../assets/avatars_new/Shirts/Female fat shirt style 4.svg';
+import Shirts_FemaleFatShirtStyle4_Thumb from '../../assets/avatars_new_thumbs/Shirts/Female fat shirt style 4.png';
 import Shirts_FemaleFatShirtStyle5 from '../../assets/avatars_new/Shirts/Female fat shirt style 5.svg';
+import Shirts_FemaleFatShirtStyle5_Thumb from '../../assets/avatars_new_thumbs/Shirts/Female fat shirt style 5.png';
 import Shirts_FemaleFatShirtStyle6 from '../../assets/avatars_new/Shirts/Female fat shirt style 6.svg';
+import Shirts_FemaleFatShirtStyle6_Thumb from '../../assets/avatars_new_thumbs/Shirts/Female fat shirt style 6.png';
 import Shirts_FemaleFatShirtStyle7 from '../../assets/avatars_new/Shirts/Female fat shirt style 7.svg';
+import Shirts_FemaleFatShirtStyle7_Thumb from '../../assets/avatars_new_thumbs/Shirts/Female fat shirt style 7.png';
 import Shirts_FemaleFatShirtStyle8 from '../../assets/avatars_new/Shirts/Female fat shirt style 8.svg';
+import Shirts_FemaleFatShirtStyle8_Thumb from '../../assets/avatars_new_thumbs/Shirts/Female fat shirt style 8.png';
 import Shirts_FemaleFatShirtStyle9 from '../../assets/avatars_new/Shirts/Female fat shirt style 9.svg';
+import Shirts_FemaleFatShirtStyle9_Thumb from '../../assets/avatars_new_thumbs/Shirts/Female fat shirt style 9.png';
 import Shirts_FemaleMuscleShirtStyle1 from '../../assets/avatars_new/Shirts/Female muscle shirt style 1.svg';
+import Shirts_FemaleMuscleShirtStyle1_Thumb from '../../assets/avatars_new_thumbs/Shirts/Female muscle shirt style 1.png';
 import Shirts_FemaleMuscleShirtStyle10 from '../../assets/avatars_new/Shirts/Female muscle shirt style 10.svg';
+import Shirts_FemaleMuscleShirtStyle10_Thumb from '../../assets/avatars_new_thumbs/Shirts/Female muscle shirt style 10.png';
 import Shirts_FemaleMuscleShirtStyle2 from '../../assets/avatars_new/Shirts/Female muscle shirt style 2.svg';
+import Shirts_FemaleMuscleShirtStyle2_Thumb from '../../assets/avatars_new_thumbs/Shirts/Female muscle shirt style 2.png';
 import Shirts_FemaleMuscleShirtStyle3 from '../../assets/avatars_new/Shirts/Female muscle shirt style 3.svg';
+import Shirts_FemaleMuscleShirtStyle3_Thumb from '../../assets/avatars_new_thumbs/Shirts/Female muscle shirt style 3.png';
 import Shirts_FemaleMuscleShirtStyle4 from '../../assets/avatars_new/Shirts/Female muscle shirt style 4.svg';
+import Shirts_FemaleMuscleShirtStyle4_Thumb from '../../assets/avatars_new_thumbs/Shirts/Female muscle shirt style 4.png';
 import Shirts_FemaleMuscleShirtStyle5 from '../../assets/avatars_new/Shirts/Female muscle shirt style 5.svg';
+import Shirts_FemaleMuscleShirtStyle5_Thumb from '../../assets/avatars_new_thumbs/Shirts/Female muscle shirt style 5.png';
 import Shirts_FemaleMuscleShirtStyle6 from '../../assets/avatars_new/Shirts/Female muscle shirt style 6.svg';
+import Shirts_FemaleMuscleShirtStyle6_Thumb from '../../assets/avatars_new_thumbs/Shirts/Female muscle shirt style 6.png';
 import Shirts_FemaleMuscleShirtStyle7 from '../../assets/avatars_new/Shirts/Female muscle shirt style 7.svg';
+import Shirts_FemaleMuscleShirtStyle7_Thumb from '../../assets/avatars_new_thumbs/Shirts/Female muscle shirt style 7.png';
 import Shirts_FemaleMuscleShirtStyle8 from '../../assets/avatars_new/Shirts/Female muscle shirt style 8.svg';
+import Shirts_FemaleMuscleShirtStyle8_Thumb from '../../assets/avatars_new_thumbs/Shirts/Female muscle shirt style 8.png';
 import Shirts_FemaleMuscleShirtStyle9 from '../../assets/avatars_new/Shirts/Female muscle shirt style 9.svg';
+import Shirts_FemaleMuscleShirtStyle9_Thumb from '../../assets/avatars_new_thumbs/Shirts/Female muscle shirt style 9.png';
 import Shirts_FemaleShirtStyle1 from '../../assets/avatars_new/Shirts/Female shirt style 1.svg';
+import Shirts_FemaleShirtStyle1_Thumb from '../../assets/avatars_new_thumbs/Shirts/Female shirt style 1.png';
 import Shirts_FemaleShirtStyle10 from '../../assets/avatars_new/Shirts/Female shirt style 10.svg';
+import Shirts_FemaleShirtStyle10_Thumb from '../../assets/avatars_new_thumbs/Shirts/Female shirt style 10.png';
 import Shirts_FemaleShirtStyle2 from '../../assets/avatars_new/Shirts/Female shirt style 2.svg';
+import Shirts_FemaleShirtStyle2_Thumb from '../../assets/avatars_new_thumbs/Shirts/Female shirt style 2.png';
 import Shirts_FemaleShirtStyle3 from '../../assets/avatars_new/Shirts/Female shirt style 3.svg';
+import Shirts_FemaleShirtStyle3_Thumb from '../../assets/avatars_new_thumbs/Shirts/Female shirt style 3.png';
 import Shirts_FemaleShirtStyle4 from '../../assets/avatars_new/Shirts/Female shirt style 4.svg';
+import Shirts_FemaleShirtStyle4_Thumb from '../../assets/avatars_new_thumbs/Shirts/Female shirt style 4.png';
 import Shirts_FemaleShirtStyle5 from '../../assets/avatars_new/Shirts/Female shirt style 5.svg';
+import Shirts_FemaleShirtStyle5_Thumb from '../../assets/avatars_new_thumbs/Shirts/Female shirt style 5.png';
 import Shirts_FemaleShirtStyle6 from '../../assets/avatars_new/Shirts/Female shirt style 6.svg';
+import Shirts_FemaleShirtStyle6_Thumb from '../../assets/avatars_new_thumbs/Shirts/Female shirt style 6.png';
 import Shirts_FemaleShirtStyle7 from '../../assets/avatars_new/Shirts/Female shirt style 7.svg';
+import Shirts_FemaleShirtStyle7_Thumb from '../../assets/avatars_new_thumbs/Shirts/Female shirt style 7.png';
 import Shirts_FemaleShirtStyle8 from '../../assets/avatars_new/Shirts/Female shirt style 8.svg';
+import Shirts_FemaleShirtStyle8_Thumb from '../../assets/avatars_new_thumbs/Shirts/Female shirt style 8.png';
 import Shirts_FemaleShirtStyle9 from '../../assets/avatars_new/Shirts/Female shirt style 9.svg';
+import Shirts_FemaleShirtStyle9_Thumb from '../../assets/avatars_new_thumbs/Shirts/Female shirt style 9.png';
 import Shirts_FatShirtStyle1 from '../../assets/avatars_new/Shirts/fat shirt style 1.svg';
+import Shirts_FatShirtStyle1_Thumb from '../../assets/avatars_new_thumbs/Shirts/fat shirt style 1.png';
 import Shirts_FatShirtStyle10 from '../../assets/avatars_new/Shirts/fat shirt style 10.svg';
+import Shirts_FatShirtStyle10_Thumb from '../../assets/avatars_new_thumbs/Shirts/fat shirt style 10.png';
 import Shirts_FatShirtStyle2 from '../../assets/avatars_new/Shirts/fat shirt style 2.svg';
+import Shirts_FatShirtStyle2_Thumb from '../../assets/avatars_new_thumbs/Shirts/fat shirt style 2.png';
 import Shirts_FatShirtStyle3 from '../../assets/avatars_new/Shirts/fat shirt style 3.svg';
+import Shirts_FatShirtStyle3_Thumb from '../../assets/avatars_new_thumbs/Shirts/fat shirt style 3.png';
 import Shirts_FatShirtStyle4 from '../../assets/avatars_new/Shirts/fat shirt style 4.svg';
+import Shirts_FatShirtStyle4_Thumb from '../../assets/avatars_new_thumbs/Shirts/fat shirt style 4.png';
 import Shirts_FatShirtStyle5 from '../../assets/avatars_new/Shirts/fat shirt style 5.svg';
+import Shirts_FatShirtStyle5_Thumb from '../../assets/avatars_new_thumbs/Shirts/fat shirt style 5.png';
 import Shirts_FatShirtStyle6 from '../../assets/avatars_new/Shirts/fat shirt style 6.svg';
+import Shirts_FatShirtStyle6_Thumb from '../../assets/avatars_new_thumbs/Shirts/fat shirt style 6.png';
 import Shirts_FatShirtStyle7 from '../../assets/avatars_new/Shirts/fat shirt style 7.svg';
+import Shirts_FatShirtStyle7_Thumb from '../../assets/avatars_new_thumbs/Shirts/fat shirt style 7.png';
 import Shirts_FatShirtStyle8 from '../../assets/avatars_new/Shirts/fat shirt style 8.svg';
+import Shirts_FatShirtStyle8_Thumb from '../../assets/avatars_new_thumbs/Shirts/fat shirt style 8.png';
 import Shirts_FatShirtStyle9 from '../../assets/avatars_new/Shirts/fat shirt style 9.svg';
+import Shirts_FatShirtStyle9_Thumb from '../../assets/avatars_new_thumbs/Shirts/fat shirt style 9.png';
 import Shirts_MuscleShirtStyle1 from '../../assets/avatars_new/Shirts/muscle shirt style 1.svg';
+import Shirts_MuscleShirtStyle1_Thumb from '../../assets/avatars_new_thumbs/Shirts/muscle shirt style 1.png';
 import Shirts_MuscleShirtStyle10 from '../../assets/avatars_new/Shirts/muscle shirt style 10.svg';
+import Shirts_MuscleShirtStyle10_Thumb from '../../assets/avatars_new_thumbs/Shirts/muscle shirt style 10.png';
 import Shirts_MuscleShirtStyle2 from '../../assets/avatars_new/Shirts/muscle shirt style 2.svg';
+import Shirts_MuscleShirtStyle2_Thumb from '../../assets/avatars_new_thumbs/Shirts/muscle shirt style 2.png';
 import Shirts_MuscleShirtStyle3 from '../../assets/avatars_new/Shirts/muscle shirt style 3.svg';
+import Shirts_MuscleShirtStyle3_Thumb from '../../assets/avatars_new_thumbs/Shirts/muscle shirt style 3.png';
 import Shirts_MuscleShirtStyle4 from '../../assets/avatars_new/Shirts/muscle shirt style 4.svg';
+import Shirts_MuscleShirtStyle4_Thumb from '../../assets/avatars_new_thumbs/Shirts/muscle shirt style 4.png';
 import Shirts_MuscleShirtStyle5 from '../../assets/avatars_new/Shirts/muscle shirt style 5.svg';
+import Shirts_MuscleShirtStyle5_Thumb from '../../assets/avatars_new_thumbs/Shirts/muscle shirt style 5.png';
 import Shirts_MuscleShirtStyle6 from '../../assets/avatars_new/Shirts/muscle shirt style 6.svg';
+import Shirts_MuscleShirtStyle6_Thumb from '../../assets/avatars_new_thumbs/Shirts/muscle shirt style 6.png';
 import Shirts_MuscleShirtStyle7 from '../../assets/avatars_new/Shirts/muscle shirt style 7.svg';
+import Shirts_MuscleShirtStyle7_Thumb from '../../assets/avatars_new_thumbs/Shirts/muscle shirt style 7.png';
 import Shirts_MuscleShirtStyle8 from '../../assets/avatars_new/Shirts/muscle shirt style 8.svg';
+import Shirts_MuscleShirtStyle8_Thumb from '../../assets/avatars_new_thumbs/Shirts/muscle shirt style 8.png';
 import Shirts_MuscleShirtStyle9 from '../../assets/avatars_new/Shirts/muscle shirt style 9.svg';
+import Shirts_MuscleShirtStyle9_Thumb from '../../assets/avatars_new_thumbs/Shirts/muscle shirt style 9.png';
 import Shirts_ShirtStyle1 from '../../assets/avatars_new/Shirts/shirt style 1.svg';
+import Shirts_ShirtStyle1_Thumb from '../../assets/avatars_new_thumbs/Shirts/shirt style 1.png';
 import Shirts_ShirtStyle10 from '../../assets/avatars_new/Shirts/shirt style 10.svg';
+import Shirts_ShirtStyle10_Thumb from '../../assets/avatars_new_thumbs/Shirts/shirt style 10.png';
 import Shirts_ShirtStyle2 from '../../assets/avatars_new/Shirts/shirt style 2.svg';
+import Shirts_ShirtStyle2_Thumb from '../../assets/avatars_new_thumbs/Shirts/shirt style 2.png';
 import Shirts_ShirtStyle3 from '../../assets/avatars_new/Shirts/shirt style 3.svg';
+import Shirts_ShirtStyle3_Thumb from '../../assets/avatars_new_thumbs/Shirts/shirt style 3.png';
 import Shirts_ShirtStyle4 from '../../assets/avatars_new/Shirts/shirt style 4.svg';
+import Shirts_ShirtStyle4_Thumb from '../../assets/avatars_new_thumbs/Shirts/shirt style 4.png';
 import Shirts_ShirtStyle5 from '../../assets/avatars_new/Shirts/shirt style 5.svg';
+import Shirts_ShirtStyle5_Thumb from '../../assets/avatars_new_thumbs/Shirts/shirt style 5.png';
 import Shirts_ShirtStyle6 from '../../assets/avatars_new/Shirts/shirt style 6.svg';
+import Shirts_ShirtStyle6_Thumb from '../../assets/avatars_new_thumbs/Shirts/shirt style 6.png';
 import Shirts_ShirtStyle7 from '../../assets/avatars_new/Shirts/shirt style 7.svg';
+import Shirts_ShirtStyle7_Thumb from '../../assets/avatars_new_thumbs/Shirts/shirt style 7.png';
 import Shirts_ShirtStyle8 from '../../assets/avatars_new/Shirts/shirt style 8.svg';
+import Shirts_ShirtStyle8_Thumb from '../../assets/avatars_new_thumbs/Shirts/shirt style 8.png';
 import Shirts_ShirtStyle9 from '../../assets/avatars_new/Shirts/shirt style 9.svg';
+import Shirts_ShirtStyle9_Thumb from '../../assets/avatars_new_thumbs/Shirts/shirt style 9.png';
 import Shoes_FemaleShoeStyle1 from '../../assets/avatars_new/Shoes/Female shoe style 1.svg';
+import Shoes_FemaleShoeStyle1_Thumb from '../../assets/avatars_new_thumbs/Shoes/Female shoe style 1.png';
 import Shoes_FemaleShoeStyle2 from '../../assets/avatars_new/Shoes/Female shoe style 2.svg';
+import Shoes_FemaleShoeStyle2_Thumb from '../../assets/avatars_new_thumbs/Shoes/Female shoe style 2.png';
 import Shoes_FemaleShoeStyle3 from '../../assets/avatars_new/Shoes/Female shoe style 3.svg';
+import Shoes_FemaleShoeStyle3_Thumb from '../../assets/avatars_new_thumbs/Shoes/Female shoe style 3.png';
 import Shoes_FemaleShoeStyle4 from '../../assets/avatars_new/Shoes/Female shoe style 4.svg';
+import Shoes_FemaleShoeStyle4_Thumb from '../../assets/avatars_new_thumbs/Shoes/Female shoe style 4.png';
 import Shoes_FemaleShoeStyle5 from '../../assets/avatars_new/Shoes/Female shoe style 5.svg';
+import Shoes_FemaleShoeStyle5_Thumb from '../../assets/avatars_new_thumbs/Shoes/Female shoe style 5.png';
 import Shoes_ShoeStyle1 from '../../assets/avatars_new/Shoes/shoe style 1.svg';
+import Shoes_ShoeStyle1_Thumb from '../../assets/avatars_new_thumbs/Shoes/shoe style 1.png';
 import Shoes_ShoeStyle2 from '../../assets/avatars_new/Shoes/shoe style 2.svg';
+import Shoes_ShoeStyle2_Thumb from '../../assets/avatars_new_thumbs/Shoes/shoe style 2.png';
 import Shoes_ShoeStyle3 from '../../assets/avatars_new/Shoes/shoe style 3.svg';
+import Shoes_ShoeStyle3_Thumb from '../../assets/avatars_new_thumbs/Shoes/shoe style 3.png';
 import Shoes_ShoeStyle4 from '../../assets/avatars_new/Shoes/shoe style 4.svg';
+import Shoes_ShoeStyle4_Thumb from '../../assets/avatars_new_thumbs/Shoes/shoe style 4.png';
 import Shoes_ShoeStyle5 from '../../assets/avatars_new/Shoes/shoe style 5.svg';
+import Shoes_ShoeStyle5_Thumb from '../../assets/avatars_new_thumbs/Shoes/shoe style 5.png';
 import Shorts_FemaleFatShortsStyle1 from '../../assets/avatars_new/Shorts/Female fat shorts style 1.svg';
+import Shorts_FemaleFatShortsStyle1_Thumb from '../../assets/avatars_new_thumbs/Shorts/Female fat shorts style 1.png';
 import Shorts_FemaleFatShortsStyle10 from '../../assets/avatars_new/Shorts/Female fat shorts style 10.svg';
+import Shorts_FemaleFatShortsStyle10_Thumb from '../../assets/avatars_new_thumbs/Shorts/Female fat shorts style 10.png';
 import Shorts_FemaleFatShortsStyle2 from '../../assets/avatars_new/Shorts/Female fat shorts style 2.svg';
+import Shorts_FemaleFatShortsStyle2_Thumb from '../../assets/avatars_new_thumbs/Shorts/Female fat shorts style 2.png';
 import Shorts_FemaleFatShortsStyle3 from '../../assets/avatars_new/Shorts/Female fat shorts style 3.svg';
+import Shorts_FemaleFatShortsStyle3_Thumb from '../../assets/avatars_new_thumbs/Shorts/Female fat shorts style 3.png';
 import Shorts_FemaleFatShortsStyle4 from '../../assets/avatars_new/Shorts/Female fat shorts style 4.svg';
+import Shorts_FemaleFatShortsStyle4_Thumb from '../../assets/avatars_new_thumbs/Shorts/Female fat shorts style 4.png';
 import Shorts_FemaleFatShortsStyle5 from '../../assets/avatars_new/Shorts/Female fat shorts style 5.svg';
+import Shorts_FemaleFatShortsStyle5_Thumb from '../../assets/avatars_new_thumbs/Shorts/Female fat shorts style 5.png';
 import Shorts_FemaleFatShortsStyle6 from '../../assets/avatars_new/Shorts/Female fat shorts style 6.svg';
+import Shorts_FemaleFatShortsStyle6_Thumb from '../../assets/avatars_new_thumbs/Shorts/Female fat shorts style 6.png';
 import Shorts_FemaleFatShortsStyle7 from '../../assets/avatars_new/Shorts/Female fat shorts style 7.svg';
+import Shorts_FemaleFatShortsStyle7_Thumb from '../../assets/avatars_new_thumbs/Shorts/Female fat shorts style 7.png';
 import Shorts_FemaleFatShortsStyle8 from '../../assets/avatars_new/Shorts/Female fat shorts style 8.svg';
+import Shorts_FemaleFatShortsStyle8_Thumb from '../../assets/avatars_new_thumbs/Shorts/Female fat shorts style 8.png';
 import Shorts_FemaleFatShortsStyle9 from '../../assets/avatars_new/Shorts/Female fat shorts style 9.svg';
+import Shorts_FemaleFatShortsStyle9_Thumb from '../../assets/avatars_new_thumbs/Shorts/Female fat shorts style 9.png';
 import Shorts_FemaleMuscleShortsStyle1 from '../../assets/avatars_new/Shorts/Female muscle shorts style 1.svg';
+import Shorts_FemaleMuscleShortsStyle1_Thumb from '../../assets/avatars_new_thumbs/Shorts/Female muscle shorts style 1.png';
 import Shorts_FemaleMuscleShortsStyle10 from '../../assets/avatars_new/Shorts/Female muscle shorts style 10.svg';
+import Shorts_FemaleMuscleShortsStyle10_Thumb from '../../assets/avatars_new_thumbs/Shorts/Female muscle shorts style 10.png';
 import Shorts_FemaleMuscleShortsStyle2 from '../../assets/avatars_new/Shorts/Female muscle shorts style 2.svg';
+import Shorts_FemaleMuscleShortsStyle2_Thumb from '../../assets/avatars_new_thumbs/Shorts/Female muscle shorts style 2.png';
 import Shorts_FemaleMuscleShortsStyle3 from '../../assets/avatars_new/Shorts/Female muscle shorts style 3.svg';
+import Shorts_FemaleMuscleShortsStyle3_Thumb from '../../assets/avatars_new_thumbs/Shorts/Female muscle shorts style 3.png';
 import Shorts_FemaleMuscleShortsStyle4 from '../../assets/avatars_new/Shorts/Female muscle shorts style 4.svg';
+import Shorts_FemaleMuscleShortsStyle4_Thumb from '../../assets/avatars_new_thumbs/Shorts/Female muscle shorts style 4.png';
 import Shorts_FemaleMuscleShortsStyle5 from '../../assets/avatars_new/Shorts/Female muscle shorts style 5.svg';
+import Shorts_FemaleMuscleShortsStyle5_Thumb from '../../assets/avatars_new_thumbs/Shorts/Female muscle shorts style 5.png';
 import Shorts_FemaleMuscleShortsStyle6 from '../../assets/avatars_new/Shorts/Female muscle shorts style 6.svg';
+import Shorts_FemaleMuscleShortsStyle6_Thumb from '../../assets/avatars_new_thumbs/Shorts/Female muscle shorts style 6.png';
 import Shorts_FemaleMuscleShortsStyle7 from '../../assets/avatars_new/Shorts/Female muscle shorts style 7.svg';
+import Shorts_FemaleMuscleShortsStyle7_Thumb from '../../assets/avatars_new_thumbs/Shorts/Female muscle shorts style 7.png';
 import Shorts_FemaleMuscleShortsStyle8 from '../../assets/avatars_new/Shorts/Female muscle shorts style 8.svg';
+import Shorts_FemaleMuscleShortsStyle8_Thumb from '../../assets/avatars_new_thumbs/Shorts/Female muscle shorts style 8.png';
 import Shorts_FemaleMuscleShortsStyle9 from '../../assets/avatars_new/Shorts/Female muscle shorts style 9.svg';
+import Shorts_FemaleMuscleShortsStyle9_Thumb from '../../assets/avatars_new_thumbs/Shorts/Female muscle shorts style 9.png';
 import Shorts_FemaleShortsStyle1 from '../../assets/avatars_new/Shorts/Female shorts style 1.svg';
+import Shorts_FemaleShortsStyle1_Thumb from '../../assets/avatars_new_thumbs/Shorts/Female shorts style 1.png';
 import Shorts_FemaleShortsStyle10 from '../../assets/avatars_new/Shorts/Female shorts style 10.svg';
+import Shorts_FemaleShortsStyle10_Thumb from '../../assets/avatars_new_thumbs/Shorts/Female shorts style 10.png';
 import Shorts_FemaleShortsStyle2 from '../../assets/avatars_new/Shorts/Female shorts style 2.svg';
+import Shorts_FemaleShortsStyle2_Thumb from '../../assets/avatars_new_thumbs/Shorts/Female shorts style 2.png';
 import Shorts_FemaleShortsStyle3 from '../../assets/avatars_new/Shorts/Female shorts style 3.svg';
+import Shorts_FemaleShortsStyle3_Thumb from '../../assets/avatars_new_thumbs/Shorts/Female shorts style 3.png';
 import Shorts_FemaleShortsStyle4 from '../../assets/avatars_new/Shorts/Female shorts style 4.svg';
+import Shorts_FemaleShortsStyle4_Thumb from '../../assets/avatars_new_thumbs/Shorts/Female shorts style 4.png';
 import Shorts_FemaleShortsStyle5 from '../../assets/avatars_new/Shorts/Female shorts style 5.svg';
+import Shorts_FemaleShortsStyle5_Thumb from '../../assets/avatars_new_thumbs/Shorts/Female shorts style 5.png';
 import Shorts_FemaleShortsStyle6 from '../../assets/avatars_new/Shorts/Female shorts style 6.svg';
+import Shorts_FemaleShortsStyle6_Thumb from '../../assets/avatars_new_thumbs/Shorts/Female shorts style 6.png';
 import Shorts_FemaleShortsStyle7 from '../../assets/avatars_new/Shorts/Female shorts style 7.svg';
+import Shorts_FemaleShortsStyle7_Thumb from '../../assets/avatars_new_thumbs/Shorts/Female shorts style 7.png';
 import Shorts_FemaleShortsStyle8 from '../../assets/avatars_new/Shorts/Female shorts style 8.svg';
+import Shorts_FemaleShortsStyle8_Thumb from '../../assets/avatars_new_thumbs/Shorts/Female shorts style 8.png';
 import Shorts_FemaleShortsStyle9 from '../../assets/avatars_new/Shorts/Female shorts style 9.svg';
+import Shorts_FemaleShortsStyle9_Thumb from '../../assets/avatars_new_thumbs/Shorts/Female shorts style 9.png';
 import Shorts_FatShortsStyle1 from '../../assets/avatars_new/Shorts/fat shorts style 1.svg';
+import Shorts_FatShortsStyle1_Thumb from '../../assets/avatars_new_thumbs/Shorts/fat shorts style 1.png';
 import Shorts_FatShortsStyle10 from '../../assets/avatars_new/Shorts/fat shorts style 10.svg';
+import Shorts_FatShortsStyle10_Thumb from '../../assets/avatars_new_thumbs/Shorts/fat shorts style 10.png';
 import Shorts_FatShortsStyle2 from '../../assets/avatars_new/Shorts/fat shorts style 2.svg';
+import Shorts_FatShortsStyle2_Thumb from '../../assets/avatars_new_thumbs/Shorts/fat shorts style 2.png';
 import Shorts_FatShortsStyle3 from '../../assets/avatars_new/Shorts/fat shorts style 3.svg';
+import Shorts_FatShortsStyle3_Thumb from '../../assets/avatars_new_thumbs/Shorts/fat shorts style 3.png';
 import Shorts_FatShortsStyle4 from '../../assets/avatars_new/Shorts/fat shorts style 4.svg';
+import Shorts_FatShortsStyle4_Thumb from '../../assets/avatars_new_thumbs/Shorts/fat shorts style 4.png';
 import Shorts_FatShortsStyle5 from '../../assets/avatars_new/Shorts/fat shorts style 5.svg';
+import Shorts_FatShortsStyle5_Thumb from '../../assets/avatars_new_thumbs/Shorts/fat shorts style 5.png';
 import Shorts_FatShortsStyle6 from '../../assets/avatars_new/Shorts/fat shorts style 6.svg';
+import Shorts_FatShortsStyle6_Thumb from '../../assets/avatars_new_thumbs/Shorts/fat shorts style 6.png';
 import Shorts_FatShortsStyle7 from '../../assets/avatars_new/Shorts/fat shorts style 7.svg';
+import Shorts_FatShortsStyle7_Thumb from '../../assets/avatars_new_thumbs/Shorts/fat shorts style 7.png';
 import Shorts_FatShortsStyle8 from '../../assets/avatars_new/Shorts/fat shorts style 8.svg';
+import Shorts_FatShortsStyle8_Thumb from '../../assets/avatars_new_thumbs/Shorts/fat shorts style 8.png';
 import Shorts_FatShortsStyle9 from '../../assets/avatars_new/Shorts/fat shorts style 9.svg';
+import Shorts_FatShortsStyle9_Thumb from '../../assets/avatars_new_thumbs/Shorts/fat shorts style 9.png';
 import Shorts_MaleShortStyle1 from '../../assets/avatars_new/Shorts/male short style 1.svg';
+import Shorts_MaleShortStyle1_Thumb from '../../assets/avatars_new_thumbs/Shorts/male short style 1.png';
 import Shorts_MaleShortStyle10 from '../../assets/avatars_new/Shorts/male short style 10.svg';
+import Shorts_MaleShortStyle10_Thumb from '../../assets/avatars_new_thumbs/Shorts/male short style 10.png';
 import Shorts_MaleShortStyle2 from '../../assets/avatars_new/Shorts/male short style 2.svg';
+import Shorts_MaleShortStyle2_Thumb from '../../assets/avatars_new_thumbs/Shorts/male short style 2.png';
 import Shorts_MaleShortStyle3 from '../../assets/avatars_new/Shorts/male short style 3.svg';
+import Shorts_MaleShortStyle3_Thumb from '../../assets/avatars_new_thumbs/Shorts/male short style 3.png';
 import Shorts_MaleShortStyle4 from '../../assets/avatars_new/Shorts/male short style 4.svg';
+import Shorts_MaleShortStyle4_Thumb from '../../assets/avatars_new_thumbs/Shorts/male short style 4.png';
 import Shorts_MaleShortStyle5 from '../../assets/avatars_new/Shorts/male short style 5.svg';
+import Shorts_MaleShortStyle5_Thumb from '../../assets/avatars_new_thumbs/Shorts/male short style 5.png';
 import Shorts_MaleShortStyle6 from '../../assets/avatars_new/Shorts/male short style 6.svg';
+import Shorts_MaleShortStyle6_Thumb from '../../assets/avatars_new_thumbs/Shorts/male short style 6.png';
 import Shorts_MaleShortStyle7 from '../../assets/avatars_new/Shorts/male short style 7.svg';
+import Shorts_MaleShortStyle7_Thumb from '../../assets/avatars_new_thumbs/Shorts/male short style 7.png';
 import Shorts_MaleShortStyle8 from '../../assets/avatars_new/Shorts/male short style 8.svg';
+import Shorts_MaleShortStyle8_Thumb from '../../assets/avatars_new_thumbs/Shorts/male short style 8.png';
 import Shorts_MaleShortStyle9 from '../../assets/avatars_new/Shorts/male short style 9.svg';
+import Shorts_MaleShortStyle9_Thumb from '../../assets/avatars_new_thumbs/Shorts/male short style 9.png';
 import Shorts_MuscleShortsStyle1 from '../../assets/avatars_new/Shorts/muscle shorts style 1.svg';
+import Shorts_MuscleShortsStyle1_Thumb from '../../assets/avatars_new_thumbs/Shorts/muscle shorts style 1.png';
 import Shorts_MuscleShortsStyle10 from '../../assets/avatars_new/Shorts/muscle shorts style 10.svg';
+import Shorts_MuscleShortsStyle10_Thumb from '../../assets/avatars_new_thumbs/Shorts/muscle shorts style 10.png';
 import Shorts_MuscleShortsStyle2 from '../../assets/avatars_new/Shorts/muscle shorts style 2.svg';
+import Shorts_MuscleShortsStyle2_Thumb from '../../assets/avatars_new_thumbs/Shorts/muscle shorts style 2.png';
 import Shorts_MuscleShortsStyle3 from '../../assets/avatars_new/Shorts/muscle shorts style 3.svg';
+import Shorts_MuscleShortsStyle3_Thumb from '../../assets/avatars_new_thumbs/Shorts/muscle shorts style 3.png';
 import Shorts_MuscleShortsStyle4 from '../../assets/avatars_new/Shorts/muscle shorts style 4.svg';
+import Shorts_MuscleShortsStyle4_Thumb from '../../assets/avatars_new_thumbs/Shorts/muscle shorts style 4.png';
 import Shorts_MuscleShortsStyle5 from '../../assets/avatars_new/Shorts/muscle shorts style 5.svg';
+import Shorts_MuscleShortsStyle5_Thumb from '../../assets/avatars_new_thumbs/Shorts/muscle shorts style 5.png';
 import Shorts_MuscleShortsStyle6 from '../../assets/avatars_new/Shorts/muscle shorts style 6.svg';
+import Shorts_MuscleShortsStyle6_Thumb from '../../assets/avatars_new_thumbs/Shorts/muscle shorts style 6.png';
 import Shorts_MuscleShortsStyle7 from '../../assets/avatars_new/Shorts/muscle shorts style 7.svg';
+import Shorts_MuscleShortsStyle7_Thumb from '../../assets/avatars_new_thumbs/Shorts/muscle shorts style 7.png';
 import Shorts_MuscleShortsStyle8 from '../../assets/avatars_new/Shorts/muscle shorts style 8.svg';
+import Shorts_MuscleShortsStyle8_Thumb from '../../assets/avatars_new_thumbs/Shorts/muscle shorts style 8.png';
 import Shorts_MuscleShortsStyle9 from '../../assets/avatars_new/Shorts/muscle shorts style 9.svg';
+import Shorts_MuscleShortsStyle9_Thumb from '../../assets/avatars_new_thumbs/Shorts/muscle shorts style 9.png';
 
 export const NEW_BASE_AVATARS: BaseAvatar[] = [
   {
@@ -301,6 +594,7 @@ export const NEW_BASE_AVATARS: BaseAvatar[] = [
     name: "Athletic Female",
     description: "Athletic build",
     imageUrl: Avatars_AthleticFemaleAvatar,
+    thumbnailUrl: Avatars_AthleticFemaleAvatar_Thumb,
     gender: "female",
     build: "athletic" as any,
     isActive: true,
@@ -312,6 +606,7 @@ export const NEW_BASE_AVATARS: BaseAvatar[] = [
     name: "Fat Female",
     description: "Fat build",
     imageUrl: Avatars_FatFemaleAvatar,
+    thumbnailUrl: Avatars_FatFemaleAvatar_Thumb,
     gender: "female",
     build: "fat" as any,
     isActive: true,
@@ -323,6 +618,7 @@ export const NEW_BASE_AVATARS: BaseAvatar[] = [
     name: "Muscle Female",
     description: "Muscle build",
     imageUrl: Avatars_MuscularFemaleAvatar,
+    thumbnailUrl: Avatars_MuscularFemaleAvatar_Thumb,
     gender: "female",
     build: "muscle" as any,
     isActive: true,
@@ -334,6 +630,7 @@ export const NEW_BASE_AVATARS: BaseAvatar[] = [
     name: "Old Female",
     description: "Old build",
     imageUrl: Avatars_OldFemaleAvatar,
+    thumbnailUrl: Avatars_OldFemaleAvatar_Thumb,
     gender: "female",
     build: "old" as any,
     isActive: true,
@@ -345,6 +642,7 @@ export const NEW_BASE_AVATARS: BaseAvatar[] = [
     name: "Slim Female",
     description: "Slim build",
     imageUrl: Avatars_SlimFemaleAvatar,
+    thumbnailUrl: Avatars_SlimFemaleAvatar_Thumb,
     gender: "female",
     build: "slim" as any,
     isActive: true,
@@ -356,6 +654,7 @@ export const NEW_BASE_AVATARS: BaseAvatar[] = [
     name: "Athletic Male",
     description: "Athletic build",
     imageUrl: Avatars_AthleticMaleAvatar,
+    thumbnailUrl: Avatars_AthleticMaleAvatar_Thumb,
     gender: "male",
     build: "athletic" as any,
     isActive: true,
@@ -367,6 +666,7 @@ export const NEW_BASE_AVATARS: BaseAvatar[] = [
     name: "Fat Male",
     description: "Fat build",
     imageUrl: Avatars_FatMaleAvatar,
+    thumbnailUrl: Avatars_FatMaleAvatar_Thumb,
     gender: "male",
     build: "fat" as any,
     isActive: true,
@@ -378,6 +678,7 @@ export const NEW_BASE_AVATARS: BaseAvatar[] = [
     name: "Muscle Male",
     description: "Muscle build",
     imageUrl: Avatars_MuscularMaleAvatar,
+    thumbnailUrl: Avatars_MuscularMaleAvatar_Thumb,
     gender: "male",
     build: "muscle" as any,
     isActive: true,
@@ -389,6 +690,7 @@ export const NEW_BASE_AVATARS: BaseAvatar[] = [
     name: "Old Male",
     description: "Old build",
     imageUrl: Avatars_OldMaleAvatar,
+    thumbnailUrl: Avatars_OldMaleAvatar_Thumb,
     gender: "male",
     build: "old" as any,
     isActive: true,
@@ -400,6 +702,7 @@ export const NEW_BASE_AVATARS: BaseAvatar[] = [
     name: "Slim Male",
     description: "Slim build",
     imageUrl: Avatars_SlimMaleAvatar,
+    thumbnailUrl: Avatars_SlimMaleAvatar_Thumb,
     gender: "male",
     build: "slim" as any,
     isActive: true,
@@ -416,6 +719,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Hairstyle for female",
     price: 0,
     imageUrl: Hairstyle_FemaleHairStyle1,
+    thumbnailUrl: Hairstyle_FemaleHairStyle1_Thumb,
     rarity: "common" as any,
     isDefault: true,
     gender: "female" as any,
@@ -429,6 +733,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Hairstyle for female",
     price: 299,
     imageUrl: Hairstyle_FemaleHairStyle2,
+    thumbnailUrl: Hairstyle_FemaleHairStyle2_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -442,6 +747,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Hairstyle for female",
     price: 399,
     imageUrl: Hairstyle_FemaleHairStyle3,
+    thumbnailUrl: Hairstyle_FemaleHairStyle3_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -455,6 +761,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Hairstyle for female",
     price: 499,
     imageUrl: Hairstyle_FemaleHairStyle4,
+    thumbnailUrl: Hairstyle_FemaleHairStyle4_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -468,6 +775,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Hairstyle for female",
     price: 599,
     imageUrl: Hairstyle_FemaleHairStyle5,
+    thumbnailUrl: Hairstyle_FemaleHairStyle5_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "female" as any,
@@ -481,6 +789,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Hairstyle for male",
     price: 199,
     imageUrl: Hairstyle_MaleHairstyle1,
+    thumbnailUrl: Hairstyle_MaleHairstyle1_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "male" as any,
@@ -494,6 +803,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Hairstyle for male",
     price: 299,
     imageUrl: Hairstyle_MaleHairstyle2,
+    thumbnailUrl: Hairstyle_MaleHairstyle2_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "male" as any,
@@ -507,6 +817,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Hairstyle for male",
     price: 399,
     imageUrl: Hairstyle_MaleHairstyle3,
+    thumbnailUrl: Hairstyle_MaleHairstyle3_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "male" as any,
@@ -520,6 +831,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Hairstyle for male",
     price: 499,
     imageUrl: Hairstyle_MaleHairstyle4,
+    thumbnailUrl: Hairstyle_MaleHairstyle4_Thumb,
     rarity: "epic" as any,
     isDefault: false,
     gender: "male" as any,
@@ -533,6 +845,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Hairstyle for male",
     price: 599,
     imageUrl: Hairstyle_MaleHairstyle5,
+    thumbnailUrl: Hairstyle_MaleHairstyle5_Thumb,
     rarity: "epic" as any,
     isDefault: false,
     gender: "male" as any,
@@ -546,6 +859,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Hat for female",
     price: 0,
     imageUrl: Hats_FemaleHatStyle1,
+    thumbnailUrl: Hats_FemaleHatStyle1_Thumb,
     rarity: "common" as any,
     isDefault: true,
     gender: "female" as any,
@@ -559,6 +873,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Hat for female",
     price: 249,
     imageUrl: Hats_FemaleHatStyle2,
+    thumbnailUrl: Hats_FemaleHatStyle2_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -572,6 +887,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Hat for female",
     price: 349,
     imageUrl: Hats_FemaleHatStyle3,
+    thumbnailUrl: Hats_FemaleHatStyle3_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -585,6 +901,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Hat for female",
     price: 449,
     imageUrl: Hats_FemaleHatStyle4,
+    thumbnailUrl: Hats_FemaleHatStyle4_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "female" as any,
@@ -598,6 +915,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Hat for male",
     price: 549,
     imageUrl: Hats_BaseballHat,
+    thumbnailUrl: Hats_BaseballHat_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "male" as any,
@@ -611,6 +929,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Hat for male",
     price: 149,
     imageUrl: Hats_BeanieHat,
+    thumbnailUrl: Hats_BeanieHat_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "male" as any,
@@ -624,6 +943,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Hat for male",
     price: 249,
     imageUrl: Hats_BucketHat,
+    thumbnailUrl: Hats_BucketHat_Thumb,
     rarity: "epic" as any,
     isDefault: false,
     gender: "male" as any,
@@ -637,6 +957,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Jacket for female (fat)",
     price: 0,
     imageUrl: Jackets_FemaleFatJacketStyle1,
+    thumbnailUrl: Jackets_FemaleFatJacketStyle1_Thumb,
     rarity: "common" as any,
     isDefault: true,
     gender: "female" as any,
@@ -650,6 +971,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Jacket for female (fat)",
     price: 399,
     imageUrl: Jackets_FemaleFatJacketStyle10,
+    thumbnailUrl: Jackets_FemaleFatJacketStyle10_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -663,6 +985,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Jacket for female (fat)",
     price: 499,
     imageUrl: Jackets_FemaleFatJacketStyle2,
+    thumbnailUrl: Jackets_FemaleFatJacketStyle2_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -676,6 +999,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Jacket for female (fat)",
     price: 599,
     imageUrl: Jackets_FemaleFatJacketStyle3,
+    thumbnailUrl: Jackets_FemaleFatJacketStyle3_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -689,6 +1013,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Jacket for female (fat)",
     price: 699,
     imageUrl: Jackets_FemaleFatJacketStyle4,
+    thumbnailUrl: Jackets_FemaleFatJacketStyle4_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -702,6 +1027,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Jacket for female (fat)",
     price: 299,
     imageUrl: Jackets_FemaleFatJacketStyle5,
+    thumbnailUrl: Jackets_FemaleFatJacketStyle5_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -715,6 +1041,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Jacket for female (fat)",
     price: 399,
     imageUrl: Jackets_FemaleFatJacketStyle6,
+    thumbnailUrl: Jackets_FemaleFatJacketStyle6_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -728,6 +1055,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Jacket for female (fat)",
     price: 499,
     imageUrl: Jackets_FemaleFatJacketStyle7,
+    thumbnailUrl: Jackets_FemaleFatJacketStyle7_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -741,6 +1069,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Jacket for female (fat)",
     price: 599,
     imageUrl: Jackets_FemaleFatJacketStyle8,
+    thumbnailUrl: Jackets_FemaleFatJacketStyle8_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -754,6 +1083,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Jacket for female (fat)",
     price: 699,
     imageUrl: Jackets_FemaleFatJacketStyle9,
+    thumbnailUrl: Jackets_FemaleFatJacketStyle9_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -767,6 +1097,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Jacket for female",
     price: 299,
     imageUrl: Jackets_FemaleJacketStyle1,
+    thumbnailUrl: Jackets_FemaleJacketStyle1_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -780,6 +1111,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Jacket for female",
     price: 399,
     imageUrl: Jackets_FemaleJacketStyle10,
+    thumbnailUrl: Jackets_FemaleJacketStyle10_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -793,6 +1125,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Jacket for female",
     price: 499,
     imageUrl: Jackets_FemaleJacketStyle2,
+    thumbnailUrl: Jackets_FemaleJacketStyle2_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -806,6 +1139,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Jacket for female",
     price: 599,
     imageUrl: Jackets_FemaleJacketStyle3,
+    thumbnailUrl: Jackets_FemaleJacketStyle3_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -819,6 +1153,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Jacket for female",
     price: 699,
     imageUrl: Jackets_FemaleJacketStyle4,
+    thumbnailUrl: Jackets_FemaleJacketStyle4_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -832,6 +1167,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Jacket for female",
     price: 299,
     imageUrl: Jackets_FemaleJacketStyle5,
+    thumbnailUrl: Jackets_FemaleJacketStyle5_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -845,6 +1181,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Jacket for female",
     price: 399,
     imageUrl: Jackets_FemaleJacketStyle6,
+    thumbnailUrl: Jackets_FemaleJacketStyle6_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -858,6 +1195,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Jacket for female",
     price: 499,
     imageUrl: Jackets_FemaleJacketStyle7,
+    thumbnailUrl: Jackets_FemaleJacketStyle7_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -871,6 +1209,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Jacket for female",
     price: 599,
     imageUrl: Jackets_FemaleJacketStyle8,
+    thumbnailUrl: Jackets_FemaleJacketStyle8_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -884,6 +1223,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Jacket for female",
     price: 699,
     imageUrl: Jackets_FemaleJacketStyle9,
+    thumbnailUrl: Jackets_FemaleJacketStyle9_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -897,6 +1237,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Jacket for female (muscle)",
     price: 299,
     imageUrl: Jackets_FemaleMuscleJacketStyle1,
+    thumbnailUrl: Jackets_FemaleMuscleJacketStyle1_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -910,6 +1251,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Jacket for female (muscle)",
     price: 399,
     imageUrl: Jackets_FemaleMuscleJacketStyle10,
+    thumbnailUrl: Jackets_FemaleMuscleJacketStyle10_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -923,6 +1265,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Jacket for female (muscle)",
     price: 499,
     imageUrl: Jackets_FemaleMuscleJacketStyle2,
+    thumbnailUrl: Jackets_FemaleMuscleJacketStyle2_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -936,6 +1279,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Jacket for female (muscle)",
     price: 599,
     imageUrl: Jackets_FemaleMuscleJacketStyle3,
+    thumbnailUrl: Jackets_FemaleMuscleJacketStyle3_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -949,6 +1293,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Jacket for female (muscle)",
     price: 699,
     imageUrl: Jackets_FemaleMuscleJacketStyle4,
+    thumbnailUrl: Jackets_FemaleMuscleJacketStyle4_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "female" as any,
@@ -962,6 +1307,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Jacket for female (muscle)",
     price: 299,
     imageUrl: Jackets_FemaleMuscleJacketStyle5,
+    thumbnailUrl: Jackets_FemaleMuscleJacketStyle5_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "female" as any,
@@ -975,6 +1321,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Jacket for female (muscle)",
     price: 399,
     imageUrl: Jackets_FemaleMuscleJacketStyle6,
+    thumbnailUrl: Jackets_FemaleMuscleJacketStyle6_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "female" as any,
@@ -988,6 +1335,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Jacket for female (muscle)",
     price: 499,
     imageUrl: Jackets_FemaleMuscleJacketStyle7,
+    thumbnailUrl: Jackets_FemaleMuscleJacketStyle7_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "female" as any,
@@ -1001,6 +1349,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Jacket for female (muscle)",
     price: 599,
     imageUrl: Jackets_FemaleMuscleJacketStyle8,
+    thumbnailUrl: Jackets_FemaleMuscleJacketStyle8_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "female" as any,
@@ -1014,6 +1363,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Jacket for female (muscle)",
     price: 699,
     imageUrl: Jackets_FemaleMuscleJacketStyle9,
+    thumbnailUrl: Jackets_FemaleMuscleJacketStyle9_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "female" as any,
@@ -1027,6 +1377,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Jacket for male",
     price: 299,
     imageUrl: Jackets_JacketStyle1,
+    thumbnailUrl: Jackets_JacketStyle1_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "male" as any,
@@ -1040,6 +1391,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Jacket for male",
     price: 399,
     imageUrl: Jackets_JacketStyle10,
+    thumbnailUrl: Jackets_JacketStyle10_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "male" as any,
@@ -1053,6 +1405,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Jacket for male",
     price: 499,
     imageUrl: Jackets_JacketStyle2,
+    thumbnailUrl: Jackets_JacketStyle2_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "male" as any,
@@ -1066,6 +1419,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Jacket for male",
     price: 599,
     imageUrl: Jackets_JacketStyle3,
+    thumbnailUrl: Jackets_JacketStyle3_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "male" as any,
@@ -1079,6 +1433,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Jacket for male",
     price: 699,
     imageUrl: Jackets_JacketStyle4,
+    thumbnailUrl: Jackets_JacketStyle4_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "male" as any,
@@ -1092,6 +1447,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Jacket for male",
     price: 299,
     imageUrl: Jackets_JacketStyle5,
+    thumbnailUrl: Jackets_JacketStyle5_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "male" as any,
@@ -1105,6 +1461,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Jacket for male",
     price: 399,
     imageUrl: Jackets_JacketStyle6,
+    thumbnailUrl: Jackets_JacketStyle6_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "male" as any,
@@ -1118,6 +1475,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Jacket for male",
     price: 499,
     imageUrl: Jackets_JacketStyle7,
+    thumbnailUrl: Jackets_JacketStyle7_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "male" as any,
@@ -1131,6 +1489,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Jacket for male",
     price: 599,
     imageUrl: Jackets_JacketStyle8,
+    thumbnailUrl: Jackets_JacketStyle8_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "male" as any,
@@ -1144,6 +1503,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Jacket for male",
     price: 699,
     imageUrl: Jackets_JacketStyle9,
+    thumbnailUrl: Jackets_JacketStyle9_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "male" as any,
@@ -1157,6 +1517,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Jacket for male (fat)",
     price: 299,
     imageUrl: Jackets_FatJacketStyle1,
+    thumbnailUrl: Jackets_FatJacketStyle1_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "male" as any,
@@ -1170,6 +1531,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Jacket for male (fat)",
     price: 399,
     imageUrl: Jackets_FatJacketStyle10,
+    thumbnailUrl: Jackets_FatJacketStyle10_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "male" as any,
@@ -1183,6 +1545,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Jacket for male (fat)",
     price: 499,
     imageUrl: Jackets_FatJacketStyle2,
+    thumbnailUrl: Jackets_FatJacketStyle2_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "male" as any,
@@ -1196,6 +1559,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Jacket for male (fat)",
     price: 599,
     imageUrl: Jackets_FatJacketStyle3,
+    thumbnailUrl: Jackets_FatJacketStyle3_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "male" as any,
@@ -1209,6 +1573,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Jacket for male (fat)",
     price: 699,
     imageUrl: Jackets_FatJacketStyle4,
+    thumbnailUrl: Jackets_FatJacketStyle4_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "male" as any,
@@ -1222,6 +1587,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Jacket for male (fat)",
     price: 299,
     imageUrl: Jackets_FatJacketStyle5,
+    thumbnailUrl: Jackets_FatJacketStyle5_Thumb,
     rarity: "epic" as any,
     isDefault: false,
     gender: "male" as any,
@@ -1235,6 +1601,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Jacket for male (fat)",
     price: 399,
     imageUrl: Jackets_FatJacketStyle6,
+    thumbnailUrl: Jackets_FatJacketStyle6_Thumb,
     rarity: "epic" as any,
     isDefault: false,
     gender: "male" as any,
@@ -1248,6 +1615,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Jacket for male (fat)",
     price: 499,
     imageUrl: Jackets_FatJacketStyle7,
+    thumbnailUrl: Jackets_FatJacketStyle7_Thumb,
     rarity: "epic" as any,
     isDefault: false,
     gender: "male" as any,
@@ -1261,6 +1629,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Jacket for male (fat)",
     price: 599,
     imageUrl: Jackets_FatJacketStyle8,
+    thumbnailUrl: Jackets_FatJacketStyle8_Thumb,
     rarity: "epic" as any,
     isDefault: false,
     gender: "male" as any,
@@ -1274,6 +1643,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Jacket for male (fat)",
     price: 699,
     imageUrl: Jackets_FatJacketStyle9,
+    thumbnailUrl: Jackets_FatJacketStyle9_Thumb,
     rarity: "epic" as any,
     isDefault: false,
     gender: "male" as any,
@@ -1287,6 +1657,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Jacket for male (muscle)",
     price: 299,
     imageUrl: Jackets_MuscleJacketStyle1,
+    thumbnailUrl: Jackets_MuscleJacketStyle1_Thumb,
     rarity: "epic" as any,
     isDefault: false,
     gender: "male" as any,
@@ -1300,6 +1671,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Jacket for male (muscle)",
     price: 399,
     imageUrl: Jackets_MuscleJacketStyle10,
+    thumbnailUrl: Jackets_MuscleJacketStyle10_Thumb,
     rarity: "epic" as any,
     isDefault: false,
     gender: "male" as any,
@@ -1313,6 +1685,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Jacket for male (muscle)",
     price: 499,
     imageUrl: Jackets_MuscleJacketStyle2,
+    thumbnailUrl: Jackets_MuscleJacketStyle2_Thumb,
     rarity: "epic" as any,
     isDefault: false,
     gender: "male" as any,
@@ -1326,6 +1699,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Jacket for male (muscle)",
     price: 599,
     imageUrl: Jackets_MuscleJacketStyle3,
+    thumbnailUrl: Jackets_MuscleJacketStyle3_Thumb,
     rarity: "epic" as any,
     isDefault: false,
     gender: "male" as any,
@@ -1339,6 +1713,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Jacket for male (muscle)",
     price: 699,
     imageUrl: Jackets_MuscleJacketStyle4,
+    thumbnailUrl: Jackets_MuscleJacketStyle4_Thumb,
     rarity: "epic" as any,
     isDefault: false,
     gender: "male" as any,
@@ -1352,6 +1727,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Jacket for male (muscle)",
     price: 299,
     imageUrl: Jackets_MuscleJacketStyle5,
+    thumbnailUrl: Jackets_MuscleJacketStyle5_Thumb,
     rarity: "epic" as any,
     isDefault: false,
     gender: "male" as any,
@@ -1365,6 +1741,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Jacket for male (muscle)",
     price: 399,
     imageUrl: Jackets_MuscleJacketStyle6,
+    thumbnailUrl: Jackets_MuscleJacketStyle6_Thumb,
     rarity: "epic" as any,
     isDefault: false,
     gender: "male" as any,
@@ -1378,6 +1755,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Jacket for male (muscle)",
     price: 499,
     imageUrl: Jackets_MuscleJacketStyle7,
+    thumbnailUrl: Jackets_MuscleJacketStyle7_Thumb,
     rarity: "legendary" as any,
     isDefault: false,
     gender: "male" as any,
@@ -1391,6 +1769,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Jacket for male (muscle)",
     price: 599,
     imageUrl: Jackets_MuscleJacketStyle8,
+    thumbnailUrl: Jackets_MuscleJacketStyle8_Thumb,
     rarity: "legendary" as any,
     isDefault: false,
     gender: "male" as any,
@@ -1404,6 +1783,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Jacket for male (muscle)",
     price: 699,
     imageUrl: Jackets_MuscleJacketStyle9,
+    thumbnailUrl: Jackets_MuscleJacketStyle9_Thumb,
     rarity: "legendary" as any,
     isDefault: false,
     gender: "male" as any,
@@ -1417,6 +1797,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Other for female",
     price: 0,
     imageUrl: Others_FemaleBagStyle1,
+    thumbnailUrl: Others_FemaleBagStyle1_Thumb,
     rarity: "common" as any,
     isDefault: true,
     gender: "female" as any,
@@ -1430,6 +1811,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Other for female",
     price: 199,
     imageUrl: Others_FemaleBagStyle2,
+    thumbnailUrl: Others_FemaleBagStyle2_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -1443,6 +1825,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Other for female",
     price: 299,
     imageUrl: Others_FemaleBagStyle3,
+    thumbnailUrl: Others_FemaleBagStyle3_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -1456,6 +1839,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Other for female",
     price: 399,
     imageUrl: Others_FemaleBagStyle4,
+    thumbnailUrl: Others_FemaleBagStyle4_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -1469,6 +1853,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Other for female",
     price: 499,
     imageUrl: Others_FemaleWatchStyle1,
+    thumbnailUrl: Others_FemaleWatchStyle1_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -1482,6 +1867,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Other for female",
     price: 99,
     imageUrl: Others_FemaleWatchStyle2,
+    thumbnailUrl: Others_FemaleWatchStyle2_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -1495,6 +1881,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Other for male",
     price: 199,
     imageUrl: Others_BracletStyle1,
+    thumbnailUrl: Others_BracletStyle1_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "male" as any,
@@ -1508,6 +1895,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Other for male",
     price: 299,
     imageUrl: Others_BracletStyle2,
+    thumbnailUrl: Others_BracletStyle2_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "male" as any,
@@ -1521,6 +1909,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Other for male",
     price: 399,
     imageUrl: Others_NecklaceStyle1,
+    thumbnailUrl: Others_NecklaceStyle1_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "male" as any,
@@ -1534,6 +1923,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Other for male",
     price: 499,
     imageUrl: Others_NecklaceStyle2,
+    thumbnailUrl: Others_NecklaceStyle2_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "male" as any,
@@ -1547,6 +1937,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Other for male",
     price: 99,
     imageUrl: Others_ShoulderStrapBagStyle1,
+    thumbnailUrl: Others_ShoulderStrapBagStyle1_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "male" as any,
@@ -1560,6 +1951,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Other for male",
     price: 199,
     imageUrl: Others_ShoulderStrapBagStyle2,
+    thumbnailUrl: Others_ShoulderStrapBagStyle2_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "male" as any,
@@ -1573,6 +1965,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Other for male",
     price: 299,
     imageUrl: Others_SunglassStyle1,
+    thumbnailUrl: Others_SunglassStyle1_Thumb,
     rarity: "epic" as any,
     isDefault: false,
     gender: "male" as any,
@@ -1586,6 +1979,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Other for male",
     price: 399,
     imageUrl: Others_SunglassStyle2,
+    thumbnailUrl: Others_SunglassStyle2_Thumb,
     rarity: "epic" as any,
     isDefault: false,
     gender: "male" as any,
@@ -1599,6 +1993,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Other for male",
     price: 499,
     imageUrl: Others_WristWatchStyle1,
+    thumbnailUrl: Others_WristWatchStyle1_Thumb,
     rarity: "epic" as any,
     isDefault: false,
     gender: "male" as any,
@@ -1612,6 +2007,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Other for male",
     price: 99,
     imageUrl: Others_WristWatchStyle2,
+    thumbnailUrl: Others_WristWatchStyle2_Thumb,
     rarity: "epic" as any,
     isDefault: false,
     gender: "male" as any,
@@ -1625,6 +2021,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Pant for female (fat)",
     price: 0,
     imageUrl: Pants_FemaleFatPantsStyle1,
+    thumbnailUrl: Pants_FemaleFatPantsStyle1_Thumb,
     rarity: "common" as any,
     isDefault: true,
     gender: "female" as any,
@@ -1638,6 +2035,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Pant for female (fat)",
     price: 299,
     imageUrl: Pants_FemaleFatPantsStyle10,
+    thumbnailUrl: Pants_FemaleFatPantsStyle10_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -1651,6 +2049,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Pant for female (fat)",
     price: 399,
     imageUrl: Pants_FemaleFatPantsStyle2,
+    thumbnailUrl: Pants_FemaleFatPantsStyle2_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -1664,6 +2063,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Pant for female (fat)",
     price: 499,
     imageUrl: Pants_FemaleFatPantsStyle3,
+    thumbnailUrl: Pants_FemaleFatPantsStyle3_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -1677,6 +2077,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Pant for female (fat)",
     price: 599,
     imageUrl: Pants_FemaleFatPantsStyle4,
+    thumbnailUrl: Pants_FemaleFatPantsStyle4_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -1690,6 +2091,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Pant for female (fat)",
     price: 199,
     imageUrl: Pants_FemaleFatPantsStyle5,
+    thumbnailUrl: Pants_FemaleFatPantsStyle5_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -1703,6 +2105,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Pant for female (fat)",
     price: 299,
     imageUrl: Pants_FemaleFatPantsStyle6,
+    thumbnailUrl: Pants_FemaleFatPantsStyle6_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -1716,6 +2119,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Pant for female (fat)",
     price: 399,
     imageUrl: Pants_FemaleFatPantsStyle7,
+    thumbnailUrl: Pants_FemaleFatPantsStyle7_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -1729,6 +2133,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Pant for female (fat)",
     price: 499,
     imageUrl: Pants_FemaleFatPantsStyle8,
+    thumbnailUrl: Pants_FemaleFatPantsStyle8_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -1742,6 +2147,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Pant for female (fat)",
     price: 599,
     imageUrl: Pants_FemaleFatPantsStyle9,
+    thumbnailUrl: Pants_FemaleFatPantsStyle9_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -1755,6 +2161,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Pant for female (muscle)",
     price: 199,
     imageUrl: Pants_FemaleMusclePantsStyle1,
+    thumbnailUrl: Pants_FemaleMusclePantsStyle1_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -1768,6 +2175,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Pant for female (muscle)",
     price: 299,
     imageUrl: Pants_FemaleMusclePantsStyle10,
+    thumbnailUrl: Pants_FemaleMusclePantsStyle10_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -1781,6 +2189,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Pant for female (muscle)",
     price: 399,
     imageUrl: Pants_FemaleMusclePantsStyle2,
+    thumbnailUrl: Pants_FemaleMusclePantsStyle2_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -1794,6 +2203,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Pant for female (muscle)",
     price: 499,
     imageUrl: Pants_FemaleMusclePantsStyle3,
+    thumbnailUrl: Pants_FemaleMusclePantsStyle3_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -1807,6 +2217,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Pant for female (muscle)",
     price: 599,
     imageUrl: Pants_FemaleMusclePantsStyle4,
+    thumbnailUrl: Pants_FemaleMusclePantsStyle4_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -1820,6 +2231,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Pant for female (muscle)",
     price: 199,
     imageUrl: Pants_FemaleMusclePantsStyle5,
+    thumbnailUrl: Pants_FemaleMusclePantsStyle5_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -1833,6 +2245,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Pant for female (muscle)",
     price: 299,
     imageUrl: Pants_FemaleMusclePantsStyle6,
+    thumbnailUrl: Pants_FemaleMusclePantsStyle6_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -1846,6 +2259,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Pant for female (muscle)",
     price: 399,
     imageUrl: Pants_FemaleMusclePantsStyle7,
+    thumbnailUrl: Pants_FemaleMusclePantsStyle7_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -1859,6 +2273,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Pant for female (muscle)",
     price: 499,
     imageUrl: Pants_FemaleMusclePantsStyle8,
+    thumbnailUrl: Pants_FemaleMusclePantsStyle8_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -1872,6 +2287,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Pant for female (muscle)",
     price: 599,
     imageUrl: Pants_FemaleMusclePantsStyle9,
+    thumbnailUrl: Pants_FemaleMusclePantsStyle9_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -1885,6 +2301,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Pant for female",
     price: 199,
     imageUrl: Pants_FemalePantsStyle1,
+    thumbnailUrl: Pants_FemalePantsStyle1_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -1898,6 +2315,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Pant for female",
     price: 299,
     imageUrl: Pants_FemalePantsStyle10,
+    thumbnailUrl: Pants_FemalePantsStyle10_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -1911,6 +2329,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Pant for female",
     price: 399,
     imageUrl: Pants_FemalePantsStyle2,
+    thumbnailUrl: Pants_FemalePantsStyle2_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -1924,6 +2343,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Pant for female",
     price: 499,
     imageUrl: Pants_FemalePantsStyle3,
+    thumbnailUrl: Pants_FemalePantsStyle3_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -1937,6 +2357,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Pant for female",
     price: 599,
     imageUrl: Pants_FemalePantsStyle4,
+    thumbnailUrl: Pants_FemalePantsStyle4_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "female" as any,
@@ -1950,6 +2371,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Pant for female",
     price: 199,
     imageUrl: Pants_FemalePantsStyle5,
+    thumbnailUrl: Pants_FemalePantsStyle5_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "female" as any,
@@ -1963,6 +2385,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Pant for female",
     price: 299,
     imageUrl: Pants_FemalePantsStyle6,
+    thumbnailUrl: Pants_FemalePantsStyle6_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "female" as any,
@@ -1976,6 +2399,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Pant for female",
     price: 399,
     imageUrl: Pants_FemalePantsStyle7,
+    thumbnailUrl: Pants_FemalePantsStyle7_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "female" as any,
@@ -1989,6 +2413,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Pant for female",
     price: 499,
     imageUrl: Pants_FemalePantsStyle8,
+    thumbnailUrl: Pants_FemalePantsStyle8_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "female" as any,
@@ -2002,6 +2427,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Pant for female",
     price: 599,
     imageUrl: Pants_FemalePantsStyle9,
+    thumbnailUrl: Pants_FemalePantsStyle9_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "female" as any,
@@ -2015,6 +2441,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Pant for male (fat)",
     price: 199,
     imageUrl: Pants_FatPantsStyle1,
+    thumbnailUrl: Pants_FatPantsStyle1_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "male" as any,
@@ -2028,6 +2455,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Pant for male (fat)",
     price: 299,
     imageUrl: Pants_FatPantsStyle10,
+    thumbnailUrl: Pants_FatPantsStyle10_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "male" as any,
@@ -2041,6 +2469,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Pant for male (fat)",
     price: 399,
     imageUrl: Pants_FatPantsStyle2,
+    thumbnailUrl: Pants_FatPantsStyle2_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "male" as any,
@@ -2054,6 +2483,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Pant for male (fat)",
     price: 499,
     imageUrl: Pants_FatPantsStyle3,
+    thumbnailUrl: Pants_FatPantsStyle3_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "male" as any,
@@ -2067,6 +2497,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Pant for male (fat)",
     price: 599,
     imageUrl: Pants_FatPantsStyle4,
+    thumbnailUrl: Pants_FatPantsStyle4_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "male" as any,
@@ -2080,6 +2511,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Pant for male (fat)",
     price: 199,
     imageUrl: Pants_FatPantsStyle5,
+    thumbnailUrl: Pants_FatPantsStyle5_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "male" as any,
@@ -2093,6 +2525,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Pant for male (fat)",
     price: 299,
     imageUrl: Pants_FatPantsStyle6,
+    thumbnailUrl: Pants_FatPantsStyle6_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "male" as any,
@@ -2106,6 +2539,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Pant for male (fat)",
     price: 399,
     imageUrl: Pants_FatPantsStyle7,
+    thumbnailUrl: Pants_FatPantsStyle7_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "male" as any,
@@ -2119,6 +2553,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Pant for male (fat)",
     price: 499,
     imageUrl: Pants_FatPantsStyle8,
+    thumbnailUrl: Pants_FatPantsStyle8_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "male" as any,
@@ -2132,6 +2567,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Pant for male (fat)",
     price: 599,
     imageUrl: Pants_FatPantsStyle9,
+    thumbnailUrl: Pants_FatPantsStyle9_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "male" as any,
@@ -2145,6 +2581,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Pant for male",
     price: 199,
     imageUrl: Pants_MalePantsStyle1,
+    thumbnailUrl: Pants_MalePantsStyle1_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "male" as any,
@@ -2158,6 +2595,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Pant for male",
     price: 299,
     imageUrl: Pants_MalePantsStyle10,
+    thumbnailUrl: Pants_MalePantsStyle10_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "male" as any,
@@ -2171,6 +2609,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Pant for male",
     price: 399,
     imageUrl: Pants_MalePantsStyle2,
+    thumbnailUrl: Pants_MalePantsStyle2_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "male" as any,
@@ -2184,6 +2623,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Pant for male",
     price: 499,
     imageUrl: Pants_MalePantsStyle3,
+    thumbnailUrl: Pants_MalePantsStyle3_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "male" as any,
@@ -2197,6 +2637,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Pant for male",
     price: 599,
     imageUrl: Pants_MalePantsStyle4,
+    thumbnailUrl: Pants_MalePantsStyle4_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "male" as any,
@@ -2210,6 +2651,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Pant for male",
     price: 199,
     imageUrl: Pants_MalePantsStyle5,
+    thumbnailUrl: Pants_MalePantsStyle5_Thumb,
     rarity: "epic" as any,
     isDefault: false,
     gender: "male" as any,
@@ -2223,6 +2665,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Pant for male",
     price: 299,
     imageUrl: Pants_MalePantsStyle6,
+    thumbnailUrl: Pants_MalePantsStyle6_Thumb,
     rarity: "epic" as any,
     isDefault: false,
     gender: "male" as any,
@@ -2236,6 +2679,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Pant for male",
     price: 399,
     imageUrl: Pants_MalePantsStyle7,
+    thumbnailUrl: Pants_MalePantsStyle7_Thumb,
     rarity: "epic" as any,
     isDefault: false,
     gender: "male" as any,
@@ -2249,6 +2693,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Pant for male",
     price: 499,
     imageUrl: Pants_MalePantsStyle8,
+    thumbnailUrl: Pants_MalePantsStyle8_Thumb,
     rarity: "epic" as any,
     isDefault: false,
     gender: "male" as any,
@@ -2262,6 +2707,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Pant for male",
     price: 599,
     imageUrl: Pants_MalePantsStyle9,
+    thumbnailUrl: Pants_MalePantsStyle9_Thumb,
     rarity: "epic" as any,
     isDefault: false,
     gender: "male" as any,
@@ -2275,6 +2721,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Pant for male (muscle)",
     price: 199,
     imageUrl: Pants_MusclePantsStyle1,
+    thumbnailUrl: Pants_MusclePantsStyle1_Thumb,
     rarity: "epic" as any,
     isDefault: false,
     gender: "male" as any,
@@ -2288,6 +2735,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Pant for male (muscle)",
     price: 299,
     imageUrl: Pants_MusclePantsStyle10,
+    thumbnailUrl: Pants_MusclePantsStyle10_Thumb,
     rarity: "epic" as any,
     isDefault: false,
     gender: "male" as any,
@@ -2301,6 +2749,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Pant for male (muscle)",
     price: 399,
     imageUrl: Pants_MusclePantsStyle2,
+    thumbnailUrl: Pants_MusclePantsStyle2_Thumb,
     rarity: "epic" as any,
     isDefault: false,
     gender: "male" as any,
@@ -2314,6 +2763,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Pant for male (muscle)",
     price: 499,
     imageUrl: Pants_MusclePantsStyle3,
+    thumbnailUrl: Pants_MusclePantsStyle3_Thumb,
     rarity: "epic" as any,
     isDefault: false,
     gender: "male" as any,
@@ -2327,6 +2777,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Pant for male (muscle)",
     price: 599,
     imageUrl: Pants_MusclePantsStyle4,
+    thumbnailUrl: Pants_MusclePantsStyle4_Thumb,
     rarity: "epic" as any,
     isDefault: false,
     gender: "male" as any,
@@ -2340,6 +2791,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Pant for male (muscle)",
     price: 199,
     imageUrl: Pants_MusclePantsStyle5,
+    thumbnailUrl: Pants_MusclePantsStyle5_Thumb,
     rarity: "epic" as any,
     isDefault: false,
     gender: "male" as any,
@@ -2353,6 +2805,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Pant for male (muscle)",
     price: 299,
     imageUrl: Pants_MusclePantsStyle6,
+    thumbnailUrl: Pants_MusclePantsStyle6_Thumb,
     rarity: "epic" as any,
     isDefault: false,
     gender: "male" as any,
@@ -2366,6 +2819,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Pant for male (muscle)",
     price: 399,
     imageUrl: Pants_MusclePantsStyle7,
+    thumbnailUrl: Pants_MusclePantsStyle7_Thumb,
     rarity: "legendary" as any,
     isDefault: false,
     gender: "male" as any,
@@ -2379,6 +2833,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Pant for male (muscle)",
     price: 499,
     imageUrl: Pants_MusclePantsStyle8,
+    thumbnailUrl: Pants_MusclePantsStyle8_Thumb,
     rarity: "legendary" as any,
     isDefault: false,
     gender: "male" as any,
@@ -2392,6 +2847,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Pant for male (muscle)",
     price: 599,
     imageUrl: Pants_MusclePantsStyle9,
+    thumbnailUrl: Pants_MusclePantsStyle9_Thumb,
     rarity: "legendary" as any,
     isDefault: false,
     gender: "male" as any,
@@ -2405,6 +2861,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Shirt for female (fat)",
     price: 0,
     imageUrl: Shirts_FemaleFatShirtStyle1,
+    thumbnailUrl: Shirts_FemaleFatShirtStyle1_Thumb,
     rarity: "common" as any,
     isDefault: true,
     gender: "female" as any,
@@ -2418,6 +2875,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Shirt for female (fat)",
     price: 299,
     imageUrl: Shirts_FemaleFatShirtStyle10,
+    thumbnailUrl: Shirts_FemaleFatShirtStyle10_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -2431,6 +2889,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Shirt for female (fat)",
     price: 399,
     imageUrl: Shirts_FemaleFatShirtStyle2,
+    thumbnailUrl: Shirts_FemaleFatShirtStyle2_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -2444,6 +2903,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Shirt for female (fat)",
     price: 499,
     imageUrl: Shirts_FemaleFatShirtStyle3,
+    thumbnailUrl: Shirts_FemaleFatShirtStyle3_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -2457,6 +2917,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Shirt for female (fat)",
     price: 599,
     imageUrl: Shirts_FemaleFatShirtStyle4,
+    thumbnailUrl: Shirts_FemaleFatShirtStyle4_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -2470,6 +2931,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Shirt for female (fat)",
     price: 199,
     imageUrl: Shirts_FemaleFatShirtStyle5,
+    thumbnailUrl: Shirts_FemaleFatShirtStyle5_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -2483,6 +2945,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Shirt for female (fat)",
     price: 299,
     imageUrl: Shirts_FemaleFatShirtStyle6,
+    thumbnailUrl: Shirts_FemaleFatShirtStyle6_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -2496,6 +2959,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Shirt for female (fat)",
     price: 399,
     imageUrl: Shirts_FemaleFatShirtStyle7,
+    thumbnailUrl: Shirts_FemaleFatShirtStyle7_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -2509,6 +2973,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Shirt for female (fat)",
     price: 499,
     imageUrl: Shirts_FemaleFatShirtStyle8,
+    thumbnailUrl: Shirts_FemaleFatShirtStyle8_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -2522,6 +2987,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Shirt for female (fat)",
     price: 599,
     imageUrl: Shirts_FemaleFatShirtStyle9,
+    thumbnailUrl: Shirts_FemaleFatShirtStyle9_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -2535,6 +3001,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Shirt for female (muscle)",
     price: 199,
     imageUrl: Shirts_FemaleMuscleShirtStyle1,
+    thumbnailUrl: Shirts_FemaleMuscleShirtStyle1_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -2548,6 +3015,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Shirt for female (muscle)",
     price: 299,
     imageUrl: Shirts_FemaleMuscleShirtStyle10,
+    thumbnailUrl: Shirts_FemaleMuscleShirtStyle10_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -2561,6 +3029,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Shirt for female (muscle)",
     price: 399,
     imageUrl: Shirts_FemaleMuscleShirtStyle2,
+    thumbnailUrl: Shirts_FemaleMuscleShirtStyle2_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -2574,6 +3043,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Shirt for female (muscle)",
     price: 499,
     imageUrl: Shirts_FemaleMuscleShirtStyle3,
+    thumbnailUrl: Shirts_FemaleMuscleShirtStyle3_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -2587,6 +3057,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Shirt for female (muscle)",
     price: 599,
     imageUrl: Shirts_FemaleMuscleShirtStyle4,
+    thumbnailUrl: Shirts_FemaleMuscleShirtStyle4_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -2600,6 +3071,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Shirt for female (muscle)",
     price: 199,
     imageUrl: Shirts_FemaleMuscleShirtStyle5,
+    thumbnailUrl: Shirts_FemaleMuscleShirtStyle5_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -2613,6 +3085,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Shirt for female (muscle)",
     price: 299,
     imageUrl: Shirts_FemaleMuscleShirtStyle6,
+    thumbnailUrl: Shirts_FemaleMuscleShirtStyle6_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -2626,6 +3099,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Shirt for female (muscle)",
     price: 399,
     imageUrl: Shirts_FemaleMuscleShirtStyle7,
+    thumbnailUrl: Shirts_FemaleMuscleShirtStyle7_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -2639,6 +3113,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Shirt for female (muscle)",
     price: 499,
     imageUrl: Shirts_FemaleMuscleShirtStyle8,
+    thumbnailUrl: Shirts_FemaleMuscleShirtStyle8_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -2652,6 +3127,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Shirt for female (muscle)",
     price: 599,
     imageUrl: Shirts_FemaleMuscleShirtStyle9,
+    thumbnailUrl: Shirts_FemaleMuscleShirtStyle9_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -2665,6 +3141,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Shirt for female",
     price: 199,
     imageUrl: Shirts_FemaleShirtStyle1,
+    thumbnailUrl: Shirts_FemaleShirtStyle1_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -2678,6 +3155,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Shirt for female",
     price: 299,
     imageUrl: Shirts_FemaleShirtStyle10,
+    thumbnailUrl: Shirts_FemaleShirtStyle10_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -2691,6 +3169,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Shirt for female",
     price: 399,
     imageUrl: Shirts_FemaleShirtStyle2,
+    thumbnailUrl: Shirts_FemaleShirtStyle2_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -2704,6 +3183,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Shirt for female",
     price: 499,
     imageUrl: Shirts_FemaleShirtStyle3,
+    thumbnailUrl: Shirts_FemaleShirtStyle3_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -2717,6 +3197,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Shirt for female",
     price: 599,
     imageUrl: Shirts_FemaleShirtStyle4,
+    thumbnailUrl: Shirts_FemaleShirtStyle4_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "female" as any,
@@ -2730,6 +3211,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Shirt for female",
     price: 199,
     imageUrl: Shirts_FemaleShirtStyle5,
+    thumbnailUrl: Shirts_FemaleShirtStyle5_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "female" as any,
@@ -2743,6 +3225,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Shirt for female",
     price: 299,
     imageUrl: Shirts_FemaleShirtStyle6,
+    thumbnailUrl: Shirts_FemaleShirtStyle6_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "female" as any,
@@ -2756,6 +3239,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Shirt for female",
     price: 399,
     imageUrl: Shirts_FemaleShirtStyle7,
+    thumbnailUrl: Shirts_FemaleShirtStyle7_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "female" as any,
@@ -2769,6 +3253,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Shirt for female",
     price: 499,
     imageUrl: Shirts_FemaleShirtStyle8,
+    thumbnailUrl: Shirts_FemaleShirtStyle8_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "female" as any,
@@ -2782,6 +3267,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Shirt for female",
     price: 599,
     imageUrl: Shirts_FemaleShirtStyle9,
+    thumbnailUrl: Shirts_FemaleShirtStyle9_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "female" as any,
@@ -2795,6 +3281,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Shirt for male (fat)",
     price: 199,
     imageUrl: Shirts_FatShirtStyle1,
+    thumbnailUrl: Shirts_FatShirtStyle1_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "male" as any,
@@ -2808,6 +3295,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Shirt for male (fat)",
     price: 299,
     imageUrl: Shirts_FatShirtStyle10,
+    thumbnailUrl: Shirts_FatShirtStyle10_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "male" as any,
@@ -2821,6 +3309,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Shirt for male (fat)",
     price: 399,
     imageUrl: Shirts_FatShirtStyle2,
+    thumbnailUrl: Shirts_FatShirtStyle2_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "male" as any,
@@ -2834,6 +3323,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Shirt for male (fat)",
     price: 499,
     imageUrl: Shirts_FatShirtStyle3,
+    thumbnailUrl: Shirts_FatShirtStyle3_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "male" as any,
@@ -2847,6 +3337,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Shirt for male (fat)",
     price: 599,
     imageUrl: Shirts_FatShirtStyle4,
+    thumbnailUrl: Shirts_FatShirtStyle4_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "male" as any,
@@ -2860,6 +3351,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Shirt for male (fat)",
     price: 199,
     imageUrl: Shirts_FatShirtStyle5,
+    thumbnailUrl: Shirts_FatShirtStyle5_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "male" as any,
@@ -2873,6 +3365,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Shirt for male (fat)",
     price: 299,
     imageUrl: Shirts_FatShirtStyle6,
+    thumbnailUrl: Shirts_FatShirtStyle6_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "male" as any,
@@ -2886,6 +3379,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Shirt for male (fat)",
     price: 399,
     imageUrl: Shirts_FatShirtStyle7,
+    thumbnailUrl: Shirts_FatShirtStyle7_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "male" as any,
@@ -2899,6 +3393,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Shirt for male (fat)",
     price: 499,
     imageUrl: Shirts_FatShirtStyle8,
+    thumbnailUrl: Shirts_FatShirtStyle8_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "male" as any,
@@ -2912,6 +3407,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Shirt for male (fat)",
     price: 599,
     imageUrl: Shirts_FatShirtStyle9,
+    thumbnailUrl: Shirts_FatShirtStyle9_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "male" as any,
@@ -2925,6 +3421,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Shirt for male (muscle)",
     price: 199,
     imageUrl: Shirts_MuscleShirtStyle1,
+    thumbnailUrl: Shirts_MuscleShirtStyle1_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "male" as any,
@@ -2938,6 +3435,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Shirt for male (muscle)",
     price: 299,
     imageUrl: Shirts_MuscleShirtStyle10,
+    thumbnailUrl: Shirts_MuscleShirtStyle10_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "male" as any,
@@ -2951,6 +3449,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Shirt for male (muscle)",
     price: 399,
     imageUrl: Shirts_MuscleShirtStyle2,
+    thumbnailUrl: Shirts_MuscleShirtStyle2_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "male" as any,
@@ -2964,6 +3463,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Shirt for male (muscle)",
     price: 499,
     imageUrl: Shirts_MuscleShirtStyle3,
+    thumbnailUrl: Shirts_MuscleShirtStyle3_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "male" as any,
@@ -2977,6 +3477,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Shirt for male (muscle)",
     price: 599,
     imageUrl: Shirts_MuscleShirtStyle4,
+    thumbnailUrl: Shirts_MuscleShirtStyle4_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "male" as any,
@@ -2990,6 +3491,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Shirt for male (muscle)",
     price: 199,
     imageUrl: Shirts_MuscleShirtStyle5,
+    thumbnailUrl: Shirts_MuscleShirtStyle5_Thumb,
     rarity: "epic" as any,
     isDefault: false,
     gender: "male" as any,
@@ -3003,6 +3505,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Shirt for male (muscle)",
     price: 299,
     imageUrl: Shirts_MuscleShirtStyle6,
+    thumbnailUrl: Shirts_MuscleShirtStyle6_Thumb,
     rarity: "epic" as any,
     isDefault: false,
     gender: "male" as any,
@@ -3016,6 +3519,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Shirt for male (muscle)",
     price: 399,
     imageUrl: Shirts_MuscleShirtStyle7,
+    thumbnailUrl: Shirts_MuscleShirtStyle7_Thumb,
     rarity: "epic" as any,
     isDefault: false,
     gender: "male" as any,
@@ -3029,6 +3533,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Shirt for male (muscle)",
     price: 499,
     imageUrl: Shirts_MuscleShirtStyle8,
+    thumbnailUrl: Shirts_MuscleShirtStyle8_Thumb,
     rarity: "epic" as any,
     isDefault: false,
     gender: "male" as any,
@@ -3042,6 +3547,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Shirt for male (muscle)",
     price: 599,
     imageUrl: Shirts_MuscleShirtStyle9,
+    thumbnailUrl: Shirts_MuscleShirtStyle9_Thumb,
     rarity: "epic" as any,
     isDefault: false,
     gender: "male" as any,
@@ -3055,6 +3561,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Shirt for male",
     price: 199,
     imageUrl: Shirts_ShirtStyle1,
+    thumbnailUrl: Shirts_ShirtStyle1_Thumb,
     rarity: "epic" as any,
     isDefault: false,
     gender: "male" as any,
@@ -3068,6 +3575,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Shirt for male",
     price: 299,
     imageUrl: Shirts_ShirtStyle10,
+    thumbnailUrl: Shirts_ShirtStyle10_Thumb,
     rarity: "epic" as any,
     isDefault: false,
     gender: "male" as any,
@@ -3081,6 +3589,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Shirt for male",
     price: 399,
     imageUrl: Shirts_ShirtStyle2,
+    thumbnailUrl: Shirts_ShirtStyle2_Thumb,
     rarity: "epic" as any,
     isDefault: false,
     gender: "male" as any,
@@ -3094,6 +3603,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Shirt for male",
     price: 499,
     imageUrl: Shirts_ShirtStyle3,
+    thumbnailUrl: Shirts_ShirtStyle3_Thumb,
     rarity: "epic" as any,
     isDefault: false,
     gender: "male" as any,
@@ -3107,6 +3617,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Shirt for male",
     price: 599,
     imageUrl: Shirts_ShirtStyle4,
+    thumbnailUrl: Shirts_ShirtStyle4_Thumb,
     rarity: "epic" as any,
     isDefault: false,
     gender: "male" as any,
@@ -3120,6 +3631,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Shirt for male",
     price: 199,
     imageUrl: Shirts_ShirtStyle5,
+    thumbnailUrl: Shirts_ShirtStyle5_Thumb,
     rarity: "epic" as any,
     isDefault: false,
     gender: "male" as any,
@@ -3133,6 +3645,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Shirt for male",
     price: 299,
     imageUrl: Shirts_ShirtStyle6,
+    thumbnailUrl: Shirts_ShirtStyle6_Thumb,
     rarity: "epic" as any,
     isDefault: false,
     gender: "male" as any,
@@ -3146,6 +3659,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Shirt for male",
     price: 399,
     imageUrl: Shirts_ShirtStyle7,
+    thumbnailUrl: Shirts_ShirtStyle7_Thumb,
     rarity: "legendary" as any,
     isDefault: false,
     gender: "male" as any,
@@ -3159,6 +3673,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Shirt for male",
     price: 499,
     imageUrl: Shirts_ShirtStyle8,
+    thumbnailUrl: Shirts_ShirtStyle8_Thumb,
     rarity: "legendary" as any,
     isDefault: false,
     gender: "male" as any,
@@ -3172,6 +3687,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Shirt for male",
     price: 599,
     imageUrl: Shirts_ShirtStyle9,
+    thumbnailUrl: Shirts_ShirtStyle9_Thumb,
     rarity: "legendary" as any,
     isDefault: false,
     gender: "male" as any,
@@ -3185,6 +3701,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Shoe for female",
     price: 0,
     imageUrl: Shoes_FemaleShoeStyle1,
+    thumbnailUrl: Shoes_FemaleShoeStyle1_Thumb,
     rarity: "common" as any,
     isDefault: true,
     gender: "female" as any,
@@ -3198,6 +3715,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Shoe for female",
     price: 349,
     imageUrl: Shoes_FemaleShoeStyle2,
+    thumbnailUrl: Shoes_FemaleShoeStyle2_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -3211,6 +3729,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Shoe for female",
     price: 449,
     imageUrl: Shoes_FemaleShoeStyle3,
+    thumbnailUrl: Shoes_FemaleShoeStyle3_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -3224,6 +3743,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Shoe for female",
     price: 549,
     imageUrl: Shoes_FemaleShoeStyle4,
+    thumbnailUrl: Shoes_FemaleShoeStyle4_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -3237,6 +3757,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Shoe for female",
     price: 649,
     imageUrl: Shoes_FemaleShoeStyle5,
+    thumbnailUrl: Shoes_FemaleShoeStyle5_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "female" as any,
@@ -3250,6 +3771,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Shoe for male",
     price: 0,
     imageUrl: Shoes_ShoeStyle1,
+    thumbnailUrl: Shoes_ShoeStyle1_Thumb,
     rarity: "common" as any,
     isDefault: true,
     gender: "male" as any,
@@ -3263,6 +3785,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Shoe for male",
     price: 349,
     imageUrl: Shoes_ShoeStyle2,
+    thumbnailUrl: Shoes_ShoeStyle2_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "male" as any,
@@ -3276,6 +3799,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Shoe for male",
     price: 449,
     imageUrl: Shoes_ShoeStyle3,
+    thumbnailUrl: Shoes_ShoeStyle3_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "male" as any,
@@ -3289,6 +3813,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Shoe for male",
     price: 549,
     imageUrl: Shoes_ShoeStyle4,
+    thumbnailUrl: Shoes_ShoeStyle4_Thumb,
     rarity: "epic" as any,
     isDefault: false,
     gender: "male" as any,
@@ -3302,6 +3827,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Shoe for male",
     price: 649,
     imageUrl: Shoes_ShoeStyle5,
+    thumbnailUrl: Shoes_ShoeStyle5_Thumb,
     rarity: "epic" as any,
     isDefault: false,
     gender: "male" as any,
@@ -3315,6 +3841,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Short for female (fat)",
     price: 0,
     imageUrl: Shorts_FemaleFatShortsStyle1,
+    thumbnailUrl: Shorts_FemaleFatShortsStyle1_Thumb,
     rarity: "common" as any,
     isDefault: true,
     gender: "female" as any,
@@ -3328,6 +3855,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Short for female (fat)",
     price: 249,
     imageUrl: Shorts_FemaleFatShortsStyle10,
+    thumbnailUrl: Shorts_FemaleFatShortsStyle10_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -3341,6 +3869,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Short for female (fat)",
     price: 349,
     imageUrl: Shorts_FemaleFatShortsStyle2,
+    thumbnailUrl: Shorts_FemaleFatShortsStyle2_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -3354,6 +3883,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Short for female (fat)",
     price: 449,
     imageUrl: Shorts_FemaleFatShortsStyle3,
+    thumbnailUrl: Shorts_FemaleFatShortsStyle3_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -3367,6 +3897,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Short for female (fat)",
     price: 549,
     imageUrl: Shorts_FemaleFatShortsStyle4,
+    thumbnailUrl: Shorts_FemaleFatShortsStyle4_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -3380,6 +3911,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Short for female (fat)",
     price: 149,
     imageUrl: Shorts_FemaleFatShortsStyle5,
+    thumbnailUrl: Shorts_FemaleFatShortsStyle5_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -3393,6 +3925,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Short for female (fat)",
     price: 249,
     imageUrl: Shorts_FemaleFatShortsStyle6,
+    thumbnailUrl: Shorts_FemaleFatShortsStyle6_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -3406,6 +3939,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Short for female (fat)",
     price: 349,
     imageUrl: Shorts_FemaleFatShortsStyle7,
+    thumbnailUrl: Shorts_FemaleFatShortsStyle7_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -3419,6 +3953,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Short for female (fat)",
     price: 449,
     imageUrl: Shorts_FemaleFatShortsStyle8,
+    thumbnailUrl: Shorts_FemaleFatShortsStyle8_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -3432,6 +3967,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Short for female (fat)",
     price: 549,
     imageUrl: Shorts_FemaleFatShortsStyle9,
+    thumbnailUrl: Shorts_FemaleFatShortsStyle9_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -3445,6 +3981,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Short for female (muscle)",
     price: 149,
     imageUrl: Shorts_FemaleMuscleShortsStyle1,
+    thumbnailUrl: Shorts_FemaleMuscleShortsStyle1_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -3458,6 +3995,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Short for female (muscle)",
     price: 249,
     imageUrl: Shorts_FemaleMuscleShortsStyle10,
+    thumbnailUrl: Shorts_FemaleMuscleShortsStyle10_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -3471,6 +4009,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Short for female (muscle)",
     price: 349,
     imageUrl: Shorts_FemaleMuscleShortsStyle2,
+    thumbnailUrl: Shorts_FemaleMuscleShortsStyle2_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -3484,6 +4023,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Short for female (muscle)",
     price: 449,
     imageUrl: Shorts_FemaleMuscleShortsStyle3,
+    thumbnailUrl: Shorts_FemaleMuscleShortsStyle3_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -3497,6 +4037,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Short for female (muscle)",
     price: 549,
     imageUrl: Shorts_FemaleMuscleShortsStyle4,
+    thumbnailUrl: Shorts_FemaleMuscleShortsStyle4_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -3510,6 +4051,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Short for female (muscle)",
     price: 149,
     imageUrl: Shorts_FemaleMuscleShortsStyle5,
+    thumbnailUrl: Shorts_FemaleMuscleShortsStyle5_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -3523,6 +4065,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Short for female (muscle)",
     price: 249,
     imageUrl: Shorts_FemaleMuscleShortsStyle6,
+    thumbnailUrl: Shorts_FemaleMuscleShortsStyle6_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -3536,6 +4079,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Short for female (muscle)",
     price: 349,
     imageUrl: Shorts_FemaleMuscleShortsStyle7,
+    thumbnailUrl: Shorts_FemaleMuscleShortsStyle7_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -3549,6 +4093,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Short for female (muscle)",
     price: 449,
     imageUrl: Shorts_FemaleMuscleShortsStyle8,
+    thumbnailUrl: Shorts_FemaleMuscleShortsStyle8_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -3562,6 +4107,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Short for female (muscle)",
     price: 549,
     imageUrl: Shorts_FemaleMuscleShortsStyle9,
+    thumbnailUrl: Shorts_FemaleMuscleShortsStyle9_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -3575,6 +4121,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Short for female",
     price: 149,
     imageUrl: Shorts_FemaleShortsStyle1,
+    thumbnailUrl: Shorts_FemaleShortsStyle1_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -3588,6 +4135,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Short for female",
     price: 249,
     imageUrl: Shorts_FemaleShortsStyle10,
+    thumbnailUrl: Shorts_FemaleShortsStyle10_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -3601,6 +4149,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Short for female",
     price: 349,
     imageUrl: Shorts_FemaleShortsStyle2,
+    thumbnailUrl: Shorts_FemaleShortsStyle2_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -3614,6 +4163,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Short for female",
     price: 449,
     imageUrl: Shorts_FemaleShortsStyle3,
+    thumbnailUrl: Shorts_FemaleShortsStyle3_Thumb,
     rarity: "common" as any,
     isDefault: false,
     gender: "female" as any,
@@ -3627,6 +4177,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Short for female",
     price: 549,
     imageUrl: Shorts_FemaleShortsStyle4,
+    thumbnailUrl: Shorts_FemaleShortsStyle4_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "female" as any,
@@ -3640,6 +4191,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Short for female",
     price: 149,
     imageUrl: Shorts_FemaleShortsStyle5,
+    thumbnailUrl: Shorts_FemaleShortsStyle5_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "female" as any,
@@ -3653,6 +4205,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Short for female",
     price: 249,
     imageUrl: Shorts_FemaleShortsStyle6,
+    thumbnailUrl: Shorts_FemaleShortsStyle6_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "female" as any,
@@ -3666,6 +4219,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Short for female",
     price: 349,
     imageUrl: Shorts_FemaleShortsStyle7,
+    thumbnailUrl: Shorts_FemaleShortsStyle7_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "female" as any,
@@ -3679,6 +4233,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Short for female",
     price: 449,
     imageUrl: Shorts_FemaleShortsStyle8,
+    thumbnailUrl: Shorts_FemaleShortsStyle8_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "female" as any,
@@ -3692,6 +4247,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Short for female",
     price: 549,
     imageUrl: Shorts_FemaleShortsStyle9,
+    thumbnailUrl: Shorts_FemaleShortsStyle9_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "female" as any,
@@ -3705,6 +4261,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Short for male (fat)",
     price: 149,
     imageUrl: Shorts_FatShortsStyle1,
+    thumbnailUrl: Shorts_FatShortsStyle1_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "male" as any,
@@ -3718,6 +4275,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Short for male (fat)",
     price: 249,
     imageUrl: Shorts_FatShortsStyle10,
+    thumbnailUrl: Shorts_FatShortsStyle10_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "male" as any,
@@ -3731,6 +4289,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Short for male (fat)",
     price: 349,
     imageUrl: Shorts_FatShortsStyle2,
+    thumbnailUrl: Shorts_FatShortsStyle2_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "male" as any,
@@ -3744,6 +4303,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Short for male (fat)",
     price: 449,
     imageUrl: Shorts_FatShortsStyle3,
+    thumbnailUrl: Shorts_FatShortsStyle3_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "male" as any,
@@ -3757,6 +4317,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Short for male (fat)",
     price: 549,
     imageUrl: Shorts_FatShortsStyle4,
+    thumbnailUrl: Shorts_FatShortsStyle4_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "male" as any,
@@ -3770,6 +4331,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Short for male (fat)",
     price: 149,
     imageUrl: Shorts_FatShortsStyle5,
+    thumbnailUrl: Shorts_FatShortsStyle5_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "male" as any,
@@ -3783,6 +4345,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Short for male (fat)",
     price: 249,
     imageUrl: Shorts_FatShortsStyle6,
+    thumbnailUrl: Shorts_FatShortsStyle6_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "male" as any,
@@ -3796,6 +4359,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Short for male (fat)",
     price: 349,
     imageUrl: Shorts_FatShortsStyle7,
+    thumbnailUrl: Shorts_FatShortsStyle7_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "male" as any,
@@ -3809,6 +4373,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Short for male (fat)",
     price: 449,
     imageUrl: Shorts_FatShortsStyle8,
+    thumbnailUrl: Shorts_FatShortsStyle8_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "male" as any,
@@ -3822,6 +4387,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Short for male (fat)",
     price: 549,
     imageUrl: Shorts_FatShortsStyle9,
+    thumbnailUrl: Shorts_FatShortsStyle9_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "male" as any,
@@ -3835,6 +4401,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Short for male",
     price: 149,
     imageUrl: Shorts_MaleShortStyle1,
+    thumbnailUrl: Shorts_MaleShortStyle1_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "male" as any,
@@ -3848,6 +4415,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Short for male",
     price: 249,
     imageUrl: Shorts_MaleShortStyle10,
+    thumbnailUrl: Shorts_MaleShortStyle10_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "male" as any,
@@ -3861,6 +4429,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Short for male",
     price: 349,
     imageUrl: Shorts_MaleShortStyle2,
+    thumbnailUrl: Shorts_MaleShortStyle2_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "male" as any,
@@ -3874,6 +4443,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Short for male",
     price: 449,
     imageUrl: Shorts_MaleShortStyle3,
+    thumbnailUrl: Shorts_MaleShortStyle3_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "male" as any,
@@ -3887,6 +4457,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Short for male",
     price: 549,
     imageUrl: Shorts_MaleShortStyle4,
+    thumbnailUrl: Shorts_MaleShortStyle4_Thumb,
     rarity: "rare" as any,
     isDefault: false,
     gender: "male" as any,
@@ -3900,6 +4471,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Short for male",
     price: 149,
     imageUrl: Shorts_MaleShortStyle5,
+    thumbnailUrl: Shorts_MaleShortStyle5_Thumb,
     rarity: "epic" as any,
     isDefault: false,
     gender: "male" as any,
@@ -3913,6 +4485,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Short for male",
     price: 249,
     imageUrl: Shorts_MaleShortStyle6,
+    thumbnailUrl: Shorts_MaleShortStyle6_Thumb,
     rarity: "epic" as any,
     isDefault: false,
     gender: "male" as any,
@@ -3926,6 +4499,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Short for male",
     price: 349,
     imageUrl: Shorts_MaleShortStyle7,
+    thumbnailUrl: Shorts_MaleShortStyle7_Thumb,
     rarity: "epic" as any,
     isDefault: false,
     gender: "male" as any,
@@ -3939,6 +4513,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Short for male",
     price: 449,
     imageUrl: Shorts_MaleShortStyle8,
+    thumbnailUrl: Shorts_MaleShortStyle8_Thumb,
     rarity: "epic" as any,
     isDefault: false,
     gender: "male" as any,
@@ -3952,6 +4527,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Short for male",
     price: 549,
     imageUrl: Shorts_MaleShortStyle9,
+    thumbnailUrl: Shorts_MaleShortStyle9_Thumb,
     rarity: "epic" as any,
     isDefault: false,
     gender: "male" as any,
@@ -3965,6 +4541,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Short for male (muscle)",
     price: 149,
     imageUrl: Shorts_MuscleShortsStyle1,
+    thumbnailUrl: Shorts_MuscleShortsStyle1_Thumb,
     rarity: "epic" as any,
     isDefault: false,
     gender: "male" as any,
@@ -3978,6 +4555,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Short for male (muscle)",
     price: 249,
     imageUrl: Shorts_MuscleShortsStyle10,
+    thumbnailUrl: Shorts_MuscleShortsStyle10_Thumb,
     rarity: "epic" as any,
     isDefault: false,
     gender: "male" as any,
@@ -3991,6 +4569,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Short for male (muscle)",
     price: 349,
     imageUrl: Shorts_MuscleShortsStyle2,
+    thumbnailUrl: Shorts_MuscleShortsStyle2_Thumb,
     rarity: "epic" as any,
     isDefault: false,
     gender: "male" as any,
@@ -4004,6 +4583,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Short for male (muscle)",
     price: 449,
     imageUrl: Shorts_MuscleShortsStyle3,
+    thumbnailUrl: Shorts_MuscleShortsStyle3_Thumb,
     rarity: "epic" as any,
     isDefault: false,
     gender: "male" as any,
@@ -4017,6 +4597,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Short for male (muscle)",
     price: 549,
     imageUrl: Shorts_MuscleShortsStyle4,
+    thumbnailUrl: Shorts_MuscleShortsStyle4_Thumb,
     rarity: "epic" as any,
     isDefault: false,
     gender: "male" as any,
@@ -4030,6 +4611,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Short for male (muscle)",
     price: 149,
     imageUrl: Shorts_MuscleShortsStyle5,
+    thumbnailUrl: Shorts_MuscleShortsStyle5_Thumb,
     rarity: "epic" as any,
     isDefault: false,
     gender: "male" as any,
@@ -4043,6 +4625,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Short for male (muscle)",
     price: 249,
     imageUrl: Shorts_MuscleShortsStyle6,
+    thumbnailUrl: Shorts_MuscleShortsStyle6_Thumb,
     rarity: "epic" as any,
     isDefault: false,
     gender: "male" as any,
@@ -4056,6 +4639,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Short for male (muscle)",
     price: 349,
     imageUrl: Shorts_MuscleShortsStyle7,
+    thumbnailUrl: Shorts_MuscleShortsStyle7_Thumb,
     rarity: "legendary" as any,
     isDefault: false,
     gender: "male" as any,
@@ -4069,6 +4653,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Short for male (muscle)",
     price: 449,
     imageUrl: Shorts_MuscleShortsStyle8,
+    thumbnailUrl: Shorts_MuscleShortsStyle8_Thumb,
     rarity: "legendary" as any,
     isDefault: false,
     gender: "male" as any,
@@ -4082,6 +4667,7 @@ export const NEW_CLOTHING_ITEMS: AvatarClothing[] = [
     description: "Short for male (muscle)",
     price: 549,
     imageUrl: Shorts_MuscleShortsStyle9,
+    thumbnailUrl: Shorts_MuscleShortsStyle9_Thumb,
     rarity: "legendary" as any,
     isDefault: false,
     gender: "male" as any,

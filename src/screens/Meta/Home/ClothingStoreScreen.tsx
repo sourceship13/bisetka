@@ -379,7 +379,7 @@ const StoreCardImpl: React.FC<StoreCardProps> = ({
       </View>
 
       <View style={styles.imageWrap}>
-        <AssetImage source={item.imageUrl} width="100%" height="100%" />
+        <AssetImage source={item.thumbnailUrl || item.imageUrl} width="100%" height="100%" />
         {!isOwned && (
           <View style={styles.lockOverlay}>
             <View style={styles.lockCircle}>

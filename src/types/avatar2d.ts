@@ -24,6 +24,7 @@ export interface BaseAvatar {
   name: string;
   description?: string;
   imageUrl: any; // require() result, URL string, or SVG component
+  thumbnailUrl?: any; // Optional pre-rasterized PNG thumbnail (require() result)
   gender: 'male' | 'female';
   build?: AvatarBuild;
   isActive: boolean;
@@ -38,7 +39,7 @@ export interface AvatarClothing {
   description?: string;
   price: number; // in cents
   imageUrl: any; // require() result, URL string, or SVG component
-  thumbnailUrl?: string; // Optional thumbnail
+  thumbnailUrl?: any; // Optional pre-rasterized PNG thumbnail (require() result)
   rarity: Rarity;
   isDefault: boolean;
   gender?: 'male' | 'female' | 'unisex';
