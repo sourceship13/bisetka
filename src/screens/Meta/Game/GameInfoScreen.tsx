@@ -672,12 +672,6 @@ const GameInfoScreen: React.FC<Props> = ({ route, navigation }) => {
                 </Text>
               </View>
               <View style={styles.metaItem}>
-                <Icon name="clock-outline" size={20} color="#fff" />
-                <Text style={styles.metaText}>
-                  ~{gameInfo.estimatedDuration} min
-                </Text>
-              </View>
-              <View style={styles.metaItem}>
                 <Icon name="signal-cellular-2" size={20} color="#fff" />
                 <Text style={styles.metaText}>{gameInfo.difficulty}</Text>
               </View>
