@@ -59,9 +59,12 @@ const LEGENDARY_BRAND_ITEM_IDS = new Set<string>([
   'shorts-muscle-shorts-style-9',
 ]);
 
-// Fixed retail price (in cents) per rarity tier. Free defaults stay free.
-// All non-free items must stay at 99 cents to match the single
-// 'clothing_tier_99' IAP SKU (see iap.service.ts / iap.controller.ts).
+// Fixed retail price (in cents) per rarity tier. Nothing in the store is
+// free — every item (including former "default" ones) must stay at 99 cents
+// to match the single 'clothing_tier_99' IAP SKU (see iap.service.ts /
+// iap.controller.ts). Starter items are still auto-granted for free at
+// signup via `isDefault`/`STARTER_ITEM_IDS`; this price only affects what the
+// store charges if a user doesn't already own the item.
 const RARITY_PRICE_CENTS: Record<string, number> = {
   common: 99,
   rare: 99,
@@ -73,9 +76,7 @@ export const ALL_CLOTHING_ITEMS: AvatarClothing[] = NEW_CLOTHING_ITEMS.map(i => 
   const isLegendary =
     LEGENDARY_BRAND_ITEM_IDS.has(i.id) || i.id.endsWith('-style-10');
   const rarity = isLegendary ? 'legendary' : (i.rarity as string);
-  // Preserve free items (price 0 == starter/default), reprice everything else.
-  const price =
-    i.price === 0 ? 0 : (RARITY_PRICE_CENTS[rarity] ?? i.price);
+  const price = RARITY_PRICE_CENTS[rarity] ?? 99;
   return { ...i, rarity: rarity as any, price };
 });
 export const ALL_BASE_AVATARS: BaseAvatar[] = NEW_BASE_AVATARS;
