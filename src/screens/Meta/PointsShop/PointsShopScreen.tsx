@@ -9,9 +9,8 @@ import {
   ActivityIndicator,
   Image,
   Dimensions,
-  FlatList,
-  ListRenderItem,
 } from 'react-native';
+import {FlashList, type ListRenderItem} from '@shopify/flash-list';
 import { useI18n } from '../../../hooks/useI18n';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -30,7 +29,10 @@ import {
 import AssetImage from '../../../components/AssetImage';
 
 const {width} = Dimensions.get('window');
-const CARD_WIDTH = (width - 48) / 2;
+// Gap between the two grid columns; card width is solved backwards from it so
+// the row (2 cards + gap + horizontal padding) exactly fills the screen width.
+const CLOTHING_GRID_GAP = 14;
+const CARD_WIDTH = (width - spacing.lg * 2 - CLOTHING_GRID_GAP) / 2;
 
 // ── Tabs ─────────────────────────────────────────────────────────────────────
 type StoreTab = 'points' | 'clothing';
@@ -122,21 +124,12 @@ const getGradientViewStyle = (
   borderRadius: 16,
 });
 
-// Approximate card height (itemContent.minHeight + borders) + row marginBottom.
-// Used by FlatList.getItemLayout to skip per-row measurement and make scrolling
-// + initial render snappier on the clothing tab.
-const CLOTHING_ROW_HEIGHT = 232 + 14;
-const getClothingItemLayout = (_data: any, index: number) => ({
-  length: CLOTHING_ROW_HEIGHT,
-  offset: CLOTHING_ROW_HEIGHT * Math.floor(index / 2),
-  index,
-});
-
 interface ClothingCardProps {
   item: ClothingItem;
   owned: boolean;
   isPurchasing: boolean;
   onPress: (item: ClothingItem) => void;
+  isFirstInRow: boolean;
 }
 
 // React.memo'd card so a state change in one card (e.g. purchasing toggling
@@ -145,11 +138,15 @@ interface ClothingCardProps {
 // cards on any ownedItems / purchasing change which made the grid feel
 // sluggish, especially while images were still decoding.
 const ClothingCard: React.FC<ClothingCardProps> = React.memo(
-  ({item, owned, isPurchasing, onPress}) => {
+  ({item, owned, isPurchasing, onPress, isFirstInRow}) => {
     const rarityColor = RARITY_COLORS[item.rarity] ?? '#9ca3af';
     return (
       <TouchableOpacity
-        style={[styles.itemCard, {borderColor: rarityColor + '55'}]}
+        style={[
+          styles.itemCard,
+          {borderColor: rarityColor + '55'},
+          isFirstInRow && styles.itemCardGap,
+        ]}
         onPress={() => !owned && !isPurchasing && onPress(item)}
         disabled={owned || isPurchasing}>
         <View style={styles.itemContent}>
@@ -234,10 +231,6 @@ const PointsShopScreen = ({navigation, route}: any) => {
     startFilterTransition(() => setSelectedRarity(t));
   }, []);
 
-  // Pagination: render a small batch first, grow as user scrolls.
-  const CLOTHING_PAGE_SIZE = 12;
-  const [visibleClothingCount, setVisibleClothingCount] = useState(CLOTHING_PAGE_SIZE);
-
   useEffect(() => {
     loadUserInventory();
   }, []);
@@ -263,12 +256,6 @@ const PointsShopScreen = ({navigation, route}: any) => {
       cancelled = true;
     };
   }, []);
-
-  // Reset paging when the category filter changes so users don't have to
-  // scroll back to the top of a long list.
-  useEffect(() => {
-    setVisibleClothingCount(CLOTHING_PAGE_SIZE);
-  }, [selectedCategory, selectedRarity]);
 
   const loadUserInventory = async () => {
     try {
@@ -384,26 +371,15 @@ const PointsShopScreen = ({navigation, route}: any) => {
     [clothingItems, selectedCategory, selectedRarity],
   );
 
-  const visibleClothingItems = useMemo(
-    () => filteredClothingItems.slice(0, visibleClothingCount),
-    [filteredClothingItems, visibleClothingCount],
-  );
-
-  const handleLoadMoreClothing = useCallback(() => {
-    setVisibleClothingCount(prev => {
-      if (prev >= filteredClothingItems.length) return prev;
-      return Math.min(prev + CLOTHING_PAGE_SIZE, filteredClothingItems.length);
-    });
-  }, [filteredClothingItems.length]);
-
   const renderClothingItem: ListRenderItem<ClothingItem> = useCallback(
-    ({item}) => {
+    ({item, index}) => {
       return (
         <ClothingCard
           item={item}
           owned={ownedItems.has(item.id)}
           isPurchasing={purchasing === item.id}
           onPress={handleClothingPurchase}
+          isFirstInRow={index % 2 === 0}
         />
       );
     },
@@ -744,31 +720,15 @@ const PointsShopScreen = ({navigation, route}: any) => {
                 </View>
               ) : (
                 <View style={[styles.scrollView, isFilterPending && {opacity: 0.55}]}>
-                  <FlatList
-                    data={visibleClothingItems}
+                  <FlashList
+                    data={filteredClothingItems}
                     renderItem={renderClothingItem}
                     keyExtractor={item => item.id}
                     numColumns={2}
-                    columnWrapperStyle={styles.itemsGridRow}
                     contentContainerStyle={styles.itemsGridContent}
                     showsVerticalScrollIndicator={false}
-                    initialNumToRender={2}
-                    maxToRenderPerBatch={2}
-                    updateCellsBatchingPeriod={50}
-                    windowSize={3}
-                    removeClippedSubviews
-                    getItemLayout={getClothingItemLayout}
-                    onEndReached={handleLoadMoreClothing}
-                    onEndReachedThreshold={0.5}
                     ListHeaderComponent={
                       isFilterPending ? (
-                        <View style={styles.loadMoreFooter}>
-                          <ActivityIndicator size="small" color="#a78bfa" />
-                        </View>
-                      ) : null
-                    }
-                    ListFooterComponent={
-                      visibleClothingCount < filteredClothingItems.length ? (
                         <View style={styles.loadMoreFooter}>
                           <ActivityIndicator size="small" color="#a78bfa" />
                         </View>
@@ -925,11 +885,6 @@ const styles = StyleSheet.create({
   },
   itemsGridContent: {
     padding: spacing.lg,
-    gap: 14,
-  },
-  itemsGridRow: {
-    gap: 14,
-    marginBottom: 14,
   },
   loadMoreFooter: {
     paddingVertical: spacing.lg,
@@ -941,6 +896,10 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     backgroundColor: '#1e2a3a',
     borderWidth: 1,
+    marginBottom: CLOTHING_GRID_GAP,
+  },
+  itemCardGap: {
+    marginRight: CLOTHING_GRID_GAP,
   },
   itemContent: {
     padding: 12,

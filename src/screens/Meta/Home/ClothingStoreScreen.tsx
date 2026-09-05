@@ -3,12 +3,12 @@ import {
   View,
   Text,
   ScrollView,
-  FlatList,
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
   InteractionManager,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import { useI18n } from '../../../hooks/useI18n';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
@@ -237,7 +237,7 @@ const ClothingStoreScreen: React.FC<any> = ({ navigation }) => {
     setBusyId(null);
   };
 
-  const renderCard = useCallback((item: ClothingItem) => {
+  const renderCard = useCallback((item: ClothingItem, isLast: boolean) => {
     const isOwned = owned.has(item.id);
     const isEquipped = equipped[item.type] === item.id;
     const isBusy = busyId === item.id;
@@ -248,6 +248,7 @@ const ClothingStoreScreen: React.FC<any> = ({ navigation }) => {
         isOwned={isOwned}
         isEquipped={isEquipped}
         isBusy={isBusy}
+        isLast={isLast}
         onUse={handleUse}
         onBuy={handleBuy}
       />
@@ -305,20 +306,16 @@ const ClothingStoreScreen: React.FC<any> = ({ navigation }) => {
                   </View>
                   <Text style={styles.sectionTitle}>{meta.label}</Text>
                 </View>
-                {/* Virtualized horizontal list — only ~4 cards mount per
-                    section initially instead of all ~290 across the screen. */}
-                <FlatList
+                {/* FlashList recycles cards instead of mounting/unmounting
+                    the SVG-heavy content, which is what caused visible
+                    blanking/glitching on fast scroll with FlatList. */}
+                <FlashList
                   data={list}
                   keyExtractor={keyExtractor}
-                  renderItem={({ item }) => renderCard(item)}
+                  renderItem={({ item, index }) => renderCard(item, index === list.length - 1)}
                   horizontal
                   showsHorizontalScrollIndicator={false}
                   contentContainerStyle={styles.cardsRow}
-                  initialNumToRender={3}
-                  maxToRenderPerBatch={4}
-                  windowSize={3}
-                  removeClippedSubviews
-                  getItemLayout={getItemLayout}
                 />
               </View>
             );
@@ -334,17 +331,13 @@ const CARD_W = 168;
 const CARD_GAP = 14;
 
 const keyExtractor = (item: ClothingItem) => item.id;
-const getItemLayout = (_data: any, index: number) => ({
-  length: CARD_W + CARD_GAP,
-  offset: (CARD_W + CARD_GAP) * index,
-  index,
-});
 
 interface StoreCardProps {
   item: ClothingItem;
   isOwned: boolean;
   isEquipped: boolean;
   isBusy: boolean;
+  isLast?: boolean;
   onUse: (item: ClothingItem) => void;
   onBuy: (item: ClothingItem) => void;
 }
@@ -354,6 +347,7 @@ const StoreCardImpl: React.FC<StoreCardProps> = ({
   isOwned,
   isEquipped,
   isBusy,
+  isLast,
   onUse,
   onBuy,
 }) => {
@@ -370,7 +364,11 @@ const StoreCardImpl: React.FC<StoreCardProps> = ({
   };
 
   return (
-    <TouchableOpacity activeOpacity={0.88} onPress={onCardPress} disabled={isBusy}>
+    <TouchableOpacity
+      activeOpacity={0.88}
+      onPress={onCardPress}
+      disabled={isBusy}
+      style={!isLast && { marginRight: CARD_GAP }}>
     <LinearGradient
       colors={['#7a6cf5', '#5b4ae0']}
       start={{ x: 0, y: 0 }}
@@ -454,7 +452,8 @@ const StoreCard = React.memo(StoreCardImpl, (prev, next) =>
   prev.item.id === next.item.id &&
   prev.isOwned === next.isOwned &&
   prev.isEquipped === next.isEquipped &&
-  prev.isBusy === next.isBusy,
+  prev.isBusy === next.isBusy &&
+  prev.isLast === next.isLast,
 );
 
 const styles = StyleSheet.create({
@@ -575,7 +574,6 @@ const styles = StyleSheet.create({
   },
   cardsRow: {
     paddingHorizontal: 16,
-    gap: 14,
     paddingRight: 32,
   },
 
