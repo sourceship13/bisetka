@@ -98,6 +98,9 @@ export const getPossibleMoves = (
       break;
     case 'king':
       moves = getKingMoves(board, position, piece);
+      if (includeChecks) {
+        moves = moves.concat(getCastlingMoves(board, position, piece));
+      }
       break;
   }
   
@@ -236,6 +239,65 @@ const isValidPosition = (pos: Position): boolean => {
   return pos.row >= 0 && pos.row < 8 && pos.col >= 0 && pos.col < 8;
 };
 
+// Squares the king travels through/lands on during castling must not be attacked,
+// and neither the king nor its rook may have moved before. Not included in the
+// base king moves so attack-scanning (includeChecks=false) never recurses into it.
+const getCastlingMoves = (
+  board: (ChessPiece | null)[][],
+  pos: Position,
+  king: ChessPiece
+): Position[] => {
+  if (king.hasMoved) return [];
+  if (isKingInCheck(board, king.color)) return [];
+
+  const moves: Position[] = [];
+  const row = pos.row;
+
+  // Kingside (short castle): rook at col 7, king ends at col 6.
+  const kingsideRook = board[row][7];
+  if (
+    kingsideRook && kingsideRook.type === 'rook' && kingsideRook.color === king.color && !kingsideRook.hasMoved &&
+    !board[row][5] && !board[row][6] &&
+    !isSquareAttacked(board, { row, col: 5 }, king.color) &&
+    !isSquareAttacked(board, { row, col: 6 }, king.color)
+  ) {
+    moves.push({ row, col: 6 });
+  }
+
+  // Queenside (long castle): rook at col 0, king ends at col 2.
+  const queensideRook = board[row][0];
+  if (
+    queensideRook && queensideRook.type === 'rook' && queensideRook.color === king.color && !queensideRook.hasMoved &&
+    !board[row][1] && !board[row][2] && !board[row][3] &&
+    !isSquareAttacked(board, { row, col: 3 }, king.color) &&
+    !isSquareAttacked(board, { row, col: 2 }, king.color)
+  ) {
+    moves.push({ row, col: 2 });
+  }
+
+  return moves;
+};
+
+// True if any piece NOT of `defendingColor` can move onto `pos`.
+const isSquareAttacked = (
+  board: (ChessPiece | null)[][],
+  pos: Position,
+  defendingColor: PieceColor
+): boolean => {
+  for (let row = 0; row < 8; row++) {
+    for (let col = 0; col < 8; col++) {
+      const piece = board[row][col];
+      if (piece && piece.color !== defendingColor) {
+        const moves = getPossibleMoves(board, { row, col }, false);
+        if (moves.some(m => m.row === pos.row && m.col === pos.col)) {
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+};
+
 // Make a move on the board
 export const makeMove = (
   board: (ChessPiece | null)[][],
@@ -255,6 +317,18 @@ export const makeMove = (
         type: move.promotion || 'queen',
         hasMoved: true 
       };
+    }
+
+    // Castling: king moved two columns — bring the corresponding rook along.
+    if (piece.type === 'king' && Math.abs(move.to.col - move.from.col) === 2) {
+      const row = move.from.row;
+      const rookFromCol = move.to.col > move.from.col ? 7 : 0;
+      const rookToCol = move.to.col > move.from.col ? 5 : 3;
+      const rook = newBoard[row][rookFromCol];
+      if (rook) {
+        newBoard[row][rookToCol] = { ...rook, hasMoved: true };
+        newBoard[row][rookFromCol] = null;
+      }
     }
   }
   
@@ -278,20 +352,7 @@ export const isKingInCheck = (board: (ChessPiece | null)[][], color: PieceColor)
   
   if (!kingPos) return false;
   
-  // Check if any opponent piece can attack king
-  for (let row = 0; row < 8; row++) {
-    for (let col = 0; col < 8; col++) {
-      const piece = board[row][col];
-      if (piece && piece.color !== color) {
-        const moves = getPossibleMoves(board, { row, col }, false);
-        if (moves.some(m => m.row === kingPos!.row && m.col === kingPos!.col)) {
-          return true;
-        }
-      }
-    }
-  }
-  
-  return false;
+  return isSquareAttacked(board, kingPos, color);
 };
 
 // Check if checkmate or stalemate
