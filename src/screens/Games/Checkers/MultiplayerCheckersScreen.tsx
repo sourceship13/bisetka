@@ -625,7 +625,9 @@ const MultiplayerCheckersScreen = ({navigation, route}: any) => {
         <>
           <Text style={styles.privateTitleText}>Private Game Created</Text>
           <Text style={styles.roomCodeLabel}>Room Code:</Text>
-          <Text style={styles.roomCode}>{roomCode}</Text>
+          <View style={styles.roomCodeBox}>
+            <Text style={styles.roomCode}>{roomCode}</Text>
+          </View>
           <Text style={styles.waitingText}>Share this code with your friend</Text>
           <Text style={styles.helpText}>Waiting for opponent to join...</Text>
         </>
@@ -951,11 +953,22 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.7)',
     marginTop: 20,
   },
+  roomCodeBox: {
+    marginTop: 10,
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
   roomCode: {
     fontSize: 40,
     fontWeight: 'bold',
     color: '#FFD700',
-    marginTop: 8,
     letterSpacing: 6,
   },
   cancelButton: {

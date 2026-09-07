@@ -1051,7 +1051,7 @@ const styles = StyleSheet.create({
   cancelText:         { color:'#fff', fontSize:16, fontWeight:'600' },
   roomCreatedTitle:   { color:'#ffffff', fontSize:24, fontWeight:'bold', textAlign:'center', marginBottom:8 },
   roomCodeLabel:      { color:'#bdc3c7', fontSize:15, textAlign:'center', marginBottom:12 },
-  roomCodeBox:        { backgroundColor:'rgba(255,255,255,0.15)', borderRadius:12, paddingHorizontal:32, paddingVertical:16, marginBottom:8 },
+  roomCodeBox:        { backgroundColor:'rgba(255,255,255,0.15)', borderRadius:16, paddingHorizontal:32, paddingVertical:16, marginBottom:8, shadowColor:'#000', shadowOffset:{width:0, height:4}, shadowOpacity:0.3, shadowRadius:8, elevation:6 },
   roomCodeValue:      { color:'#ffffff', fontSize:42, fontWeight:'bold', letterSpacing:6, textAlign:'center' },
   statusBar:          { alignItems:'center', paddingVertical:10, backgroundColor:'transparent', paddingHorizontal:10 },
   turnText:           { fontSize:16, fontWeight:'600', color:'#fff', textShadowColor:'rgba(0,0,0,0.8)', textShadowOffset:{width:0,height:1}, textShadowRadius:4 },

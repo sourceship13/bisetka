@@ -778,7 +778,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16, paddingVertical: 10, fontSize: 18, textAlign: 'center', letterSpacing: 4,
   },
   // Code
-  codeBox: {marginTop: 20, alignItems: 'center'},
+  codeBox: {
+    marginTop: 20,
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 28,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 4},
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
   codeLabel: {color: '#aaa', fontSize: 13},
   codeValue: {color: '#F5A623', fontSize: 32, fontWeight: 'bold', letterSpacing: 6, marginTop: 4},
   // Score bar

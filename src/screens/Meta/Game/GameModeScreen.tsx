@@ -89,7 +89,7 @@ const formatSuccessMessage = (
 
 const GameModeScreen: React.FC<Props> = ({route, navigation}) => {
   const { translate } = useI18n();
-  const {gameType, preferredMode, teamMode: teamModeParam} = route.params as any;
+  const {gameType, preferredMode, teamMode: teamModeParam, privateAction, joinCode: privateJoinCode} = route.params as any;
   const {user} = useAuth();
   const label = GAME_LABELS[gameType] || {title: 'Game', description: ''};
 
@@ -345,8 +345,16 @@ const GameModeScreen: React.FC<Props> = ({route, navigation}) => {
         gameSessionsService.createAiMatch(gameType, 'medium', allowReplaceAI),
       );
     } else if (preferredMode === 'private') {
+      // GameInfoScreen already asked create-vs-join before sending us here
+      // (e.g. for 8-ball, which has no dedicated screen mapping) — respect
+      // that decision instead of always assuming "create".
+      const isJoin = privateAction === 'join' && !!privateJoinCode;
       if (SOCKET_BASED_GAMES.has(gameType)) {
-        navigateToGame('private-create', {});
+        navigateToGame(isJoin ? 'private-join' : 'private-create', isJoin ? {code: privateJoinCode} : {});
+      } else if (isJoin) {
+        withLoading('join', 'private-join', async () =>
+          gameSessionsService.joinPrivateMatch(gameType, privateJoinCode),
+        );
       } else {
         withLoading('private', 'private-create', async () =>
           gameSessionsService.createPrivateMatch(gameType),

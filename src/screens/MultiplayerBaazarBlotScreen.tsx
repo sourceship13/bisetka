@@ -395,11 +395,20 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
         setGameMode('private');
       });
 
+      // Another real player joined a still-filling private room (2v2) — just
+      // refresh the roster so the waiting screen can show "X/4 joined".
+      // baazar_match_found (below) is what actually starts readiness/game-start,
+      // and only fires once every seat is filled.
+      socket.on('baazar_room_players_update', (data: { players: GamePlayer[] }) => {
+        setPlayers(data.players);
+      });
+
       // Auto-start private flows after listeners are ready
       if (initialMode === 'private-create') {
         socket.emit('create_baazar_private_room', {
           userId,
           desiredCode: initialJoinCode,
+          teamMode,
         });
       } else if (initialMode === 'private-join' && initialJoinCode) {
         socket.emit('join_baazar_private_room', {
@@ -755,14 +764,20 @@ const MultiplayerBaazarBlotScreen = ({ navigation, route }: any) => {
           <Text style={styles.bigTitle}>🔒 Private Room</Text>
           <Text style={styles.subtitle}>Share this code with your opponent</Text>
 
-          <View style={[styles.infoBox, { paddingVertical: 24, paddingHorizontal: 32, marginVertical: 24 }]}>
+          <View style={[styles.infoBox, { paddingVertical: 24, paddingHorizontal: 32, marginVertical: 24, backgroundColor: 'rgba(0,0,0,0.35)', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 6 }]}>
             <Text style={{ fontSize: 42, fontWeight: 'bold', color: '#FFD700', letterSpacing: 8 }}>
               {roomCode}
             </Text>
           </View>
 
           <ActivityIndicator size="small" color="#FFD700" style={{ marginTop: 16 }} />
-          <Text style={[styles.statusText, { marginTop: 12 }]}>Waiting for opponent to join…</Text>
+          {teamMode === 'full-multiplayer' ? (
+            <Text style={[styles.statusText, { marginTop: 12 }]}>
+              Waiting for players… ({Math.max(1, players.filter(p => !p.isAI).length)}/4 joined)
+            </Text>
+          ) : (
+            <Text style={[styles.statusText, { marginTop: 12 }]}>Waiting for opponent to join…</Text>
+          )}
         </View>
       </SafeAreaView>
     </ImageBackground>

@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Modal,
+  TextInput,
 } from 'react-native';
 import { useI18n } from '../../../hooks/useI18n';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -124,6 +125,12 @@ const GameInfoScreen: React.FC<Props> = ({ route, navigation }) => {
   const matchmakingCancelledRef = useRef(false);
   // Track which user we sent into matchmaking so we can cancel server-side.
   const matchmakingUserIdRef = useRef<string | null>(null);
+  // Private mode always asks create-vs-join first — none of the per-game
+  // navigation below runs until the user picks one of these.
+  const [showPrivateModal, setShowPrivateModal] = useState(false);
+  const [showJoinInput, setShowJoinInput] = useState(false);
+  const [privateJoinCode, setPrivateJoinCode] = useState('');
+  const [joiningPrivate, setJoiningPrivate] = useState(false);
 
   useEffect(() => {
     fetchGameInfo();
@@ -356,6 +363,13 @@ const GameInfoScreen: React.FC<Props> = ({ route, navigation }) => {
       return;
     }
 
+    // Private mode never auto-creates a room — always ask the user whether
+    // they want to create a new game or join a friend's via code first.
+    if (modeToPlay === 'private') {
+      setShowPrivateModal(true);
+      return;
+    }
+
     // Blot / Baazar Blot already collected mode + team mode on this screen.
     // Skip GameModeScreen entirely and route directly — going through GameMode
     // adds an extra mount/unmount cycle that has been known to crash Fabric's
@@ -366,19 +380,6 @@ const GameInfoScreen: React.FC<Props> = ({ route, navigation }) => {
         // Single-player blot vs AI — no server session needed.
         const target = gameType === 'baazar-blot' ? 'BaazarBlot' : 'Blot';
         navigation.navigate(target as any);
-        return;
-      }
-      if (modeToPlay === 'private') {
-        // Private rooms have no "finding opponent" — navigate immediately so
-        // the multiplayer screen can show the room code / join UI.
-        const target =
-          gameType === 'baazar-blot' ? 'MultiplayerBaazarBlot' : 'MultiplayerBlot';
-        navigation.navigate(target as any, {
-          userId,
-          mode: 'private-create',
-          difficulty: 'medium',
-          teamMode: selectedTeamMode,
-        });
         return;
       }
       // Random match — run matchmaking inline and navigate only when matched.
@@ -439,21 +440,6 @@ const GameInfoScreen: React.FC<Props> = ({ route, navigation }) => {
               ...session,
               gameType,
               mode: 'ai',
-              difficulty: session?.difficulty || 'medium',
-            },
-          });
-          return;
-        }
-        if (modeToPlay === 'private') {
-          session = await gameSessionsService.createPrivateMatch(
-            gameType as any,
-          );
-          setShowSearchingModal(true);
-          navigation.navigate('BilliardsGame' as any, {
-            session: {
-              ...session,
-              gameType,
-              mode: 'private-create',
               difficulty: session?.difficulty || 'medium',
             },
           });
@@ -581,6 +567,100 @@ const GameInfoScreen: React.FC<Props> = ({ route, navigation }) => {
       bisetkaId,
       bisetkaName,
       preferredMode: modeToPlay,
+      teamMode: isTeamGame ? selectedTeamMode : undefined,
+    } as any);
+  };
+
+  // Runs only after the user has explicitly chosen create-or-join in the
+  // private mode modal — mirrors the per-game routing in handlePlayNow above
+  // but with the decision (and join code, if any) already made.
+  const proceedPrivateMode = async (action: 'create' | 'join', code?: string) => {
+    setShowPrivateModal(false);
+    setShowJoinInput(false);
+    setPrivateJoinCode('');
+    const mode: 'private-create' | 'private-join' =
+      action === 'join' ? 'private-join' : 'private-create';
+    const userId = user?.id || 'guest';
+
+    if (isTeamGame) {
+      const target =
+        gameType === 'baazar-blot' ? 'MultiplayerBaazarBlot' : 'MultiplayerBlot';
+      navigation.navigate(target as any, {
+        userId,
+        mode,
+        difficulty: 'medium',
+        teamMode: selectedTeamMode,
+        joinCode: code,
+      });
+      return;
+    }
+
+    const isBilliards = gameType === 'billiards' || gameType === '9-ball';
+    if (isBilliards) {
+      setJoiningPrivate(true);
+      try {
+        const session =
+          action === 'join'
+            ? await gameSessionsService.joinPrivateMatch(gameType as any, code!)
+            : await gameSessionsService.createPrivateMatch(gameType as any);
+        navigation.navigate('BilliardsGame' as any, {
+          session: {
+            ...session,
+            gameType,
+            mode,
+            difficulty: session?.difficulty || 'medium',
+          },
+        });
+      } catch (err: any) {
+        BisetkaAlert.error(
+          action === 'join' ? 'Unable to join game' : 'Unable to start game',
+          err?.message || 'Please try again.',
+        );
+      } finally {
+        setJoiningPrivate(false);
+      }
+      return;
+    }
+
+    const SOCKET_MULTIPLAYER_TARGET: Record<string, string> = {
+      'chess': 'MultiplayerChess',
+      'chess-multiplayer': 'MultiplayerChess',
+      'checkers': 'MultiplayerCheckers',
+      'mrotsi': 'MultiplayerMrotsi',
+      'nardi': 'Nardi',
+      'poker': 'PokerRoom',
+    };
+    const directTarget = SOCKET_MULTIPLAYER_TARGET[gameType];
+    if (directTarget) {
+      if (directTarget === 'PokerRoom') {
+        const fn: any = (user as any)?.fullName;
+        const resolvedName: string =
+          typeof fn === 'string' && fn
+            ? fn
+            : (fn?.givenName || fn?.familyName)
+              ? [fn.givenName, fn.familyName].filter(Boolean).join(' ')
+              : (user as any)?.username || (user as any)?.email || 'Guest';
+        navigation.navigate('PokerRoom' as any, {
+          session: { userId, displayName: resolvedName },
+          gameType: gameType as any,
+          mode,
+          joinCode: code,
+        });
+      } else {
+        navigation.navigate(directTarget as any, { userId, mode, joinCode: code });
+      }
+      return;
+    }
+
+    // No dedicated screen mapped here (e.g. 8-ball) — let GameModeScreen
+    // carry out the decision we already made instead of re-deciding itself.
+    navigation.navigate('GameMode', {
+      gameType: gameType as any,
+      bisetkaId,
+      bisetkaName,
+      preferredMode: 'private',
+      privateAction: action,
+      joinCode: code,
       teamMode: isTeamGame ? selectedTeamMode : undefined,
     } as any);
   };
@@ -874,6 +954,87 @@ const GameInfoScreen: React.FC<Props> = ({ route, navigation }) => {
               style={styles.modalDismiss}>
               <Text style={styles.modalDismissText}>Got It</Text>
             </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Private mode: create-vs-join choice, then room code entry */}
+      <Modal
+        visible={showPrivateModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowPrivateModal(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Private Match</Text>
+            {!showJoinInput ? (
+              <>
+                <Text style={styles.modalBody}>
+                  Create a new room and share the code, or join a friend's
+                  room with a code they sent you.
+                </Text>
+                <TouchableOpacity
+                  onPress={() => proceedPrivateMode('create')}
+                  style={styles.modalDismiss}>
+                  <Text style={styles.modalDismissText}>Create New Game</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => setShowJoinInput(true)}
+                  style={[styles.modalDismiss, styles.modalSecondaryBtn]}>
+                  <Text style={styles.modalDismissText}>Join with Code</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => setShowPrivateModal(false)}
+                  style={styles.modalCancelLink}>
+                  <Text style={styles.modalCancelLinkText}>Cancel</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <>
+                <Text style={styles.modalBody}>
+                  Enter the room code your friend shared.
+                </Text>
+                <TextInput
+                  value={privateJoinCode}
+                  onChangeText={t => setPrivateJoinCode(t.toUpperCase())}
+                  placeholder="ROOM CODE"
+                  placeholderTextColor="rgba(255,255,255,0.4)"
+                  autoCapitalize="characters"
+                  autoCorrect={false}
+                  maxLength={8}
+                  editable={!joiningPrivate}
+                  style={styles.codeInput}
+                />
+                {joiningPrivate ? (
+                  <ActivityIndicator
+                    size="large"
+                    color="#fbbf24"
+                    style={{ marginTop: 18 }}
+                  />
+                ) : (
+                  <TouchableOpacity
+                    onPress={() => {
+                      if (!privateJoinCode.trim()) {
+                        BisetkaAlert.error('Error', 'Please enter a room code');
+                        return;
+                      }
+                      proceedPrivateMode('join', privateJoinCode.trim());
+                    }}
+                    style={styles.modalDismiss}>
+                    <Text style={styles.modalDismissText}>Join Game</Text>
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity
+                  onPress={() => {
+                    setShowJoinInput(false);
+                    setPrivateJoinCode('');
+                  }}
+                  disabled={joiningPrivate}
+                  style={styles.modalCancelLink}>
+                  <Text style={styles.modalCancelLinkText}>Back</Text>
+                </TouchableOpacity>
+              </>
+            )}
           </View>
         </View>
       </Modal>
@@ -1285,6 +1446,24 @@ const styles = StyleSheet.create({
     backgroundColor: '#7c4dff',
   },
   modalDismissText: { color: '#fff', fontWeight: '800' },
+  modalSecondaryBtn: { backgroundColor: '#374151' },
+  modalCancelLink: { marginTop: 14, padding: 6 },
+  modalCancelLinkText: { color: 'rgba(255,255,255,0.6)', fontWeight: '600' },
+  codeInput: {
+    width: '100%',
+    marginTop: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: '800',
+    letterSpacing: 4,
+    textAlign: 'center',
+  },
 });
 
 export default GameInfoScreen;

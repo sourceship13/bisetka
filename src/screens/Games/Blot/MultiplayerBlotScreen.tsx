@@ -1491,7 +1491,9 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
           {roomCode ? (
             <>
               <Text style={styles.roomCodeLabel}>Room Code:</Text>
-              <Text style={styles.roomCodeText}>{roomCode}</Text>
+              <View style={styles.roomCodeBox}>
+                <Text style={styles.roomCodeText}>{roomCode}</Text>
+              </View>
               <Text style={styles.waitingText}>Share this code with your friend</Text>
             </>
           ) : null}
@@ -2132,11 +2134,22 @@ const styles = StyleSheet.create({
     color: '#666',
     marginTop: 20,
   },
+  roomCodeBox: {
+    marginVertical: 10,
+    paddingVertical: 14,
+    paddingHorizontal: 30,
+    backgroundColor: 'rgba(255,255,255,0.85)',
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
+  },
   roomCodeText: {
     fontSize: 36,
     fontWeight: 'bold',
     color: '#007AFF',
-    marginVertical: 10,
     letterSpacing: 4,
   },
   waitingText: {
