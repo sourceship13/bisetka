@@ -2352,20 +2352,30 @@ function clonePiece(piece) {
   // Disc pieces (bg_checker, checker) should lay FLAT on the board surface. The source GLB
   // for nardi/checkers checkers is roughly dome/ball shaped, so rotation alone can't flatten
   // it — we squash whichever axis is currently the tallest to ~22% of its size, leaving the
-  // other two axes (the "face" of the disc) untouched. Position/orientation are preserved.
+  // other two axes (the "face" of the disc) untouched, then re-anchor the base (see below).
   const isCheckerDisc = piece.pieceType === 'bg_checker' || piece.pieceType === 'checker';
   if (isCheckerDisc) {
     clone.rotation.x = 0;
     const _bb = new THREE.Box3().setFromObject(clone);
     const _sz = _bb.getSize(new THREE.Vector3());
     const FLAT_RATIO = 0.22;
+    let _flatAxis = 'z';
     if (_sz.z >= _sz.x && _sz.z >= _sz.y) {
-      clone.scale.z *= FLAT_RATIO;
+      clone.scale.z *= FLAT_RATIO; _flatAxis = 'z';
     } else if (_sz.y >= _sz.x && _sz.y >= _sz.z) {
-      clone.scale.y *= FLAT_RATIO;
+      clone.scale.y *= FLAT_RATIO; _flatAxis = 'y';
     } else {
-      clone.scale.x *= FLAT_RATIO;
+      clone.scale.x *= FLAT_RATIO; _flatAxis = 'x';
     }
+    // Squashing scales around the source GLB's own pivot, which is rarely at
+    // its base — that leftover offset is what made pieces hover with a visible
+    // gap/shadow above the board. Re-anchor so the piece's rendered base sits
+    // exactly at local 0 on the squashed axis, matching what updatePieces()
+    // expects `posZ` to mean (the height of the piece's resting surface).
+    clone.updateMatrixWorld(true);
+    const _bbAfter = new THREE.Box3().setFromObject(clone);
+    const _baseAfter = _bbAfter.min[_flatAxis];
+    clone.position[_flatAxis] -= _baseAfter;
   } else {
     clone.rotation.x = Math.PI / 2;
   }
