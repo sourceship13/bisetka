@@ -1199,7 +1199,7 @@ const NardiScreen = ({ navigation, route }: any) => {
     // Schedule showing each state with delays (give dice time to land first)
     // Slower pacing so the player can clearly see each AI move animate one at a time.
     let delay = arEnabled ? 2200 : 1400; // initial wait (longer in AR while dice settle)
-    const PER_MOVE_DELAY = 1500; // gap between consecutive AI moves
+    const PER_MOVE_DELAY = 2100; // gap between consecutive AI moves (40% slower than the original 1500ms)
     statesSequence.forEach((s, i) => {
       const t = setTimeout(() => {
         setGameState(s);
