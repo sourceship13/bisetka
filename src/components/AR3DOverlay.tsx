@@ -905,14 +905,18 @@ function _stepPhysDice() {
     _physState.p.forEach((d, i) => {
       const tgt = _physState.restTargets[i];
       d.pos.lerp(tgt, 0.08);
+      if (d.qTarget) d.q.slerp(d.qTarget, 0.12);
       _physMeshes[i].position.copy(d.pos);
+      _physMeshes[i].quaternion.copy(d.q);
       if (d.pos.distanceTo(tgt) > 0.001) allArrived = false;
     });
     if (allArrived) {
       // Snap exactly to targets and stop
       _physState.p.forEach((d, i) => {
         d.pos.copy(_physState.restTargets[i]);
+        if (d.qTarget) d.q.copy(d.qTarget);
         _physMeshes[i].position.copy(d.pos);
+        _physMeshes[i].quaternion.copy(d.q);
       });
       _physState.sliding = false;
       // Apply green tint now that dice are in their final resting positions
@@ -923,7 +927,15 @@ function _stepPhysDice() {
 
   // ── Physics simulation ────────────────────────────────────────────────────
   _physState.p.forEach((d, i) => {
-    if (d.settled) return;
+    if (d.settled) {
+      // Already stopped moving — keep easing rotation toward the flat target
+      // face independently of the other die, so a slow/stuck second die can't
+      // leave this one frozen mid-tumble indefinitely.
+      if (d.qTarget) d.q.slerp(d.qTarget, 0.12);
+      _physMeshes[i].position.copy(d.pos);
+      _physMeshes[i].quaternion.copy(d.q);
+      return;
+    }
     d.tf++;
     // Gravity
     d.vel.z -= 9.81 * DT;
@@ -955,7 +967,11 @@ function _stepPhysDice() {
     if (onFloor && lSpd < 0.07 && aSpd < 1.4 && d.tf >= _DIE_MIN_FRAMES) {
       if (++d.sf >= 38) {
         d.settled = true; d.pos.z = _DIE_FLRZ;
-        d.vel.set(0,0,0); d.av.set(0,0,0); d.q.copy(_settleQ(d.tv));
+        d.vel.set(0,0,0); d.av.set(0,0,0);
+        // Don't snap rotation instantly — whatever face the tumble stopped on
+        // (often a corner/edge) gets slerped to the flat target above, on the
+        // next frame this die is still `settled`, independent of the other die.
+        d.qTarget = _settleQ(d.tv);
       }
     } else d.sf = 0;
     _physMeshes[i].position.copy(d.pos);
@@ -2371,7 +2387,7 @@ function clonePiece(piece) {
     // its base — that leftover offset is what made pieces hover with a visible
     // gap/shadow above the board. Re-anchor so the piece's rendered base sits
     // exactly at local 0 on the squashed axis, matching what updatePieces()
-    // expects `posZ` to mean (the height of the piece's resting surface).
+    // expects posZ to mean (the height of the piece's resting surface).
     clone.updateMatrixWorld(true);
     const _bbAfter = new THREE.Box3().setFromObject(clone);
     const _baseAfter = _bbAfter.min[_flatAxis];
