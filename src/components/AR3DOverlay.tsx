@@ -181,6 +181,8 @@ export interface AR3DOverlayProps {
   pieceColorRed?: string;
   /** CSS hex color for the 'black' player pieces. Default: '#1e2d3d' */
   pieceColorBlack?: string;
+  /** CSS hex color for the possible-move dots shown on the board. Default: '#ffffff' */
+  moveDotColor?: string;
   /** When true, suppresses the procedural chess/checkerboard overlay on top of the board GLB. */
   hideCheckerboard?: boolean;
   /** CSS hex string to override ALL board GLB mesh colors (e.g. '#ffffff' for white). Leave undefined to keep original textures. */
@@ -448,6 +450,7 @@ function buildSceneHTML(
   spawnYaw:        number,
   pieceColorRed:   number,
   pieceColorBlack: number,
+  moveDotColor:    number,
   cardUri:    string | null,
   cardBackUri: string | null,
   localThreePath: string | null = null,
@@ -478,6 +481,7 @@ function buildSceneHTML(
   const TABLE_URI_JS  = tableUri ? JSON.stringify(tableUri) : 'null';
   const RED_HEX   = `0x${pieceColorRed.toString(16).padStart(6, '0')}`;
   const BLACK_HEX = `0x${pieceColorBlack.toString(16).padStart(6, '0')}`;
+  const MOVE_DOT_HEX = `0x${moveDotColor.toString(16).padStart(6, '0')}`;
   const HIDE_CHECKERBOARD_JS = hideCheckerboard ? 'true' : 'false';
   const BOARD_SCALE_JS = boardScale.toFixed(4);
   const BOARD_STYLE_JS = JSON.stringify(boardStyle);
@@ -3338,7 +3342,7 @@ function updatePieces(pieces) {
 // ── Possible-move dots ────────────────────────────────────────────────────────
 const dotMeshes = [];
 const dotGeo    = new THREE.CircleGeometry(SQUARE_W * 0.25, 20);
-const dotMat    = new THREE.MeshBasicMaterial({ color:0xffffff, transparent:true, opacity:0.60, side:THREE.DoubleSide });
+const dotMat    = new THREE.MeshBasicMaterial({ color:${MOVE_DOT_HEX}, transparent:true, opacity:0.60, side:THREE.DoubleSide });
 
 function updateDots(moves) {
   dotMeshes.forEach(d => boardGroup.remove(d));
@@ -3587,6 +3591,7 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
   onDiceRolled,
   pieceColorRed   = '#c0392b',
   pieceColorBlack = '#1e2d3d',
+  moveDotColor    = '#ffffff',
   hideCheckerboard = false,
   boardScale = 1.0,
   boardStyle = 'default',
@@ -3810,9 +3815,10 @@ const AR3DOverlay = forwardRef<AR3DOverlayHandle, AR3DOverlayProps>(function AR3
         && Object.keys(chessPieceUris).length === 0) return null;
     const redInt  = parseInt(pieceColorRed.replace(/^#/, ''), 16);
     const blackInt = parseInt(pieceColorBlack.replace(/^#/, ''), 16);
+    const moveDotColorInt = parseInt(moveDotColor.replace(/^#/, ''), 16);
     const result = buildSceneHTML(
       fov, boardUri, piecesUri, chessPieceUris, squareWoodTextureUris, tableUri, spawnYaw,
-      redInt, blackInt, cardUri, cardBackUri,
+      redInt, blackInt, moveDotColorInt, cardUri, cardBackUri,
       localThreePath, localGltfPath, hideCheckerboard, boardScale, boardStyle,
       boardY, boardGlbForceFlat, boardTiltX, boardColorOverride ?? null, boardSurfaceImageUri ?? null,
       tableDist ?? null, boardFixed, boardFixedZoom,

@@ -601,6 +601,7 @@ const ChessScreen = ({navigation, route}: any) => {
         boardGlbPath={boardConfigs[boardIdx].path}
         boardGlbHasEmbeddedChessPieces={!!boardConfigs[boardIdx].embeddedPieces}
         pieceColorBlack="#dc2626"
+        moveDotColor="#22c55e"
         hideCheckerboard={true}
         boardFixed
         boardFixedZoom={0.75}
