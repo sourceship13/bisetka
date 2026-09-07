@@ -28,7 +28,7 @@ import {playPieceMoveSound} from '../../../utils/nardiSound';
 import { useI18n } from '../../../hooks/useI18n';
 import useYourTurnSound from '../../../hooks/useYourTurnSound';
 import InGameChat from '../../../components/InGameChat';
-import SyncedYouTubePlayer from '../../../components/SyncedYouTubePlayer';
+import SyncedYouTubePlayer, { DEFAULT_TRACK } from '../../../components/SyncedYouTubePlayer';
 import {apiConfig} from '../../../libs/utils/api.utils';
 
 // ─── types ────────────────────────────────────────────────────────────────────
@@ -833,6 +833,7 @@ const MultiplayerCheckersScreen = ({navigation, route}: any) => {
           <SyncedYouTubePlayer
             roomId={mode === 'game' && roomId ? roomId : null}
             visible={true}
+            defaultTrack={DEFAULT_TRACK}
           />
 
           {/* Room name modal */}

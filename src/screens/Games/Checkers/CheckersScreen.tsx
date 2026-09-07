@@ -16,7 +16,7 @@ import { socketService } from '../../../services/SocketService';
 import { v4 as uuidv4 } from 'uuid';
 import { useGameEndRefresh } from '../../../libs/hooks/useGameEndRefresh';
 import InGameChat from '../../../components/InGameChat';
-import SyncedYouTubePlayer from '../../../components/SyncedYouTubePlayer';
+import SyncedYouTubePlayer, { DEFAULT_TRACK } from '../../../components/SyncedYouTubePlayer';
 import { apiService } from '../../../services/api.service';
 import { useAuth } from '../../../libs/hooks/useAuth';
 import { playPieceMoveSound } from '../../../utils/nardiSound';
@@ -1035,7 +1035,7 @@ const CheckersScreen = ({ navigation, route }: any) => {
       <SyncedYouTubePlayer
         roomId={isMultiplayer && roomId ? roomId : null}
         visible={true}
-        defaultTrack={{ videoId: '_2kPf5NgVsY', title: 'Chill Mix', playlistId: 'RD_2kPf5NgVsY' }}
+        defaultTrack={DEFAULT_TRACK}
       />
     </View>
   );

@@ -26,7 +26,7 @@ import ReAnimated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-
 import ExpandableView from '../../../../components/global/ExpandableView';
 import GameToolbarControls from '../../../../components/global/GameToolbarControls';
 import AraratBackground from '../../../../components/AraratBackground';
-import SyncedYouTubePlayer from '../../../../components/SyncedYouTubePlayer';
+import SyncedYouTubePlayer, { DEFAULT_TRACK } from '../../../../components/SyncedYouTubePlayer';
 import InGameChat from '../../../../components/InGameChat';
 import { playCardFlipSound } from '../../../../utils/nardiSound';
 import apiService from '../../../../services/api.service';
@@ -686,7 +686,7 @@ const BlackjackScreen = ({ navigation }: any) => {
         gameType="blackjack"
         visible={true}
       />
-      <SyncedYouTubePlayer roomId={null} visible={true} />
+      <SyncedYouTubePlayer roomId={null} visible={true} defaultTrack={DEFAULT_TRACK} />
     </View>
   );
 };

@@ -33,13 +33,20 @@ import apiConfig from '../libs/utils/api.utils';
 
 type MusicAction = 'load' | 'play' | 'pause' | 'seek' | 'enqueue' | 'dequeue' | 'queue_sync';
 
-interface QueueItem {
+export interface QueueItem {
   videoId: string;
   title: string;
   channel?: string;
   thumbnail?: string;
   playlistId?: string; // YouTube list= param for radio/mix continuation
 }
+
+// Track every game screen autoplays on mount unless the player/room already has one queued.
+export const DEFAULT_TRACK: QueueItem = {
+  videoId: '_2kPf5NgVsY',
+  title: 'Chill Mix',
+  playlistId: 'RD_2kPf5NgVsY',
+};
 
 interface MusicPayload {
   roomId: string;

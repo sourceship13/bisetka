@@ -19,7 +19,7 @@ import { useI18n } from '../../../hooks/useI18n';
 import useYourTurnSound from '../../../hooks/useYourTurnSound';
 import AraratBackground from '../../../components/AraratBackground';
 import AR3DOverlay, {type AR3DOverlayHandle, type ARCard} from '../../../components/AR3DOverlay';
-import SyncedYouTubePlayer from '../../../components/SyncedYouTubePlayer';
+import SyncedYouTubePlayer, { DEFAULT_TRACK } from '../../../components/SyncedYouTubePlayer';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { socketService } from '../../../services/SocketService';
 import { playCardFlipSound } from '../../../utils/nardiSound';
@@ -2053,6 +2053,7 @@ const MultiplayerBlotScreen = ({ navigation, route }: any) => {
       <SyncedYouTubePlayer
         roomId={currentRoom?.roomId ?? null}
         visible={true}
+        defaultTrack={DEFAULT_TRACK}
       />
     </View>
   );

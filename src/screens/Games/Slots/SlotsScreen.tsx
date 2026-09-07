@@ -24,7 +24,7 @@ import ReAnimated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-
 import ExpandableView from '../../../components/global/ExpandableView';
 import { apiService } from '../../../services/api.service';
 import { v4 as uuidv4 } from 'uuid';
-import SyncedYouTubePlayer from '../../../components/SyncedYouTubePlayer';
+import SyncedYouTubePlayer, { DEFAULT_TRACK } from '../../../components/SyncedYouTubePlayer';
 import InGameChat from '../../../components/InGameChat';
 import { playDiceRollSound, playCoinDropSound } from '../../../utils/nardiSound';
 
@@ -502,7 +502,7 @@ const SlotsScreen = ({ navigation }: any) => {
         gameType="slots"
         visible={true}
       />
-      <SyncedYouTubePlayer roomId={null} visible={true} />
+      <SyncedYouTubePlayer roomId={null} visible={true} defaultTrack={DEFAULT_TRACK} />
     </View>
   );
 };

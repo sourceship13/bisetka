@@ -21,7 +21,7 @@ import RoomNameModal from '../../../components/RoomNameModal';
 import ReAnimated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import Photosphere360Background from '../../../components/Photosphere360Background';
 import AR3DOverlay, {type AR3DOverlayHandle} from '../../../components/AR3DOverlay';
-import SyncedYouTubePlayer from '../../../components/SyncedYouTubePlayer';
+import SyncedYouTubePlayer, { DEFAULT_TRACK } from '../../../components/SyncedYouTubePlayer';
 import ExpandableView from '../../../components/global/ExpandableView';
 import {socketService} from '../../../services/SocketService';
 import tokenService from '../../../services/token.service';
@@ -744,6 +744,7 @@ const MultiplayerMrotsiScreen = ({navigation, route}: any) => {
     <SyncedYouTubePlayer
       roomId={screen === 'game' && roomIdRef.current ? roomIdRef.current : null}
       visible={true}
+      defaultTrack={DEFAULT_TRACK}
     />
     </View>
   );

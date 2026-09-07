@@ -36,7 +36,7 @@ import BisetkaAlert from '../../../utils/BisetkaAlert';
 import InGameChat from '../../../components/InGameChat';
 import {apiConfig} from '../../../libs/utils/api.utils';
 import useDeviceType from '../../../hooks/useDeviceType';
-import SyncedYouTubePlayer from '../../../components/SyncedYouTubePlayer';
+import SyncedYouTubePlayer, { DEFAULT_TRACK } from '../../../components/SyncedYouTubePlayer';
 import DynamicBilliardBall, { type BilliardBallNumber } from '../../../components/Games/DynamicBilliardBall';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'BilliardsGame'>;
@@ -2524,7 +2524,7 @@ const BilliardsGameScreen: React.FC<Props> = ({route, navigation}) => {
       />
     </SafeAreaView>
     </View>
-      <SyncedYouTubePlayer roomId={null} visible={true} />
+      <SyncedYouTubePlayer roomId={null} visible={true} defaultTrack={DEFAULT_TRACK} />
     </View>
   );
 };

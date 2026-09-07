@@ -51,7 +51,7 @@ import { apiService } from '../../../services/api.service';
 import { useAuth } from '../../../libs/hooks/useAuth';
 import { useAchievements } from '../../../contexts/AchievementContext';
 import { v4 as uuidv4 } from 'uuid';
-import SyncedYouTubePlayer from '../../../components/SyncedYouTubePlayer';
+import SyncedYouTubePlayer, { DEFAULT_TRACK } from '../../../components/SyncedYouTubePlayer';
 import { playPieceMoveSound, playDiceRollSound } from '../../../utils/nardiSound';
 import useYourTurnSound from '../../../hooks/useYourTurnSound';
 import { chooseBestAiSequence } from '../../../game/nardiAI';
@@ -2224,7 +2224,7 @@ const NardiScreen = ({ navigation, route }: any) => {
         gameType="nardi"
         visible={isMultiplayer && mpStatus === 'playing' && !!roomId}
       />
-      <SyncedYouTubePlayer roomId={null} visible={true} />
+      <SyncedYouTubePlayer roomId={null} visible={true} defaultTrack={DEFAULT_TRACK} />
       {/* 3D dice overlay — local player's AR dice only (spinning then settled). */}
       {(!arEnabled && (diceAnimating ? pendingDice : settledDice)) && (
         <View

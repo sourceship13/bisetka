@@ -30,7 +30,7 @@ import tokenService from '../../../services/token.service';
 import RoomInfoDrawer from '../../../components/RoomInfoDrawer';
 import { v4 as uuidv4 } from 'uuid';
 import {apiConfig} from '../../../libs/utils/api.utils';
-import SyncedYouTubePlayer from '../../../components/SyncedYouTubePlayer';
+import SyncedYouTubePlayer, { DEFAULT_TRACK } from '../../../components/SyncedYouTubePlayer';
 import InGameChat from '../../../components/InGameChat';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'PokerRoom'>;
@@ -1694,7 +1694,7 @@ const PokerRoomScreen: React.FC<Props> = ({route, navigation}) => {
           visible={true}
         />
       )}
-      <SyncedYouTubePlayer roomId={null} visible={true} />
+      <SyncedYouTubePlayer roomId={null} visible={true} defaultTrack={DEFAULT_TRACK} />
     </View>
   );
 };

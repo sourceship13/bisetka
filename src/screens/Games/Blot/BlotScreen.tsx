@@ -47,7 +47,7 @@ import {
   dealCards,
   sortHandForDisplay,
 } from '../../../game/blotLogic';
-import SyncedYouTubePlayer from '../../../components/SyncedYouTubePlayer';
+import SyncedYouTubePlayer, { DEFAULT_TRACK } from '../../../components/SyncedYouTubePlayer';
 import InGameChat from '../../../components/InGameChat';
 import { playCardFlipSound } from '../../../utils/nardiSound';
 import apiService from '../../../services/api.service';
@@ -750,7 +750,7 @@ const BlotScreen = ({ navigation, route }: any) => {
       {/* Always mount SyncedYouTubePlayer alongside the other WebViews so all
           three hardware-accelerated layers are created together at screen open.
           Adding a new WebView after the others are running kills them on Android. */}
-      <SyncedYouTubePlayer roomId={null} visible={true} />
+      <SyncedYouTubePlayer roomId={null} visible={true} defaultTrack={DEFAULT_TRACK} />
       {(!targetScore || !gameState) ? (
         <View style={[StyleSheet.absoluteFill, {zIndex: 10}]}>
           <SafeAreaView style={styles.safeArea}>

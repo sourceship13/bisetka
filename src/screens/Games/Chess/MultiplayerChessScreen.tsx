@@ -12,7 +12,7 @@ import { BisetkaAlert } from '../../../utils/BisetkaAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AraratBackground from '../../../components/AraratBackground';
 import AR3DOverlay, {type AR3DOverlayHandle, type ARPiece} from '../../../components/AR3DOverlay';
-import SyncedYouTubePlayer from '../../../components/SyncedYouTubePlayer';
+import SyncedYouTubePlayer, { DEFAULT_TRACK } from '../../../components/SyncedYouTubePlayer';
 import ReAnimated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import ExpandableView from '../../../components/global/ExpandableView';
 import GameToolbar from '../../../components/global/GameToolbar';
@@ -897,6 +897,7 @@ const MultiplayerChessScreen = ({navigation, route}: any) => {
       <SyncedYouTubePlayer
         roomId={mode === 'game' && roomId ? roomId : null}
         visible={true}
+        defaultTrack={DEFAULT_TRACK}
       />
     </View>
   );

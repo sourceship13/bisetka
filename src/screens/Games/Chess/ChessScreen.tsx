@@ -32,7 +32,7 @@ import { useGameEndRefresh } from '../../../libs/hooks/useGameEndRefresh';
 import { apiService } from '../../../services/api.service';
 import { useAuth } from '../../../libs/hooks/useAuth';
 import { useAchievements } from '../../../contexts/AchievementContext';
-import SyncedYouTubePlayer from '../../../components/SyncedYouTubePlayer';
+import SyncedYouTubePlayer, { DEFAULT_TRACK } from '../../../components/SyncedYouTubePlayer';
 import InGameChat from '../../../components/InGameChat';
 import { resolveAvatar } from '../../../utils/avatars';
 
@@ -830,7 +830,7 @@ const ChessScreen = ({navigation, route}: any) => {
         gameType="chess"
         visible={true}
       />
-      <SyncedYouTubePlayer roomId={null} visible={true} />
+      <SyncedYouTubePlayer roomId={null} visible={true} defaultTrack={DEFAULT_TRACK} />
     </View>
   );
 };

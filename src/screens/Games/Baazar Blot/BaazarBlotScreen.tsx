@@ -54,7 +54,7 @@ import {
   findSequences,
   sortHandForDisplay,
 } from '../../../game/baazarBlotLogic';
-import SyncedYouTubePlayer from '../../../components/SyncedYouTubePlayer';
+import SyncedYouTubePlayer, { DEFAULT_TRACK } from '../../../components/SyncedYouTubePlayer';
 import InGameChat from '../../../components/InGameChat';
 
 const SUIT_ICON: Record<string, string> = {
@@ -1332,7 +1332,7 @@ const BaazarBlotScreen = ({ navigation, route }: any) => {
         gameType="baazar-blot"
         visible={true}
       />
-      <SyncedYouTubePlayer roomId={null} visible={true} />
+      <SyncedYouTubePlayer roomId={null} visible={true} defaultTrack={DEFAULT_TRACK} />
     </View>
   );
 };

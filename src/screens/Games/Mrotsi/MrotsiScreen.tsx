@@ -31,7 +31,7 @@ import Dice3DSimple from '../../../components/Games/Dice3DSimple';
 import { apiService } from '../../../services/api.service';
 import { useAuth } from '../../../libs/hooks/useAuth';
 import { useAchievements } from '../../../contexts/AchievementContext';
-import SyncedYouTubePlayer from '../../../components/SyncedYouTubePlayer';
+import SyncedYouTubePlayer, { DEFAULT_TRACK } from '../../../components/SyncedYouTubePlayer';
 import InGameChat from '../../../components/InGameChat';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -760,7 +760,7 @@ const MrotsiScreen = ({ navigation, route }: any) => {
         gameType="mrotsi"
         visible={true}
       />
-      <SyncedYouTubePlayer roomId={null} visible={true} />
+      <SyncedYouTubePlayer roomId={null} visible={true} defaultTrack={DEFAULT_TRACK} />
     </View>
   );
 };
