@@ -874,7 +874,10 @@ function _mkBody(x, y0, vx, vy, tv) {
     vel: new THREE.Vector3(vx, vy, -0.4),
     q: new THREE.Quaternion(Math.random()-.5, Math.random()-.5, Math.random()-.5, 1).normalize(),
     av: new THREE.Vector3((Math.random()-.5)*62, (Math.random()-.5)*62, (Math.random()-.5)*38),
-    settled: false, sf: 0, tf: 0, tv
+    // Known ahead of time — lets us continuously steer toward it while grounded
+    // instead of discovering the final face only after motion has stopped.
+    qTarget: _settleQ(tv),
+    settled: false, sf: 0, tf: 0, bf: 0, tv
   };
 }
 function _launchPhys(vxS, vyS, d1, d2) {
@@ -892,6 +895,7 @@ function _launchPhys(vxS, vyS, d1, d2) {
     ]
   };
   _physMeshes[0].visible = true; _physMeshes[1].visible = true;
+  _physMeshes[0].scale.set(1, 1, 1); _physMeshes[1].scale.set(1, 1, 1);
 }
 function _stepPhysDice() {
   if (!_physState) return;
@@ -905,18 +909,14 @@ function _stepPhysDice() {
     _physState.p.forEach((d, i) => {
       const tgt = _physState.restTargets[i];
       d.pos.lerp(tgt, 0.08);
-      if (d.qTarget) d.q.slerp(d.qTarget, 0.12);
       _physMeshes[i].position.copy(d.pos);
-      _physMeshes[i].quaternion.copy(d.q);
       if (d.pos.distanceTo(tgt) > 0.001) allArrived = false;
     });
     if (allArrived) {
       // Snap exactly to targets and stop
       _physState.p.forEach((d, i) => {
         d.pos.copy(_physState.restTargets[i]);
-        if (d.qTarget) d.q.copy(d.qTarget);
         _physMeshes[i].position.copy(d.pos);
-        _physMeshes[i].quaternion.copy(d.q);
       });
       _physState.sliding = false;
       // Apply green tint now that dice are in their final resting positions
@@ -928,10 +928,7 @@ function _stepPhysDice() {
   // ── Physics simulation ────────────────────────────────────────────────────
   _physState.p.forEach((d, i) => {
     if (d.settled) {
-      // Already stopped moving — keep easing rotation toward the flat target
-      // face independently of the other die, so a slow/stuck second die can't
-      // leave this one frozen mid-tumble indefinitely.
-      if (d.qTarget) d.q.slerp(d.qTarget, 0.12);
+      // Already locked to its flat result — nothing left to do.
       _physMeshes[i].position.copy(d.pos);
       _physMeshes[i].quaternion.copy(d.q);
       return;
@@ -962,16 +959,25 @@ function _stepPhysDice() {
       const dq = new THREE.Quaternion().setFromAxisAngle(d.av.clone().divideScalar(aSpd), aSpd * DT);
       d.q.multiplyQuaternions(dq, d.q).normalize();
     }
+    // Continuously steer toward the flat target face while grounded — the
+    // pull strengthens the longer it stays on the floor, so it converges onto
+    // the correct face *during* the bounce/tumble instead of stopping cocked
+    // on a corner/edge and correcting afterward.
+    if (onFloor) {
+      d.bf++;
+      const k = Math.min(0.02 + d.bf * 0.004, 0.28);
+      d.q.slerp(d.qTarget, k);
+    }
     // Settle only after minimum tumble duration AND both linear + angular slow
     const lSpd = Math.sqrt(d.vel.x*d.vel.x + d.vel.y*d.vel.y + d.vel.z*d.vel.z);
     if (onFloor && lSpd < 0.07 && aSpd < 1.4 && d.tf >= _DIE_MIN_FRAMES) {
-      if (++d.sf >= 38) {
-        d.settled = true; d.pos.z = _DIE_FLRZ;
+      if (++d.sf >= 8) {
+        // By now the continuous steering above has already converged the
+        // orientation onto the target face, so this final snap is imperceptible.
+        d.settled = true;
+        d.pos.z = _DIE_FLRZ;
         d.vel.set(0,0,0); d.av.set(0,0,0);
-        // Don't snap rotation instantly — whatever face the tumble stopped on
-        // (often a corner/edge) gets slerped to the flat target above, on the
-        // next frame this die is still `settled`, independent of the other die.
-        d.qTarget = _settleQ(d.tv);
+        d.q.copy(d.qTarget);
       }
     } else d.sf = 0;
     _physMeshes[i].position.copy(d.pos);
@@ -992,7 +998,7 @@ function _stepPhysDice() {
     }
   }
   // Both settled → fire result and start slide to center bar
-  if (_physState.p[0].settled && _physState.p[1].settled && !_physState.done) {
+  if (A.settled && B.settled && !_physState.done) {
     _physState.done = true;
     if (window.ReactNativeWebView) window.ReactNativeWebView.postMessage(
       JSON.stringify({ type: 'dice_result', die1: _physState.d1, die2: _physState.d2 })
@@ -2372,26 +2378,32 @@ function clonePiece(piece) {
   const isCheckerDisc = piece.pieceType === 'bg_checker' || piece.pieceType === 'checker';
   if (isCheckerDisc) {
     clone.rotation.x = 0;
+    // updatePieces() unconditionally overwrites the wrapper's own position
+    // (mesh.position.set) and scale (mesh.scale.setScalar/.set) for every
+    // piece, every update — so flattening/anchoring applied directly to
+    // 'clone' (the wrapper) gets wiped out immediately, leaving discs
+    // un-flattened and floating above the board with a visible shadow gap.
+    // Apply both to the inner model child instead: its transform survives,
+    // and since it's tuned so the disc's base sits exactly at the wrapper's
+    // local origin, later wrapper-level scale/position changes can't move
+    // that base away from 0.
+    const _model = clone.children[0] || clone;
     const _bb = new THREE.Box3().setFromObject(clone);
     const _sz = _bb.getSize(new THREE.Vector3());
     const FLAT_RATIO = 0.22;
     let _flatAxis = 'z';
     if (_sz.z >= _sz.x && _sz.z >= _sz.y) {
-      clone.scale.z *= FLAT_RATIO; _flatAxis = 'z';
+      _model.scale.z *= FLAT_RATIO; _flatAxis = 'z';
     } else if (_sz.y >= _sz.x && _sz.y >= _sz.z) {
-      clone.scale.y *= FLAT_RATIO; _flatAxis = 'y';
+      _model.scale.y *= FLAT_RATIO; _flatAxis = 'y';
     } else {
-      clone.scale.x *= FLAT_RATIO; _flatAxis = 'x';
+      _model.scale.x *= FLAT_RATIO; _flatAxis = 'x';
     }
-    // Squashing scales around the source GLB's own pivot, which is rarely at
-    // its base — that leftover offset is what made pieces hover with a visible
-    // gap/shadow above the board. Re-anchor so the piece's rendered base sits
-    // exactly at local 0 on the squashed axis, matching what updatePieces()
-    // expects posZ to mean (the height of the piece's resting surface).
     clone.updateMatrixWorld(true);
     const _bbAfter = new THREE.Box3().setFromObject(clone);
     const _baseAfter = _bbAfter.min[_flatAxis];
-    clone.position[_flatAxis] -= _baseAfter;
+    const _wrapperScale = clone.scale[_flatAxis] || 1;
+    _model.position[_flatAxis] -= _baseAfter / _wrapperScale;
   } else {
     clone.rotation.x = Math.PI / 2;
   }
