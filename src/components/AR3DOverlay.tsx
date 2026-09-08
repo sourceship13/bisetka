@@ -2371,46 +2371,34 @@ function clonePiece(piece) {
   // Clone the wrapper group returned by normalizePieceModel (deep clone preserves inner scale)
   const clone = sourceScene.clone(true);
   // Chess pieces need rotation.x = π/2 to cancel boardGroup's -π/2 and stand upright in world.
-  // Disc pieces (bg_checker, checker) should lay FLAT on the board surface. The source GLB
-  // for nardi/checkers checkers is roughly dome/ball shaped, so rotation alone can't flatten
-  // it — we squash whichever axis is currently the tallest to ~22% of its size, leaving the
-  // other two axes (the "face" of the disc) untouched, then re-anchor the base (see below).
+  // Disc pieces (bg_checker, checker) keep their native orientation/proportions (no artificial
+  // squashing — the source GLB is already flat) and just need their base anchored to local 0
+  // along the board's up axis (Z) so posZ places them exactly on the board surface, not floating.
   const isCheckerDisc = piece.pieceType === 'bg_checker' || piece.pieceType === 'checker';
   if (isCheckerDisc) {
     clone.rotation.x = 0;
     // updatePieces() unconditionally overwrites the wrapper's own position
     // (mesh.position.set) and scale (mesh.scale.setScalar/.set) for every
-    // piece, every update — so flattening/anchoring applied directly to
-    // 'clone' (the wrapper) gets wiped out immediately, leaving discs
-    // un-flattened and floating above the board with a visible shadow gap.
-    // Apply both to the inner model child instead: its transform survives,
-    // and since it's tuned so the disc's base sits exactly at the wrapper's
-    // local origin, later wrapper-level scale/position changes can't move
-    // that base away from 0.
+    // piece, every update — so anchoring applied directly to 'clone' (the
+    // wrapper) gets wiped out immediately, leaving discs floating above the
+    // board with a visible shadow gap. Anchor the inner model child instead:
+    // its transform survives, and since it's tuned so the disc's base sits
+    // exactly at the wrapper's local origin, later wrapper-level scale/
+    // position changes can't move that base away from 0.
     const _model = clone.children[0] || clone;
-    const _bb = new THREE.Box3().setFromObject(clone);
-    const _sz = _bb.getSize(new THREE.Vector3());
-    const FLAT_RATIO = 0.22;
-    let _flatAxis = 'z';
-    if (_sz.z >= _sz.x && _sz.z >= _sz.y) {
-      _model.scale.z *= FLAT_RATIO; _flatAxis = 'z';
-    } else if (_sz.y >= _sz.x && _sz.y >= _sz.z) {
-      _model.scale.y *= FLAT_RATIO; _flatAxis = 'y';
-    } else {
-      _model.scale.x *= FLAT_RATIO; _flatAxis = 'x';
-    }
     clone.updateMatrixWorld(true);
-    const _bbAfter = new THREE.Box3().setFromObject(clone);
-    const _baseAfter = _bbAfter.min[_flatAxis];
-    const _wrapperScale = clone.scale[_flatAxis] || 1;
-    _model.position[_flatAxis] -= _baseAfter / _wrapperScale;
+    const _bb = new THREE.Box3().setFromObject(clone);
+    const _wrapperScaleZ = clone.scale.z || 1;
+    _model.position.z -= _bb.min.z / _wrapperScaleZ;
   } else {
     clone.rotation.x = Math.PI / 2;
   }
 
   clone.traverse(ch => {
     if (!ch.isMesh) return;
-    ch.castShadow = true;
+    // Nardi/checker discs sit stacked close together — casting shadows makes
+    // every piece look like it's hovering with a dark halo underneath.
+    ch.castShadow = !isCheckerDisc;
     const origMats = Array.isArray(ch.material) ? ch.material : [ch.material];
     const newMats  = origMats.map(m => {
       const nm = m.clone();
